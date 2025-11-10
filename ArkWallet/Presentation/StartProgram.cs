@@ -7,7 +7,7 @@ class Program
     static async Task Main(string[] args)
     {
         _ = new TelegramBot();
-        TradingDemo.RunDemo();
+        await TradingDemo.RunDemo();
         Console.ReadLine();
     }
 }

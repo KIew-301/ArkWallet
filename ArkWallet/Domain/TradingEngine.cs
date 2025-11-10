@@ -24,6 +24,47 @@ namespace ArkWallet.Domain
 
         public async Task<OrderResult> PlaceOrder(TradeOrder order)
         {
+            if (order == null)
+                return OrderResult.Failed(null, "Ордер не может быть null");
+
+            if (order.Quantity <= 0)
+                return OrderResult.Failed(order, "Количество должно быть больше 0");
+
+            if (order.Price <= 0)
+                return OrderResult.Failed(order, "Цена должна быть больше 0");
+
+            if (string.IsNullOrEmpty(order.CharacterTokenId))
+                return OrderResult.Failed(order, "Не указан токен");
+
+            // Токен существует
+            var token = await _tokenRepo.GetAsyncById(order.CharacterTokenId);
+            if (token == null)
+                return OrderResult.Failed(order, $"Токен {order.CharacterTokenId} не найден");
+
+            // Трейдер существует
+            var trader = await _traderRepo.GetAsyncById(order.TraderTelegramId);
+            if (trader == null)
+                return OrderResult.Failed(order, $"Трейдер {order.TraderTelegramId} не найден");
+
+            // Токенов достаточно для продажи
+            if (order.Type == OrderType.Sell)
+            {
+                var portfolio = await _portfolioRepo.GetBySymbolAndOwnerAsync(
+                    order.TraderTelegramId, order.CharacterTokenId);
+
+                if (portfolio == null || portfolio.Quantity < order.Quantity)
+                    return OrderResult.Failed(order, "Недостаточно токенов для продажи");
+            }
+
+            // Токенов достаточно для покупки
+            if (order.Type == OrderType.Buy)
+            {
+                var totalCost = order.Quantity * order.Price;
+                if (trader.Balance < totalCost)
+                    return OrderResult.Failed(order, "Недостаточно средств");
+            }
+
+
             var orderBook = GetOrCreateOrderBook(order.CharacterTokenId);
 
             // Ищем подходящие ордера для матчинга
