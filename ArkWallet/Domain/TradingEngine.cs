@@ -1,7 +1,6 @@
 ﻿using ArkWallet.Entities;
 using ArkWallet.Repositories;
 using ArkWallet.ValueObjects;
-using System.Threading.Tasks;
 
 namespace ArkWallet.Domain
 {
@@ -37,12 +36,12 @@ namespace ArkWallet.Domain
                 return OrderResult.Failed(order, "Не указан токен");
 
             // Токен существует
-            var token = await _tokenRepo.GetAsyncById(order.CharacterTokenId);
+            var token = await _tokenRepo.GetByIdAsync(order.CharacterTokenId);
             if (token == null)
                 return OrderResult.Failed(order, $"Токен {order.CharacterTokenId} не найден");
 
             // Трейдер существует
-            var trader = await _traderRepo.GetAsyncById(order.TraderTelegramId);
+            var trader = await _traderRepo.GetByIdAsync(order.TraderTelegramId);
             if (trader == null)
                 return OrderResult.Failed(order, $"Трейдер {order.TraderTelegramId} не найден");
 
@@ -135,7 +134,7 @@ namespace ArkWallet.Domain
 
         private async Task UpdateTokenPrice(string characterTokenId, decimal tradePrice)
         {
-            var token = await _tokenRepo.GetAsyncById(characterTokenId);
+            var token = await _tokenRepo.GetByIdAsync(characterTokenId);
             if (token != null)
             {
                 token.UpdatePrice(tradePrice);

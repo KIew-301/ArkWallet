@@ -14,13 +14,20 @@ namespace ArkWallet.Repositories
             else _context = context;
         }
 
-        public async Task<Trade?> GetAsyncById(string id)
+        public async Task<Trade?> GetByIdAsync(string id)
         {
             return await _context.Trades.FirstOrDefaultAsync(t => t.Id == id);
         }
 
         public async Task AddAsync(Trade trade)
         {
+            var target = GetByIdAsync(trade.Id);
+
+            if (target != null)
+            {
+                return;
+            }
+
             await _context.Trades.AddAsync(trade);
             await _context.SaveChangesAsync();
         }
@@ -33,7 +40,7 @@ namespace ArkWallet.Repositories
 
         public async Task RemoveAsync(string id)
         {
-            Trade? trade = await GetAsyncById(id);
+            Trade? trade = await GetByIdAsync(id);
             if (trade == null)
             {
                 Console.WriteLine($"Обмен {id} не найден.");

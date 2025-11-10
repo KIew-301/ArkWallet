@@ -28,6 +28,13 @@ namespace ArkWallet.Repositories
 
         public async Task AddAsync(TradeOrder tradeOrder)
         {
+            var target = GetByIdAsync(tradeOrder.Id);
+
+            if (target != null)
+            {
+                return;
+            }
+
             await _context.TradeOrders.AddAsync(tradeOrder);
             await _context.SaveChangesAsync();
         }

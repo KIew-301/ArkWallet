@@ -1,6 +1,7 @@
 ﻿using ArkWallet.Data;
 using ArkWallet.Entities;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json.Linq;
 using System.Linq;
 
 namespace ArkWallet.Repositories
@@ -32,6 +33,13 @@ namespace ArkWallet.Repositories
 
         public async Task AddAsync(PortfolioItem item)
         {
+            var target = GetByIdAsync(item.Id);
+
+            if (target != null)
+            {
+                return;
+            }
+
             await _context.PortfolioItems.AddAsync(item);
             await _context.SaveChangesAsync();
         }

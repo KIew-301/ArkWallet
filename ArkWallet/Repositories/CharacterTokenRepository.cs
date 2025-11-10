@@ -14,13 +14,20 @@ namespace ArkWallet.Repositories
             else _context = context;
         }
 
-        public async Task<CharacterToken?> GetAsyncById(string id)
+        public async Task<CharacterToken?> GetByIdAsync(string id)
         {
             return await _context.CharacterTokens.FirstOrDefaultAsync(t => t.Symbol == id);
         }
 
         public async Task AddAsync(CharacterToken token)
         {
+            var target = GetByIdAsync(token.Symbol);
+
+            if (target != null)
+            {
+                return;
+            }
+
             await _context.CharacterTokens.AddAsync(token);
             await _context.SaveChangesAsync();
         }
@@ -33,7 +40,7 @@ namespace ArkWallet.Repositories
 
         public async Task RemoveAsync(string id)
         {
-            CharacterToken? token = await GetAsyncById(id);
+            CharacterToken? token = await GetByIdAsync(id);
             if (token == null)
             {
                 Console.WriteLine($"Токен {id} не найден.");

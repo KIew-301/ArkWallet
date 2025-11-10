@@ -1,6 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
-using ArkWallet.Data;
+﻿using ArkWallet.Data;
 using ArkWallet.Entities;
+using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 
 namespace ArkWallet.Repositories
 {
@@ -14,13 +15,20 @@ namespace ArkWallet.Repositories
             else _context = context;
         }
 
-        public async Task<Trader?> GetAsyncById(long id)
+        public async Task<Trader?> GetByIdAsync(long id)
         {
             return await _context.Traders.FirstOrDefaultAsync(t => t.TelegramId == id);
         }
 
         public async Task AddAsync(Trader trader)
         {
+            var target = GetByIdAsync(trader.TelegramId);
+
+            if (target != null)
+            {
+                return;
+            }
+
             await _context.Traders.AddAsync(trader);
             await _context.SaveChangesAsync();
         }
@@ -33,7 +41,7 @@ namespace ArkWallet.Repositories
 
         public async Task AddBalanceAsync(long traderId, decimal amount)
         {
-            Trader? trader = await GetAsyncById(traderId);
+            Trader? trader = await GetByIdAsync(traderId);
 
             if (trader != null)
             {
@@ -49,7 +57,7 @@ namespace ArkWallet.Repositories
 
         public async Task DeductBalanceAsync(long traderId, decimal amount)
         {
-            Trader? trader = await GetAsyncById(traderId);
+            Trader? trader = await GetByIdAsync(traderId);
 
             if (trader != null)
             {
@@ -65,7 +73,7 @@ namespace ArkWallet.Repositories
 
         public async Task RemoveAsync(long id)
         {
-            Trader? trader = await GetAsyncById(id);
+            Trader? trader = await GetByIdAsync(id);
             if (trader == null)
             {
                 Console.WriteLine($"Трейдер {id} не найден.");

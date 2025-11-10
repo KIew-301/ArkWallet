@@ -1,4 +1,5 @@
-﻿using Telegram.Bot;
+﻿using ArkWallet.Domain.Wizard;
+using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
@@ -11,16 +12,20 @@ namespace ArkWallet.Telegram
         // Интерфейс для взаимодействия с ботом
         ITelegramBotClient botClient;
 
-        // Взаимодействия с пользователями
-        Dictionary<long, TelegramService> TelegramServices = [];
+        // Взаимодействие с системой
+        private WizardEngine _wizardEngine;
 
-        public TelegramBot()
+        public TelegramBot(WizardEngine wizardEngine)
         {
             _instance = this;
+            _wizardEngine = wizardEngine;
+        }
 
+        public async Task Start()
+        {
             ConfigurationService configurationService = new();
-            LoadConfiguration(configurationService);
-            string token = configurationService.GetToken();
+            await LoadConfiguration(configurationService);
+            string token = await configurationService.GetToken();
 
             _ = LaunchBot(token);
         }
@@ -69,21 +74,7 @@ namespace ArkWallet.Telegram
 
             if (Instance.IsAuthorizedUser(chatId))
             {
-                string answer;
-
-                if (Instance.TelegramServices.TryGetValue(chatId, out var value))
-                {
-                    value.ProcessingMessage = messageText;
-                }
-                else
-                {
-                    TelegramService service = new(messageText, chatId);
-                    Instance.TelegramServices.Add(chatId, service);
-                }
-
-                CommandProcessor processor = new();
-                answer = processor.Check(Instance.TelegramServices[chatId]);
-                Instance.TelegramServices[chatId].ProcessingMessage = "";
+                var (answer, buttons) = await Instance._wizardEngine.ProcessInput(chatId, messageText);
 
                 if (!string.IsNullOrEmpty(answer))
                 {
