@@ -1,7 +1,10 @@
-﻿namespace ArkWallet.Entities
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace ArkWallet.Entities
 {
     internal class PortfolioItem
     {
+        [Key]
         public string Id { get; set; } = Guid.NewGuid().ToString();
 
         // Внешние ключи
@@ -14,8 +17,8 @@
         public DateTime AcquiredAt { get; set; } = DateTime.UtcNow;
 
         // Навигационные свойства
-        public virtual Trader Trader { get; set; }
-        public virtual CharacterToken CharacterToken { get; set; }
+        public virtual Trader? Trader { get; set; }
+        public virtual CharacterToken? CharacterToken { get; set; }
 
         // Методы
         public decimal GetTotalValue()

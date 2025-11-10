@@ -1,9 +1,11 @@
 ﻿using ArkWallet.ValueObjects;
+using System.ComponentModel.DataAnnotations;
 
 namespace ArkWallet.Entities
 {
     internal class TradeOrder
     {
+        [Key]
         public string Id { get; set; } = Guid.NewGuid().ToString();
 
         // Основные данные
@@ -20,8 +22,8 @@ namespace ArkWallet.Entities
         public DateTime? ExecutedAt { get; set; }
 
         // Навигационные свойства
-        public virtual Trader Trader { get; set; }
-        public virtual CharacterToken CharacterToken { get; set; }
+        public virtual Trader? Trader { get; set; }
+        public virtual CharacterToken? CharacterToken { get; set; }
 
         // Методы
         public bool IsFilled() => FilledQuantity >= Quantity;

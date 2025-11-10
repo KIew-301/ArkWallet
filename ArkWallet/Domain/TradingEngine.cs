@@ -1,5 +1,7 @@
 ﻿using ArkWallet.Entities;
+using ArkWallet.Repositories;
 using ArkWallet.ValueObjects;
+using System.Threading.Tasks;
 
 namespace ArkWallet.Domain
 {
@@ -7,7 +9,20 @@ namespace ArkWallet.Domain
     {
         private readonly Dictionary<string, OrderBook> _orderBooks = new();
 
-        public OrderResult PlaceOrder(TradeOrder order)
+        private readonly TraderRepository _traderRepo;
+        private readonly CharacterTokenRepository _tokenRepo;
+        private readonly PortfolioItemRepository _portfolioRepo;
+
+        public TradingEngine(TraderRepository traderRepo,
+                           CharacterTokenRepository tokenRepo,
+                           PortfolioItemRepository portfolioRepo)
+        {
+            _traderRepo = traderRepo;
+            _tokenRepo = tokenRepo;
+            _portfolioRepo = portfolioRepo;
+        }
+
+        public async Task<OrderResult> PlaceOrder(TradeOrder order)
         {
             var orderBook = GetOrCreateOrderBook(order.CharacterTokenId);
 
@@ -16,7 +31,7 @@ namespace ArkWallet.Domain
 
             if (matches.Any())
             {
-                return ExecuteTrades(order, matches, orderBook);
+                return await ExecuteTrades(order, matches, orderBook);
             }
             else
             {
@@ -33,7 +48,7 @@ namespace ArkWallet.Domain
                 : orderBook.Bids.Where(bid => bid.Price >= order.Price).ToList();
         }
 
-        private OrderResult ExecuteTrades(TradeOrder order, List<TradeOrder> matches, OrderBook orderBook)
+        private async Task<OrderResult> ExecuteTrades(TradeOrder order, List<TradeOrder> matches, OrderBook orderBook)
         {
             var trades = new List<Trade>();
             var remainingQuantity = order.Quantity;
@@ -43,16 +58,22 @@ namespace ArkWallet.Domain
                 if (remainingQuantity <= 0) break;
 
                 var tradeQuantity = Math.Min(remainingQuantity, match.GetRemainingQuantity());
-                var tradePrice = match.Price; // Исполняем по цене встречного ордера
+                var tradePrice = match.Price;
+                var totalAmount = tradeQuantity * tradePrice;
 
+                // 1. Создаем сделку
                 var trade = CreateTrade(order, match, tradeQuantity, tradePrice);
                 trades.Add(trade);
 
-                // Обновляем ордера
+                // 🔥 2. ОБНОВЛЯЕМ ДАННЫЕ В БД
+                await UpdateTokenPrice(order.CharacterTokenId, tradePrice);
+                await UpdatePortfolios(trade.BuyerId, trade.SellerId, order.CharacterTokenId, tradeQuantity, tradePrice);
+                await UpdateBalances(trade.BuyerId, trade.SellerId, totalAmount);
+
+                // 3. Обновляем ордера в памяти
                 UpdateOrderFill(order, tradeQuantity);
                 UpdateOrderFill(match, tradeQuantity);
 
-                // Убираем из стакана если исполнен
                 if (match.IsFilled())
                 {
                     RemoveFromOrderBook(match, orderBook);
@@ -62,7 +83,6 @@ namespace ArkWallet.Domain
                 remainingQuantity -= tradeQuantity;
             }
 
-            // Если ордер исполнен не полностью - добавляем остаток в стакан
             if (remainingQuantity > 0 && !order.IsFilled())
             {
                 order.Quantity = remainingQuantity;
@@ -70,6 +90,34 @@ namespace ArkWallet.Domain
             }
 
             return OrderResult.Filled(order, trades);
+        }
+
+        private async Task UpdateTokenPrice(string characterTokenId, decimal tradePrice)
+        {
+            var token = await _tokenRepo.GetAsyncById(characterTokenId);
+            if (token != null)
+            {
+                token.UpdatePrice(tradePrice);
+                await _tokenRepo.UpdateAsync(token);
+            }
+        }
+
+        private async Task UpdatePortfolios(long buyerId, long sellerId, string tokenSymbol, int quantity, decimal price)
+        {
+            // Покупатель получает токены
+            await _portfolioRepo.AddOrUpdateAsync(buyerId, tokenSymbol, quantity, price);
+
+            // Продавец теряет токены
+            await _portfolioRepo.RemoveOrUpdateAsync(sellerId, tokenSymbol, quantity);
+        }
+
+        private async Task UpdateBalances(long buyerId, long sellerId, decimal totalAmount)
+        {
+            // Покупатель платит
+            await _traderRepo.DeductBalanceAsync(buyerId, totalAmount);
+
+            // Продавец получает
+            await _traderRepo.AddBalanceAsync(sellerId, totalAmount);
         }
 
         private Trade CreateTrade(TradeOrder order, TradeOrder match, int quantity, decimal price)

@@ -1,9 +1,10 @@
-﻿using ArkWallet.ValueObjects;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace ArkWallet.Entities
 {
     internal class Trader
     {
+        [Key]
         public long TelegramId { get; set; }
         public string? Username { get; set; }
         public decimal Balance { get; set; } = 1000.0m;

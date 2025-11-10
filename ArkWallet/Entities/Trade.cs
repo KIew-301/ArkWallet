@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace ArkWallet.Entities
 {
     internal class Trade
     {
+        [Key]
         public string Id { get; set; } = Guid.NewGuid().ToString();
 
         // Участники сделки

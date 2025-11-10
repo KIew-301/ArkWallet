@@ -1,10 +1,11 @@
 ﻿using ArkWallet.ValueObjects;
+using System.ComponentModel.DataAnnotations;
 
 namespace ArkWallet.Entities
 {
     internal class CharacterToken
     {
-        public string Id { get; set; } = Guid.NewGuid().ToString();
+        [Key]
         public string Symbol { get; set; }                     
         public string Name { get; set; }
         public CharacterRarity Rarity { get; set; }
