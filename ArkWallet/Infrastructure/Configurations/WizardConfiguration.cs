@@ -41,7 +41,7 @@ namespace ArkWallet.Entities.Configurations
                 new()
                 {
                     Name = "set_token",
-                    Question = "Какой токен вы хотите выбрать?",
+                    Question = "Какой токен вы хотите выбрать? (выбрать из тех, которые у вас уже есть или введите новый)",
                 },
                 new()
                 {
@@ -51,7 +51,7 @@ namespace ArkWallet.Entities.Configurations
                 new()
                 {
                     Name = "set_price",
-                    Question = "По какой цене вы хотите исполнить ордер?",
+                    Question = "По какой цене вы хотите исполнить ордер? (выберите предложенные или напишите свою)",
                 }
             ];
 

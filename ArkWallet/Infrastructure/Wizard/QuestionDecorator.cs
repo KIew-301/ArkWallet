@@ -1,6 +1,7 @@
 ﻿using ArkWallet.ValueObjects;
 using ArkWallet.Repositories;
 using ArkWallet.Contracts;
+using System.Linq;
 
 namespace ArkWallet.Infrastructure.Wizard
 {
@@ -19,8 +20,15 @@ namespace ArkWallet.Infrastructure.Wizard
             {
                 "set_quantity" => await DecorateQuantityQuestion(baseQuestion, session),
                 "set_price" => await DecoratePriceQuestion(baseQuestion, session),
+                "set_token" => await DecorateTokenQuestion(baseQuestion, session),
                 _ => baseQuestion
             };
+        }
+
+        private async Task<string> DecorateTokenQuestion(string baseQuestion, UserSession session)
+        {
+            var tokens = await _uow.Portfolios.GetByTraderAsync(session.Id);
+            return $"{baseQuestion}\n\n💎 У вас есть: {string.Join(" ", tokens.Select(t => t.CharacterTokenId))}\n";
         }
 
         private async Task<string> DecorateQuantityQuestion(string baseQuestion, UserSession session)
@@ -36,8 +44,8 @@ namespace ArkWallet.Infrastructure.Wizard
             if (direction == "купить")
             {
                 return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
-                       $"💰 Цена: {token.CurrentPrice:F2}\n" +
-                       $"💵 Доступно: {trader.Balance / token.CurrentPrice:F1} шт";
+                       $"💰 Текущая цена: {token.CurrentPrice:F2}\n" +
+                       $"💵 По текущей цене доступно: {Math.Floor(trader.Balance / token.CurrentPrice)} шт";
             }
             else
             {

@@ -23,6 +23,7 @@ class Program
         services.AddScoped<TradingEngine>();
         services.AddScoped<TelegramBot>();
         services.AddScoped<QuestionDecorator>();
+        services.AddScoped<KeywordDecorator>();
         services.AddScoped<OrderService>();
         services.AddScoped<UnitOfWork>();
 

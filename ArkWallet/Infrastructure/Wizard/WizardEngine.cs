@@ -11,6 +11,7 @@ namespace ArkWallet.Infrastructure.Wizard
         private readonly WizardConfiguration _config;
         private readonly OrderService _orderService;
         private readonly QuestionDecorator _questionDecorator;
+        private readonly KeywordDecorator _keywordDecorator;
         private readonly Dictionary<long, UserSession> _sessions = new();
 
         private readonly IUnitOfWork _uow;
@@ -18,11 +19,13 @@ namespace ArkWallet.Infrastructure.Wizard
         public WizardEngine(WizardConfiguration config,
             OrderService orderService,
             QuestionDecorator questionDecorator,
+            KeywordDecorator keywordDecorator,
             IUnitOfWork uow)
         {
             _config = config;
             _orderService = orderService;
             _questionDecorator = questionDecorator;
+            _keywordDecorator = keywordDecorator;
             _uow = uow; 
             ConfigureHandlers();
             ConfigureAdditionHandlers();
@@ -92,13 +95,13 @@ namespace ArkWallet.Infrastructure.Wizard
             }
 
             // Обновляем шаг и возвращаем следующий вопрос
-            session.Data.Add(currentStep.Name, input);
             session.CurrentStep = result.NextStep;
             var nextStep = commandSteps.First(s => s.Name == result.NextStep);
 
-            string question = await _questionDecorator.Decorate(nextStep.Name, nextStep.Question, session);
+            var question = await _questionDecorator.Decorate(nextStep.Name, nextStep.Question, session);
+            var buttons = await _keywordDecorator.Decorate(nextStep.Name, nextStep.Buttons, session);
 
-            return (question, nextStep.Buttons);
+            return (question, buttons);
         }
     }
 }

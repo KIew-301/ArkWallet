@@ -21,6 +21,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 return StepResult.Error($"Необходимо ввести КУПИТЬ или ПРОДАТЬ.");
             }
 
+            session.Data.Add(session.CurrentStep, answer);
             return StepResult.Ok("set_token");
         }
 
@@ -44,6 +45,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 return StepResult.Error($"Вы не владеете токеном {token.Symbol}.");
             }
 
+            session.Data.Add(session.CurrentStep, input.ToUpper());
             return StepResult.Ok("set_quantity");
         }
 
@@ -67,21 +69,14 @@ namespace ArkWallet.Infrastructure.Wizard
             if (trader == null)
                 return StepResult.Error("Ошибка получения данных о трейдере.");
             if (token == null)
-                return StepResult.Error("Ошибка получения данных о трейдере.");
+                return StepResult.Error("Ошибка получения данных о токене.");
             if (item == null || item.CharacterToken == null)
                 return StepResult.Error("Ошибка в получении портфеля пользователя.");
 
             if (!int.TryParse(input, out int quantity))
                 return StepResult.Error("Необходимо ввести целое число.");
 
-            if (direction == "купить")
-            {
-                if (trader.Balance < quantity * token.CurrentPrice)
-                {
-                    return StepResult.Error($"Недостаточно средств для покупки такого количества токенов.");
-                }
-            }
-            else
+            if (direction == "продать")
             {
                 if (item.Quantity < quantity)
                 {
@@ -89,6 +84,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 }
             }
 
+            session.Data.Add(session.CurrentStep, quantity);
             return StepResult.Ok("set_price");
         }
 
@@ -96,12 +92,33 @@ namespace ArkWallet.Infrastructure.Wizard
         {
             if (!decimal.TryParse(input, out decimal price))
             {
-                return StepResult.Error("Необходимо ввести число (допустимо не целок).");
+                return StepResult.Error("Необходимо ввести число (допустимо не целое).");
             }
 
             if (price <= 0)
             {
                 return StepResult.Error("Цена должна быть равно 0 или быть больше.");
+            }
+
+            string direction = session.Data["set_direction"].ToString().ToLower();
+            int quantity = (int)session.Data["set_quantity"];
+            string symbol = session.Data["set_token"].ToString().ToUpper();
+
+            Trader? trader =
+                await _uow.Traders.GetByIdAsync(session.Id);
+
+            if (direction == "купить")
+            {
+                decimal needBalance = quantity * price;
+
+                if (trader.Balance < needBalance)
+                {
+                    decimal optimalPrice = trader.Balance / quantity - 0.01M;
+
+                    return StepResult.Error($"Недостаточно средств для покупки токенов " +
+                        $"{symbol} в количестве {quantity} по цене {price:F2}. " +
+                        $"Необходимо выбрать цену ниже или создать новый ордер. Минимальная доступная цена для такого количества: {optimalPrice:F2}");
+                }
             }
 
             session.Data.Add("set_price", input);
