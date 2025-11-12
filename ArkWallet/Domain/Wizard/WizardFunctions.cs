@@ -1,5 +1,6 @@
 ﻿using ArkWallet.Entities;
-using ArkWallet.Repositories;
+using ArkWallet.ValueObjects;
+using Telegram.Bot.Types;
 
 namespace ArkWallet.Domain.Wizard
 {
@@ -15,6 +16,22 @@ namespace ArkWallet.Domain.Wizard
             };
 
             await _traderRepo.AddAsync(newTrader);
+        }
+
+        public async Task<OrderResult> AddNewOrder(UserSession session)
+        {
+            TradeOrder newOrder = new()
+            {
+                Type = session.Data["set_direction"].ToString().ToLower()
+                    == "купить" ? OrderType.Buy : OrderType.Sell,
+                CharacterTokenId = session.Data["set_token"].ToString(),
+                TraderTelegramId = session.Id,
+                Price = decimal.Parse(session.Data["set_price"].ToString()),
+                Quantity = int.Parse(session.Data["set_quantity"].ToString()),
+            };
+
+            var result = await _tradingEngine.PlaceOrder(newOrder);
+            return result;
         }
     }
 }

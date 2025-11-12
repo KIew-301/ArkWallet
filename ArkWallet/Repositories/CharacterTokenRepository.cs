@@ -16,12 +16,13 @@ namespace ArkWallet.Repositories
 
         public async Task<CharacterToken?> GetByIdAsync(string id)
         {
+            id = id.ToUpper();
             return await _context.CharacterTokens.FirstOrDefaultAsync(t => t.Symbol == id);
         }
 
         public async Task AddAsync(CharacterToken token)
         {
-            var target = GetByIdAsync(token.Symbol);
+            var target = await GetByIdAsync(token.Symbol);
 
             if (target != null)
             {
@@ -40,6 +41,8 @@ namespace ArkWallet.Repositories
 
         public async Task RemoveAsync(string id)
         {
+            id = id.ToUpper();
+
             CharacterToken? token = await GetByIdAsync(id);
             if (token == null)
             {

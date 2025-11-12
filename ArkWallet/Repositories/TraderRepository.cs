@@ -1,7 +1,6 @@
 ﻿using ArkWallet.Data;
 using ArkWallet.Entities;
 using Microsoft.EntityFrameworkCore;
-using System.Diagnostics;
 
 namespace ArkWallet.Repositories
 {
@@ -22,7 +21,7 @@ namespace ArkWallet.Repositories
 
         public async Task AddAsync(Trader trader)
         {
-            var target = GetByIdAsync(trader.TelegramId);
+            var target = await GetByIdAsync(trader.TelegramId);
 
             if (target != null)
             {

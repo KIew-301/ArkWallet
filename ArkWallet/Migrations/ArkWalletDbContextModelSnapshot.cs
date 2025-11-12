@@ -19,7 +19,7 @@ namespace ArkWallet.Migrations
 
             modelBuilder.Entity("ArkWallet.Entities.CharacterToken", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<string>("Symbol")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
@@ -38,14 +38,10 @@ namespace ArkWallet.Migrations
                     b.Property<int>("Rarity")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Symbol")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("TotalSupply")
                         .HasColumnType("INTEGER");
 
-                    b.HasKey("Id");
+                    b.HasKey("Symbol");
 
                     b.ToTable("CharacterTokens");
                 });

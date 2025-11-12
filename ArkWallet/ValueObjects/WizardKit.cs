@@ -2,13 +2,12 @@
 {
     public class WizardStep
     {
-        public string? Name { get; set; }
-        public string? Question { get; set; }
+        public string Name { get; set; }
+        public string Question { get; set; }
         public string? ValidationPattern { get; set; }
-        public string? ErrorMessage { get; set; }
-        public string? NextStep { get; set; }
+        public string NextStep { get; set; }
         public List<QuickButton> Buttons { get; set; } = new();
-        public Func<UserSession, string, Task<StepResult>>? Handler { get; set; }
+        public Func<UserSession, string,Task<StepResult>>? Handler { get; set; }
     }
 
     public class QuickButton
@@ -23,7 +22,7 @@
         public string? Message { get; set; }
         public string? NextStep { get; set; }
 
-        public static StepResult Ok(string nextStep) => new() { Success = true, NextStep = nextStep };
+        public static StepResult Ok(string nextStep, string? message = null) => new() { Success = true, NextStep = nextStep, Message = message };
         public static StepResult Error(string message) => new() { Success = false, Message = message };
     }
 

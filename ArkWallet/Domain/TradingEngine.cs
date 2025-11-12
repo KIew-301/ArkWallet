@@ -13,8 +13,8 @@ namespace ArkWallet.Domain
         private readonly PortfolioItemRepository _portfolioRepo;
 
         public TradingEngine(TraderRepository traderRepo,
-                           CharacterTokenRepository tokenRepo,
-                           PortfolioItemRepository portfolioRepo)
+            CharacterTokenRepository tokenRepo,
+            PortfolioItemRepository portfolioRepo)
         {
             _traderRepo = traderRepo;
             _tokenRepo = tokenRepo;
@@ -62,7 +62,6 @@ namespace ArkWallet.Domain
                 if (trader.Balance < totalCost)
                     return OrderResult.Failed(order, "Недостаточно средств");
             }
-
 
             var orderBook = GetOrCreateOrderBook(order.CharacterTokenId);
 

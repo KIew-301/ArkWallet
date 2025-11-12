@@ -4,6 +4,7 @@ using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ArkWallet.Telegram
 {
@@ -76,12 +77,29 @@ namespace ArkWallet.Telegram
             {
                 var (answer, buttons) = await Instance._wizardEngine.ProcessInput(chatId, messageText);
 
+                var replyKeyboard = new ReplyKeyboardMarkup()
+                {
+                    ResizeKeyboard = true,
+                    OneTimeKeyboard = true
+                };
+
+                if (buttons != null)
+                {
+                    foreach (var button in buttons)
+                    {
+                        if (button != null && button.Text != null)
+                            replyKeyboard.AddButton(new(button.Text));
+                    }
+                }
+
+
                 if (!string.IsNullOrEmpty(answer))
                 {
                     await botClient.SendMessage(
                         chatId: chatId,
                         text: answer,
-                        cancellationToken: cancellationToken
+                        cancellationToken: cancellationToken,
+                        replyMarkup: replyKeyboard
                     );
                 }
             }

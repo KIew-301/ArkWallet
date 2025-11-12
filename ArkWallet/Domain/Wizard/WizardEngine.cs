@@ -7,6 +7,8 @@ namespace ArkWallet.Domain.Wizard
     internal partial class WizardEngine
     {
         private readonly WizardConfiguration _config;
+        private readonly TradingEngine _tradingEngine;
+        private readonly QuestionDecorator _questionDecorator;
         private readonly Dictionary<long, UserSession> _sessions = new();
 
         private readonly TraderRepository _traderRepo;
@@ -16,7 +18,9 @@ namespace ArkWallet.Domain.Wizard
         public WizardEngine(WizardConfiguration config,
             TraderRepository traderRepo,
             CharacterTokenRepository tokenRepo,
-            PortfolioItemRepository portfolioRepo)
+            PortfolioItemRepository portfolioRepo,
+            TradingEngine tradingEngine,
+            QuestionDecorator questionDecorator)
         {
             _config = config;
 
@@ -25,12 +29,19 @@ namespace ArkWallet.Domain.Wizard
             _portfolioRepo = portfolioRepo;
 
             ConfigureHandlers();
+            ConfigureAdditionHandlers();
+            _tradingEngine = tradingEngine;
+            _questionDecorator = questionDecorator;
         }
 
         private void ConfigureHandlers()
         {
-            // Регистрация
+            // Регистрация комманд
             _config.Commands["/start"][0].Handler = HandleSetName;
+            _config.Commands["/placeorder"][0].Handler = HandleSetDirection;
+            _config.Commands["/placeorder"][1].Handler = HandleSetToken;
+            _config.Commands["/placeorder"][2].Handler = HandleSetTokenQuantity;
+            _config.Commands["/placeorder"][3].Handler = HandleSetTokenPrice;
         }
 
         public async Task<(string? message, List<QuickButton>? buttons)> ProcessInput(long userId, string input)
@@ -48,12 +59,6 @@ namespace ArkWallet.Domain.Wizard
             }
 
             return ("Неизвестная команда", null);
-        }
-
-        private async Task<StepResult> HandleSetName(UserSession session, string input)
-        {
-            await AddNewTrader(session.Id, input);
-            return StepResult.Ok("completed");
         }
 
         private async Task<(string?, List<QuickButton>)> StartCommand(long userId, string command)
@@ -93,9 +98,13 @@ namespace ArkWallet.Domain.Wizard
             }
 
             // Обновляем шаг и возвращаем следующий вопрос
+            session.Data.Add(currentStep.Name, input);
             session.CurrentStep = result.NextStep;
             var nextStep = commandSteps.First(s => s.Name == result.NextStep);
-            return (nextStep.Question, nextStep.Buttons);
+
+            string question = await _questionDecorator.Decorate(nextStep.Name, nextStep.Question, session);
+
+            return (question, nextStep.Buttons);
         }
     }
 }

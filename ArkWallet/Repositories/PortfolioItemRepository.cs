@@ -28,12 +28,13 @@ namespace ArkWallet.Repositories
 
         public async Task<PortfolioItem?> GetBySymbolAndOwnerAsync(long ownerId, string symbol)
         {
+            symbol = symbol.ToUpper();
             return await _context.PortfolioItems.FirstOrDefaultAsync(p => p.CharacterTokenId == symbol && ownerId == p.TraderTelegramId);
         }
 
         public async Task AddAsync(PortfolioItem item)
         {
-            var target = GetByIdAsync(item.Id);
+            var target = await GetByIdAsync(item.Id);
 
             if (target != null)
             {
@@ -52,6 +53,7 @@ namespace ArkWallet.Repositories
 
         public async Task AddOrUpdateAsync(long ownerId, string symbol, int quantity, decimal price)
         {
+            symbol = symbol.ToUpper();
             PortfolioItem? item = await GetBySymbolAndOwnerAsync(ownerId, symbol);
 
             if (item == null)

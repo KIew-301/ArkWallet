@@ -21,7 +21,7 @@ namespace ArkWallet.Repositories
 
         public async Task AddAsync(Trade trade)
         {
-            var target = GetByIdAsync(trade.Id);
+            var target = await GetByIdAsync(trade.Id);
 
             if (target != null)
             {

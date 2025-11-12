@@ -2,13 +2,14 @@
 
 namespace ArkWallet.Data
 {
-    internal class WizardConfiguration
+    partial class WizardConfiguration
     {
         public Dictionary<string, List<WizardStep>> Commands { get; } = new();
 
         public WizardConfiguration()
         {
             ConfigureRegistrationCommand();
+            ConfigureRegistrationAdditionCommand();
         }
 
         private void ConfigureRegistrationCommand()
@@ -19,10 +20,42 @@ namespace ArkWallet.Data
                 {
                     Name = "set_name",
                     Question = "Как вас будут звать?",
+                    
                 }
             };
 
             Commands["/start"] = steps;
+
+            steps =
+            [
+                new()
+                {
+                    Name = "set_direction",
+                    Question = "Вы желаете КУПИТЬ или ПРОДАТЬ токен?",
+                    Buttons =
+                    [
+                        new() {Text = "Купить", Value = "Купить"},
+                        new() {Text = "Продать", Value = "Продать"}
+                    ]
+                },
+                new()
+                {
+                    Name = "set_token",
+                    Question = "Какой токен вы хотите выбрать?",
+                },
+                new()
+                {
+                    Name = "set_quantity",
+                    Question = "Сколько вы хотите выбрать?",
+                },
+                new()
+                {
+                    Name = "set_price",
+                    Question = "По какой цене вы хотите исполнить ордер?",
+                }
+            ];
+
+            Commands["/placeorder"] = steps;
         }
     }
 }

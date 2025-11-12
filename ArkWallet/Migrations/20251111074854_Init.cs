@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ArkWallet.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class Init : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -15,7 +15,6 @@ namespace ArkWallet.Migrations
                 name: "CharacterTokens",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "TEXT", nullable: false),
                     Symbol = table.Column<string>(type: "TEXT", nullable: false),
                     Name = table.Column<string>(type: "TEXT", nullable: false),
                     Rarity = table.Column<int>(type: "INTEGER", nullable: false),
@@ -26,7 +25,7 @@ namespace ArkWallet.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_CharacterTokens", x => x.Id);
+                    table.PrimaryKey("PK_CharacterTokens", x => x.Symbol);
                 });
 
             migrationBuilder.CreateTable(
@@ -62,7 +61,7 @@ namespace ArkWallet.Migrations
                         name: "FK_PortfolioItems_CharacterTokens_CharacterTokenId",
                         column: x => x.CharacterTokenId,
                         principalTable: "CharacterTokens",
-                        principalColumn: "Id",
+                        principalColumn: "Symbol",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_PortfolioItems_Traders_TraderTelegramId",
@@ -94,7 +93,7 @@ namespace ArkWallet.Migrations
                         name: "FK_TradeOrders_CharacterTokens_CharacterTokenId",
                         column: x => x.CharacterTokenId,
                         principalTable: "CharacterTokens",
-                        principalColumn: "Id",
+                        principalColumn: "Symbol",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_TradeOrders_Traders_TraderTelegramId",
@@ -123,7 +122,7 @@ namespace ArkWallet.Migrations
                         name: "FK_Trades_CharacterTokens_CharacterTokenId",
                         column: x => x.CharacterTokenId,
                         principalTable: "CharacterTokens",
-                        principalColumn: "Id",
+                        principalColumn: "Symbol",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_Trades_Traders_BuyerId",

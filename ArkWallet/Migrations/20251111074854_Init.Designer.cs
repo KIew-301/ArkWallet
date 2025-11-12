@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ArkWallet.Migrations
 {
     [DbContext(typeof(ArkWalletDbContext))]
-    [Migration("20251110051727_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20251111074854_Init")]
+    partial class Init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -22,7 +22,7 @@ namespace ArkWallet.Migrations
 
             modelBuilder.Entity("ArkWallet.Entities.CharacterToken", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<string>("Symbol")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
@@ -41,14 +41,10 @@ namespace ArkWallet.Migrations
                     b.Property<int>("Rarity")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Symbol")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("TotalSupply")
                         .HasColumnType("INTEGER");
 
-                    b.HasKey("Id");
+                    b.HasKey("Symbol");
 
                     b.ToTable("CharacterTokens");
                 });
