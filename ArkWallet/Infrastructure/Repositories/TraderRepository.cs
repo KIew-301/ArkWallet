@@ -1,22 +1,76 @@
-﻿using ArkWallet.Data;
+﻿using ArkWallet.Contracts;
+using ArkWallet.Data;
 using ArkWallet.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace ArkWallet.Repositories
 {
-    internal class TraderRepository
+    internal class TraderRepository : ITraderRepository
     {
         private readonly ArkWalletDbContext _context;
 
         public TraderRepository(ArkWalletDbContext context)
         {
-            if (context == null) throw new ArgumentNullException(nameof(context));
-            else _context = context;
+            _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        public async Task<Trader?> GetByIdAsync(long id)
+        public async Task<Trader?> GetByIdAsync(object id)
         {
-            return await _context.Traders.FirstOrDefaultAsync(t => t.TelegramId == id);
+            if (id is long telegramId)
+            {
+                return await _context.Traders.FirstOrDefaultAsync(t => t.TelegramId == telegramId);
+            }
+            return null;
+        }
+
+        public async Task<IEnumerable<Trader>> GetAllAsync()
+        {
+            return await _context.Traders.ToListAsync();
+        }
+
+        public async Task AddAsync(Trader entity)
+        {
+            await _context.Traders.AddAsync(entity);
+        }
+
+        public async Task AddRangeAsync(IEnumerable<Trader> entities)
+        {
+            await _context.Traders.AddRangeAsync(entities);
+        }
+
+        public async Task UpdateAsync(Trader entity)
+        {
+            _context.Traders.Update(entity);
+        }
+
+        public async Task UpdateRangeAsync(IEnumerable<Trader> entities)
+        {
+            _context.Traders.UpdateRange(entities);
+        }
+
+        public void RemoveAsync(Trader entity)
+        {
+            _context.Traders.Remove(entity);
+        }
+
+        public void RemoveRangeAsync(IEnumerable<Trader> entities)
+        {
+            _context.Traders.RemoveRange(entities);
+        }
+
+        public async Task<bool> ExistsAsync(object id)
+        {
+            if (id is long telegramId)
+            {
+                return await _context.Traders.AnyAsync(t => t.TelegramId == telegramId);
+            }
+            return false;
+        }
+
+        // Специфичные методы
+        public async Task<Trader?> GetByTelegramIdAsync(long telegramId)
+        {
+            return await GetByIdAsync(telegramId);
         }
 
         public async Task<List<Trader>> GetByIdsAsync(IEnumerable<long> telegramIds)
@@ -26,80 +80,19 @@ namespace ArkWallet.Repositories
                 .ToListAsync();
         }
 
-        public async Task AddRangeAsync(IEnumerable<Trader> entities)
+        public async Task<bool> ExistsByTelegramIdAsync(long telegramId)
         {
-            await _context.Traders.AddRangeAsync(entities);
+            return await ExistsAsync(telegramId);
         }
 
-        public async Task UpdateRangeAsync(IEnumerable<Trader> entities)
+        public async Task UpdateBalanceAsync(long telegramId, decimal newBalance)
         {
-            _context.Traders.UpdateRange(entities);
-        }
-
-        public async Task AddAsync(Trader trader)
-        {
-            var target = await GetByIdAsync(trader.TelegramId);
-
-            if (target != null)
-            {
-                return;
-            }
-
-            await _context.Traders.AddAsync(trader);
-        }
-
-        public async Task UpdateAsync(Trader trader)
-        {
-            _context.Traders.Update(trader);
-        }
-
-        public async Task AddBalanceAsync(long traderId, decimal amount)
-        {
-            Trader? trader = await GetByIdAsync(traderId);
-
+            var trader = await GetByIdAsync(telegramId);
             if (trader != null)
             {
-                trader.Balance += amount;
+                trader.Balance = newBalance;
                 _context.Traders.Update(trader);
             }
-            else
-            {
-                Console.WriteLine($"Трейдер {traderId} не найден.");
-            }
-        }
-
-        public async Task DeductBalanceAsync(long traderId, decimal amount)
-        {
-            Trader? trader = await GetByIdAsync(traderId);
-
-            if (trader != null)
-            {
-                trader.Balance -= amount;
-                _context.Traders.Update(trader);
-            }
-            else
-            {
-                Console.WriteLine($"Трейдер {traderId} не найден.");
-            }
-        }
-
-        public async Task RemoveAsync(long id)
-        {
-            Trader? trader = await GetByIdAsync(id);
-            if (trader == null)
-            {
-                Console.WriteLine($"Трейдер {id} не найден.");
-            }
-            else
-            {
-                _context.Traders.Remove(trader);
-                Console.WriteLine($"Трейдер {id} успешно удалён");
-            }
-        }
-
-        public async Task RemoveRangeAsync(List<Trader> traders)
-        {
-            _context.Traders.RemoveRange(traders);
         }
     }
 }

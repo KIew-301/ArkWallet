@@ -27,7 +27,7 @@ namespace ArkWallet.Application.Services
                 var token = await _unitOfWork.GetTokenAsync(order.CharacterTokenId);
 
                 // 2. ВЫЗЫВАЕМ TRADINGENGINE
-                var engineResult = _tradingEngine.ProcessOrder(order, existingOrders, traders, portfolios, token);
+                var engineResult = _tradingEngine.ProcessOrder(order, [.. existingOrders], traders, portfolios, token);
 
                 if (!engineResult.IsSuccess)
                     return OrderResult.Failed(order, engineResult.Error);

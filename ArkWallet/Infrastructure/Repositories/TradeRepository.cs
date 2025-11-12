@@ -1,22 +1,36 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using ArkWallet.Contracts;
 using ArkWallet.Data;
 using ArkWallet.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace ArkWallet.Repositories
 {
-    internal class TradeRepository
+    internal class TradeRepository : ITradeRepository
     {
         private readonly ArkWalletDbContext _context;
 
         public TradeRepository(ArkWalletDbContext context)
         {
-            if (context == null) throw new ArgumentNullException(nameof(context));
-            else _context = context;
+            _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        public async Task<Trade?> GetByIdAsync(string id)
+        public async Task<Trade?> GetByIdAsync(object id)
         {
-            return await _context.Trades.FirstOrDefaultAsync(t => t.Id == id);
+            if (id is string tradeId)
+            {
+                return await _context.Trades.FirstOrDefaultAsync(t => t.Id == tradeId);
+            }
+            return null;
+        }
+
+        public async Task<IEnumerable<Trade>> GetAllAsync()
+        {
+            return await _context.Trades.ToListAsync();
+        }
+
+        public async Task AddAsync(Trade entity)
+        {
+            await _context.Trades.AddAsync(entity);
         }
 
         public async Task AddRangeAsync(IEnumerable<Trade> entities)
@@ -24,45 +38,56 @@ namespace ArkWallet.Repositories
             await _context.Trades.AddRangeAsync(entities);
         }
 
+        public async Task UpdateAsync(Trade entity)
+        {
+            _context.Trades.Update(entity);
+        }
+
         public async Task UpdateRangeAsync(IEnumerable<Trade> entities)
         {
             _context.Trades.UpdateRange(entities);
         }
 
-        public async Task AddAsync(Trade trade)
+        public void RemoveAsync(Trade entity)
         {
-            var target = await GetByIdAsync(trade.Id);
-
-            if (target != null)
-            {
-                return;
-            }
-
-            await _context.Trades.AddAsync(trade);
+            _context.Trades.Remove(entity);
         }
 
-        public async Task UpdateAsync(Trade trade)
+        public void RemoveRangeAsync(IEnumerable<Trade> entities)
         {
-            _context.Trades.Update(trade);
+            _context.Trades.RemoveRange(entities);
         }
 
-        public async Task RemoveAsync(string id)
+        public async Task<bool> ExistsAsync(object id)
         {
-            Trade? trade = await GetByIdAsync(id);
-            if (trade == null)
+            if (id is string tradeId)
             {
-                Console.WriteLine($"Обмен {id} не найден.");
+                return await _context.Trades.AnyAsync(t => t.Id == tradeId);
             }
-            else
-            {
-                _context.Trades.Remove(trade);
-                Console.WriteLine($"Обмен {id} успешно удалён");
-            }
+            return false;
         }
 
-        public async Task RemoveRange(List<Trade> trades)
+        // Специфичные методы
+        public async Task<Trade[]> GetByTraderAsync(long traderId)
         {
-            _context.Trades.RemoveRange(trades);
+            return await _context.Trades
+                .Where(t => t.BuyerId == traderId || t.SellerId == traderId)
+                .ToArrayAsync();
+        }
+
+        public async Task<Trade[]> GetBySymbolAsync(string symbol)
+        {
+            return await _context.Trades
+                .Where(t => t.CharacterTokenId == symbol)
+                .ToArrayAsync();
+        }
+
+        public async Task<Trade[]> GetRecentTradesAsync(int count)
+        {
+            return await _context.Trades
+                .OrderByDescending(t => t.ExecutedAt)
+                .Take(count)
+                .ToArrayAsync();
         }
     }
 }

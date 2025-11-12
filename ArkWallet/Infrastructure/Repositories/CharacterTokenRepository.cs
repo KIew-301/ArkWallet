@@ -1,42 +1,51 @@
 ﻿using ArkWallet.Contracts;
 using ArkWallet.Data;
 using ArkWallet.Entities;
+using ArkWallet.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
 
 namespace ArkWallet.Repositories
 {
-    internal class CharacterTokenRepository
+    internal class CharacterTokenRepository : ICharacterTokenRepository
     {
         private readonly ArkWalletDbContext _context;
 
         public CharacterTokenRepository(ArkWalletDbContext context)
         {
-            if (context == null) throw new ArgumentNullException(nameof(context));
-            else _context = context;
+            _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        public async Task<CharacterToken?> GetByIdAsync(string id)
+        public async Task<CharacterToken?> GetByIdAsync(object id)
         {
-            id = id.ToUpper();
-            return await _context.CharacterTokens.FirstOrDefaultAsync(t => t.Symbol == id);
+            if (id is string symbol)
+            {
+                symbol = symbol.ToUpper();
+                return await _context.CharacterTokens.FirstOrDefaultAsync(t => t.Symbol == symbol);
+            }
+
+            return null;
+        }
+
+        public async Task<CharacterToken?> GetBySymbolAsync(string symbol)
+        {
+            return await GetByIdAsync(symbol);
+        }
+
+        public async Task<IEnumerable<CharacterToken>> GetAllAsync()
+        {
+            return await _context.CharacterTokens.ToListAsync();
         }
 
         public async Task AddAsync(CharacterToken token)
         {
             var target = await GetByIdAsync(token.Symbol);
-
-            if (target != null)
-            {
-                return;
-            }
-
             await _context.CharacterTokens.AddAsync(token);
         }
 
         public async Task UpdateAsync(CharacterToken token)
         {
-            _context.CharacterTokens.Update(token); 
+            _context.CharacterTokens.Update(token);
         }
 
         public async Task AddRangeAsync(IEnumerable<CharacterToken> entities)
@@ -48,25 +57,33 @@ namespace ArkWallet.Repositories
         {
             _context.CharacterTokens.UpdateRange(entities);
         }
-
-        public async Task RemoveAsync(string id)
+        public void RemoveAsync(CharacterToken entity)
         {
-            id = id.ToUpper();
-
-            CharacterToken? token = await GetByIdAsync(id);
-            if (token == null)
-            {
-                Console.WriteLine($"Токен {id} не найден.");
-            }
-            else
-            {
-                _context.CharacterTokens.Remove(token);
-            }
+            _context.CharacterTokens.Remove(entity);
         }
 
-        public async Task RemoveRange(List<CharacterToken> tokens)
+        public void RemoveRangeAsync(IEnumerable<CharacterToken> entities)
         {
-            _context.CharacterTokens.RemoveRange(tokens);
+            _context.CharacterTokens.RemoveRange(entities);
+        }
+
+        public async Task<bool> ExistsAsync(object id)
+        {
+            return await GetByIdAsync(id) != null;
+        }
+
+        public async Task<List<CharacterToken>> GetActiveTokensAsync()
+        {
+            return await _context.CharacterTokens
+                .Where(t => t.IsActive)
+                .ToListAsync();
+        }
+
+        public async Task<List<CharacterToken>> GetByRarityAsync(CharacterRarity rarity)
+        {
+            return await _context.CharacterTokens
+                .Where(t => t.Rarity == rarity)
+                .ToListAsync();
         }
     }
 }

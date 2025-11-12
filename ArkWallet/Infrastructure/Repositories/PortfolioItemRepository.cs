@@ -1,34 +1,36 @@
-﻿using ArkWallet.Data;
+﻿using ArkWallet.Contracts;
+using ArkWallet.Data;
 using ArkWallet.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace ArkWallet.Repositories
 {
-    internal class PortfolioItemRepository
+    internal class PortfolioItemRepository : IPortfolioItemRepository
     {
         private readonly ArkWalletDbContext _context;
 
         public PortfolioItemRepository(ArkWalletDbContext context)
         {
-            if (context == null) throw new ArgumentNullException(nameof(context));
-            else _context = context;
+            _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        public async Task<PortfolioItem?> GetByIdAsync(string id)
+        public async Task<PortfolioItem?> GetByIdAsync(object id)
         {
-            return await _context.PortfolioItems.FirstOrDefaultAsync(p => p.Id == id);
+            if (id is string portfolioId)
+            {
+                return await _context.PortfolioItems.FirstOrDefaultAsync(p => p.Id == portfolioId);
+            }
+            return null;
         }
 
-        public async Task<PortfolioItem[]> GetAllByTraderAsync(long traderId)
+        public async Task<IEnumerable<PortfolioItem>> GetAllAsync()
         {
-            return await _context.PortfolioItems.Where(p => p.TraderTelegramId == traderId).ToArrayAsync();
+            return await _context.PortfolioItems.ToListAsync();
         }
 
-        public async Task<List<PortfolioItem>> GetByTradersAndSymbolAsync(IEnumerable<long> traderIds, string symbol)
+        public async Task AddAsync(PortfolioItem entity)
         {
-            return await _context.PortfolioItems
-                .Where(p => traderIds.Contains(p.TraderTelegramId) && p.CharacterTokenId == symbol)
-                .ToListAsync();
+            await _context.PortfolioItems.AddAsync(entity);
         }
 
         public async Task AddRangeAsync(IEnumerable<PortfolioItem> entities)
@@ -36,105 +38,62 @@ namespace ArkWallet.Repositories
             await _context.PortfolioItems.AddRangeAsync(entities);
         }
 
+        public async Task UpdateAsync(PortfolioItem entity)
+        {
+            _context.PortfolioItems.Update(entity);
+        }
+
         public async Task UpdateRangeAsync(IEnumerable<PortfolioItem> entities)
         {
             _context.PortfolioItems.UpdateRange(entities);
         }
 
-        public async Task<PortfolioItem?> GetBySymbolAndOwnerAsync(long ownerId, string symbol)
+        public void RemoveAsync(PortfolioItem entity)
+        {
+            _context.PortfolioItems.Remove(entity);
+        }
+
+        public void RemoveRangeAsync(IEnumerable<PortfolioItem> entities)
+        {
+            _context.PortfolioItems.RemoveRange(entities);
+        }
+
+        public async Task<bool> ExistsAsync(object id)
+        {
+            if (id is string portfolioId)
+            {
+                return await _context.PortfolioItems.AnyAsync(p => p.Id == portfolioId);
+            }
+            return false;
+        }
+
+        // Специфичные методы
+        public async Task<PortfolioItem?> GetByTraderAndSymbolAsync(long traderId, string symbol)
         {
             symbol = symbol.ToUpper();
-            return await _context.PortfolioItems.FirstOrDefaultAsync(p => p.CharacterTokenId == symbol && ownerId == p.TraderTelegramId);
+            return await _context.PortfolioItems
+                .FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
         }
 
-        public async Task AddAsync(PortfolioItem item)
+        public async Task<List<PortfolioItem>> GetByTraderAsync(long traderId)
         {
-            var target = await GetByIdAsync(item.Id);
-
-            if (target != null)
-            {
-                return;
-            }
-
-            await _context.PortfolioItems.AddAsync(item);
+            return await _context.PortfolioItems
+                .Where(p => p.TraderTelegramId == traderId)
+                .ToListAsync();
         }
 
-        public async Task UpdateAsync(PortfolioItem item)
-        {
-            _context.PortfolioItems.Update(item);
-        }
-
-        public async Task AddOrUpdateAsync(long ownerId, string symbol, int quantity, decimal price)
+        public async Task<List<PortfolioItem>> GetByTradersAndSymbolAsync(IEnumerable<long> traderIds, string symbol)
         {
             symbol = symbol.ToUpper();
-            PortfolioItem? item = await GetBySymbolAndOwnerAsync(ownerId, symbol);
-
-            if (item == null)
-            {
-                var newItem = new PortfolioItem()
-                {
-                    TraderTelegramId = ownerId,
-                    CharacterTokenId = symbol,
-                    Quantity = quantity,
-                    AverageBuyPrice = price,
-                };
-
-                await _context.PortfolioItems.AddAsync(newItem);
-            }
-            else
-            {
-                item.Quantity += quantity;
-
-                item.AverageBuyPrice = 
-                    (item.AverageBuyPrice * (item.Quantity - quantity) + price * quantity)
-                             / item.Quantity;
-
-                _context.PortfolioItems.Update(item);
-            }
+            return await _context.PortfolioItems
+                .Where(p => traderIds.Contains(p.TraderTelegramId) && p.CharacterTokenId == symbol)
+                .ToListAsync();
         }
 
-        public async Task RemoveOrUpdateAsync(long ownerId, string symbol, int quantity)
+        public async Task<decimal> GetTotalPortfolioValueAsync(long traderId)
         {
-            PortfolioItem? item = await GetBySymbolAndOwnerAsync(ownerId, symbol);
-
-            if (item != null)
-            {
-                item.Quantity -= quantity;
-
-                if (item.Quantity > 0)
-                {
-                    _context.PortfolioItems.Update(item);
-                }
-                else
-                {
-                    await RemoveAsync(item);
-                }
-            }
-        }
-
-        public async Task RemoveAsyncById(string id)
-        {
-            PortfolioItem? item = await GetByIdAsync(id);
-            if (item == null)
-            {
-                Console.WriteLine($"Токен {id} у пользователя не найден.");
-            }
-            else
-            {
-                _context.PortfolioItems.Remove(item);
-                Console.WriteLine($"Токен {id} у пользователя успешно удалён");
-            }
-        }
-
-        public async Task RemoveAsync(PortfolioItem item)
-        {
-            _context.PortfolioItems.Remove(item);
-            Console.WriteLine($"Токен {item.CharacterTokenId} у пользователя успешно удалён");
-        }
-
-        public async Task RemoveRange(List<PortfolioItem> items)
-        {
-            _context.PortfolioItems.RemoveRange(items);
+            var items = await GetByTraderAsync(traderId);
+            return items.Sum(item => item.GetTotalValue());
         }
     }
 }

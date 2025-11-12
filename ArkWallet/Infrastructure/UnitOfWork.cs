@@ -30,7 +30,7 @@ namespace ArkWallet.Infrastructure
             _dbContext = dbContext;
         }
 
-        public async Task<List<TradeOrder>> GetActiveOrdersForMatchingAsync(string symbol)
+        public async Task<TradeOrder[]> GetActiveOrdersForMatchingAsync(string symbol)
         {
             return await _orderRepo.GetActiveBySymbolAsync(symbol);
         }

@@ -46,7 +46,7 @@ namespace ArkWallet.Infrastructure.Wizard
             }
             else
             {
-                var item = await _portfolioRepo.GetBySymbolAndOwnerAsync(session.Id, symbol);
+                var item = await _portfolioRepo.GetByTraderAndSymbolAsync(session.Id, symbol);
                 return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
                        $"📦 В портфеле: {item.Quantity} шт";
             }

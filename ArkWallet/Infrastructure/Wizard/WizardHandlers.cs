@@ -31,8 +31,8 @@ namespace ArkWallet.Domain.Wizard
                 await _tokenRepo.GetByIdAsync(input.ToUpper());
             Trader? trader = 
                 await _traderRepo.GetByIdAsync(session.Id);
-            PortfolioItem[] items = 
-                await _portfolioRepo.GetAllByTraderAsync(session.Id);
+            List<PortfolioItem> items = 
+                await _portfolioRepo.GetByTraderAsync(session.Id);
 
             string direction = session.Data["set_direction"].ToString().ToLower();
 
@@ -62,7 +62,7 @@ namespace ArkWallet.Domain.Wizard
             Trader? trader =
                 await _traderRepo.GetByIdAsync(session.Id);
             PortfolioItem? item =
-                await _portfolioRepo.GetBySymbolAndOwnerAsync(session.Id, symbol);
+                await _portfolioRepo.GetByTraderAndSymbolAsync(session.Id, symbol);
             CharacterToken? token =
                 await _tokenRepo.GetByIdAsync(symbol);
 

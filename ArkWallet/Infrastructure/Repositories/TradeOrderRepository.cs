@@ -1,41 +1,37 @@
-﻿using ArkWallet.Data;
+﻿using ArkWallet.Contracts;
+using ArkWallet.Data;
 using ArkWallet.Entities;
 using ArkWallet.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 
-
 namespace ArkWallet.Repositories
 {
-    internal class TradeOrderRepository
+    internal class TradeOrderRepository : ITradeOrderRepository
     {
         private readonly ArkWalletDbContext _context;
 
         public TradeOrderRepository(ArkWalletDbContext context)
         {
-            if (context == null) throw new ArgumentNullException(nameof(context));
-            else _context = context;
+            _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        public async Task<TradeOrder?> GetByIdAsync(string id)
+        public async Task<TradeOrder?> GetByIdAsync(object id)
         {
-            return await _context.TradeOrders.FirstOrDefaultAsync(t => t.Id == id);
+            if (id is string orderId)
+            {
+                return await _context.TradeOrders.FirstOrDefaultAsync(o => o.Id == orderId);
+            }
+            return null;
         }
 
-        public async Task<TradeOrder[]?> GetAllAsync()
+        public async Task<IEnumerable<TradeOrder>> GetAllAsync()
         {
-            return await _context.TradeOrders.ToArrayAsync();
+            return await _context.TradeOrders.ToListAsync();
         }
 
-        public async Task<List<TradeOrder>> GetActiveBySymbolAsync(string symbol)
+        public async Task AddAsync(TradeOrder entity)
         {
-            return await _context.TradeOrders
-                .Where(o => o.CharacterTokenId == symbol && o.Status == OrderStatus.Active)
-                .ToListAsync();
-        }
-
-        public async Task<TradeOrder[]> GetActiveOrdersByTraderAsync(long traderId)
-        {
-            return await _context.TradeOrders.Where(t => t.Status == OrderStatus.Active && t.TraderTelegramId == traderId).ToArrayAsync();
+            await _context.TradeOrders.AddAsync(entity);
         }
 
         public async Task AddRangeAsync(IEnumerable<TradeOrder> entities)
@@ -43,45 +39,65 @@ namespace ArkWallet.Repositories
             await _context.TradeOrders.AddRangeAsync(entities);
         }
 
+        public async Task UpdateAsync(TradeOrder entity)
+        {
+            _context.TradeOrders.Update(entity);
+        }
+
         public async Task UpdateRangeAsync(IEnumerable<TradeOrder> entities)
         {
             _context.TradeOrders.UpdateRange(entities);
         }
 
-        public async Task AddAsync(TradeOrder tradeOrder)
+        public void RemoveAsync(TradeOrder entity)
         {
-            var target = await GetByIdAsync(tradeOrder.Id);
-
-            if (target != null)
-            {
-                return;
-            }
-
-            await _context.TradeOrders.AddAsync(tradeOrder);
+            _context.TradeOrders.Remove(entity);
         }
 
-        public async Task UpdateAsync(TradeOrder tradeOrder)
+        public void RemoveRangeAsync(IEnumerable<TradeOrder> entities)
         {
-            _context.TradeOrders.Update(tradeOrder);
+            _context.TradeOrders.RemoveRange(entities);
         }
 
-        public async Task RemoveAsync(string id)
+        public async Task<bool> ExistsAsync(object id)
         {
-            TradeOrder? tradeOrder = await GetByIdAsync(id);
-            if (tradeOrder == null)
+            if (id is string orderId)
             {
-                Console.WriteLine($"Ордер {id} не найден.");
+                return await _context.TradeOrders.AnyAsync(o => o.Id == orderId);
             }
-            else
-            {
-                _context.TradeOrders.Remove(tradeOrder);
-                Console.WriteLine($"Ордер {id} успешно удалён");
-            }
+            return false;
         }
 
-        public async Task RemoveRange(List<TradeOrder> orders)
+        // Специфичные методы
+        public async Task<TradeOrder[]> GetActiveBySymbolAsync(string symbol)
         {
-            _context.TradeOrders.RemoveRange(orders);
+            return await _context.TradeOrders
+                .Where(o => o.CharacterTokenId == symbol && o.Status == OrderStatus.Active)
+                .ToArrayAsync();
+        }
+
+        public async Task<TradeOrder[]> GetByTraderAsync(long traderId)
+        {
+            return await _context.TradeOrders
+                .Where(o => o.TraderTelegramId == traderId)
+                .ToArrayAsync();
+        }
+
+        public async Task<TradeOrder[]> GetPendingByTraderAsync(long traderId)
+        {
+            return await _context.TradeOrders
+                .Where(o => o.TraderTelegramId == traderId && o.Status == OrderStatus.Active)
+                .ToArrayAsync();
+        }
+
+        public async Task CancelOrderAsync(string orderId)
+        {
+            var order = await GetByIdAsync(orderId);
+            if (order != null)
+            {
+                order.Status = OrderStatus.Cancelled;
+                _context.TradeOrders.Update(order);
+            }
         }
     }
 }
