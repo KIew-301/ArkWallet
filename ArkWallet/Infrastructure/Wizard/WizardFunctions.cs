@@ -7,14 +7,18 @@ namespace ArkWallet.Infrastructure.Wizard
     {
         public async Task AddNewTrader(long id, string name)
         {
-            var newTrader = new Trader()
+            await _uow.ExecuteInTransactionAsync(async () =>
             {
-                Balance = 500,
-                TelegramId = id,
-                Username = name
-            };
+                var newTrader = new Trader()
+                {
+                    Balance = 500,
+                    TelegramId = id,
+                    Username = name
+                };
 
-            await _uow.Traders.AddAsync(newTrader);
+                await _uow.Traders.AddAsync(newTrader);
+                return true;
+            });
         }
 
         public async Task<OrderResult> AddNewOrder(UserSession session)

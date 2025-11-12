@@ -1,8 +1,8 @@
 ﻿using ArkWallet.Application.Services;
-using ArkWallet.Data;
 using ArkWallet.Infrastructure.Wizard;
 using ArkWallet.Contracts;
 using ArkWallet.ValueObjects;
+using ArkWallet.Entities.Configurations;
 
 namespace ArkWallet.Infrastructure.Wizard
 {

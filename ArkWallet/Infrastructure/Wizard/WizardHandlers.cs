@@ -21,7 +21,6 @@ namespace ArkWallet.Infrastructure.Wizard
                 return StepResult.Error($"Необходимо ввести КУПИТЬ или ПРОДАТЬ.");
             }
 
-            await AddNewTrader(session.Id, input);
             return StepResult.Ok("set_token");
         }
 
@@ -45,7 +44,6 @@ namespace ArkWallet.Infrastructure.Wizard
                 return StepResult.Error($"Вы не владеете токеном {token.Symbol}.");
             }
 
-            await AddNewTrader(session.Id, input);
             return StepResult.Ok("set_quantity");
         }
 

@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ArkWallet.Contracts;
+using ArkWallet.Entities.Configurations;
 
 class Program
 {

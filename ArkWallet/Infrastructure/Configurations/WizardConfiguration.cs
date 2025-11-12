@@ -1,6 +1,6 @@
 ﻿using ArkWallet.ValueObjects;
 
-namespace ArkWallet.Data
+namespace ArkWallet.Entities.Configurations
 {
     partial class WizardConfiguration
     {
