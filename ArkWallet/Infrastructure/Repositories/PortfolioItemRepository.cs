@@ -1,8 +1,6 @@
 ﻿using ArkWallet.Data;
 using ArkWallet.Entities;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json.Linq;
-using System.Linq;
 
 namespace ArkWallet.Repositories
 {

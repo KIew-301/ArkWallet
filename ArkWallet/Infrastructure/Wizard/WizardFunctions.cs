@@ -1,6 +1,5 @@
 ﻿using ArkWallet.Entities;
 using ArkWallet.ValueObjects;
-using Telegram.Bot.Types;
 
 namespace ArkWallet.Domain.Wizard
 {

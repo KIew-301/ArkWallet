@@ -1,6 +1,7 @@
 ﻿using ArkWallet.Data;
 using ArkWallet.Domain;
 using ArkWallet.Domain.Wizard;
+using ArkWallet.Infrastructure.Wizard;
 using ArkWallet.Repositories;
 using ArkWallet.Telegram;
 using Microsoft.EntityFrameworkCore;

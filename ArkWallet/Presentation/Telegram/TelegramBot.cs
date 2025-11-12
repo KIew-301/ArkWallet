@@ -1,4 +1,5 @@
 ﻿using ArkWallet.Domain.Wizard;
+using ArkWallet.Infrastructure.Telegram;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;

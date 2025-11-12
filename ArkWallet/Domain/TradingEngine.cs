@@ -1,5 +1,4 @@
 ﻿using ArkWallet.Entities;
-using ArkWallet.Repositories;
 using ArkWallet.ValueObjects;
 
 namespace ArkWallet.Domain
@@ -7,19 +6,6 @@ namespace ArkWallet.Domain
     internal class TradingEngine
     {
         private readonly Dictionary<string, OrderBook> _orderBooks = new();
-
-        private readonly TraderRepository _traderRepo;
-        private readonly CharacterTokenRepository _tokenRepo;
-        private readonly PortfolioItemRepository _portfolioRepo;
-
-        public TradingEngine(TraderRepository traderRepo,
-            CharacterTokenRepository tokenRepo,
-            PortfolioItemRepository portfolioRepo)
-        {
-            _traderRepo = traderRepo;
-            _tokenRepo = tokenRepo;
-            _portfolioRepo = portfolioRepo;
-        }
 
         public async Task<OrderResult> PlaceOrder(TradeOrder order)
         {
