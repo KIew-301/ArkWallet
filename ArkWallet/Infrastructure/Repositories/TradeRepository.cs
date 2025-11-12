@@ -6,7 +6,7 @@ namespace ArkWallet.Repositories
 {
     internal class TradeRepository
     {
-        private ArkWalletDbContext _context;
+        private readonly ArkWalletDbContext _context;
 
         public TradeRepository(ArkWalletDbContext context)
         {
@@ -17,6 +17,16 @@ namespace ArkWallet.Repositories
         public async Task<Trade?> GetByIdAsync(string id)
         {
             return await _context.Trades.FirstOrDefaultAsync(t => t.Id == id);
+        }
+
+        public async Task AddRangeAsync(IEnumerable<Trade> entities)
+        {
+            await _context.Trades.AddRangeAsync(entities);
+        }
+
+        public async Task UpdateRangeAsync(IEnumerable<Trade> entities)
+        {
+            _context.Trades.UpdateRange(entities);
         }
 
         public async Task AddAsync(Trade trade)
@@ -51,6 +61,11 @@ namespace ArkWallet.Repositories
                 await _context.SaveChangesAsync();
                 Console.WriteLine($"Обмен {id} успешно удалён");
             }
+        }
+
+        public async Task RemoveRange(List<Trade> trades)
+        {
+            _context.Trades.RemoveRange(trades);
         }
     }
 }

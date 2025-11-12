@@ -1,4 +1,6 @@
-﻿using ArkWallet.Data;
+﻿using ArkWallet.Application.Services;
+using ArkWallet.Data;
+using ArkWallet.Infrastructure.Wizard;
 using ArkWallet.Repositories;
 using ArkWallet.ValueObjects;
 
@@ -7,7 +9,7 @@ namespace ArkWallet.Domain.Wizard
     internal partial class WizardEngine
     {
         private readonly WizardConfiguration _config;
-        private readonly TradingEngine _tradingEngine;
+        private readonly OrderService _orderService;
         private readonly QuestionDecorator _questionDecorator;
         private readonly Dictionary<long, UserSession> _sessions = new();
 
@@ -19,7 +21,7 @@ namespace ArkWallet.Domain.Wizard
             TraderRepository traderRepo,
             CharacterTokenRepository tokenRepo,
             PortfolioItemRepository portfolioRepo,
-            TradingEngine tradingEngine,
+            OrderService orderService,
             QuestionDecorator questionDecorator)
         {
             _config = config;
@@ -27,10 +29,10 @@ namespace ArkWallet.Domain.Wizard
             _traderRepo = traderRepo;
             _tokenRepo = tokenRepo;
             _portfolioRepo = portfolioRepo;
+            _orderService = orderService;
 
             ConfigureHandlers();
             ConfigureAdditionHandlers();
-            _tradingEngine = tradingEngine;
             _questionDecorator = questionDecorator;
         }
 

@@ -6,7 +6,7 @@ namespace ArkWallet.Repositories
 {
     internal class PortfolioItemRepository
     {
-        private ArkWalletDbContext _context;
+        private readonly ArkWalletDbContext _context;
 
         public PortfolioItemRepository(ArkWalletDbContext context)
         {
@@ -22,6 +22,23 @@ namespace ArkWallet.Repositories
         public async Task<PortfolioItem[]> GetAllByTraderAsync(long traderId)
         {
             return await _context.PortfolioItems.Where(p => p.TraderTelegramId == traderId).ToArrayAsync();
+        }
+
+        public async Task<List<PortfolioItem>> GetByTradersAndSymbolAsync(IEnumerable<long> traderIds, string symbol)
+        {
+            return await _context.PortfolioItems
+                .Where(p => traderIds.Contains(p.TraderTelegramId) && p.CharacterTokenId == symbol)
+                .ToListAsync();
+        }
+
+        public async Task AddRangeAsync(IEnumerable<PortfolioItem> entities)
+        {
+            await _context.PortfolioItems.AddRangeAsync(entities);
+        }
+
+        public async Task UpdateRangeAsync(IEnumerable<PortfolioItem> entities)
+        {
+            _context.PortfolioItems.UpdateRange(entities);
         }
 
         public async Task<PortfolioItem?> GetBySymbolAndOwnerAsync(long ownerId, string symbol)
@@ -120,6 +137,11 @@ namespace ArkWallet.Repositories
             _context.PortfolioItems.Remove(item);
             await _context.SaveChangesAsync();
             Console.WriteLine($"Токен {item.CharacterTokenId} у пользователя успешно удалён");
+        }
+
+        public async Task RemoveRange(List<PortfolioItem> items)
+        {
+            _context.PortfolioItems.RemoveRange(items);
         }
     }
 }

@@ -29,7 +29,7 @@ namespace ArkWallet.Domain.Wizard
                 Quantity = int.Parse(session.Data["set_quantity"].ToString()),
             };
 
-            var result = await _tradingEngine.PlaceOrder(newOrder);
+            var result = await _orderService.PlaceOrder(newOrder);
             return result;
         }
     }

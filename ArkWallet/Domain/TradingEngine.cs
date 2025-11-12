@@ -7,63 +7,101 @@ namespace ArkWallet.Domain
     {
         private readonly Dictionary<string, OrderBook> _orderBooks = new();
 
-        public async Task<OrderResult> PlaceOrder(TradeOrder order)
+        public TradingResult ProcessOrder(
+            TradeOrder newOrder,
+            List<TradeOrder> existingOrders,
+            Dictionary<long, Trader> traders,
+            Dictionary<long, PortfolioItem> portfolios,
+            CharacterToken token)
         {
-            if (order == null)
-                return OrderResult.Failed(null, "Ордер не может быть null");
+            // ВАЛИДАЦИЯ (только логическая)
+            if (newOrder == null)
+                return TradingResult.Failed("Ордер не может быть null");
 
-            if (order.Quantity <= 0)
-                return OrderResult.Failed(order, "Количество должно быть больше 0");
+            if (newOrder.Quantity <= 0 || newOrder.Price <= 0)
+                return TradingResult.Failed("Количество и цена должны быть > 0");
 
-            if (order.Price <= 0)
-                return OrderResult.Failed(order, "Цена должна быть больше 0");
+            // Загружаем стакан из существующих ордеров
+            var orderBook = GetOrCreateOrderBook(newOrder.CharacterTokenId);
+            orderBook.LoadOrders(existingOrders);
 
-            if (string.IsNullOrEmpty(order.CharacterTokenId))
-                return OrderResult.Failed(order, "Не указан токен");
+            // МАТЧИНГ
+            var matches = FindMatchingOrders(newOrder, orderBook);
+            var trades = new List<Trade>();
+            var remainingQuantity = newOrder.Quantity;
 
-            // Токен существует
-            var token = await _tokenRepo.GetByIdAsync(order.CharacterTokenId);
-            if (token == null)
-                return OrderResult.Failed(order, $"Токен {order.CharacterTokenId} не найден");
-
-            // Трейдер существует
-            var trader = await _traderRepo.GetByIdAsync(order.TraderTelegramId);
-            if (trader == null)
-                return OrderResult.Failed(order, $"Трейдер {order.TraderTelegramId} не найден");
-
-            // Токенов достаточно для продажи
-            if (order.Type == OrderType.Sell)
+            foreach (var match in matches)
             {
-                var portfolio = await _portfolioRepo.GetBySymbolAndOwnerAsync(
-                    order.TraderTelegramId, order.CharacterTokenId);
+                if (remainingQuantity <= 0) break;
 
-                if (portfolio == null || portfolio.Quantity < order.Quantity)
-                    return OrderResult.Failed(order, "Недостаточно токенов для продажи");
+                var tradeQuantity = Math.Min(remainingQuantity, match.GetRemainingQuantity());
+                var tradePrice = match.Price;
+
+                // СОЗДАЕМ СДЕЛКУ
+                var trade = CreateTrade(newOrder, match, tradeQuantity, tradePrice);
+                trades.Add(trade);
+
+                // 🔥 РАССЧИТЫВАЕМ ИЗМЕНЕНИЯ (НЕ сохраняем в БД!)
+                UpdateTradersAndPortfolios(traders, portfolios, trade, tradeQuantity, tradePrice);
+
+                // ОБНОВЛЯЕМ ОРДЕРА
+                UpdateOrderFill(newOrder, tradeQuantity);
+                UpdateOrderFill(match, tradeQuantity);
+
+                remainingQuantity -= tradeQuantity;
             }
 
-            // Токенов достаточно для покупки
-            if (order.Type == OrderType.Buy)
+            // 🔥 ВОЗВРАЩАЕМ РЕЗУЛЬТАТ ДЛЯ СОХРАНЕНИЯ
+            return new TradingResult
             {
-                var totalCost = order.Quantity * order.Price;
-                if (trader.Balance < totalCost)
-                    return OrderResult.Failed(order, "Недостаточно средств");
+                Trades = trades,
+                UpdatedOrders = GetUpdatedOrders(existingOrders, matches),
+                UpdatedTraders = traders.Values.Where(t => t.IsDirty).ToList(),
+                UpdatedPortfolios = portfolios.Values.Where(p => p.IsDirty).ToList(),
+                OrderToAdd = remainingQuantity > 0 ? newOrder.WithQuantity(remainingQuantity) : null,
+                UpdatedToken = UpdateTokenPrice(token, trades),
+                IsSuccess = true
+            };
+        }
+
+        private List<TradeOrder> GetUpdatedOrders(List<TradeOrder> existingOrders, List<TradeOrder> matchedOrders)
+        {
+            var updatedOrders = new List<TradeOrder>();
+
+            foreach (var match in matchedOrders)
+            {
+                if (match.FilledQuantity > 0)
+                {
+                    updatedOrders.Add(match);
+                }
             }
 
-            var orderBook = GetOrCreateOrderBook(order.CharacterTokenId);
+            return updatedOrders.Distinct().ToList();
+        }
 
-            // Ищем подходящие ордера для матчинга
-            var matches = FindMatchingOrders(order, orderBook);
+        private void UpdateTradersAndPortfolios(
+            Dictionary<long, Trader> traders,
+            Dictionary<long, PortfolioItem> portfolios,
+            Trade trade, int quantity, decimal price)
+        {
+            var totalAmount = quantity * price;
+            var buyer = traders[trade.BuyerId];
+            var seller = traders[trade.SellerId];
+            var buyerPortfolio = portfolios[trade.BuyerId];
+            var sellerPortfolio = portfolios[trade.SellerId];
 
-            if (matches.Any())
-            {
-                return await ExecuteTrades(order, matches, orderBook);
-            }
-            else
-            {
-                // Добавляем в стакан если нет матчей
-                AddToOrderBook(order, orderBook);
-                return OrderResult.Pending(order);
-            }
+            // Обновляем балансы
+            buyer.Balance -= totalAmount;
+            seller.Balance += totalAmount;
+
+            // Обновляем портфели
+            buyerPortfolio.AddTokens(quantity, price);
+            sellerPortfolio.RemoveTokens(quantity);
+
+            buyer.MarkDirty();
+            seller.MarkDirty();
+            buyerPortfolio.MarkDirty();
+            sellerPortfolio.MarkDirty();
         }
 
         private List<TradeOrder> FindMatchingOrders(TradeOrder order, OrderBook orderBook)
@@ -73,76 +111,16 @@ namespace ArkWallet.Domain
                 : orderBook.Bids.Where(bid => bid.Price >= order.Price).ToList();
         }
 
-        private async Task<OrderResult> ExecuteTrades(TradeOrder order, List<TradeOrder> matches, OrderBook orderBook)
+        private CharacterToken UpdateTokenPrice(CharacterToken token, List<Trade> trades)
         {
-            var trades = new List<Trade>();
-            var remainingQuantity = order.Quantity;
-
-            foreach (var match in matches.OrderBy(m => m.Type == OrderType.Sell ? m.Price : -m.Price))
+            if (trades.Any())
             {
-                if (remainingQuantity <= 0) break;
-
-                var tradeQuantity = Math.Min(remainingQuantity, match.GetRemainingQuantity());
-                var tradePrice = match.Price;
-                var totalAmount = tradeQuantity * tradePrice;
-
-                // 1. Создаем сделку
-                var trade = CreateTrade(order, match, tradeQuantity, tradePrice);
-                trades.Add(trade);
-
-                // 🔥 2. ОБНОВЛЯЕМ ДАННЫЕ В БД
-                await UpdateTokenPrice(order.CharacterTokenId, tradePrice);
-                await UpdatePortfolios(trade.BuyerId, trade.SellerId, order.CharacterTokenId, tradeQuantity, tradePrice);
-                await UpdateBalances(trade.BuyerId, trade.SellerId, totalAmount);
-
-                // 3. Обновляем ордера в памяти
-                UpdateOrderFill(order, tradeQuantity);
-                UpdateOrderFill(match, tradeQuantity);
-
-                if (match.IsFilled())
-                {
-                    RemoveFromOrderBook(match, orderBook);
-                    match.MarkAsFilled();
-                }
-
-                remainingQuantity -= tradeQuantity;
+                // Обновляем цену токена на основе последней сделки
+                var lastTrade = trades.Last();
+                token.UpdatePrice(lastTrade.Price);
+                return token;
             }
-
-            if (remainingQuantity > 0 && !order.IsFilled())
-            {
-                order.Quantity = remainingQuantity;
-                AddToOrderBook(order, orderBook);
-            }
-
-            return OrderResult.Filled(order, trades);
-        }
-
-        private async Task UpdateTokenPrice(string characterTokenId, decimal tradePrice)
-        {
-            var token = await _tokenRepo.GetByIdAsync(characterTokenId);
-            if (token != null)
-            {
-                token.UpdatePrice(tradePrice);
-                await _tokenRepo.UpdateAsync(token);
-            }
-        }
-
-        private async Task UpdatePortfolios(long buyerId, long sellerId, string tokenSymbol, int quantity, decimal price)
-        {
-            // Покупатель получает токены
-            await _portfolioRepo.AddOrUpdateAsync(buyerId, tokenSymbol, quantity, price);
-
-            // Продавец теряет токены
-            await _portfolioRepo.RemoveOrUpdateAsync(sellerId, tokenSymbol, quantity);
-        }
-
-        private async Task UpdateBalances(long buyerId, long sellerId, decimal totalAmount)
-        {
-            // Покупатель платит
-            await _traderRepo.DeductBalanceAsync(buyerId, totalAmount);
-
-            // Продавец получает
-            await _traderRepo.AddBalanceAsync(sellerId, totalAmount);
+            return token;
         }
 
         private Trade CreateTrade(TradeOrder order, TradeOrder match, int quantity, decimal price)

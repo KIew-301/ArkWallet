@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ArkWallet.Entities
 {
@@ -20,6 +21,13 @@ namespace ArkWallet.Entities
         public virtual Trader? Trader { get; set; }
         public virtual CharacterToken? CharacterToken { get; set; }
 
+        // Необходимость обновления в БД
+        [NotMapped]
+        public bool IsDirty { get; private set; }
+
+        public void MarkDirty() => IsDirty = true;
+        public void MarkClean() => IsDirty = false;
+
         // Методы
         public decimal GetTotalValue()
             => Quantity * AverageBuyPrice;
@@ -29,5 +37,26 @@ namespace ArkWallet.Entities
 
         public decimal GetProfitLoss(CharacterToken token)
             => GetCurrentValue(token) - GetTotalValue();
+
+        public void AddTokens(int quantity, decimal buyPrice)
+        {
+            if (quantity <= 0) throw new ArgumentException("Количество токенов меньше 0");
+
+            // Пересчет средней цены
+            var totalCost = (Quantity * AverageBuyPrice) + (quantity * buyPrice);
+            Quantity += quantity;
+            AverageBuyPrice = totalCost / Quantity;
+
+            MarkDirty();
+        }
+
+        public void RemoveTokens(int quantity)
+        {
+            if (quantity <= 0) throw new ArgumentException("Количество токенов меньше 0");
+            if (quantity > Quantity) throw new InvalidOperationException("Больше токенов недостаточно");
+
+            Quantity -= quantity;
+            MarkDirty();
+        }
     }
 }

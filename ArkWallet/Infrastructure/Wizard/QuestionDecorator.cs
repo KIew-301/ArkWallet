@@ -1,7 +1,7 @@
 ﻿using ArkWallet.ValueObjects;
 using ArkWallet.Repositories;
 
-namespace ArkWallet.Domain.Wizard
+namespace ArkWallet.Infrastructure.Wizard
 {
     internal class QuestionDecorator
     {

@@ -1,6 +1,8 @@
-﻿using ArkWallet.Data;
+﻿using ArkWallet.Application.Services;
+using ArkWallet.Data;
 using ArkWallet.Domain;
 using ArkWallet.Domain.Wizard;
+using ArkWallet.Infrastructure;
 using ArkWallet.Infrastructure.Wizard;
 using ArkWallet.Repositories;
 using ArkWallet.Telegram;
@@ -25,6 +27,8 @@ class Program
         services.AddScoped<TradeOrderRepository>();
         services.AddScoped<PortfolioItemRepository>();
         services.AddScoped<QuestionDecorator>();
+        services.AddScoped<OrderService>();
+        services.AddScoped<UnitOfWork>();
 
         var serviceProvider = services.BuildServiceProvider();
 

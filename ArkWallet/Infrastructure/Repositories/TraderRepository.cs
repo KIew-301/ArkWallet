@@ -6,7 +6,7 @@ namespace ArkWallet.Repositories
 {
     internal class TraderRepository
     {
-        private ArkWalletDbContext _context;
+        private readonly ArkWalletDbContext _context;
 
         public TraderRepository(ArkWalletDbContext context)
         {
@@ -17,6 +17,23 @@ namespace ArkWallet.Repositories
         public async Task<Trader?> GetByIdAsync(long id)
         {
             return await _context.Traders.FirstOrDefaultAsync(t => t.TelegramId == id);
+        }
+
+        public async Task<List<Trader>> GetByIdsAsync(IEnumerable<long> telegramIds)
+        {
+            return await _context.Traders
+                .Where(t => telegramIds.Contains(t.TelegramId))
+                .ToListAsync();
+        }
+
+        public async Task AddRangeAsync(IEnumerable<Trader> entities)
+        {
+            await _context.Traders.AddRangeAsync(entities);
+        }
+
+        public async Task UpdateRangeAsync(IEnumerable<Trader> entities)
+        {
+            _context.Traders.UpdateRange(entities);
         }
 
         public async Task AddAsync(Trader trader)
@@ -83,6 +100,11 @@ namespace ArkWallet.Repositories
                 await _context.SaveChangesAsync();
                 Console.WriteLine($"Трейдер {id} успешно удалён");
             }
+        }
+
+        public async Task RemoveRangeAsync(List<Trader> traders)
+        {
+            _context.Traders.RemoveRange(traders);
         }
     }
 }

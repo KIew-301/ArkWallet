@@ -44,5 +44,21 @@ namespace ArkWallet.Entities
                 Status = OrderStatus.Cancelled;
             }
         }
+
+        public TradeOrder WithQuantity(int newQuantity)
+        {
+            return new TradeOrder
+            {
+                Id = Guid.NewGuid().ToString(), // Новый Id
+                Quantity = newQuantity,
+                FilledQuantity = 0, // Сбрасываем исполненное количество
+                Price = this.Price,
+                Type = this.Type,
+                TraderTelegramId = this.TraderTelegramId,
+                CharacterTokenId = this.CharacterTokenId,
+                Status = OrderStatus.Active, // Новый статус
+                CreatedAt = DateTime.UtcNow // Новое время создания
+            };
+        }
     }
 }

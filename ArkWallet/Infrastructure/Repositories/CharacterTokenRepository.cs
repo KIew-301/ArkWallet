@@ -1,12 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using ArkWallet.Contracts;
 using ArkWallet.Data;
 using ArkWallet.Entities;
+using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json.Linq;
 
 namespace ArkWallet.Repositories
 {
     internal class CharacterTokenRepository
     {
-        private ArkWalletDbContext _context;
+        private readonly ArkWalletDbContext _context;
 
         public CharacterTokenRepository(ArkWalletDbContext context)
         {
@@ -39,6 +41,16 @@ namespace ArkWallet.Repositories
             await _context.SaveChangesAsync();
         }
 
+        public async Task AddRangeAsync(IEnumerable<CharacterToken> entities)
+        {
+            await _context.CharacterTokens.AddRangeAsync(entities);
+        }
+
+        public async Task UpdateRangeAsync(IEnumerable<CharacterToken> entities)
+        {
+            _context.CharacterTokens.UpdateRange(entities);
+        }
+
         public async Task RemoveAsync(string id)
         {
             id = id.ToUpper();
@@ -54,6 +66,11 @@ namespace ArkWallet.Repositories
                 await _context.SaveChangesAsync();
                 Console.WriteLine($"Токен {id} успешно удалён");
             }
+        }
+
+        public async Task RemoveRange(List<CharacterToken> tokens)
+        {
+            _context.CharacterTokens.RemoveRange(tokens);
         }
     }
 }
