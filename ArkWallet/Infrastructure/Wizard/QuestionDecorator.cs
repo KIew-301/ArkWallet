@@ -1,21 +1,16 @@
 ﻿using ArkWallet.ValueObjects;
 using ArkWallet.Repositories;
+using ArkWallet.Contracts;
 
 namespace ArkWallet.Infrastructure.Wizard
 {
     internal class QuestionDecorator
     {
-        private readonly TraderRepository _traderRepo;
-        private readonly CharacterTokenRepository _tokenRepo;
-        private readonly PortfolioItemRepository _portfolioRepo;
+        private readonly IUnitOfWork _uow;
 
-        public QuestionDecorator (TraderRepository traderRepo,
-            CharacterTokenRepository tokenRepo,
-            PortfolioItemRepository portfolioRepo)
+        public QuestionDecorator (IUnitOfWork uow)
         {
-            _traderRepo = traderRepo;
-            _tokenRepo = tokenRepo;
-            _portfolioRepo = portfolioRepo;
+            _uow = uow;
         }
 
         public async Task<string> Decorate(string stepName, string baseQuestion, UserSession session)
@@ -35,8 +30,8 @@ namespace ArkWallet.Infrastructure.Wizard
 
             if (string.IsNullOrEmpty(symbol)) return baseQuestion;
 
-            var token = await _tokenRepo.GetByIdAsync(symbol);
-            var trader = await _traderRepo.GetByIdAsync(session.Id);
+            var token = await _uow.Tokens.GetByIdAsync(symbol);
+            var trader = await _uow.Traders.GetByIdAsync(session.Id);
 
             if (direction == "купить")
             {
@@ -46,7 +41,7 @@ namespace ArkWallet.Infrastructure.Wizard
             }
             else
             {
-                var item = await _portfolioRepo.GetByTraderAndSymbolAsync(session.Id, symbol);
+                var item = await _uow.Portfolios.GetByTraderAndSymbolAsync(session.Id, symbol);
                 return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
                        $"📦 В портфеле: {item.Quantity} шт";
             }
@@ -57,7 +52,7 @@ namespace ArkWallet.Infrastructure.Wizard
             var symbol = session.Data["set_token"]?.ToString();
             if (string.IsNullOrEmpty(symbol)) return baseQuestion;
 
-            var token = await _tokenRepo.GetByIdAsync(symbol);
+            var token = await _uow.Tokens.GetByIdAsync(symbol);
             return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
                    $"📊 Текущая цена: {token.CurrentPrice:F2}";
         }
