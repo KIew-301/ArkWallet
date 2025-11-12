@@ -2,7 +2,7 @@
 using ArkWallet.ValueObjects;
 using Microsoft.CodeAnalysis;
 
-namespace ArkWallet.Domain.Wizard
+namespace ArkWallet.Infrastructure.Wizard
 {
     partial class WizardEngine
     {
@@ -28,11 +28,11 @@ namespace ArkWallet.Domain.Wizard
         private async Task<StepResult> HandleSetToken(UserSession session, string input)
         {
             CharacterToken? token = 
-                await _tokenRepo.GetByIdAsync(input.ToUpper());
+                await _uow.Tokens.GetByIdAsync(input.ToUpper());
             Trader? trader = 
-                await _traderRepo.GetByIdAsync(session.Id);
+                await _uow.Traders.GetByIdAsync(session.Id);
             List<PortfolioItem> items = 
-                await _portfolioRepo.GetByTraderAsync(session.Id);
+                await _uow.Portfolios.GetByTraderAsync(session.Id);
 
             string direction = session.Data["set_direction"].ToString().ToLower();
 
@@ -60,11 +60,11 @@ namespace ArkWallet.Domain.Wizard
                 return StepResult.Error("Ошибка получения направления.");
 
             Trader? trader =
-                await _traderRepo.GetByIdAsync(session.Id);
+                await _uow.Traders.GetByIdAsync(session.Id);
             PortfolioItem? item =
-                await _portfolioRepo.GetByTraderAndSymbolAsync(session.Id, symbol);
+                await _uow.Portfolios.GetByTraderAndSymbolAsync(session.Id, symbol);
             CharacterToken? token =
-                await _tokenRepo.GetByIdAsync(symbol);
+                await _uow.Tokens.GetByIdAsync(symbol);
 
             if (trader == null)
                 return StepResult.Error("Ошибка получения данных о трейдере.");

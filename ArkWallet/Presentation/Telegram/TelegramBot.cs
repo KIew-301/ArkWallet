@@ -1,4 +1,4 @@
-﻿using ArkWallet.Domain.Wizard;
+﻿using ArkWallet.Infrastructure.Wizard;
 using ArkWallet.Presentation.Telegram;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;

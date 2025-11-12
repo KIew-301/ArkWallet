@@ -1,4 +1,5 @@
-﻿using ArkWallet.Data;
+﻿using ArkWallet.Contracts;
+using ArkWallet.Data;
 using ArkWallet.Entities;
 using ArkWallet.Repositories;
 using ArkWallet.ValueObjects;
@@ -6,29 +7,38 @@ using Microsoft.EntityFrameworkCore.Storage;
 
 namespace ArkWallet.Infrastructure
 {
-    internal class UnitOfWork
+    internal class UnitOfWork : IUnitOfWork
     {
-        private readonly TraderRepository _traderRepo;
-        private readonly CharacterTokenRepository _tokenRepo;
-        private readonly PortfolioItemRepository _portfolioRepo;
-        private readonly TradeOrderRepository _orderRepo;
-        private readonly TradeRepository _tradeRepo;
+        private readonly ITraderRepository _traderRepo;
+        private readonly ICharacterTokenRepository _tokenRepo;
+        private readonly IPortfolioItemRepository _portfolioRepo;
+        private readonly ITradeOrderRepository _orderRepo;
+        private readonly ITradeRepository _tradeRepo;
         private readonly ArkWalletDbContext _dbContext;
 
-        public UnitOfWork(TraderRepository traderRepo,
-            CharacterTokenRepository tokenRepo,
-            PortfolioItemRepository portfolioRepo,
-            TradeOrderRepository orderRepo,
-            TradeRepository tradeRepository,
+        // 🔥 Публичные свойства через интерфейсы
+        public ITraderRepository Traders => _traderRepo;
+        public ICharacterTokenRepository Tokens => _tokenRepo;
+        public IPortfolioItemRepository Portfolios => _portfolioRepo;
+        public ITradeOrderRepository Orders => _orderRepo;
+        public ITradeRepository Trades => _tradeRepo;
+
+        public UnitOfWork(
+            ITraderRepository traderRepo,
+            ICharacterTokenRepository tokenRepo,
+            IPortfolioItemRepository portfolioRepo,
+            ITradeOrderRepository orderRepo,
+            ITradeRepository tradeRepo,
             ArkWalletDbContext dbContext)
         {
             _traderRepo = traderRepo;
             _tokenRepo = tokenRepo;
             _portfolioRepo = portfolioRepo;
             _orderRepo = orderRepo;
-            _tradeRepo = tradeRepository;
+            _tradeRepo = tradeRepo;
             _dbContext = dbContext;
         }
+
 
         public async Task<TradeOrder[]> GetActiveOrdersForMatchingAsync(string symbol)
         {
@@ -115,6 +125,12 @@ namespace ArkWallet.Infrastructure
         public async Task SaveChangesAsync()
         {
             await _dbContext.SaveChangesAsync();
+        }
+
+        public void Dispose()
+        {
+            _dbContext?.Dispose();
+            Console.WriteLine("UnitOfWork disposed - соединение с БД закрыто");
         }
     }
 }

@@ -1,7 +1,7 @@
 ﻿using ArkWallet.Entities;
 using ArkWallet.ValueObjects;
 
-namespace ArkWallet.Domain.Wizard
+namespace ArkWallet.Infrastructure.Wizard
 {
     internal partial class WizardEngine
     {
@@ -14,7 +14,7 @@ namespace ArkWallet.Domain.Wizard
                 Username = name
             };
 
-            await _traderRepo.AddAsync(newTrader);
+            await _uow.Traders.AddAsync(newTrader);
         }
 
         public async Task<OrderResult> AddNewOrder(UserSession session)

@@ -95,5 +95,36 @@ namespace ArkWallet.Repositories
             var items = await GetByTraderAsync(traderId);
             return items.Sum(item => item.GetTotalValue());
         }
+
+        public async Task AddOrUpdateAsync(long traderId, string symbol, int quantity, decimal price)
+        {
+            symbol = symbol.ToUpper();
+            var existingItem = await GetByTraderAndSymbolAsync(traderId, symbol);
+
+            if (existingItem == null)
+            {
+                // Создаем новую запись
+                var newItem = new PortfolioItem
+                {
+                    TraderTelegramId = traderId,
+                    CharacterTokenId = symbol,
+                    Quantity = quantity,
+                    AverageBuyPrice = price,
+                    AcquiredAt = DateTime.UtcNow
+                };
+                await AddAsync(newItem);
+            }
+            else
+            {
+                // Обновляем существующую запись с пересчетом средней цены
+                var totalQuantity = existingItem.Quantity + quantity;
+                var totalValue = (existingItem.Quantity * existingItem.AverageBuyPrice) + (quantity * price);
+
+                existingItem.Quantity = totalQuantity;
+                existingItem.AverageBuyPrice = totalValue / totalQuantity;
+
+                _context.PortfolioItems.Update(existingItem);
+            }
+        }
     }
 }
