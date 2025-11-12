@@ -39,13 +39,11 @@ namespace ArkWallet.Repositories
             }
 
             await _context.Trades.AddAsync(trade);
-            await _context.SaveChangesAsync();
         }
 
         public async Task UpdateAsync(Trade trade)
         {
             _context.Trades.Update(trade);
-            await _context.SaveChangesAsync();
         }
 
         public async Task RemoveAsync(string id)
@@ -58,7 +56,6 @@ namespace ArkWallet.Repositories
             else
             {
                 _context.Trades.Remove(trade);
-                await _context.SaveChangesAsync();
                 Console.WriteLine($"Обмен {id} успешно удалён");
             }
         }

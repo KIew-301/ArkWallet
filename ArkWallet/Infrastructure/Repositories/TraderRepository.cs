@@ -46,13 +46,11 @@ namespace ArkWallet.Repositories
             }
 
             await _context.Traders.AddAsync(trader);
-            await _context.SaveChangesAsync();
         }
 
         public async Task UpdateAsync(Trader trader)
         {
             _context.Traders.Update(trader);
-            await _context.SaveChangesAsync();
         }
 
         public async Task AddBalanceAsync(long traderId, decimal amount)
@@ -63,7 +61,6 @@ namespace ArkWallet.Repositories
             {
                 trader.Balance += amount;
                 _context.Traders.Update(trader);
-                await _context.SaveChangesAsync();
             }
             else
             {
@@ -79,7 +76,6 @@ namespace ArkWallet.Repositories
             {
                 trader.Balance -= amount;
                 _context.Traders.Update(trader);
-                await _context.SaveChangesAsync();
             }
             else
             {
@@ -97,7 +93,6 @@ namespace ArkWallet.Repositories
             else
             {
                 _context.Traders.Remove(trader);
-                await _context.SaveChangesAsync();
                 Console.WriteLine($"Трейдер {id} успешно удалён");
             }
         }

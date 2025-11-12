@@ -57,13 +57,11 @@ namespace ArkWallet.Repositories
             }
 
             await _context.PortfolioItems.AddAsync(item);
-            await _context.SaveChangesAsync();
         }
 
         public async Task UpdateAsync(PortfolioItem item)
         {
             _context.PortfolioItems.Update(item);
-            await _context.SaveChangesAsync();
         }
 
         public async Task AddOrUpdateAsync(long ownerId, string symbol, int quantity, decimal price)
@@ -82,7 +80,6 @@ namespace ArkWallet.Repositories
                 };
 
                 await _context.PortfolioItems.AddAsync(newItem);
-                await _context.SaveChangesAsync();
             }
             else
             {
@@ -93,7 +90,6 @@ namespace ArkWallet.Repositories
                              / item.Quantity;
 
                 _context.PortfolioItems.Update(item);
-                await _context.SaveChangesAsync();
             }
         }
 
@@ -108,7 +104,6 @@ namespace ArkWallet.Repositories
                 if (item.Quantity > 0)
                 {
                     _context.PortfolioItems.Update(item);
-                    await _context.SaveChangesAsync();
                 }
                 else
                 {
@@ -127,7 +122,6 @@ namespace ArkWallet.Repositories
             else
             {
                 _context.PortfolioItems.Remove(item);
-                await _context.SaveChangesAsync();
                 Console.WriteLine($"Токен {id} у пользователя успешно удалён");
             }
         }
@@ -135,7 +129,6 @@ namespace ArkWallet.Repositories
         public async Task RemoveAsync(PortfolioItem item)
         {
             _context.PortfolioItems.Remove(item);
-            await _context.SaveChangesAsync();
             Console.WriteLine($"Токен {item.CharacterTokenId} у пользователя успешно удалён");
         }
 

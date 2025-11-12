@@ -32,13 +32,11 @@ namespace ArkWallet.Repositories
             }
 
             await _context.CharacterTokens.AddAsync(token);
-            await _context.SaveChangesAsync();
         }
 
         public async Task UpdateAsync(CharacterToken token)
         {
-            _context.CharacterTokens.Update(token);
-            await _context.SaveChangesAsync();
+            _context.CharacterTokens.Update(token); 
         }
 
         public async Task AddRangeAsync(IEnumerable<CharacterToken> entities)
@@ -63,8 +61,6 @@ namespace ArkWallet.Repositories
             else
             {
                 _context.CharacterTokens.Remove(token);
-                await _context.SaveChangesAsync();
-                Console.WriteLine($"Токен {id} успешно удалён");
             }
         }
 
