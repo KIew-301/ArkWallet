@@ -1,6 +1,6 @@
-﻿using ArkWallet.Contracts;
-using ArkWallet.Entities;
-using ArkWallet.ValueObjects;
+﻿using ArkWallet.Application.Contracts;
+using ArkWallet.Domain.Entities;
+using ArkWallet.Domain.ValueObjects;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ArkWallet.Infrastructure.Wizard
+namespace ArkWallet.Infrastructure.Services.Wizard
 {
     internal class KeywordDecorator
     {

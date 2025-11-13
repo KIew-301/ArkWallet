@@ -1,7 +1,7 @@
-﻿using ArkWallet.ValueObjects;
+﻿using ArkWallet.Domain.ValueObjects;
 using System.ComponentModel.DataAnnotations;
 
-namespace ArkWallet.Entities
+namespace ArkWallet.Domain.Entities
 {
     internal class CharacterToken
     {

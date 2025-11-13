@@ -1,7 +1,7 @@
-﻿using ArkWallet.ValueObjects;
+﻿using ArkWallet.Domain.ValueObjects;
 using System.ComponentModel.DataAnnotations;
 
-namespace ArkWallet.Entities
+namespace ArkWallet.Domain.Entities
 {
     internal class TradeOrder
     {
@@ -52,10 +52,10 @@ namespace ArkWallet.Entities
                 Id = Guid.NewGuid().ToString(), // Новый Id
                 Quantity = newQuantity,
                 FilledQuantity = 0, // Сбрасываем исполненное количество
-                Price = this.Price,
-                Type = this.Type,
-                TraderTelegramId = this.TraderTelegramId,
-                CharacterTokenId = this.CharacterTokenId,
+                Price = Price,
+                Type = Type,
+                TraderTelegramId = TraderTelegramId,
+                CharacterTokenId = CharacterTokenId,
                 Status = OrderStatus.Active, // Новый статус
                 CreatedAt = DateTime.UtcNow // Новое время создания
             };

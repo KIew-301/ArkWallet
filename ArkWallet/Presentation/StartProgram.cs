@@ -1,15 +1,16 @@
 ﻿using ArkWallet.Application.Services;
-using ArkWallet.Data;
-using ArkWallet.Domain;
-using ArkWallet.Infrastructure;
 using ArkWallet.Infrastructure.Wizard;
 using ArkWallet.Repositories;
 using ArkWallet.Telegram;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using ArkWallet.Contracts;
 using ArkWallet.Entities.Configurations;
+using ArkWallet.Domain.Engines;
+using ArkWallet.Application.Contracts;
+using ArkWallet.Infrastructure.Data;
+using ArkWallet.Infrastructure.Services;
+using ArkWallet.Infrastructure.Services.Wizard;
 
 class Program
 {

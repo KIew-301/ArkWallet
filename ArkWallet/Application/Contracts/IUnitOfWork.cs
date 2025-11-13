@@ -1,7 +1,4 @@
-﻿using ArkWallet.Entities;
-using ArkWallet.ValueObjects;
-
-namespace ArkWallet.Contracts
+﻿namespace ArkWallet.Application.Contracts
 {
     internal interface IUnitOfWork : IDisposable
     {

@@ -1,4 +1,4 @@
-﻿namespace ArkWallet.API
+﻿namespace ArkWallet.Presentation.API
 {
     internal class LaunchWebApplication
     {

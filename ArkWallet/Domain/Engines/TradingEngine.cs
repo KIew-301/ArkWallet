@@ -1,7 +1,7 @@
-﻿using ArkWallet.Entities;
-using ArkWallet.ValueObjects;
+﻿using ArkWallet.Domain.Entities;
+using ArkWallet.Domain.ValueObjects;
 
-namespace ArkWallet.Domain
+namespace ArkWallet.Domain.Engines
 {
     internal class TradingEngine
     {

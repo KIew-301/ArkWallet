@@ -1,7 +1,7 @@
-﻿using ArkWallet.Entities;
+﻿using ArkWallet.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace ArkWallet.Data
+namespace ArkWallet.Infrastructure.Data
 {
     internal class ArkWalletDbContext : DbContext
     {

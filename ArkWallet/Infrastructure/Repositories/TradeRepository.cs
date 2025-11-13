@@ -1,6 +1,6 @@
-﻿using ArkWallet.Contracts;
-using ArkWallet.Data;
-using ArkWallet.Entities;
+﻿using ArkWallet.Application.Contracts;
+using ArkWallet.Domain.Entities;
+using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace ArkWallet.Repositories

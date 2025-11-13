@@ -1,4 +1,4 @@
-﻿using ArkWallet.ValueObjects;
+﻿using ArkWallet.Domain.ValueObjects;
 
 namespace ArkWallet.Entities.Configurations
 {

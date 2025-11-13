@@ -1,9 +1,9 @@
-﻿using ArkWallet.ValueObjects;
-using ArkWallet.Repositories;
-using ArkWallet.Contracts;
+﻿using ArkWallet.Repositories;
 using System.Linq;
+using ArkWallet.Application.Contracts;
+using ArkWallet.Domain.ValueObjects;
 
-namespace ArkWallet.Infrastructure.Wizard
+namespace ArkWallet.Infrastructure.Services.Wizard
 {
     internal class QuestionDecorator
     {

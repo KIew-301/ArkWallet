@@ -1,4 +1,4 @@
-﻿namespace ArkWallet.ValueObjects
+﻿namespace ArkWallet.Domain.ValueObjects
 {
     public class WizardStep
     {

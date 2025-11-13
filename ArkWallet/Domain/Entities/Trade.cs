@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ArkWallet.Entities
+namespace ArkWallet.Domain.Entities
 {
     internal class Trade
     {

@@ -1,5 +1,5 @@
-﻿using ArkWallet.Entities;
-using ArkWallet.ValueObjects;
+﻿using ArkWallet.Domain.Entities;
+using ArkWallet.Domain.ValueObjects;
 using Microsoft.CodeAnalysis;
 
 namespace ArkWallet.Infrastructure.Wizard

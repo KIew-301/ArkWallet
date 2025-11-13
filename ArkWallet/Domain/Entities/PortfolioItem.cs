@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace ArkWallet.Entities
+namespace ArkWallet.Domain.Entities
 {
     internal class PortfolioItem
     {
@@ -43,7 +43,7 @@ namespace ArkWallet.Entities
             if (quantity <= 0) throw new ArgumentException("Количество токенов меньше 0");
 
             // Пересчет средней цены
-            var totalCost = (Quantity * AverageBuyPrice) + (quantity * buyPrice);
+            var totalCost = Quantity * AverageBuyPrice + quantity * buyPrice;
             Quantity += quantity;
             AverageBuyPrice = totalCost / Quantity;
 

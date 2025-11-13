@@ -1,6 +1,6 @@
-﻿using ArkWallet.Entities;
+﻿using ArkWallet.Domain.Entities;
 
-namespace ArkWallet.ValueObjects
+namespace ArkWallet.Domain.ValueObjects
 {
     internal class OrderBook
     {

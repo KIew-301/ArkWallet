@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace ArkWallet.Entities
+namespace ArkWallet.Domain.Entities
 {
     internal class Trader
     {

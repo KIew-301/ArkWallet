@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ArkWallet.ValueObjects
+namespace ArkWallet.Domain.ValueObjects
 {
     public enum OrderType
     {

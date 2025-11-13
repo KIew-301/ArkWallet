@@ -1,7 +1,7 @@
-﻿using ArkWallet.Entities;
-using ArkWallet.ValueObjects;
+﻿using ArkWallet.Domain.Entities;
+using ArkWallet.Domain.ValueObjects;
 
-namespace ArkWallet.Contracts
+namespace ArkWallet.Application.Contracts
 {
     internal interface IRepository<T> where T : class
     {
