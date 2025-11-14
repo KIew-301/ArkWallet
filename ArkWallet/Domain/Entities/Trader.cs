@@ -21,6 +21,7 @@ namespace ArkWallet.Domain.Entities
 
         public void MarkDirty() => IsDirty = true;
         public void MarkClean() => IsDirty = false;
+        public void AddToBalance(decimal amount) => Balance += amount;
 
         public static Trader Create(long telegramId, string? username)
         {
