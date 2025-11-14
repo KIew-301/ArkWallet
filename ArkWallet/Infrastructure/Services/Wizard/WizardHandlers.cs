@@ -1,4 +1,5 @@
-﻿using ArkWallet.Domain.Entities;
+﻿using ArkWallet.Application.Services;
+using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
 using Microsoft.CodeAnalysis;
 
@@ -143,6 +144,32 @@ namespace ArkWallet.Infrastructure.Wizard
                     $"по цене {result.Order.Price:F2}] " +
                     $"успешно выставлен."
                     );
+        }
+
+        public async Task<StepResult> HandleSelectOrderToCancel(UserSession session, string input)
+        {
+            var activeOrders = await _uow.Orders.GetPendingByTraderAsync(session.Id);
+
+            if (activeOrders.Length == 0)
+                return StepResult.Error("У вас нет активных ордеров для отмены");
+
+            session.Data[session.CurrentStep] = input;
+
+            return StepResult.Ok("confirm_cancellation");
+        }
+
+        public async Task<StepResult> HandleConfirmCancellation(UserSession session, string input)
+        {
+            if (input != "confirm")
+                return StepResult.Ok("Отмена не подтверждена", "completed");
+
+            var orderId = session.Data["select_order_to_cancel"]?.ToString();
+
+            var result = await _cancelOrderService.CancelOrder(session.Id, orderId);
+
+            return result.IsSuccess
+                ? StepResult.Ok("completed", result.Message)
+                : StepResult.Ok("completed", result.Message);
         }
     }
 }

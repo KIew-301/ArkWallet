@@ -90,14 +90,17 @@ namespace ArkWallet.Repositories
                 .ToArrayAsync();
         }
 
-        public async Task CancelOrderAsync(string orderId)
+        public async Task<bool> CancelOrderAsync(string orderId)
         {
             var order = await GetByIdAsync(orderId);
-            if (order != null)
-            {
-                order.Status = OrderStatus.Cancelled;
-                _context.TradeOrders.Update(order);
-            }
+
+            if (order == null || order.Status != OrderStatus.Active)
+                return false;
+
+            order.Status = OrderStatus.Cancelled;
+            _context.TradeOrders.Update(order);
+
+            return true;
         }
     }
 }

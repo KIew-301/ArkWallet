@@ -9,7 +9,8 @@ namespace ArkWallet.Infrastructure.Wizard
     internal partial class WizardEngine
     {
         private readonly WizardConfiguration _config;
-        private readonly OrderService _orderService;
+        private readonly PlaceOrderService _orderService;
+        private readonly CancelOrderService _cancelOrderService;
         private readonly QuestionDecorator _questionDecorator;
         private readonly KeywordDecorator _keywordDecorator;
         private readonly Dictionary<long, UserSession> _sessions = new();
@@ -17,13 +18,15 @@ namespace ArkWallet.Infrastructure.Wizard
         private readonly IUnitOfWork _uow;
 
         public WizardEngine(WizardConfiguration config,
-            OrderService orderService,
+            PlaceOrderService orderService,
+            CancelOrderService cancelOrderService,
             QuestionDecorator questionDecorator,
             KeywordDecorator keywordDecorator,
             IUnitOfWork uow)
         {
             _config = config;
             _orderService = orderService;
+            _cancelOrderService = cancelOrderService;
             _questionDecorator = questionDecorator;
             _keywordDecorator = keywordDecorator;
             _uow = uow; 
@@ -39,6 +42,8 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/placeorder"][1].Handler = HandleSetToken;
             _config.Commands["/placeorder"][2].Handler = HandleSetTokenQuantity;
             _config.Commands["/placeorder"][3].Handler = HandleSetTokenPrice;
+            _config.Commands["/cancelorder"][0].Handler = HandleSelectOrderToCancel;
+            _config.Commands["/cancelorder"][1].Handler = HandleConfirmCancellation;
         }
 
         public async Task<(string? message, List<QuickButton>? buttons)> ProcessInput(long userId, string input)
@@ -68,8 +73,15 @@ namespace ArkWallet.Infrastructure.Wizard
             };
             _sessions[userId] = session;
 
+            var commandSteps = _config.Commands[session.CurrentCommand];
+
+            var nextStep = commandSteps.First(s => s.Name == session.CurrentStep);
+
+            var question = await _questionDecorator.Decorate(nextStep.Name, nextStep.Question, session);
+            var buttons = await _keywordDecorator.Decorate(nextStep.Name, nextStep.Buttons, session);
+
             var step = _config.Commands[command].First();
-            return (step.Question, step.Buttons);
+            return (question, buttons);
         }
 
         private async Task<(string?, List<QuickButton>?)> ContinueCommand(long userId, string input)

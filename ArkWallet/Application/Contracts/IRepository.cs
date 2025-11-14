@@ -22,7 +22,7 @@ namespace ArkWallet.Application.Contracts
         Task<TradeOrder[]> GetActiveBySymbolAsync(string symbol);
         Task<TradeOrder[]> GetByTraderAsync(long traderId);
         Task<TradeOrder[]> GetPendingByTraderAsync(long traderId);
-        Task CancelOrderAsync(string orderId);
+        Task<bool> CancelOrderAsync(string orderId);
     }
 
     internal interface ITraderRepository : IRepository<Trader>

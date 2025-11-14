@@ -6,12 +6,12 @@ using ArkWallet.Infrastructure.Services;
 
 namespace ArkWallet.Application.Services
 {
-    internal class OrderService
+    internal class PlaceOrderService
     {
         private readonly IUnitOfWork _uow;
         private readonly TradingEngine _tradingEngine;
 
-        public OrderService(IUnitOfWork uow, TradingEngine tradingEngine)
+        public PlaceOrderService(IUnitOfWork uow, TradingEngine tradingEngine)
         {
             _uow = uow;
             _tradingEngine = tradingEngine;

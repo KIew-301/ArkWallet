@@ -56,6 +56,26 @@ namespace ArkWallet.Entities.Configurations
             ];
 
             Commands["/placeorder"] = steps;
+
+            steps = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "select_order_to_cancel",
+                    Question = "Какой ордер хотите отменить?"
+                },
+                new()
+                {
+                    Name = "confirm_cancellation",
+                    Question = "Вы уверены что хотите отменить ордер?",
+                    Buttons = [
+                        new() { Text = "✅ Да, отменить", Value = "confirm" },
+                        new() { Text = "❌ Нет, оставить", Value = "cancel" }
+                    ]
+                }
+            };
+
+            Commands["/cancelorder"] = steps;
         }
     }
 }

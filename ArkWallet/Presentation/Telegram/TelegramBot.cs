@@ -62,45 +62,88 @@ namespace ArkWallet.Telegram
 
         static async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
-            // Only process Message updates: https://core.telegram.org/bots/api#message
-            if (update.Message is not { } message)
-                return;
+            if (update.Message is { } message && message.Text is { } messageText)
+            {
+                var chatId = message.Chat.Id;
+                Console.WriteLine($"Received text message");
+                await ProcessUserInput(botClient, chatId, messageText, cancellationToken);
+            }
 
-            // Only process text messages
-            if (message.Text is not { } messageText)
-                return;
+            else if (update.CallbackQuery is { } callbackQuery)
+            {
+                await HandleCallbackQuery(botClient, callbackQuery, cancellationToken);
+            }
+        }
 
-            var chatId = message.Chat.Id;
+        static async Task HandleCallbackQuery(ITelegramBotClient botClient, CallbackQuery callbackQuery, CancellationToken cancellationToken)
+        {
+            var chatId = callbackQuery.Message.Chat.Id;
+            var callbackData = callbackQuery.Data;
+            var messageId = callbackQuery.Message.MessageId;
 
-            Console.WriteLine($"Received message in chat.");
+            Console.WriteLine($"Received callback");
+
+            await botClient.AnswerCallbackQuery(callbackQuery.Id, cancellationToken: cancellationToken);
+
+            var (answer, buttons) = await Instance._wizardEngine.ProcessInput(chatId, callbackData);
 
             if (Instance.IsAuthorizedUser(chatId))
             {
-                var (answer, buttons) = await Instance._wizardEngine.ProcessInput(chatId, messageText);
-
-                var replyKeyboard = new ReplyKeyboardMarkup()
+                if (buttons != null && buttons.Any())
                 {
-                    ResizeKeyboard = true,
-                    OneTimeKeyboard = true
-                };
+                    var inlineButtons = buttons.Select(btn =>
+                        new[] { InlineKeyboardButton.WithCallbackData(btn.Text, btn.Value ?? btn.Text) }
+                    );
+                    var inlineMarkup = new InlineKeyboardMarkup(inlineButtons);
 
-                if (buttons != null)
-                {
-                    foreach (var button in buttons)
-                    {
-                        if (button != null && button.Text != null)
-                            replyKeyboard.AddButton(new(button.Text));
-                    }
+                    await botClient.EditMessageText(
+                        chatId: chatId,
+                        messageId: messageId,
+                        text: answer,
+                        replyMarkup: inlineMarkup,
+                        cancellationToken: cancellationToken
+                    );
                 }
+                else
+                {
+                    await botClient.EditMessageText(
+                        chatId: chatId,
+                        messageId: messageId,
+                        text: answer,
+                        cancellationToken: cancellationToken
+                    );
+                }
+            }
+        }
 
+        static async Task ProcessUserInput(ITelegramBotClient botClient, long chatId, string input, CancellationToken cancellationToken)
+        {
+            if (Instance.IsAuthorizedUser(chatId))
+            {
+                var (answer, buttons) = await Instance._wizardEngine.ProcessInput(chatId, input);
 
-                if (!string.IsNullOrEmpty(answer))
+                if (string.IsNullOrEmpty(answer)) return;
+
+                if (buttons != null && buttons.Any())
+                {
+                    var inlineButtons = buttons.Select(btn =>
+                        new[] { InlineKeyboardButton.WithCallbackData(btn.Text, btn.Value ?? btn.Text) }
+                    );
+                    var inlineMarkup = new InlineKeyboardMarkup(inlineButtons);
+
+                    await botClient.SendMessage(
+                        chatId: chatId,
+                        text: answer,
+                        replyMarkup: inlineMarkup,
+                        cancellationToken: cancellationToken
+                    );
+                }
+                else
                 {
                     await botClient.SendMessage(
                         chatId: chatId,
                         text: answer,
-                        cancellationToken: cancellationToken,
-                        replyMarkup: replyKeyboard
+                        cancellationToken: cancellationToken
                     );
                 }
             }

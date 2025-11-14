@@ -18,22 +18,30 @@ class Program
     {
         var services = new ServiceCollection();
         services.AddLogging(builder => builder.AddConsole());
-        services.AddScoped<WizardConfiguration>();
-        services.AddScoped<WizardEngine>();
+
+        // Main
         services.AddDbContext<ArkWalletDbContext>();
         services.AddScoped<TradingEngine>();
         services.AddScoped<TelegramBot>();
+
+        // Wizard
+        services.AddScoped<WizardConfiguration>();
+        services.AddScoped<WizardEngine>();
         services.AddScoped<QuestionDecorator>();
         services.AddScoped<KeywordDecorator>();
-        services.AddScoped<OrderService>();
-        services.AddScoped<UnitOfWork>();
 
+        // ApplicationServices
+        services.AddScoped<CancelOrderService>();
+        services.AddScoped<PlaceOrderService>();
+
+        // Repositories
         services.AddScoped<ITraderRepository, TraderRepository>();
         services.AddScoped<ICharacterTokenRepository, CharacterTokenRepository>();
         services.AddScoped<IPortfolioItemRepository, PortfolioItemRepository>();
         services.AddScoped<ITradeOrderRepository, TradeOrderRepository>();
         services.AddScoped<ITradeRepository, TradeRepository>();
 
+        // UnitOfWork
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         var serviceProvider = services.BuildServiceProvider();

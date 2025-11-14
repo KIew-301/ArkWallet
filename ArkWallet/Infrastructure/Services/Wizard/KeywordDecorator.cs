@@ -21,10 +21,19 @@ namespace ArkWallet.Infrastructure.Services.Wizard
 
         public async Task<List<QuickButton>> Decorate(string stepName, List<QuickButton> baseKeyword, UserSession session)
         {
-            return stepName switch
+            return session.CurrentCommand switch
             {
-                "set_token" => await DecorateTokenQuestion(baseKeyword, session),
-                "set_price" => await DecoratePriceQuestion(baseKeyword, session),
+                "/placeorder" => stepName switch
+                {
+                    "set_token" => await DecorateTokenQuestion(baseKeyword, session),
+                    "set_price" => await DecoratePriceQuestion(baseKeyword, session),
+                    _ => baseKeyword
+                },
+                "/cancelorder" => stepName switch
+                {
+                    "select_order_to_cancel" => await DecorateSelectOrderToCancel(baseKeyword, session),
+                    _ => baseKeyword
+                },
                 _ => baseKeyword
             };
         }
@@ -83,6 +92,25 @@ namespace ArkWallet.Infrastructure.Services.Wizard
                 foreach (var price in prices)
                 {
                     baseKeyword.Add(new() { Text = price.ToString("F2"), Value = price.ToString("F2") });
+                }
+            }
+
+            return baseKeyword;
+        }
+
+        private async Task<List<QuickButton>> DecorateSelectOrderToCancel(List<QuickButton> baseKeyword, UserSession session)
+        {
+            baseKeyword = new();
+            var orders = await _uow.Orders.GetByTraderAsync(session.Id);
+            foreach (var order in orders)
+            {
+                if (order.Status == OrderStatus.Active)
+                {
+                    string answer = $"{(order.Type == OrderType.Buy ? "Купить" : "Продать")} " +
+                        $"{order.CharacterTokenId} " +
+                        $"{order.Quantity} шт. " +
+                        $"по {order.Price:F2}";
+                    baseKeyword.Add(new() { Text = answer, Value = order.Id });
                 }
             }
 
