@@ -8,9 +8,9 @@ using ArkWallet.Entities.Configurations;
 using ArkWallet.Domain.Engines;
 using ArkWallet.Application.Contracts;
 using ArkWallet.Infrastructure.Data;
-using ArkWallet.Infrastructure.Services;
-using ArkWallet.Infrastructure.Services.Wizard;
 using ArkWallet.Infrastructure.Repositories;
+using ArkWallet.Presentation.Wizard;
+using ArkWallet.Infrastructure;
 
 class Program
 {

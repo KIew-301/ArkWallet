@@ -2,7 +2,6 @@
 using ArkWallet.Domain.Engines;
 using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
-using ArkWallet.Infrastructure.Services;
 
 namespace ArkWallet.Application.Services
 {

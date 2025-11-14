@@ -5,7 +5,7 @@ using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Domain.ValueObjects;
 
-namespace ArkWallet.Infrastructure.Services.Wizard
+namespace ArkWallet.Presentation.Wizard
 {
     internal class QuestionDecorator
     {
