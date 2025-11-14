@@ -3,7 +3,7 @@ using ArkWallet.Domain.Entities;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace ArkWallet.Repositories
+namespace ArkWallet.Infrastructure.Repositories
 {
     internal class TraderRepository : ITraderRepository
     {

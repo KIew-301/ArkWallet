@@ -1,17 +1,28 @@
-﻿using ArkWallet.Repositories;
-using System.Linq;
-using ArkWallet.Application.Contracts;
+﻿using ArkWallet.Application.Contracts;
+using ArkWallet.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Application.Contracts.PortfolioServices;
+using ArkWallet.Application.Contracts.TradeOrderServices;
+using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Domain.ValueObjects;
 
 namespace ArkWallet.Infrastructure.Services.Wizard
 {
     internal class QuestionDecorator
     {
-        private readonly IUnitOfWork _uow;
+        private readonly IOrderQueryService _orderQueryService;
+        private readonly IPortfolioQueryService _portfolioQueryService;
+        private readonly ITokenQueryService _tokenQueryService;
+        private readonly ITraderQueryService _traderQueryService;
 
-        public QuestionDecorator (IUnitOfWork uow)
+        public QuestionDecorator (
+            IOrderQueryService orderQueryService,
+            ITokenQueryService tokenQueryService,
+            ITraderQueryService traderQueryService
+            )
         {
-            _uow = uow;
+            _orderQueryService = orderQueryService;
+            _tokenQueryService = tokenQueryService;
+            _traderQueryService = traderQueryService;
         }
 
         public async Task<string> Decorate(string stepName, string baseQuestion, UserSession session)
@@ -27,8 +38,8 @@ namespace ArkWallet.Infrastructure.Services.Wizard
 
         private async Task<string> DecorateTokenQuestion(string baseQuestion, UserSession session)
         {
-            var tokens = await _uow.Portfolios.GetByTraderAsync(session.Id);
-            return $"{baseQuestion}\n\n💎 У вас есть: {string.Join(" ", tokens.Select(t => t.CharacterTokenId))}\n";
+            var tokens = await _portfolioQueryService.GetTraderTokensAsync(session.Id);
+            return $"{baseQuestion}\n\n💎 У вас есть: {string.Join(" ", tokens.Select(t => t.Symbol))}\n";
         }
 
         private async Task<string> DecorateQuantityQuestion(string baseQuestion, UserSession session)
@@ -36,10 +47,8 @@ namespace ArkWallet.Infrastructure.Services.Wizard
             var symbol = session.Data["set_token"]?.ToString();
             var direction = session.Data["set_direction"]?.ToString()?.ToLower();
 
-            if (string.IsNullOrEmpty(symbol)) return baseQuestion;
-
-            var token = await _uow.Tokens.GetByIdAsync(symbol);
-            var trader = await _uow.Traders.GetByIdAsync(session.Id);
+            var token = await _tokenQueryService.GetTokenInfoAsync(symbol);
+            var trader = await _traderQueryService.GetTraderInfoAsync(session.Id);
 
             if (direction == "купить")
             {
@@ -49,7 +58,7 @@ namespace ArkWallet.Infrastructure.Services.Wizard
             }
             else
             {
-                var item = await _uow.Portfolios.GetByTraderAndSymbolAsync(session.Id, symbol);
+                var item = await _portfolioQueryService.GetTokenBalanceAsync(session.Id, symbol);
                 return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
                        $"📦 В портфеле: {item.Quantity} шт";
             }
@@ -58,9 +67,8 @@ namespace ArkWallet.Infrastructure.Services.Wizard
         private async Task<string> DecoratePriceQuestion(string baseQuestion, UserSession session)
         {
             var symbol = session.Data["set_token"]?.ToString();
-            if (string.IsNullOrEmpty(symbol)) return baseQuestion;
 
-            var token = await _uow.Tokens.GetByIdAsync(symbol);
+            var token = await _tokenQueryService.GetTokenInfoAsync(symbol);
             return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
                    $"📊 Текущая цена: {token.CurrentPrice:F2}";
         }

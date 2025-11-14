@@ -5,7 +5,7 @@ using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
 
-namespace ArkWallet.Repositories
+namespace ArkWallet.Infrastructure.Repositories
 {
     internal class CharacterTokenRepository : ICharacterTokenRepository
     {

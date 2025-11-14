@@ -3,7 +3,7 @@ using ArkWallet.Domain.Entities;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace ArkWallet.Repositories
+namespace ArkWallet.Infrastructure.Repositories
 {
     internal class PortfolioItemRepository : IPortfolioItemRepository
     {
@@ -118,7 +118,7 @@ namespace ArkWallet.Repositories
             {
                 // Обновляем существующую запись с пересчетом средней цены
                 var totalQuantity = existingItem.Quantity + quantity;
-                var totalValue = (existingItem.Quantity * existingItem.AverageBuyPrice) + (quantity * price);
+                var totalValue = existingItem.Quantity * existingItem.AverageBuyPrice + quantity * price;
 
                 existingItem.Quantity = totalQuantity;
                 existingItem.AverageBuyPrice = totalValue / totalQuantity;

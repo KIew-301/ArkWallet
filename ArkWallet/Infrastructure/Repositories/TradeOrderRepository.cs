@@ -4,7 +4,7 @@ using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace ArkWallet.Repositories
+namespace ArkWallet.Infrastructure.Repositories
 {
     internal class TradeOrderRepository : ITradeOrderRepository
     {
