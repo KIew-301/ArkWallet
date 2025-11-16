@@ -17,11 +17,13 @@ namespace ArkWallet.Presentation.Wizard
 
         public QuestionDecorator (
             IOrderQueryService orderQueryService,
+            IPortfolioQueryService portfolioQueryService,
             ITokenQueryService tokenQueryService,
             ITraderQueryService traderQueryService
             )
         {
             _orderQueryService = orderQueryService;
+            _portfolioQueryService = portfolioQueryService;
             _tokenQueryService = tokenQueryService;
             _traderQueryService = traderQueryService;
         }

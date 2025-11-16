@@ -5,7 +5,6 @@ using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Application.Contracts.SuggestionServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TraderServices;
-using ArkWallet.Application.Services;
 using ArkWallet.Application.Services.CharacterTokenServices;
 using ArkWallet.Application.Services.PortfolioServices;
 using ArkWallet.Application.Services.SuggestionServices;
@@ -53,6 +52,7 @@ class Program
 
         // SuggestionServices
         services.AddScoped<IPriceSuggestionService, PriceSuggestionService>();
+        services.AddScoped<IQuantitySuggestionService, QuantitySuggestionService>();
 
         // TradeOrderServices
         services.AddScoped<IOrderCancelService, OrderCancelService>();

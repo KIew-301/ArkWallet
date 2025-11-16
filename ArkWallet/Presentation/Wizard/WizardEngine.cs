@@ -54,7 +54,8 @@ namespace ArkWallet.Infrastructure.Wizard
             IPriceSuggestionService priceSuggestionService,
             IQuantitySuggestionService quantitySuggestionService,
             IQuestionDecorator questionDecorator,
-            IButtonDecorator buttonDecorator
+            IButtonDecorator buttonDecorator,
+            WizardConfiguration config
             )
         {
             _traderRegistrationService = traderRegistrationService;
@@ -72,6 +73,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _quantitySuggestionService = quantitySuggestionService;
             _questionDecorator = questionDecorator;
             _buttonDecorator = buttonDecorator;
+            _config = config;
 
             ConfigureHandlers();
             ConfigureAdditionHandlers();
@@ -89,7 +91,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/cancelorder"][1].Handler = HandleConfirmCancellation;
         }
 
-        public async Task<(string? message, List<QuickButton>? buttons)> ProcessInput(long userId, string input)
+        public async Task<(string? message, List<QuickButton>?, Dictionary<long, string>?)> ProcessInput(long userId, string input)
         {
             // Если это команда
             if (_config.Commands.ContainsKey(input))
@@ -103,10 +105,10 @@ namespace ArkWallet.Infrastructure.Wizard
                 return await ContinueCommand(userId, input);
             }
 
-            return ("Неизвестная команда", null);
+            return ("Неизвестная команда", null, null);
         }
 
-        private async Task<(string?, List<QuickButton>)> StartCommand(long userId, string command)
+        private async Task<(string?, List<QuickButton>?, Dictionary<long, string>?)> StartCommand(long userId, string command)
         {
             var session = new UserSession
             {
@@ -124,10 +126,10 @@ namespace ArkWallet.Infrastructure.Wizard
             var buttons = await _buttonDecorator.DecorateButtonsAsync(nextStep.Name, nextStep.Buttons, session);
 
             var step = _config.Commands[command].First();
-            return (question, buttons);
+            return (question, buttons, null);
         }
 
-        private async Task<(string?, List<QuickButton>?)> ContinueCommand(long userId, string input)
+        private async Task<(string?, List<QuickButton>?, Dictionary<long, string>?)> ContinueCommand(long userId, string input)
         {
             var session = _sessions[userId];
             var commandSteps = _config.Commands[session.CurrentCommand];
@@ -139,14 +141,14 @@ namespace ArkWallet.Infrastructure.Wizard
             if (!result.Success)
             {
                 // Ошибка - остаемся на текущем шаге
-                return (result.Message, currentStep.Buttons);
+                return (result.Message, currentStep.Buttons, result.AdditionMessage);
             }
 
             // Успех - переходим к следующему шагу
             if (result.NextStep == "completed")
             {
                 _sessions.Remove(userId);
-                return (result.Message ?? "Готово!", null);
+                return (result.Message ?? "Готово!", null, result.AdditionMessage);
             }
 
             // Обновляем шаг и возвращаем следующий вопрос
@@ -156,7 +158,7 @@ namespace ArkWallet.Infrastructure.Wizard
             var question = await _questionDecorator.DecorateQuestionAsync(nextStep.Name, nextStep.Question, session);
             var buttons = await _buttonDecorator.DecorateButtonsAsync(nextStep.Name, nextStep.Buttons, session);
 
-            return (question, buttons);
+            return (question, buttons, result.AdditionMessage);
         }
     }
 }

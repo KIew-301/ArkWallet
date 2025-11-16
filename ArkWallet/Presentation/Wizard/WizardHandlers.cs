@@ -102,29 +102,18 @@ namespace ArkWallet.Infrastructure.Wizard
             var result = await _orderCreationService.CreateOrderAsync(command);
 
             if (!result.IsSuccess)
-            {
                 return StepResult.Error(result.ErrorMessage);
-            }
-            else if (result.IsFilled)
-            {
-                return StepResult.Ok("completed",
-                    $"Ордер [{direction} " +
-                    $"токен {symbol} " +
-                    $"в количестве {quantity} " +
-                    $"по цене {price:F2}] " +
-                    $"успешно выставлен и уже исполнен."
-                );
-            }
-            else
-            {
-                return StepResult.Ok("completed",
-                    $"Ордер [{direction} " +
-                    $"токен {symbol} " +
-                    $"в количестве {quantity} " +
-                    $"по цене {price:F2}] " +
-                    $"успешно выставлен."
-                );
-            }
+
+            var orderDescription = result.Order.GetDesctiption();
+            var closedOrders = result.ClosesOrder?
+                .Select(o => (o.OwnerId, $"Ордер {o.GetDesctiption()} успешно исполнен"))
+                .ToDictionary();
+
+            var message = result.IsFilled
+                ? $"Ордер {orderDescription} успешно выставлен и уже исполнен."
+                : $"Ордер {orderDescription} успешно выставлен.";
+
+            return StepResult.Ok("completed", message, closedOrders);
         }
 
         public async Task<StepResult> HandleSelectOrderToCancel(UserSession session, string input)
@@ -144,7 +133,7 @@ namespace ArkWallet.Infrastructure.Wizard
         public async Task<StepResult> HandleConfirmCancellation(UserSession session, string input)
         {
             if (input != "confirm")
-                return StepResult.Ok("Отмена не подтверждена", "completed");
+                return StepResult.Ok("completed", "Отмена не подтверждена");
 
             var orderId = session.Data["select_order_to_cancel"]?.ToString();
 

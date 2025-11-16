@@ -2,7 +2,7 @@
 
 namespace ArkWallet.Application.Contracts.TradeOrderServices
 {
-    public interface IOrderCreationService
+    internal interface IOrderCreationService
     {
         Task<OrderCreationResult> CreateOrderAsync(CreateOrderCommand command);
     }
@@ -15,10 +15,11 @@ namespace ArkWallet.Application.Contracts.TradeOrderServices
         decimal Price
     );
 
-    public record OrderCreationResult(
+    internal record OrderCreationResult(
         bool IsSuccess,
         bool IsFilled,
         OrderDto? Order = null,
-        string? ErrorMessage = null
+        string? ErrorMessage = null,
+        List<OrderDto?>? ClosesOrder = null
     );
 }

@@ -85,7 +85,7 @@ namespace ArkWallet.Telegram
 
             await botClient.AnswerCallbackQuery(callbackQuery.Id, cancellationToken: cancellationToken);
 
-            var (answer, buttons) = await Instance._wizardEngine.ProcessInput(chatId, callbackData);
+            var (answer, buttons, addition) = await Instance._wizardEngine.ProcessInput(chatId, callbackData);
 
             if (Instance.IsAuthorizedUser(chatId))
             {
@@ -113,6 +113,10 @@ namespace ArkWallet.Telegram
                         cancellationToken: cancellationToken
                     );
                 }
+
+                if (addition != null && addition.Count > 0)
+                    foreach (var add in addition)
+                        await Instance.SendMessageToUser(add.Key, add.Value);
             }
         }
 
@@ -120,7 +124,7 @@ namespace ArkWallet.Telegram
         {
             if (Instance.IsAuthorizedUser(chatId))
             {
-                var (answer, buttons) = await Instance._wizardEngine.ProcessInput(chatId, input);
+                var (answer, buttons, addition) = await Instance._wizardEngine.ProcessInput(chatId, input);
 
                 if (string.IsNullOrEmpty(answer)) return;
 
@@ -146,6 +150,10 @@ namespace ArkWallet.Telegram
                         cancellationToken: cancellationToken
                     );
                 }
+
+                if (addition != null && addition.Count > 0)
+                    foreach (var add in addition)
+                        await Instance.SendMessageToUser(add.Key, add.Value);
             }
         }
 

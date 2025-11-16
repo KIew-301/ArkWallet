@@ -1,11 +1,13 @@
 ﻿using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
+using Microsoft.CodeAnalysis;
 
 namespace ArkWallet.Application.Dtos
 {
     public record OrderDto(
         string Id,
         OrderType Direction,
+        long OwnerId,
         string Symbol,
         int Quantity,
         decimal Price,
@@ -21,12 +23,25 @@ namespace ArkWallet.Application.Dtos
             return new(
                 order.Id,
                 order.Type,
+                order.TraderTelegramId,
                 order.CharacterTokenId,
                 order.Quantity,
                 order.Price,
                 order.Status,
                 order.CreatedAt
                 );
+        }
+
+        internal string GetDesctiption()
+        {
+            string direction = Direction == OrderType.Buy
+                ? "Купить"
+                : "Продать";
+
+            return $"[{direction} " +
+                    $"токен {Symbol} " +
+                    $"в количестве {Quantity} " +
+                    $"по цене {Price:F2}] ";
         }
     };
 

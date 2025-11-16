@@ -63,8 +63,9 @@ namespace ArkWallet.Application.Services.TradeOrderServices
                     string status = order.IsFilled() ? "Исполнен" : "Активен";
 
                     var result = OrderDto.FromEntity(order);
-
-                    return new OrderCreationResult(true, order.IsFilled(), result);
+                    var closesOrders = engineResult.UpdatedOrders?.Where(o => o.IsFilled()).Select(OrderDto.FromEntity).ToList();
+                        
+                    return new OrderCreationResult(true, order.IsFilled(), result, null, closesOrders);
                 }
                 catch (DomainException ex)
                 {
