@@ -1,16 +1,27 @@
-﻿using ArkWallet.Application.Services;
+﻿using ArkWallet.Application.Contracts;
+using ArkWallet.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Application.Contracts.Decorators;
+using ArkWallet.Application.Contracts.PortfolioServices;
+using ArkWallet.Application.Contracts.SuggestionServices;
+using ArkWallet.Application.Contracts.TradeOrderServices;
+using ArkWallet.Application.Contracts.TraderServices;
+using ArkWallet.Application.Services;
+using ArkWallet.Application.Services.CharacterTokenServices;
+using ArkWallet.Application.Services.PortfolioServices;
+using ArkWallet.Application.Services.SuggestionServices;
+using ArkWallet.Application.Services.TradeOrderServices;
+using ArkWallet.Application.Services.TraderServices;
+using ArkWallet.Domain.Engines;
+using ArkWallet.Entities.Configurations;
+using ArkWallet.Infrastructure;
+using ArkWallet.Infrastructure.Data;
+using ArkWallet.Infrastructure.Repositories;
 using ArkWallet.Infrastructure.Wizard;
+using ArkWallet.Presentation.Wizard;
 using ArkWallet.Telegram;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using ArkWallet.Entities.Configurations;
-using ArkWallet.Domain.Engines;
-using ArkWallet.Application.Contracts;
-using ArkWallet.Infrastructure.Data;
-using ArkWallet.Infrastructure.Repositories;
-using ArkWallet.Presentation.Wizard;
-using ArkWallet.Infrastructure;
 
 class Program
 {
@@ -27,12 +38,32 @@ class Program
         // Wizard
         services.AddScoped<WizardConfiguration>();
         services.AddScoped<WizardEngine>();
-        services.AddScoped<QuestionDecorator>();
-        services.AddScoped<KeywordDecorator>();
 
-        // ApplicationServices
-        services.AddScoped<CancelOrderService>();
-        services.AddScoped<PlaceOrderService>();
+        // CharacterTokenServices
+        services.AddScoped<ITokenCreationService, TokenCreationService>();
+        services.AddScoped<ITokenQueryService, TokenQueryService>();
+
+        // Decorators
+        services.AddScoped<IButtonDecorator, ButtonDecorator>();
+        services.AddScoped<IQuestionDecorator, QuestionDecorator>();
+
+        // PortfolioServices
+        services.AddScoped<IPortfolioQueryService, PortfolioQueryService>();
+        services.AddScoped<IPortfolioUpdatingService, PortfolioUpdatingService>();
+
+        // SuggestionServices
+        services.AddScoped<IPriceSuggestionService, PriceSuggestionService>();
+
+        // TradeOrderServices
+        services.AddScoped<IOrderCancelService, OrderCancelService>();
+        services.AddScoped<IOrderCreationService, OrderCreationService>();
+        services.AddScoped<IOrderQueryService, OrderQueryService>();
+        services.AddScoped<IOrderValidationService, OrderValidationService>();
+
+        // TraderServices
+        services.AddScoped<ITraderBalanceUpdatingService, TraderBalanceUpdatingService>();
+        services.AddScoped<ITraderQueryService, TraderQueryService>();
+        services.AddScoped<ITraderRegistrationService, TraderRegistrationService>();
 
         // Repositories
         services.AddScoped<ITraderRepository, TraderRepository>();

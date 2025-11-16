@@ -7,7 +7,7 @@
         public string? ValidationPattern { get; set; }
         public string NextStep { get; set; }
         public List<QuickButton> Buttons { get; set; } = new();
-        public Func<UserSession, string,Task<StepResult>>? Handler { get; set; }
+        public Func<UserSession, string, Task<StepResult>>? Handler { get; set; }
     }
 
     public class QuickButton

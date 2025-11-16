@@ -2,7 +2,7 @@
 
 namespace ArkWallet.Application.Contracts.TradeOrderServices
 {
-    public interface ICancelOrderService
+    public interface IOrderCancelService
     {
         Task<CancelOrderResult> CancelOrderAsync(long traderId, string orderId);
     }

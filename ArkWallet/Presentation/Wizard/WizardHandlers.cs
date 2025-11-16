@@ -16,7 +16,7 @@ namespace ArkWallet.Infrastructure.Wizard
             return StepResult.Ok("completed", "Отлично! Вы успешно зарегистрированы!");
         }
 
-        private StepResult HandleSetDirection(UserSession session, string input)
+        private async Task<StepResult> HandleSetDirection(UserSession session, string input)
         {
             input = input.ToLower();
 
@@ -48,7 +48,7 @@ namespace ArkWallet.Infrastructure.Wizard
             return StepResult.Ok("set_quantity");
         }
 
-        private StepResult HandleSetTokenQuantity(UserSession session, string input)
+        private async Task<StepResult> HandleSetTokenQuantity(UserSession session, string input)
         {
             string direction = session.Data["set_direction"].ToString().ToLower();
             string symbol = session.Data["set_token"].ToString().ToUpper();

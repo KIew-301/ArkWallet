@@ -1,5 +1,6 @@
 ﻿using ArkWallet.Application.Contracts;
 using ArkWallet.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Application.Contracts.Decorators;
 using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TraderServices;
@@ -7,7 +8,7 @@ using ArkWallet.Domain.ValueObjects;
 
 namespace ArkWallet.Presentation.Wizard
 {
-    internal class QuestionDecorator
+    internal class QuestionDecorator : IQuestionDecorator
     {
         private readonly IOrderQueryService _orderQueryService;
         private readonly IPortfolioQueryService _portfolioQueryService;
@@ -25,7 +26,7 @@ namespace ArkWallet.Presentation.Wizard
             _traderQueryService = traderQueryService;
         }
 
-        public async Task<string> Decorate(string stepName, string baseQuestion, UserSession session)
+        public async Task<string> DecorateQuestionAsync(string stepName, string baseQuestion, UserSession session)
         {
             return stepName switch
             {
@@ -53,8 +54,7 @@ namespace ArkWallet.Presentation.Wizard
             if (direction == "купить")
             {
                 return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
-                       $"💰 Текущая цена: {token.CurrentPrice:F2}\n" +
-                       $"💵 По текущей цене доступно: {Math.Floor(trader.Balance / token.CurrentPrice)} шт";
+                       $"💰 Текущая цена: {token.CurrentPrice:F2}\n";
             }
             else
             {

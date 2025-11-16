@@ -9,7 +9,7 @@ namespace ArkWallet.Application.Contracts.Decorators
 {
     public interface IButtonDecorator
     {
-        Task<List<QuickButton>> DecorateButtonsAsync(string stepName, List<QuickButton> baseButtons, long traderId, Dictionary<string, object> sessionData);
+        Task<List<QuickButton>> DecorateButtonsAsync(string stepName, List<QuickButton> baseKeyword, UserSession session);
     }
 
 }

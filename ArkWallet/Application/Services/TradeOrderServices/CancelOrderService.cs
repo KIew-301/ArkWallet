@@ -4,11 +4,11 @@ using ArkWallet.Domain.Exceptions;
 
 namespace ArkWallet.Application.Services.TradeOrderServices
 {
-    internal class CancelOrderService : ICancelOrderService
+    internal class OrderCancelService : IOrderCancelService
     {
         readonly IUnitOfWork _unitOfWork;
 
-        public CancelOrderService(IUnitOfWork unitOfWork)
+        public OrderCancelService(IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
         }

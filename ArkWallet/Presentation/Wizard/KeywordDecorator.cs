@@ -1,17 +1,18 @@
-﻿using ArkWallet.Application.Contracts.PortfolioServices;
+﻿using ArkWallet.Application.Contracts.Decorators;
+using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Application.Contracts.SuggestionServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Domain.ValueObjects;
 
 namespace ArkWallet.Presentation.Wizard
 {
-    internal class KeywordDecorator
+    internal class ButtonDecorator : IButtonDecorator
     {
         private readonly IPriceSuggestionService _priceSuggestionService;
         private readonly IPortfolioQueryService _portfolioQueryService;
         private readonly IOrderQueryService _orderQueryService;
 
-        public KeywordDecorator(
+        public ButtonDecorator(
             IPriceSuggestionService priceSuggestionService,
             IPortfolioQueryService portfolioQueryService,
             IOrderQueryService orderQueryService
@@ -22,7 +23,7 @@ namespace ArkWallet.Presentation.Wizard
             _orderQueryService = orderQueryService;
         }
 
-        public async Task<List<QuickButton>> Decorate(string stepName, List<QuickButton> baseKeyword, UserSession session)
+        public async Task<List<QuickButton>> DecorateButtonsAsync(string stepName, List<QuickButton> baseKeyword, UserSession session)
         {
             return session.CurrentCommand switch
             {

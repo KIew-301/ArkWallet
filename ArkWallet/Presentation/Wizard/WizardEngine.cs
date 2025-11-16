@@ -22,7 +22,7 @@ namespace ArkWallet.Infrastructure.Wizard
         // ORDER SERVICES
         private readonly IOrderValidationService _orderValidationService;
         private readonly IOrderCreationService _orderCreationService;
-        private readonly ICancelOrderService _cancelOrderService;
+        private readonly IOrderCancelService _cancelOrderService;
         private readonly IOrderQueryService _orderQueryService;
 
         // PORTFOLIO & TOKEN SERVICES
@@ -45,7 +45,7 @@ namespace ArkWallet.Infrastructure.Wizard
             ITraderBalanceUpdatingService traderBalanceUpdatingService,
             IOrderValidationService orderValidationService,
             IOrderCreationService orderCreationService,
-            ICancelOrderService cancelOrderService,
+            IOrderCancelService cancelOrderService,
             IOrderQueryService orderQueryService,
             IPortfolioQueryService portfolioQueryService,
             IPortfolioUpdatingService portfolioUpdatingService,
@@ -120,8 +120,8 @@ namespace ArkWallet.Infrastructure.Wizard
 
             var nextStep = commandSteps.First(s => s.Name == session.CurrentStep);
 
-            var question = await _questionDecorator.DecorateQuestionAsync(nextStep.Name, nextStep.Question, session.Id, session.Data);
-            var buttons = await _buttonDecorator.DecorateButtonsAsync(nextStep.Name, nextStep.Buttons, session.Id, session.Data);
+            var question = await _questionDecorator.DecorateQuestionAsync(nextStep.Name, nextStep.Question, session);
+            var buttons = await _buttonDecorator.DecorateButtonsAsync(nextStep.Name, nextStep.Buttons, session);
 
             var step = _config.Commands[command].First();
             return (question, buttons);
@@ -153,8 +153,8 @@ namespace ArkWallet.Infrastructure.Wizard
             session.CurrentStep = result.NextStep;
             var nextStep = commandSteps.First(s => s.Name == result.NextStep);
 
-            var question = await _questionDecorator.DecorateQuestionAsync(nextStep.Name, nextStep.Question, session.Id, session.Data);
-            var buttons = await _buttonDecorator.DecorateButtonsAsync(nextStep.Name, nextStep.Buttons, session.Id, session.Data);
+            var question = await _questionDecorator.DecorateQuestionAsync(nextStep.Name, nextStep.Question, session);
+            var buttons = await _buttonDecorator.DecorateButtonsAsync(nextStep.Name, nextStep.Buttons, session);
 
             return (question, buttons);
         }
