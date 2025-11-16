@@ -1,6 +1,5 @@
 ﻿using ArkWallet.Application.Contracts;
 using ArkWallet.Application.Contracts.SuggestionServices;
-using ArkWallet.Domain.ValueObjects;
 
 namespace ArkWallet.Application.Services.SuggestionServices
 {
@@ -23,15 +22,8 @@ namespace ArkWallet.Application.Services.SuggestionServices
             if (token == null || trader == null) 
                 return [];
 
-            var orders = await _unitOfWork.Orders.GetByOptionsAsync(
-                traderId,
-                symbol,
-                OrderType.Buy,
-                OrderStatus.Active
-            );
-
-            decimal sum = orders.Sum(o => o.Quantity * o.Price);
-            decimal stock = trader.Balance - sum;
+            var reserve = await _unitOfWork.Orders.GetReservedBalanceAsync(traderId);
+            decimal stock = trader.Balance - reserve;
 
             decimal optimalPrice = Math.Floor(stock / quantity * 100) / 100;
             decimal currentPrice = token.CurrentPrice;
@@ -79,16 +71,6 @@ namespace ArkWallet.Application.Services.SuggestionServices
         {
             var item = await _unitOfWork.Portfolios.GetByTraderAndSymbolAsync(traderId, symbol);
             var token = await _unitOfWork.Tokens.GetByIdAsync(symbol);
-
-            var orders = await _unitOfWork.Orders.GetByOptionsAsync(
-                traderId,
-                symbol,
-                OrderType.Sell,
-                OrderStatus.Active
-            );
-
-            int sum = orders.Sum(o => o.Quantity);
-            int stock = item.Quantity - sum;
 
             decimal currentPrice = token.CurrentPrice;
             decimal noBestPrice = token.CurrentPrice * 0.95M;

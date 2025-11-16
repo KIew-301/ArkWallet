@@ -50,14 +50,14 @@ namespace ArkWallet.Application.Dtos
         int Quantity
     )
     {
-        internal static TokenBalanceDto? FromEntity(PortfolioItem item)
+        internal static TokenBalanceDto? FromEntity(PortfolioItem? item, int reserved = 0)
         {
             if (item == null)
                 return null;
 
             return new(
                 item.CharacterTokenId,
-                item.Quantity
+                item.Quantity - reserved
                 );
         }
     };

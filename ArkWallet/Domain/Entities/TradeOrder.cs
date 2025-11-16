@@ -31,6 +31,7 @@ namespace ArkWallet.Domain.Entities
         public bool IsActive() => Status == OrderStatus.Active;
         public bool IsTraderOrder(long initiatorId) => TraderTelegramId == initiatorId;
         public int GetRemainingQuantity() => Quantity - FilledQuantity;
+        public decimal GetReservedBalance() => GetRemainingQuantity() * Price;
 
         public void MarkAsFilled()
         {

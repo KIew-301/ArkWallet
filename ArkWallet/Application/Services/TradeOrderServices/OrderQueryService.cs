@@ -1,7 +1,6 @@
 ﻿using ArkWallet.Application.Contracts;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Dtos;
-using ArkWallet.Domain.Entities;
 
 namespace ArkWallet.Application.Services.TradeOrderServices
 {

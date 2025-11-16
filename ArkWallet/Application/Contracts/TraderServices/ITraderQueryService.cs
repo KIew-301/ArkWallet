@@ -6,5 +6,6 @@ namespace ArkWallet.Application.Contracts.TraderServices
     {
         Task<TraderInfoDto?> GetTraderInfoAsync(long traderId);
         Task<decimal> GetTraderBalanceAsync(long traderId);
+        Task<decimal> GetTraderAvailableBalanceAsync(long traderId);
     }
 }

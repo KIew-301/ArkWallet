@@ -23,7 +23,7 @@ namespace ArkWallet.Domain.Engines
 
             // Загружаем стакан из существующих ордеров
             var orderBook = GetOrCreateOrderBook(newOrder.CharacterTokenId);
-            orderBook.LoadOrders(existingOrders);
+            orderBook.LoadOrders(existingOrders, newOrder.TraderTelegramId);
 
             // МАТЧИНГ
             var matches = FindMatchingOrders(newOrder, orderBook);

@@ -77,16 +77,9 @@ namespace ArkWallet.Application.Services.TradeOrderServices
             if (direction == "купить")
             {
                 var trader = await _unitOfWork.Traders.GetByIdAsync(traderId);
+                var reserve = await _unitOfWork.Orders.GetReservedBalanceAsync(traderId);
 
-                var orders = await _unitOfWork.Orders.GetByOptionsAsync(
-                    traderId,
-                    symbol,
-                    OrderType.Buy,
-                    OrderStatus.Active
-                );
-
-                decimal sum = orders.Sum(o => o.Quantity * o.Price);
-                decimal stock = trader.Balance - sum;
+                decimal stock = trader.Balance - reserve;
                 decimal totalCost = quantity * price;
 
                 if (stock < totalCost)
@@ -96,16 +89,9 @@ namespace ArkWallet.Application.Services.TradeOrderServices
             else
             {
                 var item = await _unitOfWork.Portfolios.GetByTraderAndSymbolAsync(traderId, symbol);
+                var reserve = await _unitOfWork.Orders.GetReservedQuantityAsync(traderId, symbol);
 
-                var orders = await _unitOfWork.Orders.GetByOptionsAsync(
-                    traderId,
-                    symbol,
-                    OrderType.Sell,
-                    OrderStatus.Active
-                );
-
-                int sum = orders.Sum(o => o.Quantity);
-                int stock = item.Quantity - sum;
+                int stock = item.Quantity - reserve;
 
                 if (stock < quantity)
                     return new ValidationResult(false, 

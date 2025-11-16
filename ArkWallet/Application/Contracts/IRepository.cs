@@ -24,6 +24,9 @@ namespace ArkWallet.Application.Contracts
         Task<TradeOrder[]> GetPendingByTraderAsync(long traderId);
         Task<TradeOrder[]> GetByOptionsAsync(long traderId, string symbol, OrderType type, OrderStatus status);
         Task<bool> CancelOrderAsync(string orderId);
+        Task<int> GetReservedQuantityAsync(long traderId, string symbol);
+        Task<Dictionary<string, int>> GetReservedQuantitiesAllAsync(long traderId);
+        Task<decimal> GetReservedBalanceAsync(long traderId);
     }
 
     internal interface ITraderRepository : IRepository<Trader>

@@ -24,5 +24,12 @@ namespace ArkWallet.Application.Services.TraderServices
             var trader = await _unitOfWork.Traders.GetByIdAsync(traderId);
             return new TraderInfoDto(traderId, trader.Username, trader.Balance);
         }
+
+        public async Task<decimal> GetTraderAvailableBalanceAsync(long traderId)
+        {
+            var trader = await _unitOfWork.Traders.GetByIdAsync(traderId);
+            var reserve = await _unitOfWork.Orders.GetReservedBalanceAsync(traderId);
+            return trader?.Balance - reserve ?? 0;
+        }
     }
 }
