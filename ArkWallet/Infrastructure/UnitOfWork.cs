@@ -52,12 +52,12 @@ namespace ArkWallet.Infrastructure
             catch (DomainException er)
             {
                 await transaction.RollbackAsync();
-                throw new Exception("Ошибка системы");
+                throw;
             }
             catch (Exception er)
             {
                 await transaction.RollbackAsync();
-                throw;
+                throw new Exception("Ошибка системы");
             }
         }
 

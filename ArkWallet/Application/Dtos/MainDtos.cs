@@ -50,9 +50,22 @@ namespace ArkWallet.Application.Dtos
     public record TokenInfoDto(
         string Symbol,
         string Name,
-        decimal CurrentPrice,
-        decimal? PriceChange24h
-    );
+        decimal CurrentPrice
+    )
+    {
+        internal static TokenInfoDto? FromEntity(CharacterToken token)
+        {
+            if (token == null)
+                return null;
+
+            return new(
+                token.Symbol,
+                token.Name,
+                token.CurrentPrice
+            );
+        }
+    };
+
 
     public record TraderInfoDto(
         long Id,
