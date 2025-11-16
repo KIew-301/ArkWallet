@@ -43,10 +43,10 @@ namespace ArkWallet.Presentation.Wizard
 
         private async Task<List<QuickButton>> DecorateTokenQuestion(List<QuickButton> baseKeyword, UserSession session)
         {
-            baseKeyword = new();
-            var tokens = await _portfolioQueryService.GetPortfolioSummaryAsync(session.Id);
+            baseKeyword = [];
+            var tokens = await _portfolioQueryService.GetTraderTokensAsync(session.Id);
             
-            foreach (var token in tokens.Tokens)
+            foreach (var token in tokens)
                 baseKeyword.Add(new() { Text = token.Symbol, Value = token.Symbol });
 
             return baseKeyword;

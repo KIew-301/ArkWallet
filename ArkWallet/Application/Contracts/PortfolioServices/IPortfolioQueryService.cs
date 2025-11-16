@@ -11,6 +11,5 @@ namespace ArkWallet.Application.Contracts.PortfolioServices
     {
         Task<List<TokenBalanceDto>> GetTraderTokensAsync(long traderId);
         Task<TokenBalanceDto?> GetTokenBalanceAsync(long traderId, string symbol);
-        Task<PortfolioSummaryDto> GetPortfolioSummaryAsync(long traderId);
     }
 }

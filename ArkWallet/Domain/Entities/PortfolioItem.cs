@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using ArkWallet.Domain.Exceptions;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ArkWallet.Domain.Entities
@@ -40,7 +41,7 @@ namespace ArkWallet.Domain.Entities
 
         public void AddTokens(int quantity, decimal buyPrice)
         {
-            if (quantity <= 0) throw new ArgumentException("Количество токенов меньше 0");
+            if (quantity <= 0) throw new DomainException("Количество токенов меньше 0");
 
             // Пересчет средней цены
             var totalCost = Quantity * AverageBuyPrice + quantity * buyPrice;
@@ -52,11 +53,24 @@ namespace ArkWallet.Domain.Entities
 
         public void RemoveTokens(int quantity)
         {
-            if (quantity <= 0) throw new ArgumentException("Количество токенов меньше 0");
-            if (quantity > Quantity) throw new InvalidOperationException("Больше токенов недостаточно");
+            if (quantity <= 0) throw new DomainException("Количество токенов меньше или равно 0");
+            if (quantity > Quantity) throw new DomainException("Больше токенов недостаточно");
 
             Quantity -= quantity;
             MarkDirty();
+        }
+
+        public static PortfolioItem Create(long telegramId, string symbol, int quantity ,decimal price)
+        {
+            if (quantity == 0) throw new DomainException("Количество токенов меньше 0");
+
+            return new PortfolioItem
+            {
+                TraderTelegramId = telegramId,
+                CharacterTokenId = symbol,
+                Quantity = quantity,
+                AverageBuyPrice = price
+            };
         }
     }
 }

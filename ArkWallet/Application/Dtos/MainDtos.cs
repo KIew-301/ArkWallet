@@ -32,9 +32,20 @@ namespace ArkWallet.Application.Dtos
 
     public record TokenBalanceDto(
         string Symbol,
-        int Quantity,
-        decimal CurrentPrice
-    );
+        int Quantity
+    )
+    {
+        internal static TokenBalanceDto? FromEntity(PortfolioItem item)
+        {
+            if (item == null)
+                return null;
+
+            return new(
+                item.CharacterTokenId,
+                item.Quantity
+                );
+        }
+    };
 
     public record TokenInfoDto(
         string Symbol,
@@ -50,7 +61,6 @@ namespace ArkWallet.Application.Dtos
     );
 
     public record PortfolioSummaryDto(
-        decimal TotalBalance,
         List<TokenBalanceDto> Tokens
     );
 }

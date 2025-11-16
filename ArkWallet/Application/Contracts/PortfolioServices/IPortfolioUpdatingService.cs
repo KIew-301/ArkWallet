@@ -9,10 +9,10 @@ namespace ArkWallet.Application.Contracts.PortfolioServices
 {
     internal interface IPortfolioUpdatingService
     {
-        Task<PortfolieUpdatingResult> CreateOrUpdatePortfolioAsync(long traderId, string symbol, int quantity);
+        Task<PortfolioUpdatingResult> CreateOrUpdatePortfolioAsync(long traderId, string symbol, int quantity);
     }
 
-    public record PortfolieUpdatingResult(
+    public record PortfolioUpdatingResult(
         bool IsSuccess,
         string? ErrorMessage = null
     );

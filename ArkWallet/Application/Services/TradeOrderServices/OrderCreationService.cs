@@ -1,5 +1,6 @@
 ﻿using ArkWallet.Application.Contracts;
 using ArkWallet.Application.Contracts.TradeOrderServices;
+using ArkWallet.Application.Dtos;
 using ArkWallet.Domain.Engines;
 using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.Exceptions;
@@ -61,15 +62,7 @@ namespace ArkWallet.Application.Services.TradeOrderServices
 
                     string status = order.IsFilled() ? "Исполнен" : "Активен";
 
-                    var result = new Dtos.OrderDto(
-                        order.Id,
-                        command.Direction,
-                        order.CharacterTokenId,
-                        order.Quantity,
-                        order.Price,
-                        status,
-                        order.CreatedAt
-                        );
+                    var result = OrderDto.FromEntity(order);
 
                     return new OrderCreationResult(true, order.IsFilled(), result);
                 }
