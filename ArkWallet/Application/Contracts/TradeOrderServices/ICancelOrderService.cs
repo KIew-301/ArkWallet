@@ -7,5 +7,5 @@ namespace ArkWallet.Application.Contracts.TradeOrderServices
         Task<CancelOrderResult> CancelOrderAsync(long traderId, string orderId);
     }
 
-    public record CancelOrderResult(bool IsSuccess, string Message);
+    public record CancelOrderResult(bool IsSuccess, string Message = null);
 }

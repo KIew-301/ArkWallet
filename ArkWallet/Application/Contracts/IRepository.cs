@@ -22,6 +22,7 @@ namespace ArkWallet.Application.Contracts
         Task<TradeOrder[]> GetActiveBySymbolAsync(string symbol);
         Task<TradeOrder[]> GetByTraderAsync(long traderId);
         Task<TradeOrder[]> GetPendingByTraderAsync(long traderId);
+        Task<TradeOrder[]> GetByOptionsAsync(long traderId, string symbol, OrderType type, OrderStatus status);
         Task<bool> CancelOrderAsync(string orderId);
     }
 

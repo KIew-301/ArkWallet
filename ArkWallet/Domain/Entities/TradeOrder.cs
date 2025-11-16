@@ -1,4 +1,5 @@
-﻿using ArkWallet.Domain.ValueObjects;
+﻿using ArkWallet.Domain.Exceptions;
+using ArkWallet.Domain.ValueObjects;
 using System.ComponentModel.DataAnnotations;
 
 namespace ArkWallet.Domain.Entities
@@ -28,6 +29,7 @@ namespace ArkWallet.Domain.Entities
         // Методы
         public bool IsFilled() => FilledQuantity >= Quantity;
         public bool IsActive() => Status == OrderStatus.Active;
+        public bool IsTraderOrder(long initiatorId) => TraderTelegramId == initiatorId;
         public int GetRemainingQuantity() => Quantity - FilledQuantity;
 
         public void MarkAsFilled()
@@ -37,16 +39,41 @@ namespace ArkWallet.Domain.Entities
             FilledQuantity = Quantity;
         }
 
-        public void Cancel()
+        public static TradeOrder Create(OrderType orderType, string symbol,
+            long traderId, decimal price, int quantity)
         {
-            if (IsActive())
+            if (price <= 0)
+                throw new DomainException("Цена должна быть больше 0");
+
+            if (quantity <= 0)
+                throw new DomainException("Количество токенов должно быть больше 0");
+
+            return new()
             {
-                Status = OrderStatus.Cancelled;
-            }
+                Type = orderType,
+                CharacterTokenId = symbol,
+                TraderTelegramId = traderId,
+                Price = price,
+                Quantity = quantity
+            };
+        }
+
+        public void Cancel(long initiatorId)
+        {
+            if (!IsTraderOrder(initiatorId))
+                throw new DomainException("Нельзя отменить чужой ордер.");
+
+            if (!IsActive())
+                throw new DomainException("Можно отменить только активный ордер.");
+
+            Status = OrderStatus.Cancelled;
         }
 
         public TradeOrder WithQuantity(int newQuantity)
         {
+            if (newQuantity <= 0)
+                throw new DomainException("Количество должно быть больше 0");
+
             return new TradeOrder
             {
                 Id = Guid.NewGuid().ToString(), // Новый Id

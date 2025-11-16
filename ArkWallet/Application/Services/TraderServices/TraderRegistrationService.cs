@@ -2,7 +2,7 @@
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Domain.Entities;
 
-namespace ArkWallet.Application.Services
+namespace ArkWallet.Application.Services.TraderServices
 {
     internal class TraderRegistrationService : ITraderRegistrationService
     {

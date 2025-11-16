@@ -2,7 +2,7 @@
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Application.Dtos;
 
-namespace ArkWallet.Application.Services
+namespace ArkWallet.Application.Services.TraderServices
 {
     internal class TraderQueryService : ITraderQueryService
     {
@@ -22,10 +22,6 @@ namespace ArkWallet.Application.Services
         public async Task<TraderInfoDto?> GetTraderInfoAsync(long traderId)
         {
             var trader = await _unitOfWork.Traders.GetByIdAsync(traderId);
-
-            if (trader == null)
-                return null;
-
             return new TraderInfoDto(traderId, trader.Username, trader.Balance);
         }
     }

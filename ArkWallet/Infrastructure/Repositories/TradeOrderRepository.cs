@@ -102,5 +102,16 @@ namespace ArkWallet.Infrastructure.Repositories
 
             return true;
         }
+
+        public async Task<TradeOrder[]> GetByOptionsAsync(long traderId, string symbol, OrderType type, OrderStatus status)
+        {
+            return await _context.TradeOrders
+                .Where(o => 
+                    o.TraderTelegramId == traderId && 
+                    o.CharacterTokenId == symbol &&
+                    o.Status == status &&
+                    o.Type == type)
+                .ToArrayAsync();
+        }
     }
 }

@@ -1,20 +1,34 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using ArkWallet.Domain.Entities;
+using ArkWallet.Domain.ValueObjects;
 
 namespace ArkWallet.Application.Dtos
 {
     public record OrderDto(
         string Id,
-        string Direction,
+        OrderType Direction,
         string Symbol,
         int Quantity,
         decimal Price,
-        string Status,
+        OrderStatus Status,
         DateTime CreatedAt
-    );
+    )
+    {
+        internal static OrderDto? FromEntity(TradeOrder order)
+        {
+            if (order == null)
+                return null;
+
+            return new(
+                order.Id,
+                order.Type,
+                order.CharacterTokenId,
+                order.Quantity,
+                order.Price,
+                order.Status,
+                order.CreatedAt
+                );
+        }
+    };
 
     public record TokenBalanceDto(
         string Symbol,

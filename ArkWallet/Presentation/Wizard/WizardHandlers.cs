@@ -16,9 +16,11 @@ namespace ArkWallet.Infrastructure.Wizard
             return StepResult.Ok("completed", "Отлично! Вы успешно зарегистрированы!");
         }
 
-        private async Task<StepResult> HandleSetDirection(UserSession session, string input)
+        private StepResult HandleSetDirection(UserSession session, string input)
         {
-            var validation = await _orderValidationService.ValidateDirectionAsync(
+            input = input.ToLower();
+
+            var validation = _orderValidationService.ValidateDirection(
                 input
             );
 
@@ -39,7 +41,6 @@ namespace ArkWallet.Infrastructure.Wizard
                 direction
             );
 
-            // ✅ Нужно проверить результат валидации!
             if (!validation.IsValid)
                 return StepResult.Error(validation.Message);
 
@@ -47,7 +48,7 @@ namespace ArkWallet.Infrastructure.Wizard
             return StepResult.Ok("set_quantity");
         }
 
-        private async Task<StepResult> HandleSetTokenQuantity(UserSession session, string input)
+        private StepResult HandleSetTokenQuantity(UserSession session, string input)
         {
             string direction = session.Data["set_direction"].ToString().ToLower();
             string symbol = session.Data["set_token"].ToString().ToUpper();
@@ -55,10 +56,7 @@ namespace ArkWallet.Infrastructure.Wizard
             if (!int.TryParse(input, out var quantity))
                 return StepResult.Error("Необходимо ввести целое число.");
 
-            var validation = await _orderValidationService.ValidateQuantityAsync(
-                session.Id,
-                symbol,
-                direction,
+            var validation = _orderValidationService.ValidateQuantity(
                 quantity
             );
 
@@ -78,17 +76,20 @@ namespace ArkWallet.Infrastructure.Wizard
             int quantity = (int)session.Data["set_quantity"];
             string symbol = session.Data["set_token"].ToString().ToUpper();
 
-            var validation = await _orderValidationService.ValidatePriceAsync(
-                session.Id, 
-                symbol, 
-                direction, 
-                quantity, 
+            var validation = _orderValidationService.ValidatePrice(
                 price
             );
 
-
             if (!validation.IsValid)
                 return StepResult.Error(validation.Message);
+
+            validation = await _orderValidationService.ValidateOrderCreationAsync(
+                session.Id,
+                symbol,
+                direction,
+                quantity,
+                price
+            );
 
             var command = new CreateOrderCommand(
                 session.Id,
@@ -146,6 +147,9 @@ namespace ArkWallet.Infrastructure.Wizard
                 return StepResult.Ok("Отмена не подтверждена", "completed");
 
             var orderId = session.Data["select_order_to_cancel"]?.ToString();
+
+            if (string.IsNullOrEmpty(orderId))
+                return StepResult.Error("Ордер не найден");
 
             var result = await _cancelOrderService.CancelOrderAsync(session.Id, orderId);
 

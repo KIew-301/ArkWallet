@@ -17,9 +17,7 @@ namespace ArkWallet.Infrastructure.Repositories
         public async Task<Trader?> GetByIdAsync(object id)
         {
             if (id is long telegramId)
-            {
                 return await _context.Traders.FirstOrDefaultAsync(t => t.TelegramId == telegramId);
-            }
             return null;
         }
 

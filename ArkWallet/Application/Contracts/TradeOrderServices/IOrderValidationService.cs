@@ -4,12 +4,12 @@ namespace ArkWallet.Application.Contracts.TradeOrderServices
 {
     public interface IOrderValidationService
     {
-        Task<ValidationResult> ValidateDirectionAsync(string direction);
+        ValidationResult ValidateDirection(string direction);
         Task<ValidationResult> ValidateTokenAsync(long traderId, string symbol, string direction);
-        Task<ValidationResult> ValidateQuantityAsync(long traderId, string symbol, string direction, int quantity);
-        Task<ValidationResult> ValidateCancelOrderAsync(long traderId, string symbol, string direction, int quantity);
+        ValidationResult ValidateQuantity(int quantity);
         Task<ValidationResult> ValidateOrderCancellationAsync(long traderId, string orderId);
-        Task<PriceValidationResult> ValidatePriceAsync(long traderId, string symbol, string direction, int quantity, decimal price);
+        Task<ValidationResult> ValidateOrderCreationAsync(long traderId, string symbol, string direction, int quantity, decimal price);
+        ValidationResult ValidatePrice(decimal price);
     }
 
     public record PriceValidationResult(

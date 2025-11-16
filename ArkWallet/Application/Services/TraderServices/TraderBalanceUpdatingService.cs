@@ -1,14 +1,7 @@
 ﻿using ArkWallet.Application.Contracts;
-using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Contracts.TraderServices;
-using ArkWallet.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace ArkWallet.Application.Services
+namespace ArkWallet.Application.Services.TraderServices
 {
     internal class TraderBalanceUpdatingService : ITraderBalanceUpdatingService
     {
@@ -33,7 +26,9 @@ namespace ArkWallet.Application.Services
 
                 trader.AddToBalance(amount);
 
-                _unitOfWork.Traders.UpdateBalanceAsync(traderId, amount);
+                await _unitOfWork.Traders.UpdateAsync(trader);
+
+                return new TraderBalanceUpdatingResult(true);
             });
         }
     }
