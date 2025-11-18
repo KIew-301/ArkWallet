@@ -147,6 +147,18 @@ namespace ArkWallet.Infrastructure.Wizard
                 : StepResult.Error(result.Message);
         }
 
+        public async Task<StepResult> HandleConfirmCancellationAllOrders(UserSession session, string input)
+        {
+            if (input != "confirm")
+                return StepResult.Ok("completed", "Отмена не подтверждена");
+
+            var result = await _cancelOrderService.CancelAllOrderAsync(session.Id);
+
+            return result.IsSuccess
+                ? StepResult.Ok("completed", result.Message)
+                : StepResult.Error(result.Message);
+        }
+
         public async Task<StepResult> HandleGetProfile(UserSession session, string input)
         {
             var traderInfo = await _traderQueryService.GetTraderInfoAsync(session.Id);

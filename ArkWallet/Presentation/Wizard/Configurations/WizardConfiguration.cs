@@ -81,6 +81,21 @@ namespace ArkWallet.Entities.Configurations
             {
                 new()
                 {
+                    Name = "confirm_cancellation",
+                    Question = "Вы уверены что хотите отменить все активные ордера?",
+                    Buttons = [
+                        new() { Text = "✅ Да, отменить", Value = "confirm" },
+                        new() { Text = "❌ Нет, оставить", Value = "cancel" }
+                    ]
+                }
+            };
+
+            Commands["/cancelallorders"] = steps;
+
+            steps = new List<WizardStep>
+            {
+                new()
+                {
                     Name = "request",
                     OneStep = true
                 },

@@ -40,5 +40,31 @@ namespace ArkWallet.Application.Services.TradeOrderServices
                 }
             });
         }
+
+        public async Task<CancelOrderResult> CancelAllOrderAsync(long traderId)
+        {
+            try
+            {
+                var orders = await _unitOfWork.Orders.GetPendingByTraderAsync(traderId);
+
+                if (orders == null || orders.Length < 0)
+                    return new CancelOrderResult(false, "Нет активных одеров для отмены");
+
+                foreach (var order in orders)
+                    order.Cancel(traderId);
+
+                await _unitOfWork.Orders.UpdateRangeAsync(orders);
+
+                return new CancelOrderResult(true, $"Успешно отменённых ордеров: {orders.Length}");
+            }
+            catch (DomainException ex)
+            {
+                return new CancelOrderResult(false, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return new CancelOrderResult(false, "Ошибка системы");
+            }
+        }
     }
 }

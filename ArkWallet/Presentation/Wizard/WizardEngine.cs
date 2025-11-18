@@ -90,6 +90,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/placeorder"][3].Handler = HandleSetTokenPrice;
             _config.Commands["/cancelorder"][0].Handler = HandleSelectOrderToCancel;
             _config.Commands["/cancelorder"][1].Handler = HandleConfirmCancellation;
+            _config.Commands["/cancelallorders"][0].Handler = HandleConfirmCancellationAllOrders;
             _config.Commands["/getprofile"][0].Handler = HandleGetProfile;
         }
 
