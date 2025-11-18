@@ -6,7 +6,7 @@ namespace ArkWallet.Domain.Entities
     internal class CharacterToken
     {
         [Key]
-        public string Symbol { get; set; }                     
+        public string Symbol { get; set; }
         public string Name { get; set; }
         public CharacterRarity Rarity { get; set; }
         public decimal CurrentPrice { get; set; }

@@ -1,9 +1,4 @@
 ﻿using ArkWallet.Application.Contracts.SuggestionServices;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ArkWallet.Application.Services.SuggestionServices
 {

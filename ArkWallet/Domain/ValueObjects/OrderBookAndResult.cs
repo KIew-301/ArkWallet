@@ -6,7 +6,7 @@ namespace ArkWallet.Domain.ValueObjects
     {
         public List<TradeOrder> Bids { get; set; } = new(); // Заявки на покупку
         public List<TradeOrder> Asks { get; set; } = new(); // Заявки на продажу
-    
+
         public void LoadOrders(List<TradeOrder> orders, long excludeTraderId)
         {
             foreach (var order in orders)
@@ -31,7 +31,7 @@ namespace ArkWallet.Domain.ValueObjects
         public List<Trade> Trades { get; set; } = new();
 
         public static OrderResult Pending(TradeOrder order)
-            => new() { IsFilled = false, Message = "Ордер успешно выставлен",Order = order };
+            => new() { IsFilled = false, Message = "Ордер успешно выставлен", Order = order };
 
         public static OrderResult Filled(TradeOrder order, List<Trade> trades)
             => new() { IsFilled = true, Message = "Ордер успешно исполнен", Order = order, Trades = trades };

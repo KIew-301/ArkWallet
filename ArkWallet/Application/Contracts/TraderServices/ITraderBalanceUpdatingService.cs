@@ -1,6 +1,4 @@
-﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
-
-namespace ArkWallet.Application.Contracts.TraderServices
+﻿namespace ArkWallet.Application.Contracts.TraderServices
 {
     internal interface ITraderBalanceUpdatingService
     {

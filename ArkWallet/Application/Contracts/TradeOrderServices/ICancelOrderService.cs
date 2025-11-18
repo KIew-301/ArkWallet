@@ -1,6 +1,4 @@
-﻿using ArkWallet.Application.Common;
-
-namespace ArkWallet.Application.Contracts.TradeOrderServices
+﻿namespace ArkWallet.Application.Contracts.TradeOrderServices
 {
     public interface IOrderCancelService
     {

@@ -1,6 +1,5 @@
 ﻿using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
-using Microsoft.CodeAnalysis;
 
 namespace ArkWallet.Application.Dtos
 {

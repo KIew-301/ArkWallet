@@ -46,7 +46,7 @@ namespace ArkWallet.Presentation.Wizard
         {
             baseKeyword = [];
             var tokens = await _portfolioQueryService.GetTraderTokensAsync(session.Id);
-            
+
             foreach (var token in tokens)
                 baseKeyword.Add(new() { Text = token.Symbol, Value = token.Symbol });
 
@@ -89,7 +89,7 @@ namespace ArkWallet.Presentation.Wizard
         {
             baseKeyword = [];
             var orders = await _orderQueryService.GetActiveOrdersAsync(session.Id);
-            
+
             foreach (var order in orders)
             {
                 string answer = $"" +

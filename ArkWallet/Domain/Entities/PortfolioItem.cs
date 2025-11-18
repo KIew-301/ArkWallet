@@ -60,7 +60,7 @@ namespace ArkWallet.Domain.Entities
             MarkDirty();
         }
 
-        public static PortfolioItem Create(long telegramId, string symbol, int quantity ,decimal price)
+        public static PortfolioItem Create(long telegramId, string symbol, int quantity, decimal price)
         {
             if (quantity == 0) throw new DomainException("Количество токенов меньше 0");
 

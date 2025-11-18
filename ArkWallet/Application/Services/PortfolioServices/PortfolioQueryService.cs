@@ -29,7 +29,7 @@ namespace ArkWallet.Application.Services.PortfolioServices
             if (items.Count == 0)
                 return [];
 
-            return [..items.Select(TokenBalanceDto.FromEntity)];
+            return [.. items.Select(TokenBalanceDto.FromEntity)];
         }
 
         public async Task<TokenBalanceDto?> GetAvailableTokenBalanceAsync(long traderId, string symbol)

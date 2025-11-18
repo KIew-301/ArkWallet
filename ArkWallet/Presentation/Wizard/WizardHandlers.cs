@@ -1,10 +1,6 @@
 ﻿using ArkWallet.Application.Contracts.TradeOrderServices;
-using ArkWallet.Application.Dtos;
-using ArkWallet.Application.Services;
-using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
 using Microsoft.CodeAnalysis;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Model;
 
 namespace ArkWallet.Infrastructure.Wizard
 {
@@ -119,7 +115,7 @@ namespace ArkWallet.Infrastructure.Wizard
         public async Task<StepResult> HandleSelectOrderToCancel(UserSession session, string input)
         {
             var validation = await _orderValidationService.ValidateOrderCancellationAsync(
-                session.Id, 
+                session.Id,
                 input
             );
 

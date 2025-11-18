@@ -20,7 +20,7 @@ namespace ArkWallet.Entities.Configurations
                 {
                     Name = "set_name",
                     Question = "Как вас будут звать?",
-                    
+
                 }
             };
 

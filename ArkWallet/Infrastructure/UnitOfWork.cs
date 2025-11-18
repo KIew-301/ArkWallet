@@ -1,7 +1,5 @@
 ﻿using ArkWallet.Application.Contracts;
-using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.Exceptions;
-using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 
 namespace ArkWallet.Infrastructure

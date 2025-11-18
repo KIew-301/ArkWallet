@@ -3,7 +3,6 @@ using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json.Linq;
 
 namespace ArkWallet.Infrastructure.Repositories
 {

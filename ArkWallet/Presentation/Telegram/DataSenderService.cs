@@ -2,6 +2,6 @@
 {
     static internal class DataSenderService
     {
-        
+
     }
 }

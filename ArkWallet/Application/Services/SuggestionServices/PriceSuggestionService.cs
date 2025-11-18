@@ -19,7 +19,7 @@ namespace ArkWallet.Application.Services.SuggestionServices
             var trader = await _unitOfWork.Traders.GetByIdAsync(traderId);
             var token = await _unitOfWork.Tokens.GetByIdAsync(symbol);
 
-            if (token == null || trader == null) 
+            if (token == null || trader == null)
                 return [];
 
             var reserve = await _unitOfWork.Orders.GetReservedBalanceAsync(traderId);

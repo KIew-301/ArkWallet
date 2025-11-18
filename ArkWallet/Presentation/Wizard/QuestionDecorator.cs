@@ -1,12 +1,9 @@
-﻿using ArkWallet.Application.Contracts;
-using ArkWallet.Application.Contracts.CharacterTokenServices;
+﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Contracts.Decorators;
 using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TraderServices;
-using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
-using Newtonsoft.Json.Linq;
 
 namespace ArkWallet.Presentation.Wizard
 {
@@ -17,7 +14,7 @@ namespace ArkWallet.Presentation.Wizard
         private readonly ITokenQueryService _tokenQueryService;
         private readonly ITraderQueryService _traderQueryService;
 
-        public QuestionDecorator (
+        public QuestionDecorator(
             IOrderQueryService orderQueryService,
             IPortfolioQueryService portfolioQueryService,
             ITokenQueryService tokenQueryService,

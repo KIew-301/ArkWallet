@@ -1,8 +1,6 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts;
 using ArkWallet.Application.Contracts.TradeOrderServices;
-using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.ValueObjects;
 
 namespace ArkWallet.Application.Services.TradeOrderServices
 {
@@ -94,7 +92,7 @@ namespace ArkWallet.Application.Services.TradeOrderServices
                 int stock = item.Quantity - reserve;
 
                 if (stock < quantity)
-                    return new ValidationResult(false, 
+                    return new ValidationResult(false,
                         $"Не хватает токенов для продажи (необходимо {quantity}, доступно {stock})");
             }
 
