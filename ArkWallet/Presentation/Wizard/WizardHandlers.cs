@@ -142,5 +142,32 @@ namespace ArkWallet.Infrastructure.Wizard
                 ? StepResult.Ok("completed", result.Message)
                 : StepResult.Error(result.Message);
         }
+
+        public async Task<StepResult> HandleGetProfile(UserSession session, string input)
+        {
+            var traderInfo = await _traderQueryService.GetTraderInfoAsync(session.Id);
+            var portfolioInfo = await _portfolioQueryService.GetTraderTokensAsync(session.Id);
+
+            string result = "";
+
+            if (traderInfo == null)
+                return StepResult.Ok("Данные профиля не найдены.");
+
+            string Indent(int count) => new(' ', count);
+
+            result += $"{traderInfo.Name}!\n" +
+                $"{Indent(3)}Баланс: {traderInfo.Balance:F2}\n" +
+                $"{Indent(3)}Портфель:\n";
+
+            if (portfolioInfo == null || portfolioInfo.Count <= 0)
+            {
+                result += $"{Indent(6)}Не владеет токенами".PadLeft(3);
+                return StepResult.Ok("completed", result);
+            }
+
+            result += string.Join("\n", portfolioInfo.Select(p => $"{Indent(6)}{p.Symbol} - {p.Quantity} шт."));
+
+            return StepResult.Ok("completed", result);
+        }
     }
 }

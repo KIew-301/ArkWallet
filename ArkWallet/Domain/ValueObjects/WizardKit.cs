@@ -6,6 +6,7 @@
         public string Question { get; set; }
         public string? ValidationPattern { get; set; }
         public string NextStep { get; set; }
+        public bool OneStep { get; set; } = false;
         public List<QuickButton> Buttons { get; set; } = new();
         public Func<UserSession, string, Task<StepResult>>? Handler { get; set; }
     }

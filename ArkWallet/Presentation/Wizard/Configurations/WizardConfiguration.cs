@@ -76,6 +76,17 @@ namespace ArkWallet.Entities.Configurations
             };
 
             Commands["/cancelorder"] = steps;
+
+            steps = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "request",
+                    OneStep = true
+                },
+            };
+
+            Commands["/getprofile"] = steps;
         }
     }
 }

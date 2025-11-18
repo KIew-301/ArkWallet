@@ -6,6 +6,7 @@ using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Entities.Configurations;
+using ArkWallet.Migrations;
 
 namespace ArkWallet.Infrastructure.Wizard
 {
@@ -89,6 +90,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/placeorder"][3].Handler = HandleSetTokenPrice;
             _config.Commands["/cancelorder"][0].Handler = HandleSelectOrderToCancel;
             _config.Commands["/cancelorder"][1].Handler = HandleConfirmCancellation;
+            _config.Commands["/getprofile"][0].Handler = HandleGetProfile;
         }
 
         public async Task<(string? message, List<QuickButton>?, Dictionary<long, string>?)> ProcessInput(long userId, string input)
@@ -116,17 +118,27 @@ namespace ArkWallet.Infrastructure.Wizard
                 CurrentCommand = command,
                 CurrentStep = _config.Commands[command].First().Name
             };
-            _sessions[userId] = session;
 
             var commandSteps = _config.Commands[session.CurrentCommand];
+            var currentStep = commandSteps.First(s => s.Name == session.CurrentStep);
 
-            var nextStep = commandSteps.First(s => s.Name == session.CurrentStep);
+            if (!currentStep.OneStep)
+            {
+                _sessions[userId] = session;
 
-            var question = await _questionDecorator.DecorateQuestionAsync(nextStep.Name, nextStep.Question, session);
-            var buttons = await _buttonDecorator.DecorateButtonsAsync(nextStep.Name, nextStep.Buttons, session);
+                var nextStep = commandSteps.First(s => s.Name == session.CurrentStep);
 
-            var step = _config.Commands[command].First();
-            return (question, buttons, null);
+                var question = await _questionDecorator.DecorateQuestionAsync(nextStep.Name, nextStep.Question, session);
+                var buttons = await _buttonDecorator.DecorateButtonsAsync(nextStep.Name, nextStep.Buttons, session);
+
+                var step = _config.Commands[command].First();
+                return (question, buttons, null);
+            }
+            else
+            {
+                var result = await currentStep.Handler(session, command);
+                return (result.Message ?? "Готово!", null, result.AdditionMessage);
+            }
         }
 
         private async Task<(string?, List<QuickButton>?, Dictionary<long, string>?)> ContinueCommand(long userId, string input)
