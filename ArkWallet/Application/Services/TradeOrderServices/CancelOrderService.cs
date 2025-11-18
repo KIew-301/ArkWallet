@@ -47,7 +47,7 @@ namespace ArkWallet.Application.Services.TradeOrderServices
             {
                 var orders = await _unitOfWork.Orders.GetPendingByTraderAsync(traderId);
 
-                if (orders == null || orders.Length < 0)
+                if (orders == null || orders.Length == 0)
                     return new CancelOrderResult(false, "Нет активных одеров для отмены");
 
                 foreach (var order in orders)
