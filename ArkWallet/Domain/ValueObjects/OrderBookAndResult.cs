@@ -11,7 +11,7 @@ namespace ArkWallet.Domain.ValueObjects
         {
             foreach (var order in orders)
             {
-                if (order.TraderTelegramId != excludeTraderId)
+                if (order.TraderTelegramId != excludeTraderId && order.Status == OrderStatus.Active)
                 {
                     if (order.Type == OrderType.Buy)
                         Bids.Add(order);
