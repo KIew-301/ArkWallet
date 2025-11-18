@@ -8,8 +8,12 @@ namespace ArkWallet.Infrastructure.Wizard
     {
         private async Task<StepResult> HandleSetName(UserSession session, string input)
         {
-            await _traderRegistrationService.RegisterTraderAsync(session.Id, input);
-            return StepResult.Ok("completed", "Отлично! Вы успешно зарегистрированы!");
+            var result = await _traderRegistrationService.RegisterTraderAsync(session.Id, input);
+
+            if (result.IsSuccess)
+                return StepResult.Ok("completed", "Отлично! Вы успешно зарегистрированы!");
+            else
+                return StepResult.Ok("completed", result.ErrorMessage);
         }
 
         private async Task<StepResult> HandleSetDirection(UserSession session, string input)

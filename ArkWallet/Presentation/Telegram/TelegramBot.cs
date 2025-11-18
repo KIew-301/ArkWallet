@@ -62,16 +62,24 @@ namespace ArkWallet.Telegram
 
         static async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
-            if (update.Message is { } message && message.Text is { } messageText)
+            try
             {
-                var chatId = message.Chat.Id;
-                Console.WriteLine($"Received text message");
-                await ProcessUserInput(botClient, chatId, messageText, cancellationToken);
-            }
+                if (update.Message is { } message && message.Text is { } messageText)
+                {
+                    var chatId = message.Chat.Id;
+                    Console.WriteLine($"Received text message");
+                    await ProcessUserInput(botClient, chatId, messageText, cancellationToken);
+                }
 
-            else if (update.CallbackQuery is { } callbackQuery)
+                else if (update.CallbackQuery is { } callbackQuery)
+                {
+                    await HandleCallbackQuery(botClient, callbackQuery, cancellationToken);
+                }
+            }
+            catch (Exception ex)
             {
-                await HandleCallbackQuery(botClient, callbackQuery, cancellationToken);
+                await Instance.SendMessageToAdmin($"{ex.Message}\n{ex.StackTrace}");
+                Console.WriteLine($"{ex.Message}\n{ex.StackTrace}");
             }
         }
 
@@ -81,79 +89,106 @@ namespace ArkWallet.Telegram
             var callbackData = callbackQuery.Data;
             var messageId = callbackQuery.Message.MessageId;
 
-            Console.WriteLine($"Received callback");
-
-            await botClient.AnswerCallbackQuery(callbackQuery.Id, cancellationToken: cancellationToken);
-
-            var (answer, buttons, addition) = await Instance._wizardEngine.ProcessInput(chatId, callbackData);
-
-            if (Instance.IsAuthorizedUser(chatId))
+            try
             {
-                if (buttons != null && buttons.Any())
-                {
-                    var inlineButtons = buttons.Select(btn =>
-                        new[] { InlineKeyboardButton.WithCallbackData(btn.Text, btn.Value ?? btn.Text) }
-                    );
-                    var inlineMarkup = new InlineKeyboardMarkup(inlineButtons);
+                Console.WriteLine($"Received callback");
 
-                    await botClient.EditMessageText(
-                        chatId: chatId,
-                        messageId: messageId,
-                        text: answer,
-                        replyMarkup: inlineMarkup,
-                        cancellationToken: cancellationToken
-                    );
-                }
-                else
-                {
-                    await botClient.EditMessageText(
-                        chatId: chatId,
-                        messageId: messageId,
-                        text: answer,
-                        cancellationToken: cancellationToken
-                    );
-                }
+                await botClient.AnswerCallbackQuery(callbackQuery.Id, cancellationToken: cancellationToken);
 
-                if (addition != null && addition.Count > 0)
-                    foreach (var add in addition)
-                        await Instance.SendMessageToUser(add.Key, add.Value);
+                var (answer, buttons, addition) = await Instance._wizardEngine.ProcessInput(chatId, callbackData);
+
+                if (Instance.IsAuthorizedUser(chatId))
+                {
+                    if (buttons != null && buttons.Any())
+                    {
+                        var inlineButtons = buttons.Select(btn =>
+                            new[] { InlineKeyboardButton.WithCallbackData(btn.Text, btn.Value ?? btn.Text) }
+                        );
+                        var inlineMarkup = new InlineKeyboardMarkup(inlineButtons);
+
+                        await botClient.EditMessageText(
+                            chatId: chatId,
+                            messageId: messageId,
+                            text: answer,
+                            replyMarkup: inlineMarkup,
+                            cancellationToken: cancellationToken
+                        );
+                    }
+                    else
+                    {
+                        await botClient.EditMessageText(
+                            chatId: chatId,
+                            messageId: messageId,
+                            text: answer,
+                            cancellationToken: cancellationToken
+                        );
+                    }
+
+                    if (addition != null && addition.Count > 0)
+                        foreach (var add in addition)
+                            await Instance.SendMessageToUser(add.Key, add.Value);
+                }
+            }
+            catch
+            {
+                await botClient.EditMessageText(
+                            chatId: chatId,
+                            messageId: messageId,
+                            text: "Ошибка в системе.",
+                            cancellationToken: cancellationToken
+                        );
+
+                throw;
             }
         }
 
         static async Task ProcessUserInput(ITelegramBotClient botClient, long chatId, string input, CancellationToken cancellationToken)
         {
-            if (Instance.IsAuthorizedUser(chatId))
+            try
             {
-                var (answer, buttons, addition) = await Instance._wizardEngine.ProcessInput(chatId, input);
-
-                if (string.IsNullOrEmpty(answer)) return;
-
-                if (buttons != null && buttons.Any())
+                if (Instance.IsAuthorizedUser(chatId))
                 {
-                    var inlineButtons = buttons.Select(btn =>
-                        new[] { InlineKeyboardButton.WithCallbackData(btn.Text, btn.Value ?? btn.Text) }
-                    );
-                    var inlineMarkup = new InlineKeyboardMarkup(inlineButtons);
+                    var (answer, buttons, addition) = await Instance._wizardEngine.ProcessInput(chatId, input);
 
-                    await botClient.SendMessage(
-                        chatId: chatId,
-                        text: answer,
-                        replyMarkup: inlineMarkup,
-                        cancellationToken: cancellationToken
-                    );
-                }
-                else
-                {
-                    await botClient.SendMessage(
-                        chatId: chatId,
-                        text: answer,
-                        cancellationToken: cancellationToken
-                    );
-                }
+                    if (string.IsNullOrEmpty(answer)) return;
 
-                if (addition != null && addition.Count > 0)
-                    foreach (var add in addition)
-                        await Instance.SendMessageToUser(add.Key, add.Value);
+                    if (buttons != null && buttons.Any())
+                    {
+                        var inlineButtons = buttons.Select(btn =>
+                            new[] { InlineKeyboardButton.WithCallbackData(btn.Text, btn.Value ?? btn.Text) }
+                        );
+                        var inlineMarkup = new InlineKeyboardMarkup(inlineButtons);
+
+                        await botClient.SendMessage(
+                            chatId: chatId,
+                            text: answer,
+                            replyMarkup: inlineMarkup,
+                            cancellationToken: cancellationToken
+                        );
+                    }
+                    else
+                    {
+                        await botClient.SendMessage(
+                            chatId: chatId,
+                            text: answer,
+                            cancellationToken: cancellationToken
+                        );
+                    }
+
+                    if (addition != null && addition.Count > 0)
+                        foreach (var add in addition)
+                            await Instance.SendMessageToUser(add.Key, add.Value);
+                }
+            }
+            catch
+            {
+                await botClient.SendMessage(
+                    chatId: chatId,
+                    text: "Ошибка в системе.",
+                    cancellationToken: cancellationToken
+                );
+
+                throw;
             }
         }
 
