@@ -43,7 +43,6 @@ namespace ArkWallet.Infrastructure
             try
             {
                 var result = await action();
-                await _dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return result;
             }

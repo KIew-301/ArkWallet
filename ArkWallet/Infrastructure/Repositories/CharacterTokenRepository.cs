@@ -40,30 +40,36 @@ namespace ArkWallet.Infrastructure.Repositories
         {
             var target = await GetByIdAsync(token.Symbol);
             await _context.CharacterTokens.AddAsync(token);
+            await _context.SaveChangesAsync();
         }
 
         public async Task UpdateAsync(CharacterToken token)
         {
             _context.CharacterTokens.Update(token);
+            await _context.SaveChangesAsync();
         }
 
         public async Task AddRangeAsync(IEnumerable<CharacterToken> entities)
         {
             await _context.CharacterTokens.AddRangeAsync(entities);
+            await _context.SaveChangesAsync();
         }
 
         public async Task UpdateRangeAsync(IEnumerable<CharacterToken> entities)
         {
             _context.CharacterTokens.UpdateRange(entities);
+            await _context.SaveChangesAsync();
         }
-        public void RemoveAsync(CharacterToken entity)
+        public async Task RemoveAsync(CharacterToken entity)
         {
             _context.CharacterTokens.Remove(entity);
+            await _context.SaveChangesAsync();
         }
 
-        public void RemoveRangeAsync(IEnumerable<CharacterToken> entities)
+        public async Task RemoveRangeAsync(IEnumerable<CharacterToken> entities)
         {
             _context.CharacterTokens.RemoveRange(entities);
+            await _context.SaveChangesAsync();
         }
 
         public async Task<bool> ExistsAsync(object id)

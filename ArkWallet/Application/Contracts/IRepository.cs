@@ -11,8 +11,8 @@ namespace ArkWallet.Application.Contracts
         Task AddRangeAsync(IEnumerable<T> entities);
         Task UpdateAsync(T entity);
         Task UpdateRangeAsync(IEnumerable<T> entities);
-        void RemoveAsync(T entity);
-        void RemoveRangeAsync(IEnumerable<T> entities);
+        Task RemoveAsync(T entity);
+        Task RemoveRangeAsync(IEnumerable<T> entities);
         Task<bool> ExistsAsync(object id);
     }
 

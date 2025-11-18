@@ -33,31 +33,37 @@ namespace ArkWallet.Infrastructure.Repositories
         public async Task AddAsync(TradeOrder entity)
         {
             await _context.TradeOrders.AddAsync(entity);
+            await _context.SaveChangesAsync();
         }
 
         public async Task AddRangeAsync(IEnumerable<TradeOrder> entities)
         {
             await _context.TradeOrders.AddRangeAsync(entities);
+            await _context.SaveChangesAsync();
         }
 
         public async Task UpdateAsync(TradeOrder entity)
         {
             _context.TradeOrders.Update(entity);
+            await _context.SaveChangesAsync();
         }
 
         public async Task UpdateRangeAsync(IEnumerable<TradeOrder> entities)
         {
             _context.TradeOrders.UpdateRange(entities);
+            await _context.SaveChangesAsync();
         }
 
-        public void RemoveAsync(TradeOrder entity)
+        public async Task RemoveAsync(TradeOrder entity)
         {
             _context.TradeOrders.Remove(entity);
+            await _context.SaveChangesAsync();
         }
 
-        public void RemoveRangeAsync(IEnumerable<TradeOrder> entities)
+        public async Task RemoveRangeAsync(IEnumerable<TradeOrder> entities)
         {
             _context.TradeOrders.RemoveRange(entities);
+            await _context.SaveChangesAsync();
         }
 
         public async Task<bool> ExistsAsync(object id)
@@ -100,6 +106,7 @@ namespace ArkWallet.Infrastructure.Repositories
 
             order.Status = OrderStatus.Cancelled;
             _context.TradeOrders.Update(order);
+            await _context.SaveChangesAsync();
 
             return true;
         }

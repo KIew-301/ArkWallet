@@ -31,31 +31,37 @@ namespace ArkWallet.Infrastructure.Repositories
         public async Task AddAsync(PortfolioItem entity)
         {
             await _context.PortfolioItems.AddAsync(entity);
+            await _context.SaveChangesAsync();
         }
 
         public async Task AddRangeAsync(IEnumerable<PortfolioItem> entities)
         {
             await _context.PortfolioItems.AddRangeAsync(entities);
+            await _context.SaveChangesAsync();
         }
 
         public async Task UpdateAsync(PortfolioItem entity)
         {
             _context.PortfolioItems.Update(entity);
+            await _context.SaveChangesAsync();
         }
 
         public async Task UpdateRangeAsync(IEnumerable<PortfolioItem> entities)
         {
             _context.PortfolioItems.UpdateRange(entities);
+            await _context.SaveChangesAsync();
         }
 
-        public void RemoveAsync(PortfolioItem entity)
+        public async Task RemoveAsync(PortfolioItem entity)
         {
             _context.PortfolioItems.Remove(entity);
+            await _context.SaveChangesAsync();
         }
 
-        public void RemoveRangeAsync(IEnumerable<PortfolioItem> entities)
+        public async Task RemoveRangeAsync(IEnumerable<PortfolioItem> entities)
         {
             _context.PortfolioItems.RemoveRange(entities);
+            await _context.SaveChangesAsync();
         }
 
         public async Task<bool> ExistsAsync(object id)
