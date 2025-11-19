@@ -41,3 +41,6 @@ A system for virtual trading with tokens linked to game characters.
 #### `Suggestion Services`
 - **PriceSuggestionService** - Generate optimal price recommendations
 - **QuantitySuggestionService** - Generate optimal quantity suggestions
+
+## 📄 `License`
+This project is licensed under the MIT License - see the [Licence.md](Licence.md) file for details.
