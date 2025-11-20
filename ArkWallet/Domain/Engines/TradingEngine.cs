@@ -1,5 +1,6 @@
 ﻿using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
+using System.Linq;
 
 namespace ArkWallet.Domain.Engines
 {
@@ -22,12 +23,13 @@ namespace ArkWallet.Domain.Engines
                 return TradingResult.Failed("Количество и цена должны быть > 0");
 
             // Загружаем стакан из существующих ордеров
-            var orderBook = GetOrCreateOrderBook(newOrder.CharacterTokenId);
+            var orderBook = CreateOrderBook(newOrder.CharacterTokenId);
             orderBook.LoadOrders(existingOrders, newOrder.TraderTelegramId);
 
             // МАТЧИНГ
             var matches = FindMatchingOrders(newOrder, orderBook);
             var trades = new List<Trade>();
+            var traderIdWithNewPortfolio = new List<long>();
             var remainingQuantity = newOrder.Quantity;
 
             foreach (var match in matches)
@@ -40,6 +42,9 @@ namespace ArkWallet.Domain.Engines
                 // СОЗДАЕМ СДЕЛКУ
                 var trade = CreateTrade(newOrder, match, tradeQuantity, tradePrice);
                 trades.Add(trade);
+
+                if (!portfolios.ContainsKey(trade.BuyerId))
+                    traderIdWithNewPortfolio.Add(trade.BuyerId);
 
                 // 🔥 РАССЧИТЫВАЕМ ИЗМЕНЕНИЯ (НЕ сохраняем в БД!)
                 UpdateTradersAndPortfolios(traders, portfolios, trade, tradeQuantity, tradePrice);
@@ -57,8 +62,9 @@ namespace ArkWallet.Domain.Engines
                 Trades = trades,
                 UpdatedOrders = GetUpdatedOrders(existingOrders, matches),
                 UpdatedTraders = traders.Values.Where(t => t.IsDirty).ToList(),
-                UpdatedPortfolios = portfolios.Values.Where(p => p.IsDirty).ToList(),
+                UpdatedPortfolios = portfolios.Values.Where(p => p.IsDirty && !traderIdWithNewPortfolio.Contains(p.TraderTelegramId)).ToList(),
                 OrderToAdd = remainingQuantity > 0 ? newOrder.WithQuantity(remainingQuantity) : null,
+                PortfoliosToAdd = portfolios.Values.Where(p => p.IsDirty && traderIdWithNewPortfolio.Contains(p.TraderTelegramId)).ToList(),
                 UpdatedToken = UpdateTokenPrice(token, trades),
                 IsSuccess = true
             };
@@ -85,17 +91,28 @@ namespace ArkWallet.Domain.Engines
             Trade trade, int quantity, decimal price)
         {
             var totalAmount = quantity * price;
-            var buyer = traders[trade.BuyerId];
-            var seller = traders[trade.SellerId];
-            var buyerPortfolio = portfolios[trade.BuyerId];
-            var sellerPortfolio = portfolios[trade.SellerId];
 
             // Обновляем балансы
+            var buyer = traders[trade.BuyerId];
+            var seller = traders[trade.SellerId];
+
             buyer.Balance -= totalAmount;
             seller.Balance += totalAmount;
 
             // Обновляем портфели
-            buyerPortfolio.AddTokens(quantity, price);
+            var buyerPortfolio = portfolios.ContainsKey(trade.BuyerId) ? portfolios[trade.BuyerId] : null;
+            var sellerPortfolio = portfolios[trade.SellerId];
+
+            if (buyerPortfolio != null)
+            {
+                buyerPortfolio.AddTokens(quantity, price);
+            }
+            else
+            {
+                buyerPortfolio = PortfolioItem.Create(trade.BuyerId, trade.CharacterTokenId, quantity, price);
+                portfolios[trade.BuyerId] = buyerPortfolio;
+            }
+
             sellerPortfolio.RemoveTokens(quantity);
 
             buyer.MarkDirty();
@@ -152,6 +169,11 @@ namespace ArkWallet.Domain.Engines
                 _orderBooks[characterTokenId] = new OrderBook();
             }
             return _orderBooks[characterTokenId];
+        }
+
+        private OrderBook CreateOrderBook(string characterTokenId)
+        {
+            return _orderBooks[characterTokenId] = new OrderBook();
         }
 
         private void AddToOrderBook(TradeOrder order, OrderBook orderBook)
