@@ -105,15 +105,12 @@ namespace ArkWallet.Infrastructure.Wizard
                 return StepResult.Error(result.ErrorMessage);
 
             var orderDescription = result.Order.GetDesctiption();
-            var closedOrders = result.ClosesOrder?
-                .Select(o => (o.OwnerId, $"Ордер {o.GetDesctiption()} успешно исполнен"))
-                .ToDictionary();
 
             var message = result.IsFilled
                 ? $"Ордер {orderDescription} успешно выставлен и уже исполнен."
                 : $"Ордер {orderDescription} успешно выставлен.";
 
-            return StepResult.Ok("completed", message, closedOrders);
+            return StepResult.Ok("completed", message);
         }
 
         public async Task<StepResult> HandleSelectOrderToCancel(UserSession session, string input)
