@@ -9,6 +9,8 @@ namespace ArkWallet.Infrastructure
         private readonly IConnection _connection;
         private readonly IChannel _channel;
 
+        public IChannel GetChannel() => _channel;
+
         public RabbitMQService(IConfiguration configuration)
         {
             var host = configuration["RabbitMQ:HostName"] ?? "localhost";

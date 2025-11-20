@@ -1,0 +1,41 @@
+﻿using ArkWallet.Application.Contracts;
+using Newtonsoft.Json;
+using RabbitMQ.Client;
+using System.Text;
+
+namespace ArkWallet.Infrastructure
+{
+    internal class RabbitMQTaskDispatcher : ITaskDispatcher
+    {
+        private readonly RabbitMQService _rabbitMQService;
+
+        public RabbitMQTaskDispatcher(RabbitMQService rabbitMQService)
+        {
+            _rabbitMQService = rabbitMQService;
+        }
+
+        public async Task SendTaskAsync(string taskType, object taskData)
+        {
+            try
+            {
+                var json = JsonConvert.SerializeObject(taskData);
+                var body = Encoding.UTF8.GetBytes(json);
+
+                var properties = new BasicProperties
+                {
+                    Persistent = true,
+                    ContentType = "application/json",
+                    Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds()),
+                    MessageId = Guid.NewGuid().ToString(),
+                    Type = taskType
+                };
+
+                await _rabbitMQService.GetChannel().BasicPublishAsync("", taskType, false, properties, body);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}\n{ex.StackTrace}");
+            }
+        }
+    }
+}

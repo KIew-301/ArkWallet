@@ -43,6 +43,7 @@ class Program
         services.AddScoped<TradingEngine>();
         services.AddScoped<TelegramBot>();
         services.AddScoped<RabbitMQService>();
+        services.AddScoped<ITaskDispatcher, RabbitMQTaskDispatcher>();
 
         // Wizard
         services.AddScoped<WizardConfiguration>();
