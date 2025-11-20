@@ -19,6 +19,7 @@ using ArkWallet.Infrastructure.Wizard;
 using ArkWallet.Presentation.Wizard;
 using ArkWallet.Telegram;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -28,11 +29,20 @@ class Program
     {
         var services = new ServiceCollection();
         services.AddLogging(builder => builder.AddConsole());
+        
+        // Configuration
+        var configuration = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddUserSecrets<Program>()
+            .Build();
+
+        services.AddSingleton<IConfiguration>(configuration);
 
         // Main
         services.AddDbContext<ArkWalletDbContext>();
         services.AddScoped<TradingEngine>();
         services.AddScoped<TelegramBot>();
+        services.AddScoped<RabbitMQService>();
 
         // Wizard
         services.AddScoped<WizardConfiguration>();
@@ -77,7 +87,7 @@ class Program
 
         var serviceProvider = services.BuildServiceProvider();
 
-        using (var scope = serviceProvider.CreateScope())
+        await using (var scope = serviceProvider.CreateAsyncScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ArkWalletDbContext>();
             await db.Database.MigrateAsync();
