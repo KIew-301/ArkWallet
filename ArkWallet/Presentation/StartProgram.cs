@@ -13,6 +13,7 @@ using ArkWallet.Application.Services.TraderServices;
 using ArkWallet.Domain.Engines;
 using ArkWallet.Entities.Configurations;
 using ArkWallet.Infrastructure;
+using ArkWallet.Infrastructure.Contracts;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Infrastructure.Repositories;
 using ArkWallet.Infrastructure.Wizard;
@@ -21,6 +22,7 @@ using ArkWallet.Telegram;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 class Program
@@ -41,9 +43,13 @@ class Program
         // Main
         services.AddDbContext<ArkWalletDbContext>();
         services.AddScoped<TradingEngine>();
+
         services.AddScoped<TelegramBot>();
+
         services.AddScoped<RabbitMQService>();
         services.AddScoped<ITaskDispatcher, RabbitMQTaskDispatcher>();
+
+        services.AddHostedService<NotificationWorker>();
 
         // Wizard
         services.AddScoped<WizardConfiguration>();
@@ -88,6 +94,8 @@ class Program
 
         var serviceProvider = services.BuildServiceProvider();
 
+
+
         await using (var scope = serviceProvider.CreateAsyncScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ArkWalletDbContext>();
@@ -96,7 +104,11 @@ class Program
         }
 
         var bot = serviceProvider.GetRequiredService<TelegramBot>();
-        await bot.Start();
+            await bot.Start();
+
+        var hostedServices = serviceProvider.GetServices<IHostedService>();
+        foreach (var hostedService in hostedServices)
+            await hostedService.StartAsync(CancellationToken.None);
 
         Console.ReadLine();
     }
