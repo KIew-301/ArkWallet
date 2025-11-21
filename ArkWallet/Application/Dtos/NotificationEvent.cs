@@ -1,5 +1,4 @@
-﻿using ArkWallet.Application.Contracts.TradeOrderServices;
-using ArkWallet.Domain.Entities;
+﻿using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
 
 namespace ArkWallet.Application.Dtos
@@ -27,5 +26,5 @@ namespace ArkWallet.Application.Dtos
             return list;
         }
     };
-    
+
 }

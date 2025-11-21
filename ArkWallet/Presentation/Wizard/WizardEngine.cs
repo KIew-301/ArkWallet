@@ -6,7 +6,6 @@ using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Entities.Configurations;
-using ArkWallet.Migrations;
 
 namespace ArkWallet.Infrastructure.Wizard
 {

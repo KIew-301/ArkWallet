@@ -13,7 +13,6 @@ using ArkWallet.Application.Services.TraderServices;
 using ArkWallet.Domain.Engines;
 using ArkWallet.Entities.Configurations;
 using ArkWallet.Infrastructure;
-using ArkWallet.Infrastructure.Contracts;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Infrastructure.Repositories;
 using ArkWallet.Infrastructure.Wizard;
@@ -31,7 +30,7 @@ class Program
     {
         var services = new ServiceCollection();
         services.AddLogging(builder => builder.AddConsole());
-        
+
         // Configuration
         var configuration = new ConfigurationBuilder()
             .AddJsonFile("appsettings.json", optional: true)
@@ -104,7 +103,7 @@ class Program
         }
 
         var bot = serviceProvider.GetRequiredService<TelegramBot>();
-            await bot.Start();
+        await bot.Start();
 
         var hostedServices = serviceProvider.GetServices<IHostedService>();
         foreach (var hostedService in hostedServices)
