@@ -43,7 +43,7 @@ A system for virtual trading with tokens linked to game characters.
 - **QuantitySuggestionService** - Generate optimal quantity suggestions
 
 ## `Contacts`
-- Telegram - https://t.me/linoQwW
+- Telegram - https://t.me/DominoDominion
 
 ## 📄 `License`
 This project is licensed under the MIT License - see the [Licence.md](Licence.md) file for details.
