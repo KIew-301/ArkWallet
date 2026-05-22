@@ -22,9 +22,8 @@
         public bool Success { get; set; }
         public string? Message { get; set; }
         public string? NextStep { get; set; }
-        public Dictionary<long, string>? AdditionMessage { get; set; }
 
-        public static StepResult Ok(string nextStep, string? message = null, Dictionary<long, string>? additions = null) => new() { Success = true, NextStep = nextStep, Message = message, AdditionMessage = additions };
+        public static StepResult Ok(string nextStep, string? message = null) => new() { Success = true, NextStep = nextStep, Message = message };
         public static StepResult Error(string message) => new() { Success = false, Message = message };
     }
 

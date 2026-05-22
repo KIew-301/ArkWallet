@@ -1,5 +1,7 @@
-﻿using ArkWallet.Infrastructure.Wizard;
+﻿using ArkWallet.Infrastructure.Contracts;
+using ArkWallet.Infrastructure.Wizard;
 using ArkWallet.Presentation.Telegram;
+using Microsoft.Extensions.Hosting;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
@@ -19,7 +21,6 @@ namespace ArkWallet.Telegram
 
         public TelegramBot(WizardEngine wizardEngine)
         {
-            _instance = this;
             _wizardEngine = wizardEngine;
         }
 
@@ -60,7 +61,7 @@ namespace ArkWallet.Telegram
             cts.Cancel();
         }
 
-        static async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+        async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
             try
             {
@@ -78,12 +79,12 @@ namespace ArkWallet.Telegram
             }
             catch (Exception ex)
             {
-                await Instance.SendMessageToAdmin($"{ex.Message}\n{ex.StackTrace}");
+                await SendMessageToAdmin($"{ex.Message}\n{ex.StackTrace}");
                 Console.WriteLine($"{ex.Message}\n{ex.StackTrace}");
             }
         }
 
-        static async Task HandleCallbackQuery(ITelegramBotClient botClient, CallbackQuery callbackQuery, CancellationToken cancellationToken)
+        async Task HandleCallbackQuery(ITelegramBotClient botClient, CallbackQuery callbackQuery, CancellationToken cancellationToken)
         {
             var chatId = callbackQuery.Message.Chat.Id;
             var callbackData = callbackQuery.Data;
@@ -95,9 +96,9 @@ namespace ArkWallet.Telegram
 
                 await botClient.AnswerCallbackQuery(callbackQuery.Id, cancellationToken: cancellationToken);
 
-                var (answer, buttons, addition) = await Instance._wizardEngine.ProcessInput(chatId, callbackData);
+                var (answer, buttons) = await _wizardEngine.ProcessInput(chatId, callbackData);
 
-                if (Instance.IsAuthorizedUser(chatId))
+                if (IsAuthorizedUser(chatId))
                 {
                     if (buttons != null && buttons.Any())
                     {
@@ -123,10 +124,6 @@ namespace ArkWallet.Telegram
                             cancellationToken: cancellationToken
                         );
                     }
-
-                    if (addition != null && addition.Count > 0)
-                        foreach (var add in addition)
-                            await Instance.SendMessageToUser(add.Key, add.Value);
                 }
             }
             catch
@@ -142,13 +139,13 @@ namespace ArkWallet.Telegram
             }
         }
 
-        static async Task ProcessUserInput(ITelegramBotClient botClient, long chatId, string input, CancellationToken cancellationToken)
+        async Task ProcessUserInput(ITelegramBotClient botClient, long chatId, string input, CancellationToken cancellationToken)
         {
             try
             {
-                if (Instance.IsAuthorizedUser(chatId))
+                if (IsAuthorizedUser(chatId))
                 {
-                    var (answer, buttons, addition) = await Instance._wizardEngine.ProcessInput(chatId, input);
+                    var (answer, buttons) = await _wizardEngine.ProcessInput(chatId, input);
 
                     if (string.IsNullOrEmpty(answer)) return;
 
@@ -174,10 +171,6 @@ namespace ArkWallet.Telegram
                             cancellationToken: cancellationToken
                         );
                     }
-
-                    if (addition != null && addition.Count > 0)
-                        foreach (var add in addition)
-                            await Instance.SendMessageToUser(add.Key, add.Value);
                 }
             }
             catch

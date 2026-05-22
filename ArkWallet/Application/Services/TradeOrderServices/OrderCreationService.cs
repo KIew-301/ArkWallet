@@ -12,14 +12,17 @@ namespace ArkWallet.Application.Services.TradeOrderServices
     {
         readonly IUnitOfWork _unitOfWork;
         readonly TradingEngine _tradingEngine;
+        readonly ITaskDispatcher _taskDispatcher;
 
         public OrderCreationService(
             IUnitOfWork unitOfWork,
-            TradingEngine tradingEngine
+            TradingEngine tradingEngine,
+            ITaskDispatcher taskDispatcher
             )
         {
             _unitOfWork = unitOfWork;
             _tradingEngine = tradingEngine;
+            _taskDispatcher = taskDispatcher;
         }
 
         public async Task<OrderCreationResult> CreateOrderAsync(CreateOrderCommand command)
@@ -63,9 +66,10 @@ namespace ArkWallet.Application.Services.TradeOrderServices
                     string status = order.IsFilled() ? "Исполнен" : "Активен";
 
                     var result = OrderDto.FromEntity(order);
-                    var closesOrders = engineResult.UpdatedOrders?.Where(o => o.IsFilled()).Select(OrderDto.FromEntity).ToList();
 
-                    return new OrderCreationResult(true, order.IsFilled(), result, null, closesOrders);
+                    await _taskDispatcher.SendTaskAsync("notification", NotificationEvent.FromOrderList(engineResult.UpdatedOrders));
+
+                    return new OrderCreationResult(true, order.IsFilled(), result);
                 }
                 catch (DomainException ex)
                 {
@@ -121,6 +125,9 @@ namespace ArkWallet.Application.Services.TradeOrderServices
 
             if (result.OrderToAdd != null)
                 await _unitOfWork.Orders.AddAsync(result.OrderToAdd);
+
+            if (result.PortfoliosToAdd.Any())
+                await _unitOfWork.Portfolios.AddRangeAsync(result.PortfoliosToAdd);
         }
     }
 }

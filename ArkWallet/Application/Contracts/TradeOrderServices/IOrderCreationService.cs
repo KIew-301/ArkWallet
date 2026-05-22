@@ -51,12 +51,10 @@ namespace ArkWallet.Application.Contracts.TradeOrderServices
     /// <param name="IsFilled">True если ордер полностью исполнен немедленно</param>
     /// <param name="Order">DTO созданного ордера (только при успехе)</param>
     /// <param name="ErrorMessage">Сообщение об ошибке (только при неудаче)</param>
-    /// <param name="ClosesOrder">Список ордеров которые были закрыты в результате исполнения (опционально)</param>
     internal record OrderCreationResult(
         bool IsSuccess,
         bool IsFilled,
         OrderDto? Order = null,
-        string? ErrorMessage = null,
-        List<OrderDto?>? ClosesOrder = null
+        string? ErrorMessage = null
     );
 }

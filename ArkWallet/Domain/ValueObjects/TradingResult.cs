@@ -10,6 +10,7 @@ namespace ArkWallet.Domain.ValueObjects
         public List<PortfolioItem> UpdatedPortfolios { get; set; } = new();
         public CharacterToken UpdatedToken { get; set; }
         public TradeOrder OrderToAdd { get; set; }
+        public List<PortfolioItem> PortfoliosToAdd { get; set; } = new();
         public bool IsSuccess { get; set; }
         public string Error { get; set; }
 
