@@ -1,7 +1,5 @@
-﻿using ArkWallet.Infrastructure.Contracts;
-using ArkWallet.Infrastructure.Wizard;
+﻿using ArkWallet.Infrastructure.Wizard;
 using ArkWallet.Presentation.Telegram;
-using Microsoft.Extensions.Hosting;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;

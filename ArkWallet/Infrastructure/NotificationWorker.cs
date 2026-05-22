@@ -1,5 +1,4 @@
 ﻿using ArkWallet.Application.Dtos;
-using ArkWallet.Infrastructure.Contracts;
 using ArkWallet.Telegram;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
