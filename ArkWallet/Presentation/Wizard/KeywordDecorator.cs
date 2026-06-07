@@ -2,27 +2,16 @@
 using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Application.Contracts.SuggestionServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;
+using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Infrastructure.Data;
+using Microsoft.CodeAnalysis;
+using Microsoft.EntityFrameworkCore;
 
 namespace ArkWallet.Presentation.Wizard
 {
-    internal class ButtonDecorator : IButtonDecorator
+    internal class ButtonDecorator(ArkWalletDbContext dbContext, IPriceSuggestionService priceSuggestionService, IPortfolioQueryService portfolioQueryService) : IButtonDecorator
     {
-        private readonly IPriceSuggestionService _priceSuggestionService;
-        private readonly IPortfolioQueryService _portfolioQueryService;
-        private readonly IOrderQueryService _orderQueryService;
-
-        public ButtonDecorator(
-            IPriceSuggestionService priceSuggestionService,
-            IPortfolioQueryService portfolioQueryService,
-            IOrderQueryService orderQueryService
-            )
-        {
-            _priceSuggestionService = priceSuggestionService;
-            _portfolioQueryService = portfolioQueryService;
-            _orderQueryService = orderQueryService;
-        }
-
         public async Task<List<QuickButton>> DecorateButtonsAsync(string stepName, List<QuickButton> baseKeyword, UserSession session)
         {
             return session.CurrentCommand switch
@@ -45,7 +34,7 @@ namespace ArkWallet.Presentation.Wizard
         private async Task<List<QuickButton>> DecorateTokenQuestion(List<QuickButton> baseKeyword, UserSession session)
         {
             baseKeyword = [];
-            var tokens = await _portfolioQueryService.GetTraderTokensAsync(session.Id);
+            var tokens = await portfolioQueryService.GetTraderTokensAsync(session.Id);
 
             foreach (var token in tokens)
                 baseKeyword.Add(new() { Text = token.Symbol, Value = token.Symbol });
@@ -63,7 +52,7 @@ namespace ArkWallet.Presentation.Wizard
 
             if (direction == "купить")
             {
-                var priceList = await _priceSuggestionService.GetBuyPriceSuggestionsAsync(session.Id, symbol, quantity);
+                var priceList = await priceSuggestionService.GetBuyPriceSuggestionsAsync(session.Id, symbol, quantity);
                 priceList = priceList.OrderBy(p => p.Price).ToList();
 
                 foreach (var item in priceList)
@@ -73,7 +62,7 @@ namespace ArkWallet.Presentation.Wizard
             }
             else
             {
-                var priceList = await _priceSuggestionService.GetSellPriceSuggestionsAsync(session.Id, symbol, quantity);
+                var priceList = await priceSuggestionService.GetSellPriceSuggestionsAsync(session.Id, symbol, quantity);
                 priceList = priceList.OrderByDescending(p => p.Price).ToList();
 
                 foreach (var item in priceList)
@@ -88,13 +77,15 @@ namespace ArkWallet.Presentation.Wizard
         private async Task<List<QuickButton>> DecorateSelectOrderToCancel(List<QuickButton> baseKeyword, UserSession session)
         {
             baseKeyword = [];
-            var orders = await _orderQueryService.GetActiveOrdersAsync(session.Id);
+            var orders = await dbContext.TradeOrders
+                .Where(o => o.TraderTelegramId == session.Id && o.Status == OrderStatus.Active)
+                .ToArrayAsync();
 
             foreach (var order in orders)
             {
                 string answer = $"" +
-                    $"{order.Direction} " +
-                    $"{order.Symbol} " +
+                    $"{(order.Type == OrderType.Buy ? "купит" : "продать")} " +
+                    $"{order.CharacterTokenId} " +
                     $"{order.Quantity} шт. " +
                     $"по {order.Price:F2}";
 

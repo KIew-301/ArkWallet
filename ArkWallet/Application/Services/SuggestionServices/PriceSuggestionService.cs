@@ -1,28 +1,22 @@
 ﻿using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Contracts.SuggestionServices;
+using ArkWallet.Application.Services.Other;
+using ArkWallet.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace ArkWallet.Application.Services.SuggestionServices
 {
-    internal class PriceSuggestionService : IPriceSuggestionService
+    internal class PriceSuggestionService(ArkWalletDbContext dbContext, ReserveCalculationService reserveCalculationService) : IPriceSuggestionService
     {
-        readonly IUnitOfWork _unitOfWork;
-
-        public PriceSuggestionService(
-            IUnitOfWork unitOfWork
-            )
-        {
-            _unitOfWork = unitOfWork;
-        }
-
         public async Task<List<PriceSuggestionDto>> GetBuyPriceSuggestionsAsync(long traderId, string symbol, int quantity)
         {
-            var trader = await _unitOfWork.Traders.GetByIdAsync(traderId);
-            var token = await _unitOfWork.Tokens.GetByIdAsync(symbol);
+            var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
+            var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(c => c.Symbol == symbol);
 
             if (token == null || trader == null)
                 return [];
 
-            var reserve = await _unitOfWork.Orders.GetReservedBalanceAsync(traderId);
+            var reserve = await reserveCalculationService.GetReservedBalanceAsync(traderId);
             decimal stock = trader.Balance - reserve;
 
             decimal optimalPrice = Math.Floor(stock / quantity * 100) / 100;
@@ -69,8 +63,8 @@ namespace ArkWallet.Application.Services.SuggestionServices
 
         public async Task<List<PriceSuggestionDto>> GetSellPriceSuggestionsAsync(long traderId, string symbol, int quantity)
         {
-            var item = await _unitOfWork.Portfolios.GetByTraderAndSymbolAsync(traderId, symbol);
-            var token = await _unitOfWork.Tokens.GetByIdAsync(symbol);
+            var item = await dbContext.PortfolioItems.FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
+            var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(c => c.Symbol == symbol);
 
             decimal currentPrice = token.CurrentPrice;
             decimal noBestPrice = token.CurrentPrice * 0.95M;

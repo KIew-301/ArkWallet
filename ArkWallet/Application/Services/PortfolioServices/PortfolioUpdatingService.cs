@@ -1,39 +1,29 @@
 ﻿using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Domain.Entities;
+using ArkWallet.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace ArkWallet.Application.Services.PortfolioServices
 {
-    internal class PortfolioUpdatingService : IPortfolioUpdatingService
+    internal class PortfolioUpdatingService(ArkWalletDbContext dbContext) : IPortfolioUpdatingService
     {
-        readonly IUnitOfWork _unitOfWork;
-
-        public PortfolioUpdatingService(
-            IUnitOfWork unitOfWork
-            )
-        {
-            _unitOfWork = unitOfWork;
-        }
-
         public async Task<PortfolioUpdatingResult> CreateOrUpdatePortfolioAsync(long traderId, string symbol, int quantity)
         {
-            return await _unitOfWork.ExecuteInTransactionAsync(async () =>
-            {
-                var item = await _unitOfWork.Portfolios.GetByTraderAndSymbolAsync(traderId, symbol);
-                var token = await _unitOfWork.Tokens.GetByIdAsync(symbol);
+            var item = await dbContext.PortfolioItems.FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
+            var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(t => t.Symbol == t.Symbol);
 
-                if (token == null)
-                    return new PortfolioUpdatingResult(false, "Токена не существует");
+            if (token == null)
+                return new PortfolioUpdatingResult(false, "Токена не существует");
 
-                if (item == null)
-                    item = PortfolioItem.Create(traderId, symbol, quantity, token.CurrentPrice);
-                else
-                    item.AddTokens(quantity, token.CurrentPrice);
+            if (item == null)
+                item = PortfolioItem.Create(traderId, symbol, quantity, token.CurrentPrice);
+            else
+                item.AddTokens(quantity, token.CurrentPrice);
 
-                await _unitOfWork.Portfolios.UpdateAsync(item);
+            dbContext.PortfolioItems.Update(item);
 
-                return new PortfolioUpdatingResult(true);
-            });
+            return new PortfolioUpdatingResult(true);
         }
     }
 }

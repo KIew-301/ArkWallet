@@ -14,7 +14,6 @@ using ArkWallet.Domain.Engines;
 using ArkWallet.Entities.Configurations;
 using ArkWallet.Infrastructure;
 using ArkWallet.Infrastructure.Data;
-using ArkWallet.Infrastructure.Repositories;
 using ArkWallet.Infrastructure.Wizard;
 using ArkWallet.Presentation.Wizard;
 using ArkWallet.Telegram;
@@ -56,7 +55,6 @@ class Program
 
         // CharacterTokenServices
         services.AddScoped<ITokenCreationService, TokenCreationService>();
-        services.AddScoped<ITokenQueryService, TokenQueryService>();
 
         // Decorators
         services.AddScoped<IButtonDecorator, ButtonDecorator>();
@@ -73,27 +71,13 @@ class Program
         // TradeOrderServices
         services.AddScoped<IOrderCancelService, OrderCancelService>();
         services.AddScoped<IOrderCreationService, OrderCreationService>();
-        services.AddScoped<IOrderQueryService, OrderQueryService>();
         services.AddScoped<IOrderValidationService, OrderValidationService>();
 
         // TraderServices
         services.AddScoped<ITraderBalanceUpdatingService, TraderBalanceUpdatingService>();
-        services.AddScoped<ITraderQueryService, TraderQueryService>();
         services.AddScoped<ITraderRegistrationService, TraderRegistrationService>();
 
-        // Repositories
-        services.AddScoped<ITraderRepository, TraderRepository>();
-        services.AddScoped<ICharacterTokenRepository, CharacterTokenRepository>();
-        services.AddScoped<IPortfolioItemRepository, PortfolioItemRepository>();
-        services.AddScoped<ITradeOrderRepository, TradeOrderRepository>();
-        services.AddScoped<ITradeRepository, TradeRepository>();
-
-        // UnitOfWork
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
-
         var serviceProvider = services.BuildServiceProvider();
-
-
 
         await using (var scope = serviceProvider.CreateAsyncScope())
         {

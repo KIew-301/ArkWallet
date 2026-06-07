@@ -5,129 +5,114 @@ using ArkWallet.Domain.Engines;
 using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.Exceptions;
 using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace ArkWallet.Application.Services.TradeOrderServices
 {
-    internal class OrderCreationService : IOrderCreationService
+    internal class OrderCreationService(ArkWalletDbContext dbContext, TradingEngine tradingEngine, ITaskDispatcher taskDispatcher) : IOrderCreationService
     {
-        readonly IUnitOfWork _unitOfWork;
-        readonly TradingEngine _tradingEngine;
-        readonly ITaskDispatcher _taskDispatcher;
-
-        public OrderCreationService(
-            IUnitOfWork unitOfWork,
-            TradingEngine tradingEngine,
-            ITaskDispatcher taskDispatcher
-            )
-        {
-            _unitOfWork = unitOfWork;
-            _tradingEngine = tradingEngine;
-            _taskDispatcher = taskDispatcher;
-        }
-
         public async Task<OrderCreationResult> CreateOrderAsync(CreateOrderCommand command)
         {
-            return await _unitOfWork.ExecuteInTransactionAsync(async () =>
+            try
             {
-                try
-                {
-                    var trader = await _unitOfWork.Traders.GetByIdAsync(command.TraderId);
-                    var token = await _unitOfWork.Tokens.GetBySymbolAsync(command.Symbol);
+                var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == command.TraderId);
+                var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(t => t.Symbol == command.Symbol);
 
-                    if (trader == null)
-                        return new OrderCreationResult(false, false, null, "Пользователя не существует");
+                if (trader == null)
+                    return new OrderCreationResult(false, false, null, "Пользователя не существует");
 
-                    if (token == null)
-                        return new OrderCreationResult(false, false, null, "Токена не существует");
+                if (token == null)
+                    return new OrderCreationResult(false, false, null, "Токена не существует");
 
-                    var orderType = command.Direction.Equals("купить", StringComparison.CurrentCultureIgnoreCase)
-                        ? OrderType.Buy
-                        : OrderType.Sell;
+                var orderType = command.Direction.Equals("купить", StringComparison.CurrentCultureIgnoreCase)
+                    ? OrderType.Buy
+                    : OrderType.Sell;
 
-                    var order = TradeOrder.Create(
-                        orderType,
-                        command.Symbol,
-                        command.TraderId,
-                        command.Price,
-                        command.Quantity
-                    );
+                var order = TradeOrder.Create(
+                    orderType,
+                    command.Symbol,
+                    command.TraderId,
+                    command.Price,
+                    command.Quantity
+                );
 
-                    var existingOrders = await GetActiveOrdersForMatchingAsync(order.CharacterTokenId);
-                    var traders = await GetTradersForOrderAsync(order.CharacterTokenId, order.TraderTelegramId);
-                    var portfolios = await GetPortfoliosForTradersAsync(order.CharacterTokenId, traders.Keys);
+                var existingOrders = await GetActiveOrdersForMatchingAsync(order.CharacterTokenId);
+                var traders = await GetTradersForOrderAsync(existingOrders, order.TraderTelegramId);
+                var portfolios = await GetPortfoliosForTradersAsync(order.CharacterTokenId, traders.Keys);
 
-                    var engineResult = _tradingEngine.ProcessOrder(order, existingOrders.ToList(), traders, portfolios, token);
+                var engineResult = tradingEngine.ProcessOrder(order, existingOrders.ToList(), traders, portfolios, token);
 
-                    if (!engineResult.IsSuccess)
-                        return new OrderCreationResult(false, false, null, "Не удалось выставить ордер");
+                if (!engineResult.IsSuccess)
+                    return new OrderCreationResult(false, false, null, "Не удалось выставить ордер");
 
-                    await SaveTradingResultAsync(engineResult);
+                await SaveTradingResultAsync(engineResult);
 
-                    string status = order.IsFilled() ? "Исполнен" : "Активен";
+                string status = order.IsFilled() ? "Исполнен" : "Активен";
 
-                    var result = OrderDto.FromEntity(order);
+                var result = OrderDto.FromEntity(order);
 
-                    await _taskDispatcher.SendTaskAsync("notification", NotificationEvent.FromOrderList(engineResult.UpdatedOrders));
+                await taskDispatcher.SendTaskAsync("notification", NotificationEvent.FromOrderList(engineResult.UpdatedOrders));
 
-                    return new OrderCreationResult(true, order.IsFilled(), result);
-                }
-                catch (DomainException ex)
-                {
-                    return new OrderCreationResult(false, false, null, ex.Message);
-                }
-                catch (Exception ex)
-                {
-                    return new OrderCreationResult(false, false, null, "Ошибка системы");
-                }
-            });
+                return new OrderCreationResult(true, order.IsFilled(), result);
+            }
+            catch (DomainException ex)
+            {
+                return new OrderCreationResult(false, false, null, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return new OrderCreationResult(false, false, null, "Ошибка системы");
+            }
         }
 
         private async Task<TradeOrder[]> GetActiveOrdersForMatchingAsync(string symbol)
         {
-            return await _unitOfWork.Orders.GetActiveBySymbolAsync(symbol);
+            return await dbContext.TradeOrders
+                .Where(o => o.CharacterTokenId == symbol && o.Status == OrderStatus.Active)
+                .ToArrayAsync();
         }
 
-        private async Task<Dictionary<long, Trader>> GetTradersForOrderAsync(string symbol, long newOrderTraderId)
+        private async Task<Dictionary<long, Trader>> GetTradersForOrderAsync(TradeOrder[] activeOrders, long newOrderTraderId)
         {
-            var activeOrders = await _unitOfWork.Orders.GetActiveBySymbolAsync(symbol);
             var traderIds = activeOrders
                 .Select(o => o.TraderTelegramId)
                 .Append(newOrderTraderId)
                 .Distinct()
                 .ToHashSet();
 
-            var traders = await _unitOfWork.Traders.GetByIdsAsync(traderIds);
+            var traders = await dbContext.Traders.Where(t => traderIds.Contains(t.TelegramId)).ToArrayAsync();
             return traders.ToDictionary(t => t.TelegramId);
         }
 
         private async Task<Dictionary<long, PortfolioItem>> GetPortfoliosForTradersAsync(string symbol, IEnumerable<long> traderIds)
         {
-            var portfolios = await _unitOfWork.Portfolios.GetByTradersAndSymbolAsync(traderIds, symbol);
+            var portfolios = await dbContext.PortfolioItems.Where(p => traderIds.Contains(p.TraderTelegramId) && p.CharacterTokenId == symbol).ToArrayAsync();
             return portfolios.ToDictionary(p => p.TraderTelegramId);
         }
 
         private async Task SaveTradingResultAsync(TradingResult result)
         {
             if (result.Trades.Any())
-                await _unitOfWork.Trades.AddRangeAsync(result.Trades);
+                await dbContext.Trades.AddRangeAsync(result.Trades);
 
             if (result.UpdatedOrders.Any())
-                await _unitOfWork.Orders.UpdateRangeAsync(result.UpdatedOrders);
+                dbContext.TradeOrders.UpdateRange(result.UpdatedOrders);
 
             if (result.UpdatedTraders.Any())
-                await _unitOfWork.Traders.UpdateRangeAsync(result.UpdatedTraders);
+                dbContext.Traders.UpdateRange(result.UpdatedTraders);
 
             if (result.UpdatedPortfolios.Any())
-                await _unitOfWork.Portfolios.UpdateRangeAsync(result.UpdatedPortfolios);
+                dbContext.PortfolioItems.UpdateRange(result.UpdatedPortfolios);
 
             if (result.UpdatedToken != null)
-                await _unitOfWork.Tokens.UpdateAsync(result.UpdatedToken);
+                dbContext.CharacterTokens.Update(result.UpdatedToken);
 
             if (result.OrderToAdd != null)
-                await _unitOfWork.Orders.AddAsync(result.OrderToAdd);
+                dbContext.TradeOrders.UpdateRange(result.OrderToAdd);
 
             if (result.PortfoliosToAdd.Any())
-                await _unitOfWork.Portfolios.AddRangeAsync(result.PortfoliosToAdd);
+                await dbContext.PortfolioItems.AddRangeAsync(result.PortfoliosToAdd);
         }
     }
 }

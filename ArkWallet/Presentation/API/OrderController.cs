@@ -8,10 +8,8 @@ namespace ArkWallet.Presentation.API
     public class OrderController(IOrderValidationService orderValidationService) : ControllerBase
     {
         [HttpPost]
-        public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
+        public async Task<IActionResult> CreateOrder([FromBody] CreateOrderCommand request)
         {
-            orderValidationService.
-
             return Ok("Заказ успешно создан!"); // Заглушка для демонстрации
         }
     }

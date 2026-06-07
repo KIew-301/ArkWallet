@@ -1,15 +1,10 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Contracts.TradeOrderServices;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ArkWallet.Application.Services.FullValidationService
 {
-    internal class OrderCreationFullValidationService(IOrderValidationService orderValidationService, , IUnitOfWork unitOfWork)
+    internal class OrderCreationFullValidationService(IOrderValidationService orderValidationService)
     {
         public async Task<ValidationResult> ValidateAsync(CreateOrderCommand request)
         {
@@ -25,7 +20,7 @@ namespace ArkWallet.Application.Services.FullValidationService
             if (!tokenValidationResult.IsValid)
                 return ValidationResult.Failed(priceValidationResult.Message);
 
-            return validationResult;
+            return null;
         }
     }
 }

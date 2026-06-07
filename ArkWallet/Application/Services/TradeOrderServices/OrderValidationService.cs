@@ -1,20 +1,14 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Contracts.TradeOrderServices;
+using ArkWallet.Application.Services.Other;
+using ArkWallet.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace ArkWallet.Application.Services.TradeOrderServices
 {
-    internal class OrderValidationService : IOrderValidationService
+    internal class OrderValidationService(ArkWalletDbContext dbContext, ReserveCalculationService reserveCalculationService) : IOrderValidationService
     {
-        readonly IUnitOfWork _unitOfWork;
-
-        public OrderValidationService(
-            IUnitOfWork unitOfWork
-            )
-        {
-            _unitOfWork = unitOfWork;
-        }
-
         public ValidationResult ValidateDirection(string direction)
         {
             if (string.IsNullOrEmpty(direction))
@@ -27,7 +21,7 @@ namespace ArkWallet.Application.Services.TradeOrderServices
 
         public async Task<ValidationResult> ValidateOrderCancellationAsync(long traderId, string orderId)
         {
-            var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
+            var order = await dbContext.TradeOrders.FirstOrDefaultAsync(o => o.Id == orderId);
 
             if (order == null)
                 return new ValidationResult(false, "Такого ордера не существует");
@@ -62,7 +56,8 @@ namespace ArkWallet.Application.Services.TradeOrderServices
             if (direction == OrderDirections.Buy)
                 return new ValidationResult(true);
 
-            var item = await _unitOfWork.Portfolios.GetByTraderAndSymbolAsync(traderId, symbol);
+            var item = await dbContext.PortfolioItems
+                .FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
 
             if (item == null)
                 return new ValidationResult(false, "Пользователь не обладает данным токеном");
@@ -74,8 +69,8 @@ namespace ArkWallet.Application.Services.TradeOrderServices
         {
             if (direction == OrderDirections.Buy)
             {
-                var trader = await _unitOfWork.Traders.GetByIdAsync(traderId);
-                var reserve = await _unitOfWork.Orders.GetReservedBalanceAsync(traderId);
+                var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
+                var reserve = await reserveCalculationService.GetReservedBalanceAsync(traderId);
 
                 decimal stock = trader.Balance - reserve;
                 decimal totalCost = quantity * price;
@@ -86,8 +81,9 @@ namespace ArkWallet.Application.Services.TradeOrderServices
             }
             else
             {
-                var item = await _unitOfWork.Portfolios.GetByTraderAndSymbolAsync(traderId, symbol);
-                var reserve = await _unitOfWork.Orders.GetReservedQuantityAsync(traderId, symbol);
+                var item = await dbContext.PortfolioItems
+                    .FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
+                var reserve = await reserveCalculationService.GetReservedQuantityAsync(traderId, symbol);
 
                 int stock = item.Quantity - reserve;
 

@@ -6,6 +6,7 @@ using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Entities.Configurations;
+using ArkWallet.Infrastructure.Data;
 
 namespace ArkWallet.Infrastructure.Wizard
 {
@@ -16,19 +17,16 @@ namespace ArkWallet.Infrastructure.Wizard
 
         // TRADER SERVICES
         private readonly ITraderRegistrationService _traderRegistrationService;
-        private readonly ITraderQueryService _traderQueryService;
         private readonly ITraderBalanceUpdatingService _traderBalanceUpdatingService;
 
         // ORDER SERVICES
         private readonly IOrderValidationService _orderValidationService;
         private readonly IOrderCreationService _orderCreationService;
         private readonly IOrderCancelService _cancelOrderService;
-        private readonly IOrderQueryService _orderQueryService;
 
         // PORTFOLIO & TOKEN SERVICES
         private readonly IPortfolioQueryService _portfolioQueryService;
         private readonly IPortfolioUpdatingService _portfolioUpdatingService;
-        private readonly ITokenQueryService _tokenQueryService;
         private readonly ITokenCreationService _tokenCreationServices;
 
         // SUGGESTION SERVICES
@@ -39,17 +37,18 @@ namespace ArkWallet.Infrastructure.Wizard
         private readonly IQuestionDecorator _questionDecorator;
         private readonly IButtonDecorator _buttonDecorator;
 
+        // DB CONTEXT
+        private readonly ArkWalletDbContext _dbContext;
+
         public WizardEngine(
+            ArkWalletDbContext dbContext,
             ITraderRegistrationService traderRegistrationService,
-            ITraderQueryService traderQueryService,
             ITraderBalanceUpdatingService traderBalanceUpdatingService,
             IOrderValidationService orderValidationService,
             IOrderCreationService orderCreationService,
             IOrderCancelService cancelOrderService,
-            IOrderQueryService orderQueryService,
             IPortfolioQueryService portfolioQueryService,
             IPortfolioUpdatingService portfolioUpdatingService,
-            ITokenQueryService tokenQueryService,
             ITokenCreationService tokenCreationServices,
             IPriceSuggestionService priceSuggestionService,
             IQuantitySuggestionService quantitySuggestionService,
@@ -58,16 +57,14 @@ namespace ArkWallet.Infrastructure.Wizard
             WizardConfiguration config
             )
         {
+            _dbContext = dbContext;
             _traderRegistrationService = traderRegistrationService;
-            _traderQueryService = traderQueryService;
             _traderBalanceUpdatingService = traderBalanceUpdatingService;
             _orderValidationService = orderValidationService;
             _orderCreationService = orderCreationService;
             _cancelOrderService = cancelOrderService;
-            _orderQueryService = orderQueryService;
             _portfolioQueryService = portfolioQueryService;
             _portfolioUpdatingService = portfolioUpdatingService;
-            _tokenQueryService = tokenQueryService;
             _tokenCreationServices = tokenCreationServices;
             _priceSuggestionService = priceSuggestionService;
             _quantitySuggestionService = quantitySuggestionService;

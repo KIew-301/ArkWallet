@@ -1,39 +1,30 @@
-﻿using ArkWallet.Application.Contracts.Other;
-using ArkWallet.Application.Contracts.TraderServices;
+﻿using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Domain.Entities;
+using ArkWallet.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace ArkWallet.Application.Services.TraderServices
 {
-    internal class TraderRegistrationService : ITraderRegistrationService
+    internal class TraderRegistrationService(ArkWalletDbContext dbContext) : ITraderRegistrationService
     {
-        readonly IUnitOfWork _unitOfWork;
-
-        public TraderRegistrationService(IUnitOfWork unitOfWork)
-        {
-            _unitOfWork = unitOfWork;
-        }
-
         public async Task<RegistrationResult> RegisterTraderAsync(long telegramId, string name)
         {
-            return await _unitOfWork.ExecuteInTransactionAsync(async () =>
-            {
-                if (string.IsNullOrWhiteSpace(name))
-                    return new RegistrationResult(false, "Имя не может быть пустым");
+            if (string.IsNullOrWhiteSpace(name))
+                return new RegistrationResult(false, "Имя не может быть пустым");
 
-                if (telegramId <= 0)
-                    return new RegistrationResult(false, "Некорректный ID пользователя");
+            if (telegramId <= 0)
+                return new RegistrationResult(false, "Некорректный ID пользователя");
 
-                var trader = await _unitOfWork.Traders.GetByIdAsync(telegramId);
+            var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == telegramId);
 
-                if (trader != null)
-                    return new RegistrationResult(false, "Пользователь уже существует");
+            if (trader != null)
+                return new RegistrationResult(false, "Пользователь уже существует");
 
-                trader = Trader.Create(telegramId, name);
+            trader = Trader.Create(telegramId, name);
 
-                await _unitOfWork.Traders.AddAsync(trader);
+            await dbContext.Traders.AddAsync(trader);
 
-                return new RegistrationResult(true);
-            });
+            return new RegistrationResult(true);
         }
     }
 }
