@@ -1,4 +1,4 @@
-﻿using ArkWallet.Application.Contracts;
+﻿using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Domain.Exceptions;
 

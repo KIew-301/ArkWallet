@@ -1,5 +1,5 @@
 ﻿using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts;
+using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 
 namespace ArkWallet.Application.Services.TradeOrderServices
@@ -19,7 +19,7 @@ namespace ArkWallet.Application.Services.TradeOrderServices
         {
             if (string.IsNullOrEmpty(direction))
                 return new ValidationResult(false, "Некорректный ответ - пустая строка");
-            if (direction != "купить" && direction != "продать")
+            if (direction != OrderDirections.Buy && direction != OrderDirections.Sell)
                 return new ValidationResult(false, "Необходимо выбрать КУПИТЬ или ПРОДАТЬ");
 
             return new ValidationResult(true);
@@ -59,7 +59,7 @@ namespace ArkWallet.Application.Services.TradeOrderServices
 
         public async Task<ValidationResult> ValidateTokenAsync(long traderId, string symbol, string direction)
         {
-            if (direction == "купить")
+            if (direction == OrderDirections.Buy)
                 return new ValidationResult(true);
 
             var item = await _unitOfWork.Portfolios.GetByTraderAndSymbolAsync(traderId, symbol);
@@ -72,7 +72,7 @@ namespace ArkWallet.Application.Services.TradeOrderServices
 
         public async Task<ValidationResult> ValidateOrderCreationAsync(long traderId, string symbol, string direction, int quantity, decimal price)
         {
-            if (direction == "купить")
+            if (direction == OrderDirections.Buy)
             {
                 var trader = await _unitOfWork.Traders.GetByIdAsync(traderId);
                 var reserve = await _unitOfWork.Orders.GetReservedBalanceAsync(traderId);
@@ -98,5 +98,11 @@ namespace ArkWallet.Application.Services.TradeOrderServices
 
             return new ValidationResult(true);
         }
+    }
+
+    public static class OrderDirections
+    {
+        public const string Buy = "купить";
+        public const string Sell = "продать";
     }
 }

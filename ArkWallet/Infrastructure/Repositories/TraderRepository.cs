@@ -1,4 +1,4 @@
-﻿using ArkWallet.Application.Contracts;
+﻿using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Domain.Entities;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;

@@ -1,4 +1,4 @@
-﻿namespace ArkWallet.Application.Contracts
+﻿namespace ArkWallet.Application.Contracts.Other
 {
     internal interface ITaskDispatcher
     {

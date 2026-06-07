@@ -1,5 +1,5 @@
-﻿using ArkWallet.Application.Contracts;
-using ArkWallet.Application.Contracts.CharacterTokenServices;
+﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Dtos;
 
 namespace ArkWallet.Application.Services.CharacterTokenServices

@@ -1,4 +1,4 @@
-﻿using ArkWallet.Application.Contracts;
+﻿using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Application.Dtos;
 using Microsoft.CodeAnalysis;

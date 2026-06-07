@@ -1,6 +1,6 @@
-﻿using ArkWallet.Application.Contracts;
-using ArkWallet.Application.Contracts.CharacterTokenServices;
+﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Contracts.Decorators;
+using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Application.Contracts.SuggestionServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;

@@ -1,4 +1,4 @@
-﻿namespace ArkWallet.Application.Contracts
+﻿namespace ArkWallet.Application.Contracts.Other
 {
     /// <summary>
     /// Паттерн Unit of Work для управления транзакциями и доступа к репозиториям

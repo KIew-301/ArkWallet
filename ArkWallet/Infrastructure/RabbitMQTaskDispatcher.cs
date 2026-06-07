@@ -1,4 +1,4 @@
-﻿using ArkWallet.Application.Contracts;
+﻿using ArkWallet.Application.Contracts.Other;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
 using System.Text;
