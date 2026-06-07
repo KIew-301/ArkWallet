@@ -6,6 +6,7 @@ using ArkWallet.Application.Contracts.SuggestionServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Application.Services.CharacterTokenServices;
+using ArkWallet.Application.Services.Other;
 using ArkWallet.Application.Services.PortfolioServices;
 using ArkWallet.Application.Services.SuggestionServices;
 using ArkWallet.Application.Services.TradeOrderServices;
@@ -48,6 +49,8 @@ class Program
         services.AddScoped<ITaskDispatcher, RabbitMQTaskDispatcher>();
 
         services.AddHostedService<NotificationWorker>();
+
+        services.AddScoped<ReserveCalculationService>();    
 
         // Wizard
         services.AddScoped<WizardConfiguration>();

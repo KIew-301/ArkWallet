@@ -113,6 +113,8 @@ namespace ArkWallet.Application.Services.TradeOrderServices
 
             if (result.PortfoliosToAdd.Any())
                 await dbContext.PortfolioItems.AddRangeAsync(result.PortfoliosToAdd);
+
+            await dbContext.SaveChangesAsync();
         }
     }
 }

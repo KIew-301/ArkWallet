@@ -23,6 +23,7 @@ namespace ArkWallet.Application.Services.TraderServices
             trader = Trader.Create(telegramId, name);
 
             await dbContext.Traders.AddAsync(trader);
+            await dbContext.SaveChangesAsync();
 
             return new RegistrationResult(true);
         }

@@ -21,6 +21,7 @@ namespace ArkWallet.Application.Services.TradeOrderServices
                 order.Cancel(traderId);
 
                 dbContext.TradeOrders.Update(order);
+                await dbContext.SaveChangesAsync();
 
                 return new CancelOrderResult(true);
             }

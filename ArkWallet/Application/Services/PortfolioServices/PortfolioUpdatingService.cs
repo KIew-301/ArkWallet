@@ -22,6 +22,7 @@ namespace ArkWallet.Application.Services.PortfolioServices
                 item.AddTokens(quantity, token.CurrentPrice);
 
             dbContext.PortfolioItems.Update(item);
+            await dbContext.SaveChangesAsync();
 
             return new PortfolioUpdatingResult(true);
         }

@@ -24,6 +24,7 @@ namespace ArkWallet.Application.Services.CharacterTokenServices
 
             token = command.ToEntity();
             await dbContext.CharacterTokens.AddAsync(token);
+            await dbContext.SaveChangesAsync();
 
             return new TokenCreationResult(true, TokenInfoDto.FromEntity(token));
         }
