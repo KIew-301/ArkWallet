@@ -18,6 +18,7 @@ using ArkWallet.Infrastructure.Data;
 using ArkWallet.Infrastructure.Wizard;
 using ArkWallet.Presentation.Wizard;
 using ArkWallet.Telegram;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,8 +29,9 @@ class Program
 {
     static async Task Main(string[] args)
     {
-        var services = new ServiceCollection();
-        services.AddLogging(builder => builder.AddConsole());
+        var builder = WebApplication.CreateBuilder(args);
+
+        builder.Services.AddLogging(builder => builder.AddConsole());
 
         // Configuration
         var configuration = new ConfigurationBuilder()
@@ -37,50 +39,53 @@ class Program
             .AddUserSecrets<Program>()
             .Build();
 
-        services.AddSingleton<IConfiguration>(configuration);
+        builder.Services.AddDbContext<ArkWalletDbContext>(options =>
+            options.UseSqlite("Data Source=arkwallet.db"));
+
+        builder.Services.AddSingleton<IConfiguration>(configuration);
 
         // Main
-        services.AddDbContext<ArkWalletDbContext>();
-        services.AddScoped<TradingEngine>();
+        builder.Services.AddDbContext<ArkWalletDbContext>();
+        builder.Services.AddScoped<TradingEngine>();
 
-        services.AddScoped<TelegramBot>();
+        builder.Services.AddScoped<TelegramBot>();
 
-        services.AddScoped<RabbitMQService>();
-        services.AddScoped<ITaskDispatcher, RabbitMQTaskDispatcher>();
+        builder.Services.AddScoped<RabbitMQService>();
+        builder.Services.AddScoped<ITaskDispatcher, RabbitMQTaskDispatcher>();
 
-        services.AddHostedService<NotificationWorker>();
+        builder.Services.AddHostedService<NotificationWorker>();
 
-        services.AddScoped<ReserveCalculationService>();    
+        builder.Services.AddScoped<ReserveCalculationService>();    
 
         // Wizard
-        services.AddScoped<WizardConfiguration>();
-        services.AddScoped<WizardEngine>();
+        builder.Services.AddScoped<WizardConfiguration>();
+        builder.Services.AddScoped<WizardEngine>();
 
         // CharacterTokenServices
-        services.AddScoped<ITokenCreationService, TokenCreationService>();
+        builder.Services.AddScoped<ITokenCreationService, TokenCreationService>();
 
         // Decorators
-        services.AddScoped<IButtonDecorator, ButtonDecorator>();
-        services.AddScoped<IQuestionDecorator, QuestionDecorator>();
+        builder.Services.AddScoped<IButtonDecorator, ButtonDecorator>();
+        builder.Services.AddScoped<IQuestionDecorator, QuestionDecorator>();
 
         // PortfolioServices
-        services.AddScoped<IPortfolioQueryService, PortfolioQueryService>();
-        services.AddScoped<IPortfolioUpdatingService, PortfolioUpdatingService>();
+        builder.Services.AddScoped<IPortfolioQueryService, PortfolioQueryService>();
+        builder.Services.AddScoped<IPortfolioUpdatingService, PortfolioUpdatingService>();
 
         // SuggestionServices
-        services.AddScoped<IPriceSuggestionService, PriceSuggestionService>();
-        services.AddScoped<IQuantitySuggestionService, QuantitySuggestionService>();
+        builder.Services.AddScoped<IPriceSuggestionService, PriceSuggestionService>();
+        builder.Services.AddScoped<IQuantitySuggestionService, QuantitySuggestionService>();
 
         // TradeOrderServices
-        services.AddScoped<IOrderCancelService, OrderCancelService>();
-        services.AddScoped<IOrderCreationService, OrderCreationService>();
-        services.AddScoped<IOrderValidationService, OrderValidationService>();
+        builder.Services.AddScoped<IOrderCancelService, OrderCancelService>();
+        builder.Services.AddScoped<IOrderCreationService, OrderCreationService>();
+        builder.Services.AddScoped<IOrderValidationService, OrderValidationService>();
 
         // TraderServices
-        services.AddScoped<ITraderBalanceUpdatingService, TraderBalanceUpdatingService>();
-        services.AddScoped<ITraderRegistrationService, TraderRegistrationService>();
+        builder.Services.AddScoped<ITraderBalanceUpdatingService, TraderBalanceUpdatingService>();
+        builder.Services.AddScoped<ITraderRegistrationService, TraderRegistrationService>();
 
-        var serviceProvider = services.BuildServiceProvider();
+        var serviceProvider = builder.Services.BuildServiceProvider();
 
         await using (var scope = serviceProvider.CreateAsyncScope())
         {

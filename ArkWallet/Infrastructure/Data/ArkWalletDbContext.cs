@@ -10,10 +10,10 @@ namespace ArkWallet.Infrastructure.Data
         public DbSet<PortfolioItem> PortfolioItems { get; set; }
         public DbSet<Trade> Trades { get; set; }
         public DbSet<TradeOrder> TradeOrders { get; set; }
+        public DbSet<PriceCandle> PriceCandles { get; set; }
 
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        public ArkWalletDbContext(DbContextOptions<ArkWalletDbContext> options) : base(options)
         {
-            optionsBuilder.UseSqlite("Data Source=arkwallet.db");
         }
     }
 }
