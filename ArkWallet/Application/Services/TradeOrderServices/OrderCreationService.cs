@@ -109,7 +109,7 @@ namespace ArkWallet.Application.Services.TradeOrderServices
                 dbContext.CharacterTokens.Update(result.UpdatedToken);
 
             if (result.OrderToAdd != null)
-                dbContext.TradeOrders.UpdateRange(result.OrderToAdd);
+                await dbContext.TradeOrders.AddAsync(result.OrderToAdd);
 
             if (result.PortfoliosToAdd.Any())
                 await dbContext.PortfolioItems.AddRangeAsync(result.PortfoliosToAdd);
