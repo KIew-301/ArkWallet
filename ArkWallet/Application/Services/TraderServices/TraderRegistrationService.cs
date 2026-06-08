@@ -13,7 +13,7 @@ namespace ArkWallet.Application.Services.TraderServices
                 return new RegistrationResult(false, "Имя не может быть пустым");
 
             if (telegramId <= 0)
-                return new RegistrationResult(false, "Некорректный ID пользователя");
+                return new RegistrationResult(false, $"Некорректный ID пользователя {telegramId}");
 
             var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == telegramId);
 
