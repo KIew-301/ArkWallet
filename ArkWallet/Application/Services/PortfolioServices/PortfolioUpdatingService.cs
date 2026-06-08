@@ -1,5 +1,4 @@
-﻿using ArkWallet.Application.Contracts.Other;
-using ArkWallet.Application.Contracts.PortfolioServices;
+﻿using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Domain.Entities;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;

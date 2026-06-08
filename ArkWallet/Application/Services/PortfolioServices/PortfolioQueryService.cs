@@ -1,5 +1,4 @@
-﻿using ArkWallet.Application.Contracts.Other;
-using ArkWallet.Application.Contracts.PortfolioServices;
+﻿using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Application.Dtos;
 using ArkWallet.Application.Services.Other;
 using ArkWallet.Infrastructure.Data;

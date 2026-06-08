@@ -94,7 +94,7 @@ class Program
 
         builder.Services.AddHostedService<NotificationWorker>();
 
-        builder.Services.AddScoped<ReserveCalculationService>();    
+        builder.Services.AddScoped<ReserveCalculationService>();
 
         // Wizard
         builder.Services.AddScoped<WizardConfiguration>();

@@ -1,8 +1,5 @@
-﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Contracts.Decorators;
+﻿using ArkWallet.Application.Contracts.Decorators;
 using ArkWallet.Application.Contracts.PortfolioServices;
-using ArkWallet.Application.Contracts.TradeOrderServices;
-using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Application.Services.Other;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;

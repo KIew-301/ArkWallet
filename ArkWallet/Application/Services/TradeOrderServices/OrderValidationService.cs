@@ -1,5 +1,4 @@
 ﻿using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Services.Other;
 using ArkWallet.Infrastructure.Data;

@@ -1,8 +1,6 @@
 ﻿using ArkWallet.Application.Contracts.Decorators;
 using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Application.Contracts.SuggestionServices;
-using ArkWallet.Application.Contracts.TradeOrderServices;
-using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.CodeAnalysis;
