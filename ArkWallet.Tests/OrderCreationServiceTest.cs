@@ -11,10 +11,10 @@ using Microsoft.EntityFrameworkCore;
 namespace ArkWallet.Tests;
 public class OrderCreationServiceTest
 {
-    public record TestTrader(long TelegramId, string Name);
-    public record TestToken(string Symbol, string Name, CharacterRarity Rarity, int TotalSupply, int CurrentPrice, bool IsActive);
-    public record TestOrder(long TraderId, string Direction, string Symbol, int Quantity, decimal Price);
-    public record TestPortfolio(long TraderId, string Symbol, int Quantity);
+    private record TestTrader(long TelegramId, string Name);
+    private record TestToken(string Symbol, string Name, CharacterRarity Rarity, int TotalSupply, int CurrentPrice, bool IsActive);
+    private record TestOrder(long TraderId, string Direction, string Symbol, int Quantity, decimal Price);
+    private record TestPortfolio(long TraderId, string Symbol, int Quantity);
 
     [Fact]
     public async Task ProcessOrdersAsync_MatchingTest_ReturnsSuccess()
