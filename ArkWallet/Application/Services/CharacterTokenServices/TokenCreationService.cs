@@ -10,7 +10,7 @@ namespace ArkWallet.Application.Services.CharacterTokenServices
         public async Task<TokenCreationResult> CreateTokenAsync(CreateTokenCommand command)
         {
             if (command == null)
-                return new TokenCreationResult(false, null, "Комманда на создание некорректна");
+                return new TokenCreationResult(false, null, "Команда на создание некорректна");
             if (command.StartPrice <= 0)
                 return new TokenCreationResult(false, null, "Цена должна быть больше 0");
             if (command.TotalSupply <= 0)

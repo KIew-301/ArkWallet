@@ -37,9 +37,21 @@ namespace ArkWallet.Application.Services.TradeOrderServices
                     command.Quantity
                 );
 
+                if (order.IsLong())
+                {
+                    if (trader.Balance < order.GetReservedBalance())
+                        return new OrderCreationResult(false, false, null, "Недостаточно средств для выставления ордера");
+                }
+
                 var existingOrders = await GetActiveOrdersForMatchingAsync(order.CharacterTokenId);
                 var traders = await GetTradersForOrderAsync(existingOrders, order.TraderTelegramId);
                 var portfolios = await GetPortfoliosForTradersAsync(order.CharacterTokenId, traders.Keys);
+
+                if (order.IsShort())
+                {
+                    if (!portfolios.TryGetValue(trader.TelegramId, out var portfolio) || portfolio.Quantity < order.Quantity)
+                        return new OrderCreationResult(false, false, null, "Недостаточно токенов для создания ордера");
+                }
 
                 var engineResult = tradingEngine.ProcessOrder(order, existingOrders.ToList(), traders, portfolios, token);
 

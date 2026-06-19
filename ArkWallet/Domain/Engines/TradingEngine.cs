@@ -1,5 +1,6 @@
 ﻿using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
+using System.Diagnostics;
 
 namespace ArkWallet.Domain.Engines
 {
@@ -20,6 +21,21 @@ namespace ArkWallet.Domain.Engines
 
             if (newOrder.Quantity <= 0 || newOrder.Price <= 0)
                 return TradingResult.Failed("Количество и цена должны быть > 0");
+
+            if (newOrder.IsLong())
+            {
+                var buyer = traders[newOrder.TraderTelegramId];
+                buyer.AddToBalance(-newOrder.GetReservedBalance());
+                buyer.MarkDirty();
+            }
+            else
+            {
+                if (!portfolios.TryGetValue(newOrder.TraderTelegramId, out var sellerPortfolio))
+                    return TradingResult.Failed("В портфеле отсуствует данный токен");
+
+                sellerPortfolio.RemoveTokens(newOrder.Quantity);
+                sellerPortfolio.MarkDirty();
+            }
 
             // Загружаем стакан из существующих ордеров
             var orderBook = CreateOrderBook(newOrder.CharacterTokenId);
@@ -95,12 +111,10 @@ namespace ArkWallet.Domain.Engines
             var buyer = traders[trade.BuyerId];
             var seller = traders[trade.SellerId];
 
-            buyer.Balance -= totalAmount;
-            seller.Balance += totalAmount;
+            seller.AddToBalance(totalAmount);
 
             // Обновляем портфели
             var buyerPortfolio = portfolios.ContainsKey(trade.BuyerId) ? portfolios[trade.BuyerId] : null;
-            var sellerPortfolio = portfolios[trade.SellerId];
 
             if (buyerPortfolio != null)
             {
@@ -112,12 +126,9 @@ namespace ArkWallet.Domain.Engines
                 portfolios[trade.BuyerId] = buyerPortfolio;
             }
 
-            sellerPortfolio.RemoveTokens(quantity);
-
             buyer.MarkDirty();
             seller.MarkDirty();
             buyerPortfolio.MarkDirty();
-            sellerPortfolio.MarkDirty();
         }
 
         private List<TradeOrder> FindMatchingOrders(TradeOrder order, OrderBook orderBook)

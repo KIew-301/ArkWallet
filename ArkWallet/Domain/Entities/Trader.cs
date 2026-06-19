@@ -8,7 +8,7 @@ namespace ArkWallet.Domain.Entities
         [Key]
         public long TelegramId { get; set; }
         public string? Username { get; set; }
-        public decimal Balance { get; set; } = 1000.0m;
+        public decimal Balance { get; private set; } = 1000.0m;
         public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
         public virtual ICollection<PortfolioItem> Portfolio { get; set; } = new List<PortfolioItem>();
         public virtual ICollection<TradeOrder> Orders { get; set; } = new List<TradeOrder>();

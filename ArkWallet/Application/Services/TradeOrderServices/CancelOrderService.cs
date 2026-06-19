@@ -13,11 +13,23 @@ namespace ArkWallet.Application.Services.TradeOrderServices
             try
             {
                 var order = await dbContext.TradeOrders.FirstOrDefaultAsync(o => o.Id == orderId);
+                var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
 
                 if (order == null)
                     return new CancelOrderResult(false, "Ордера не существует");
 
                 order.Cancel(traderId);
+
+                if (order.IsLong())
+                {
+                    trader.AddToBalance(order.GetReservedBalance() * order.Price);
+                }
+                else
+                {
+                    var portfolioItem = await dbContext.PortfolioItems
+                        .FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == order.CharacterTokenId);
+                    portfolioItem.ReturnTokens(order.GetRemainingQuantity());
+                }
 
                 dbContext.TradeOrders.Update(order);
                 await dbContext.SaveChangesAsync();

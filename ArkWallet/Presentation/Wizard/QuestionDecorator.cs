@@ -36,22 +36,18 @@ namespace ArkWallet.Presentation.Wizard
             {
                 var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == session.Id);
                 var balance = trader.Balance;
-                var availableBalance = await reserveCalculationService.GetTraderAvailableBalanceAsync(session.Id);
 
                 return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
                        $"💰 Текущая цена: {token.CurrentPrice:F2}\n" +
-                       $"💳 Общий баланс: {balance:F2}\n" +
-                       $"🔄 Доступно: {availableBalance:F2}";
+                       $"💳 Общий баланс: {balance:F2}\n";
             }
             else
             {
                 var tokenBalance = await portfolioQueryService.GetTokenBalanceAsync(session.Id, symbol);
-                var availableTokenBalance = await portfolioQueryService.GetAvailableTokenBalanceAsync(session.Id, symbol);
 
                 return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
                        $"💰 Текущая цена: {token.CurrentPrice:F2}\n" +
-                       $"📦 Всего в портфеле: {tokenBalance.Quantity} шт\n" +
-                       $"🔄 Доступно для продажи: {availableTokenBalance.Quantity} шт\n";
+                       $"📦 Всего в портфеле: {tokenBalance.Quantity} шт\n";
             }
         }
 

@@ -69,22 +69,18 @@ namespace ArkWallet.Application.Services.TradeOrderServices
             if (direction == OrderDirections.Buy)
             {
                 var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
-                var reserve = await reserveCalculationService.GetReservedBalanceAsync(traderId);
-
-                decimal stock = trader.Balance - reserve;
                 decimal totalCost = quantity * price;
 
-                if (stock < totalCost)
+                if (trader.Balance < totalCost)
                     return new ValidationResult(false,
-                        $"Не хватает средств (необходимо {totalCost}, доступно {stock})");
+                        $"Не хватает средств (необходимо {totalCost}, доступно {trader.Balance})");
             }
             else
             {
                 var item = await dbContext.PortfolioItems
                     .FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
-                var reserve = await reserveCalculationService.GetReservedQuantityAsync(traderId, symbol);
 
-                int stock = item.Quantity - reserve;
+                int stock = item.Quantity;
 
                 if (stock < quantity)
                     return new ValidationResult(false,

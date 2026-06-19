@@ -15,8 +15,7 @@ namespace ArkWallet.Application.Services.SuggestionServices
             if (token == null || trader == null)
                 return [];
 
-            var reserve = await reserveCalculationService.GetReservedBalanceAsync(traderId);
-            decimal stock = trader.Balance - reserve;
+            decimal stock = trader.Balance;
 
             decimal optimalPrice = Math.Floor(stock / quantity * 100) / 100;
             decimal currentPrice = token.CurrentPrice;

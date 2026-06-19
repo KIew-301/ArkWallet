@@ -63,6 +63,13 @@ namespace ArkWallet.Domain.Entities
             MarkDirty();
         }
 
+        public void ReturnTokens(int quantity)
+        {
+            if (quantity <= 0) throw new DomainException("Количество токенов меньше 0");
+            Quantity += quantity;
+            MarkDirty();
+        }
+
         public void RemoveTokens(int quantity)
         {
             if (quantity <= 0) throw new DomainException("Количество токенов меньше или равно 0");
