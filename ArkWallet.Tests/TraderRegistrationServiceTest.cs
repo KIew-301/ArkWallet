@@ -1,8 +1,4 @@
-﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Services.CharacterTokenServices;
-using ArkWallet.Application.Services.TraderServices;
-using ArkWallet.Domain.Engines;
-using Xunit.Sdk;
+﻿using ArkWallet.Application.Services.TraderServices;
 
 namespace ArkWallet.Tests;
 

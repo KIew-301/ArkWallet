@@ -1,0 +1,19 @@
+﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Domain.ValueObjects;
+
+namespace ArkWallet.Tests;
+
+public class TokenCreationServiceTest
+{
+    [Theory]
+    [InlineData("", "Тест-валюта", CharacterRarity.FourStar, 1000, 10000, true, "Идентификатор токена не может быть пустым")]
+    public async Task CreateTokenAsync_WithInvalidData_ReturnsFailure(string symbol, string name, CharacterRarity rarity, int initialPrice, int maxSupply, bool isTradable, string errorMessage)
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+        var tokenCreationService = new Application.Services.CharacterTokenServices.TokenCreationService(db);
+        var result = await tokenCreationService.CreateTokenAsync(new CreateTokenCommand(symbol, name, rarity, initialPrice, maxSupply, isTradable));
+        Assert.False(result.IsSuccess);
+        Assert.Equal(errorMessage, result.ErrorMessage);
+    }
+}

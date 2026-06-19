@@ -7,20 +7,27 @@ namespace ArkWallet.Application.Services.PortfolioServices
 {
     internal class PortfolioUpdatingService(ArkWalletDbContext dbContext) : IPortfolioUpdatingService
     {
-        public async Task<PortfolioUpdatingResult> CreateOrUpdatePortfolioAsync(long traderId, string symbol, int quantity)
+        public async Task<PortfolioUpdatingResult> CreateOrUpdatePortfolioAsync(long traderId, string symbol, int quantityToAdd)
         {
+            if (quantityToAdd <= 0)
+                return new PortfolioUpdatingResult(false, "Для обновление портфеля необходим минимум один токен");
+
             var item = await dbContext.PortfolioItems.FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
-            var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(t => t.Symbol == t.Symbol);
+            var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(t => t.Symbol == symbol);
 
             if (token == null)
                 return new PortfolioUpdatingResult(false, "Токена не существует");
 
             if (item == null)
-                item = PortfolioItem.Create(traderId, symbol, quantity, token.CurrentPrice);
+            {
+                item = PortfolioItem.Create(traderId, symbol, quantityToAdd, token.CurrentPrice);
+                await dbContext.PortfolioItems.AddAsync(item);
+            }
             else
-                item.AddTokens(quantity, token.CurrentPrice);
+            {
+                item.AddTokens(quantityToAdd, token.CurrentPrice);
+            }
 
-            dbContext.PortfolioItems.Update(item);
             await dbContext.SaveChangesAsync();
 
             return new PortfolioUpdatingResult(true);

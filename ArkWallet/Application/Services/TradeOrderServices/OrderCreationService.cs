@@ -52,7 +52,8 @@ namespace ArkWallet.Application.Services.TradeOrderServices
 
                 var result = OrderDto.FromEntity(order);
 
-                await taskDispatcher.SendTaskAsync("notification", NotificationEvent.FromOrderList(engineResult.UpdatedOrders));
+                if (taskDispatcher != null)
+                    await taskDispatcher.SendTaskAsync("notification", NotificationEvent.FromOrderList(engineResult.UpdatedOrders));
 
                 return new OrderCreationResult(true, order.IsFilled(), result);
             }
@@ -62,7 +63,7 @@ namespace ArkWallet.Application.Services.TradeOrderServices
             }
             catch (Exception ex)
             {
-                return new OrderCreationResult(false, false, null, "Ошибка системы");
+                return new OrderCreationResult(false, false, null, ex.Message);
             }
         }
 

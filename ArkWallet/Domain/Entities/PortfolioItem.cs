@@ -39,6 +39,18 @@ namespace ArkWallet.Domain.Entities
         public decimal GetProfitLoss(CharacterToken token)
             => GetCurrentValue(token) - GetTotalValue();
 
+        public void SetTokens(int quantity, decimal buyPrice)
+        {
+            if (quantity <= 0) throw new DomainException("Количество токенов меньше 0");
+
+            // Пересчет средней цены
+            var totalCost = Quantity * AverageBuyPrice + quantity * buyPrice;
+            Quantity += quantity;
+            AverageBuyPrice = totalCost / Quantity;
+
+            MarkDirty();
+        }
+
         public void AddTokens(int quantity, decimal buyPrice)
         {
             if (quantity <= 0) throw new DomainException("Количество токенов меньше 0");

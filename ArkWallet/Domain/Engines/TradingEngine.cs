@@ -160,35 +160,9 @@ namespace ArkWallet.Domain.Engines
                 order.MarkAsFilled();
             }
         }
-
-        private OrderBook GetOrCreateOrderBook(string characterTokenId)
-        {
-            if (!_orderBooks.ContainsKey(characterTokenId))
-            {
-                _orderBooks[characterTokenId] = new OrderBook();
-            }
-            return _orderBooks[characterTokenId];
-        }
-
         private OrderBook CreateOrderBook(string characterTokenId)
         {
             return _orderBooks[characterTokenId] = new OrderBook();
-        }
-
-        private void AddToOrderBook(TradeOrder order, OrderBook orderBook)
-        {
-            if (order.Type == OrderType.Buy)
-                orderBook.Bids.Add(order);
-            else
-                orderBook.Asks.Add(order);
-        }
-
-        private void RemoveFromOrderBook(TradeOrder order, OrderBook orderBook)
-        {
-            if (order.Type == OrderType.Buy)
-                orderBook.Bids.Remove(order);
-            else
-                orderBook.Asks.Remove(order);
         }
     }
 }

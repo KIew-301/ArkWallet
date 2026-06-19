@@ -10,16 +10,20 @@ namespace ArkWallet.Application.Services.CharacterTokenServices
         public async Task<TokenCreationResult> CreateTokenAsync(CreateTokenCommand command)
         {
             if (command == null)
-                return new TokenCreationResult(false, null, "Комманда на создание некорректна.");
+                return new TokenCreationResult(false, null, "Комманда на создание некорректна");
             if (command.StartPrice <= 0)
-                return new TokenCreationResult(false, null, "Цена должна быть больше 0.");
+                return new TokenCreationResult(false, null, "Цена должна быть больше 0");
             if (command.TotalSupply <= 0)
-                return new TokenCreationResult(false, null, "Общее количество должно быть больше 0.");
+                return new TokenCreationResult(false, null, "Общее количество должно быть больше 0");
+            if (command.Symbol == "")
+                return new TokenCreationResult(false, null, "Идентификатор токена не может быть пустым");
+            if (command.Name == "")
+                return new TokenCreationResult(false, null, "Имя токена не может быть пустым");
 
             var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(t => t.Symbol == command.Symbol);
 
             if (token != null)
-                return new TokenCreationResult(false, null, "Такой токен уже существует.");
+                return new TokenCreationResult(false, null, "Такой токен уже существует");
 
             token = command.ToEntity();
             await dbContext.CharacterTokens.AddAsync(token);
