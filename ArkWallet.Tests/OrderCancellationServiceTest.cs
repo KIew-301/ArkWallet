@@ -36,7 +36,6 @@ public class OrderCancellationServiceTest
         var traderRegistrationService = new TraderRegistrationService(db);
         var tokenCreationService = new TokenCreationService(db);
         var orderCancellationService = new OrderCancelService(db);
-        var portfolioUpdatingService = new PortfolioUpdatingService(db);
         var tradingEngine = new TradingEngine();
         var tradingService = new OrderCreationService(db, tradingEngine, null);
 
@@ -53,6 +52,48 @@ public class OrderCancellationServiceTest
             .FirstOrDefaultAsync(t => t.TelegramId == traderRecord.TelegramId);
 
         Assert.True(result2.IsSuccess);
-        Assert.Equal(1000, trader.Balance);
+        Assert.Equal(startBalance, trader.Balance);
+    }
+
+    [Fact]
+    public async Task CancelOrderAsync_CancelShortOrder_ReturnSuccess()
+    {
+        var traderRecord = new TestTrader(101, "First");
+        var tokenRecord = new TestToken("ZZZ", "Тест-валюта", CharacterRarity.FourStar, 1000, 10000, true);
+        var orderRecord = new TestOrder(traderRecord.TelegramId, "продать", tokenRecord.Symbol, 5, 100);
+        var portfolioRecord = new TestPortfolio(traderRecord.TelegramId, tokenRecord.Symbol, 10);
+        var startBalance = 1000;
+
+        var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var traderRegistrationService = new TraderRegistrationService(db);
+        var tokenCreationService = new TokenCreationService(db);
+        var orderCancellationService = new OrderCancelService(db);
+        var portfolioUpdatingService = new PortfolioUpdatingService(db);
+        var tradingEngine = new TradingEngine();
+        var tradingService = new OrderCreationService(db, tradingEngine, null);
+
+        await traderRegistrationService.RegisterTraderAsync(traderRecord.TelegramId, traderRecord.Name);
+        await tokenCreationService.CreateTokenAsync(new CreateTokenCommand(
+            tokenRecord.Symbol, tokenRecord.Name, tokenRecord.Rarity, tokenRecord.TotalSupply, tokenRecord.CurrentPrice, tokenRecord.IsActive));
+        await portfolioUpdatingService.CreateOrUpdatePortfolioAsync(
+            portfolioRecord.TraderId, portfolioRecord.Symbol, portfolioRecord.Quantity);
+
+        var result1 = await tradingService.CreateOrderAsync(new CreateOrderCommand(
+            orderRecord.TraderId, orderRecord.Direction, orderRecord.Symbol, orderRecord.Quantity, orderRecord.Price));
+
+        var result2 = await orderCancellationService.CancelOrderAsync(orderRecord.TraderId, result1.Order.Id);
+
+        var trader = await db.Traders
+            .FirstOrDefaultAsync(t => t.TelegramId == traderRecord.TelegramId);
+
+        var porfolio = await db.PortfolioItems
+            .Include(p => p.CharacterToken)
+            .FirstOrDefaultAsync(p => p.TraderTelegramId == traderRecord.TelegramId);
+
+        Assert.True(result2.IsSuccess);
+        Assert.Equal(startBalance, trader.Balance);
+        Assert.Equal(portfolioRecord.Quantity, porfolio.Quantity);
     }
 }
