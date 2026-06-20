@@ -1,11 +1,4 @@
-﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Services.CharacterTokenServices;
-using ArkWallet.Application.Services.PortfolioServices;
-using ArkWallet.Application.Services.TraderServices;
-using ArkWallet.Domain.ValueObjects;
-using Microsoft.EntityFrameworkCore;
-
-namespace ArkWallet.Tests;
+﻿namespace ArkWallet.Tests;
 
 public class PortfolioUpdatingServiceTest
 {
@@ -15,18 +8,11 @@ public class PortfolioUpdatingServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        var portfolioUpdatingService = new PortfolioUpdatingService(db);
-        var traderRegistrationService = new TraderRegistrationService(db);
-        var tokenCreationService = new TokenCreationService(db);
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
 
-        // Подготовка данных
-        await traderRegistrationService.RegisterTraderAsync(101, "User");
-        await tokenCreationService.CreateTokenAsync(new CreateTokenCommand("ZZZ", "Тест-валюта", CharacterRarity.FourStar, 1000, 10000, true));
-        var result = await portfolioUpdatingService.CreateOrUpdatePortfolioAsync(101, "ZZZ", 100);
-
-        var portfolio = await db.PortfolioItems
-            .Include(p => p.CharacterToken)
-            .FirstOrDefaultAsync(p => p.TraderTelegramId == 101 && p.CharacterToken.Symbol == "ZZZ");
+        var result = await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
+        var portfolio = await HelpMethods.GetPortfolio(db, 101);
 
         Assert.True(result.IsSuccess);
         Assert.NotNull(portfolio);
@@ -39,19 +25,12 @@ public class PortfolioUpdatingServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        var portfolioUpdatingService = new PortfolioUpdatingService(db);
-        var traderRegistrationService = new TraderRegistrationService(db);
-        var tokenCreationService = new TokenCreationService(db);
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
 
-        // Подготовка данных
-        await traderRegistrationService.RegisterTraderAsync(101, "User");
-        await tokenCreationService.CreateTokenAsync(new CreateTokenCommand("ZZZ", "Тест-валюта", CharacterRarity.FourStar, 1000, 10000, true));
-        await portfolioUpdatingService.CreateOrUpdatePortfolioAsync(101, "ZZZ", 100);
-        var result = await portfolioUpdatingService.CreateOrUpdatePortfolioAsync(101, "ZZZ", 50);
-
-        var portfolio = await db.PortfolioItems
-            .Include(p => p.CharacterToken)
-            .FirstOrDefaultAsync(p => p.TraderTelegramId == 101 && p.CharacterToken.Symbol == "ZZZ");
+        var result = await HelpMethods.AddPortfolio(db, 101, "ZZZ", 50);
+        var portfolio = await HelpMethods.GetPortfolio(db, 101);
 
         Assert.True(result.IsSuccess);
         Assert.NotNull(portfolio);

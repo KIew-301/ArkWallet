@@ -1,99 +1,43 @@
-﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Contracts.TradeOrderServices;
-using ArkWallet.Application.Services.CharacterTokenServices;
-using ArkWallet.Application.Services.PortfolioServices;
-using ArkWallet.Application.Services.TradeOrderServices;
-using ArkWallet.Application.Services.TraderServices;
-using ArkWallet.Domain.Engines;
-using ArkWallet.Domain.ValueObjects;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ArkWallet.Tests;
+﻿namespace ArkWallet.Tests;
 
 public class OrderCancellationServiceTest
 {
-    private record TestTrader(long TelegramId, string Name);
-    private record TestToken(string Symbol, string Name, CharacterRarity Rarity, int TotalSupply, int CurrentPrice, bool IsActive);
-    private record TestOrder(long TraderId, string Direction, string Symbol, int Quantity, decimal Price);
-    private record TestPortfolio(long TraderId, string Symbol, int Quantity);
-
     [Fact]
     public async Task CancelOrderAsync_CancelLongOrder_ReturnSuccess()
     {
-        var traderRecord = new TestTrader(101, "First");
-        var tokenRecord = new TestToken("ZZZ", "Тест-валюта", CharacterRarity.FourStar, 1000, 10000, true);
-        var orderRecord = new TestOrder(traderRecord.TelegramId, "купить", tokenRecord.Symbol, 5, 100);
-        var startBalance = 1000;
-
-        var db = DbTest.CreateDbContext();
+        using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        var traderRegistrationService = new TraderRegistrationService(db);
-        var tokenCreationService = new TokenCreationService(db);
-        var orderCancellationService = new OrderCancelService(db);
-        var tradingEngine = new TradingEngine();
-        var tradingService = new OrderCreationService(db, tradingEngine, null);
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
 
-        await traderRegistrationService.RegisterTraderAsync(traderRecord.TelegramId, traderRecord.Name);
-        await tokenCreationService.CreateTokenAsync(new CreateTokenCommand(
-            tokenRecord.Symbol, tokenRecord.Name, tokenRecord.Rarity, tokenRecord.TotalSupply, tokenRecord.CurrentPrice, tokenRecord.IsActive));
+        var result1 = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        var result2 = await HelpMethods.CancelOrder(db, 101, result1.Order.Id);
 
-        var result1 = await tradingService.CreateOrderAsync(new CreateOrderCommand(
-            orderRecord.TraderId, orderRecord.Direction, orderRecord.Symbol, orderRecord.Quantity, orderRecord.Price));
-
-        var result2 = await orderCancellationService.CancelOrderAsync(orderRecord.TraderId, result1.Order.Id);
-
-        var trader = await db.Traders
-            .FirstOrDefaultAsync(t => t.TelegramId == traderRecord.TelegramId);
+        var trader = await HelpMethods.GetTrader(db, 101);
 
         Assert.True(result2.IsSuccess);
-        Assert.Equal(startBalance, trader.Balance);
+        Assert.Equal(1000, trader.Balance);
     }
 
     [Fact]
     public async Task CancelOrderAsync_CancelShortOrder_ReturnSuccess()
     {
-        var traderRecord = new TestTrader(101, "First");
-        var tokenRecord = new TestToken("ZZZ", "Тест-валюта", CharacterRarity.FourStar, 1000, 10000, true);
-        var orderRecord = new TestOrder(traderRecord.TelegramId, "продать", tokenRecord.Symbol, 5, 100);
-        var portfolioRecord = new TestPortfolio(traderRecord.TelegramId, tokenRecord.Symbol, 10);
-        var startBalance = 1000;
-
-        var db = DbTest.CreateDbContext();
+        using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        var traderRegistrationService = new TraderRegistrationService(db);
-        var tokenCreationService = new TokenCreationService(db);
-        var orderCancellationService = new OrderCancelService(db);
-        var portfolioUpdatingService = new PortfolioUpdatingService(db);
-        var tradingEngine = new TradingEngine();
-        var tradingService = new OrderCreationService(db, tradingEngine, null);
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
 
-        await traderRegistrationService.RegisterTraderAsync(traderRecord.TelegramId, traderRecord.Name);
-        await tokenCreationService.CreateTokenAsync(new CreateTokenCommand(
-            tokenRecord.Symbol, tokenRecord.Name, tokenRecord.Rarity, tokenRecord.TotalSupply, tokenRecord.CurrentPrice, tokenRecord.IsActive));
-        await portfolioUpdatingService.CreateOrUpdatePortfolioAsync(
-            portfolioRecord.TraderId, portfolioRecord.Symbol, portfolioRecord.Quantity);
+        var result1 = await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 5, 100);
+        var result2 = await HelpMethods.CancelOrder(db, 101, result1.Order.Id);
 
-        var result1 = await tradingService.CreateOrderAsync(new CreateOrderCommand(
-            orderRecord.TraderId, orderRecord.Direction, orderRecord.Symbol, orderRecord.Quantity, orderRecord.Price));
-
-        var result2 = await orderCancellationService.CancelOrderAsync(orderRecord.TraderId, result1.Order.Id);
-
-        var trader = await db.Traders
-            .FirstOrDefaultAsync(t => t.TelegramId == traderRecord.TelegramId);
-
-        var porfolio = await db.PortfolioItems
-            .Include(p => p.CharacterToken)
-            .FirstOrDefaultAsync(p => p.TraderTelegramId == traderRecord.TelegramId);
+        var trader = await HelpMethods.GetTrader(db, 101);
+        var portfolio = await HelpMethods.GetPortfolio(db, 101);
 
         Assert.True(result2.IsSuccess);
-        Assert.Equal(startBalance, trader.Balance);
-        Assert.Equal(portfolioRecord.Quantity, porfolio.Quantity);
+        Assert.Equal(1000, trader.Balance);
+        Assert.Equal(10, portfolio.Quantity);
     }
 }

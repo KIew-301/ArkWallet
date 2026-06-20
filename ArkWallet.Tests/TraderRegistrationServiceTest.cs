@@ -1,6 +1,4 @@
-﻿using ArkWallet.Application.Services.TraderServices;
-
-namespace ArkWallet.Tests;
+﻿namespace ArkWallet.Tests;
 
 public class TraderRegistrationServiceTest
 {
@@ -13,8 +11,7 @@ public class TraderRegistrationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        var traderRegistrationService = new TraderRegistrationService(db);
-        var result = await traderRegistrationService.RegisterTraderAsync(id, name);
+        var result = await HelpMethods.RegisterTrader(db, id, name);
 
         Assert.False(result.IsSuccess);
         Assert.Equal(errorMessage, result.ErrorMessage);
@@ -26,15 +23,11 @@ public class TraderRegistrationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        Random rnd = new();
-
-        long id = rnd.NextInt64(1, 1_000_000_000_000_000);
+        long id = Random.Shared.NextInt64(1, 1_000_000_000_000_000);
         string name = "Kuro";
 
-        var traderRegistrationService = new TraderRegistrationService(db);
-
-        var result1 = await traderRegistrationService.RegisterTraderAsync(id, name);
-        var result2 = await traderRegistrationService.RegisterTraderAsync(id, name);
+        var result1 = await HelpMethods.RegisterTrader(db, id, name);
+        var result2 = await HelpMethods.RegisterTrader(db, id, name);
 
         Assert.True(result1.IsSuccess);
         Assert.False(result2.IsSuccess);
