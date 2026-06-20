@@ -52,10 +52,10 @@ public class OrderCancellationServiceTest
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.AddPortfolio(db, 102, "ZZZ", 30);
 
-        var result1 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 60);
-        var result2 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 80);
-        var result3 = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 9, 90);
-        var result4 = await HelpMethods.CancelOrder(db, 101, result3.Order.Id);
+        var resultShortOrder1 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 60);
+        var resultShortOrder2 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 80);
+        var resultLongOrder = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 9, 90);
+        var resultCancelLongOrder = await HelpMethods.CancelOrder(db, 101, resultLongOrder.Order.Id);
 
         var trader = await HelpMethods.GetTrader(db, 101);
         var portfolio = await HelpMethods.GetPortfolio(db, 101, "ZZZ");
@@ -75,16 +75,40 @@ public class OrderCancellationServiceTest
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.AddPortfolio(db, 102, "ZZZ", 30);
 
-        var result1 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 60);
-        var result2 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 7, 80);
-        var result3 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 10, 100);
-        var result4 = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 9, 90);
-        var result5 = await HelpMethods.CancelOrder(db, 102, result3.Order.Id);
+        var resultShortOrder1 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 60);
+        var resultShortOrder2 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 7, 80);
+        var resultShortOrder3 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 10, 100);
+        var resultLongOrder = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 9, 90);
+        var resultCancelShortOrder = await HelpMethods.CancelOrder(db, 102, resultShortOrder3.Order.Id);
 
         var trader = await HelpMethods.GetTrader(db, 102);
         var portfolio = await HelpMethods.GetPortfolio(db, 102, "ZZZ");
 
         Assert.Equal(1660, trader.Balance);
         Assert.Equal(20, portfolio.Quantity);
+    }
+
+    [Fact]
+    public async Task ProcessOrderAsync_CancelFilledOrders_ReturnsFails()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 5);
+
+        var resultShortOrder = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 100);
+        var resultLongOrder = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 3, 100);
+        var resultCancelShortOrder = await HelpMethods.CancelOrder(db, 102, resultShortOrder.Order.Id);
+
+        var traderSorter = await HelpMethods.GetTrader(db, 102);
+        var portfolioShorter = await HelpMethods.GetPortfolio(db, 102, "ZZZ");
+        var traderLonger = await HelpMethods.GetTrader(db, 101);
+        var portfolioLonger = await HelpMethods.GetPortfolio(db, 101, "ZZZ");
+
+        Assert.False(resultCancelShortOrder.IsSuccess);
+        Assert.Equal("Можно отменить только активный ордер", resultCancelShortOrder.Message);
     }
 }

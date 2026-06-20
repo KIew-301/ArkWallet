@@ -1,6 +1,4 @@
-﻿using ArkWallet.Domain.ValueObjects;
-
-namespace ArkWallet.Tests;
+﻿namespace ArkWallet.Tests;
 public class OrderCreationServiceTest
 {
     [Fact]

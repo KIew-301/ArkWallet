@@ -21,6 +21,9 @@ namespace ArkWallet.Application.Services.TradeOrderServices
                 if (trader == null)
                     return new CancelOrderResult(false, "Трейдер не найден");
 
+                if (!order.IsActive())
+                    return new CancelOrderResult(false, "Можно отменить только активный ордер");
+
                 order.Cancel(traderId);
 
                 if (order.IsLong())
