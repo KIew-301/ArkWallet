@@ -62,7 +62,7 @@ namespace ArkWallet.Domain.Engines
                     traderIdWithNewPortfolio.Add(trade.BuyerId);
 
                 // 🔥 РАССЧИТЫВАЕМ ИЗМЕНЕНИЯ (НЕ сохраняем в БД!)
-                UpdateTradersAndPortfolios(traders, portfolios, trade, tradeQuantity, tradePrice);
+                UpdateTradersAndPortfolios(traders, portfolios, trade, tradeQuantity, tradePrice, newOrder.Price);
 
                 // ОБНОВЛЯЕМ ОРДЕРА
                 UpdateOrderFill(newOrder, tradeQuantity);
@@ -103,7 +103,8 @@ namespace ArkWallet.Domain.Engines
         private void UpdateTradersAndPortfolios(
             Dictionary<long, Trader> traders,
             Dictionary<long, PortfolioItem> portfolios,
-            Trade trade, int quantity, decimal price)
+            Trade trade, int quantity, decimal price,
+            decimal buyerOrderPrice)
         {
             var totalAmount = quantity * price;
 
@@ -112,6 +113,12 @@ namespace ArkWallet.Domain.Engines
             var seller = traders[trade.SellerId];
 
             seller.AddToBalance(totalAmount);
+
+            var overpayment = (buyerOrderPrice - price) * quantity;
+            if (overpayment > 0)
+            {
+                buyer.AddToBalance(overpayment);
+            }
 
             // Обновляем портфели
             var buyerPortfolio = portfolios.ContainsKey(trade.BuyerId) ? portfolios[trade.BuyerId] : null;

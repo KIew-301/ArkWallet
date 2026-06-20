@@ -3,11 +3,6 @@
 namespace ArkWallet.Tests;
 public class OrderCreationServiceTest
 {
-    private record TestTrader(long TelegramId, string Name);
-    private record TestToken(string Symbol, string Name, CharacterRarity Rarity, int TotalSupply, int CurrentPrice, bool IsActive);
-    private record TestOrder(long TraderId, string Direction, string Symbol, int Quantity, decimal Price);
-    private record TestPortfolio(long TraderId, string Symbol, int Quantity);
-
     [Fact]
     public async Task ProcessOrdersAsync_MatchingTest_ReturnsSuccess()
     {
@@ -51,5 +46,80 @@ public class OrderCreationServiceTest
         var result = await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 5, 100);
 
         Assert.True(result.IsSuccess, $"Order failed: {result.ErrorMessage}");
+    }
+
+
+    [Fact]
+    public async Task ProcessOrderAsync_ComplexExecutionLimitLongOrder_ReturnsSuccess()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 30);
+
+        var result1 = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 9, 90);
+        var result2 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 60);
+        var result3 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 80);
+        var result4 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 100);
+
+        var trader1 = await HelpMethods.GetTrader(db, 101);
+        var trader2 = await HelpMethods.GetTrader(db, 102);
+
+        var portfolio1 = await HelpMethods.GetPortfolio(db, 101, "ZZZ");
+        var portfolio2 = await HelpMethods.GetPortfolio(db, 102, "ZZZ");
+
+        Assert.True(result1.IsSuccess);
+        Assert.True(result2.IsSuccess);
+        Assert.True(result3.IsSuccess);
+        Assert.True(result4.IsSuccess);
+
+        Assert.NotNull(trader1);
+        Assert.NotNull(trader2);
+
+        Assert.Equal(190, trader1.Balance);
+        Assert.Equal(1540, trader2.Balance);
+
+        Assert.Equal(6, portfolio1.Quantity);
+        Assert.Equal(21, portfolio2.Quantity);
+    }
+
+    [Fact]
+    public async Task ProcessOrderAsync_ComplexExecutionMarketLongOrder_ReturnsSuccess()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 30);
+
+        var result1 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 60);
+        var result2 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 80);
+        var result3 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 100);
+        var result4 = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 9, 90);
+
+        var trader1 = await HelpMethods.GetTrader(db, 101);
+        var trader2 = await HelpMethods.GetTrader(db, 102);
+
+        var portfolio1 = await HelpMethods.GetPortfolio(db, 101, "ZZZ");
+        var portfolio2 = await HelpMethods.GetPortfolio(db, 102, "ZZZ");
+
+        Assert.True(result1.IsSuccess);
+        Assert.True(result2.IsSuccess);
+        Assert.True(result3.IsSuccess);
+        Assert.True(result4.IsSuccess);
+
+        Assert.NotNull(trader1);
+        Assert.NotNull(trader2);
+
+        Assert.Equal(310, trader1.Balance);
+        Assert.Equal(1420, trader2.Balance);
+
+        Assert.Equal(6, portfolio1.Quantity);
+        Assert.Equal(21, portfolio2.Quantity);
     }
 }
