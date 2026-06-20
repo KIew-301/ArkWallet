@@ -62,7 +62,7 @@ namespace ArkWallet.Application.Services.TradeOrderServices
 
                 string status = order.IsFilled() ? "Исполнен" : "Активен";
 
-                var result = OrderDto.FromEntity(order);
+                var result = OrderDto.FromEntity(engineResult.OrderToAdd);
 
                 if (taskDispatcher != null)
                     await taskDispatcher.SendTaskAsync("notification", NotificationEvent.FromOrderList(engineResult.UpdatedOrders));
