@@ -48,7 +48,6 @@ public class OrderCreationServiceTest
         Assert.True(result.IsSuccess, $"Order failed: {result.ErrorMessage}");
     }
 
-
     [Fact]
     public async Task ProcessOrderAsync_ComplexExecutionLimitLongOrder_ReturnsSuccess()
     {
