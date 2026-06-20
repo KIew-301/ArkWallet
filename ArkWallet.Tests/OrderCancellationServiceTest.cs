@@ -76,14 +76,15 @@ public class OrderCancellationServiceTest
         await HelpMethods.AddPortfolio(db, 102, "ZZZ", 30);
 
         var result1 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 60);
-        var result2 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 80);
-        var result3 = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 9, 90);
-        var result4 = await HelpMethods.CancelOrder(db, 102, result1.Order.Id);
+        var result2 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 7, 80);
+        var result3 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 10, 100);
+        var result4 = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 9, 90);
+        var result5 = await HelpMethods.CancelOrder(db, 102, result3.Order.Id);
 
         var trader = await HelpMethods.GetTrader(db, 102);
         var portfolio = await HelpMethods.GetPortfolio(db, 102, "ZZZ");
 
-        Assert.Equal(1420, trader.Balance);
-        Assert.Equal(24, portfolio.Quantity);
+        Assert.Equal(1660, trader.Balance);
+        Assert.Equal(20, portfolio.Quantity);
     }
 }
