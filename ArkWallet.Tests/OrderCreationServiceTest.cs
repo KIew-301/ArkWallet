@@ -1,4 +1,6 @@
-﻿namespace ArkWallet.Tests;
+﻿using ArkWallet.Domain.ValueObjects;
+
+namespace ArkWallet.Tests;
 public class OrderCreationServiceTest
 {
     [Fact]
@@ -118,5 +120,27 @@ public class OrderCreationServiceTest
 
         Assert.Equal(6, portfolio1.Quantity);
         Assert.Equal(21, portfolio2.Quantity);
+    }
+
+    [Fact]
+    public async Task ProcessOrderAsync_IgnoreYourOrders_ReturnsSuccess()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
+
+        var resultShortOrder = await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 5, 100);
+        var resultLongOrder = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+
+        var orders = await HelpMethods.GetTraderOrders(db, 101, "ZZZ",OrderStatus.Active);
+        var trader = await HelpMethods.GetTrader(db, 101);
+        var portfolio = await HelpMethods.GetPortfolio(db, 101, "ZZZ");
+
+        Assert.Equal(2, orders.Length);
+        Assert.Equal(500, trader.Balance);
+        Assert.Equal(5, portfolio.Quantity);
     }
 }

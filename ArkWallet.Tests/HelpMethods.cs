@@ -56,4 +56,10 @@ internal class HelpMethods
         await db.PortfolioItems
             .Include(p => p.CharacterToken)
             .FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterToken.Symbol == symbol);
+
+    public static async Task<TradeOrder[]> GetTraderOrders(ArkWalletDbContext db, long traderId, string symbol = "ZZZ", OrderStatus status = OrderStatus.Active) =>
+        await db.TradeOrders
+            .Include(o => o.CharacterToken)
+            .Where(o => o.TraderTelegramId == traderId && o.CharacterToken.Symbol == symbol && o.Status == status)
+            .ToArrayAsync();
 }
