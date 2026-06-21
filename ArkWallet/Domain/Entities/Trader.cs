@@ -12,6 +12,7 @@ namespace ArkWallet.Domain.Entities
         public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
         public virtual ICollection<PortfolioItem> Portfolio { get; set; } = new List<PortfolioItem>();
         public virtual ICollection<TradeOrder> Orders { get; set; } = new List<TradeOrder>();
+        public virtual ICollection<BalanceSnapshot> BalanceSnapshots { get; set; } = new List<BalanceSnapshot>();
         public bool CanAfford(decimal amount)
             => Balance >= amount;
 
