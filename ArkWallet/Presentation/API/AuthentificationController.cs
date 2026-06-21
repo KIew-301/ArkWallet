@@ -1,6 +1,7 @@
 ﻿using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Application.Services.Other;
 using ArkWallet.Infrastructure.Data;
+using ArkWallet.Presentation.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
