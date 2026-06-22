@@ -11,6 +11,8 @@ using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ArkWallet.Tests;
 
@@ -51,7 +53,8 @@ internal class HelpMethods
 
     public static async Task<BalanceSnapshotResult> TakeBalanceSnaphot(ArkWalletDbContext db, long traderId)
     {
-        var service = new BalanceSnapshotService(db);
+        var logger = NullLogger<BalanceSnapshotService>.Instance;
+        var service = new BalanceSnapshotService(db, logger);
         return await service.TakeTotalTraderBalanceSnapshot(traderId);
     }
 
