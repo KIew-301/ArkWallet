@@ -49,6 +49,12 @@ internal class HelpMethods
         return await service.CancelOrderAsync(traderId, orderId);
     }
 
+    public static async Task<BalanceSnapshotResult> TakeBalanceSnaphot(ArkWalletDbContext db, long traderId)
+    {
+        var service = new BalanceSnapshotService(db);
+        return await service.TakeTotalTraderBalanceSnapshot(traderId);
+    }
+
     public static async Task<Trader> GetTrader(ArkWalletDbContext db, long telegramId) =>
         await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == telegramId);
 
