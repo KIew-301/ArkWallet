@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Application.Services.TraderServices;
 
-internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnapshotService> logger)
+internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnapshotService>? logger = null)
 {
     public async Task<BalanceSnapshotResult> TakeTotalTraderBalanceSnapshot(long traderTelegramId)
     {
@@ -61,7 +61,7 @@ internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnap
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, $"Ошибка создания снапшота для трейдера {traderTelegramId}");
+            logger?.LogError(ex, $"Ошибка создания снапшота для трейдера {traderTelegramId}");
             return BalanceSnapshotResult.Fail("Внутренняя ошибка сервера");
         }
     }
