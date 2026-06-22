@@ -11,6 +11,7 @@ namespace ArkWallet.Infrastructure.Data
         public DbSet<Trade> Trades { get; set; }
         public DbSet<TradeOrder> TradeOrders { get; set; }
         public DbSet<PriceCandle> PriceCandles { get; set; }
+        public DbSet<BalanceSnapshot> BalanceSnapshots { get; set; }
 
         public ArkWalletDbContext(DbContextOptions<ArkWalletDbContext> options) : base(options)
         {
