@@ -45,13 +45,31 @@ internal class HelpMethods
         return await service.CreateOrderAsync(new CreateOrderCommand(traderId, direction, symbol, quantity, price));
     }
 
+    public static async Task<BalanceSavingResult> SaveBalanceSnapshot(
+        ArkWalletDbContext db,
+        long traderTelegramId,
+        decimal totalBalance,
+        decimal mainBalance,
+        decimal longOrderReserve,
+        decimal shortOrderReserve,
+        decimal balanceInTokens,
+        DateTime snapshotDateTime)
+    {
+        var logger = NullLogger<BalanceSavingService>.Instance;
+        var service = new BalanceSavingService(db, logger);
+        return await service.SaveBalanceToDatabase(
+            traderTelegramId, totalBalance, mainBalance, 
+            longOrderReserve, shortOrderReserve, balanceInTokens, 
+            snapshotDateTime);
+    }
+
     public static async Task<CancelOrderResult> CancelOrder(ArkWalletDbContext db, long traderId, string orderId)
     {
         var service = new OrderCancelService(db);
         return await service.CancelOrderAsync(traderId, orderId);
     }
 
-    public static async Task<BalanceSnapshotResult> TakeBalanceSnaphot(ArkWalletDbContext db, long traderId)
+    public static async Task<BalanceSnapshotResult> TakeBalanceSnapshot(ArkWalletDbContext db, long traderId)
     {
         var logger = NullLogger<BalanceSnapshotService>.Instance;
         var service = new BalanceSnapshotService(db, logger);
@@ -70,5 +88,10 @@ internal class HelpMethods
         await db.TradeOrders
             .Include(o => o.CharacterToken)
             .Where(o => o.TraderTelegramId == traderId && o.CharacterToken.Symbol == symbol && o.Status == status)
+            .ToArrayAsync();
+
+    public static async Task<BalanceSnapshot[]> GetBalanceHistory(ArkWalletDbContext db, long traderId) =>
+        await db.BalanceSnapshots
+            .Where(s => s.TraderId == traderId)
             .ToArrayAsync();
 }

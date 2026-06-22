@@ -21,6 +21,7 @@ using ArkWallet.Telegram;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -140,5 +141,15 @@ class Program
             await hostedService.StartAsync(CancellationToken.None);
 
         Console.ReadLine();
+    }
+
+    public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<ArkWalletDbContext>
+    {
+        public ArkWalletDbContext CreateDbContext(string[] args)
+        {
+            var optionsBuilder = new DbContextOptionsBuilder<ArkWalletDbContext>();
+            optionsBuilder.UseSqlite("Data Source=arkwallet.db");
+            return new ArkWalletDbContext(optionsBuilder.Options);
+        }
     }
 }
