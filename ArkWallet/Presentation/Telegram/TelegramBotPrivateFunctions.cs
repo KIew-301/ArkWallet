@@ -141,8 +141,7 @@ namespace ArkWallet.Telegram
 
             try
             {
-                // Создаем временный файл
-                string tempFile = Path.GetTempFileName() + ".json";
+                string tempFile = Path.GetRandomFileName() + ".json";
                 await File.WriteAllTextAsync(tempFile, jsonData);
 
                 // Формируем сообщение

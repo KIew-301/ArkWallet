@@ -39,8 +39,7 @@ class Program
         {
             options.AddDefaultPolicy(policy =>
             {
-                policy.AllowAnyOrigin()
-                      .AllowAnyMethod()
+                policy.AllowAnyMethod()
                       .AllowAnyHeader();
             });
         });

@@ -22,7 +22,7 @@ namespace ArkWallet.Infrastructure
             _telegramBot = telegramBot;
         }
 
-        protected override async Task ExecuteAsync(CancellationToken ct)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation("NotificationWorker started");
 
@@ -52,7 +52,7 @@ namespace ArkWallet.Infrastructure
 
             await channel.BasicConsumeAsync("notification", autoAck: false, consumer: consumer);
 
-            await Task.Delay(Timeout.Infinite, ct);
+            await Task.Delay(Timeout.Infinite, stoppingToken);
         }
     }
 }
