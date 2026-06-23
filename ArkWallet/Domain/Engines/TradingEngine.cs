@@ -1,6 +1,5 @@
 ﻿using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
-using System.Diagnostics;
 
 namespace ArkWallet.Domain.Engines
 {

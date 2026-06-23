@@ -1,5 +1,4 @@
-﻿using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.Exceptions;
+﻿using ArkWallet.Domain.Exceptions;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -68,13 +67,13 @@ internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnap
 }
 
 internal record BalanceSnapshotResult(
-    bool IsSuccess, string message, long traderTelegramId, decimal totalBalance, 
+    bool IsSuccess, string message, long traderTelegramId, decimal totalBalance,
     decimal mainBalance, decimal longOrderReserve, decimal shortOrderReserve,
     decimal balanceInTokens, DateTime dateTimeSnapshot)
 {
     public static BalanceSnapshotResult Ok(long traderTelegramId, decimal totalBalance, decimal mainBalance, decimal longOrderReserve, decimal shortOrderReserve, decimal balanceInTokens)
     {
-        return new(true, "Снимок сделан успешно", traderTelegramId, totalBalance, mainBalance, longOrderReserve, shortOrderReserve, balanceInTokens, DateTime.UtcNow); 
+        return new(true, "Снимок сделан успешно", traderTelegramId, totalBalance, mainBalance, longOrderReserve, shortOrderReserve, balanceInTokens, DateTime.UtcNow);
     }
 
     public static BalanceSnapshotResult Fail(string message, long traderTelegramId)

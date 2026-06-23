@@ -1,6 +1,4 @@
-﻿using ArkWallet.Domain.ValueObjects;
-using ArkWallet.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
+﻿using ArkWallet.Infrastructure.Data;
 
 namespace ArkWallet.Application.Services.Other
 {

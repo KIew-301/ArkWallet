@@ -1,10 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ArkWallet.Application.Services.TraderServices;
+﻿using ArkWallet.Application.Services.TraderServices;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ArkWallet.Tests;

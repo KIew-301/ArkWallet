@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ArkWallet.Domain.Entities
+﻿namespace ArkWallet.Domain.Entities
 {
     internal class BalanceSnapshot
     {
@@ -20,8 +14,8 @@ namespace ArkWallet.Domain.Entities
         public Trader? Trader { get; private set; }
 
         public static BalanceSnapshot Create(
-            long traderId, decimal totalBalance, decimal mainBalance, 
-            decimal longOrderReserveBalance, decimal shortOrderReserveBalance, 
+            long traderId, decimal totalBalance, decimal mainBalance,
+            decimal longOrderReserveBalance, decimal shortOrderReserveBalance,
             decimal balanceInTokens, DateTime snapshotDateTime)
         {
             return new BalanceSnapshot
