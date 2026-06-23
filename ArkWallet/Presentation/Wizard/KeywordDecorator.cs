@@ -60,7 +60,7 @@ namespace ArkWallet.Presentation.Wizard
             }
             else
             {
-                var priceList = await priceSuggestionService.GetSellPriceSuggestionsAsync(session.Id, symbol, quantity);
+                var priceList = await priceSuggestionService.GetSellPriceSuggestionsAsync(symbol);
                 priceList = priceList.OrderByDescending(p => p.Price).ToList();
 
                 foreach (var item in priceList)

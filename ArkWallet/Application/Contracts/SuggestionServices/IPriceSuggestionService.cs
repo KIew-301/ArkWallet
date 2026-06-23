@@ -29,15 +29,13 @@
         /// <summary>
         /// Генерирует список ценовых предложений для ордера на продажу
         /// </summary>
-        /// <param name="traderId">ID трейдера в Telegram</param>
         /// <param name="symbol">Символ токена</param>
-        /// <param name="quantity">Количество токенов для продажи</param>
         /// <returns>Список ценовых предложений с описаниями</returns>
         /// <remarks>
         /// Генерирует предложения на основе текущей рыночной цены токена
         /// с различными стратегиями продажи (быстрая, оптимальная, выгодная).
         /// </remarks>
-        Task<List<PriceSuggestionDto>> GetSellPriceSuggestionsAsync(long traderId, string symbol, int quantity);
+        Task<List<PriceSuggestionDto>> GetSellPriceSuggestionsAsync(string symbol);
     }
 
     /// <summary>

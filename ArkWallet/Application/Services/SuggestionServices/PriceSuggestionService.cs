@@ -1,50 +1,71 @@
 ﻿using ArkWallet.Application.Contracts.SuggestionServices;
-using ArkWallet.Application.Services.Other;
+using ArkWallet.Domain.Entities;
+using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace ArkWallet.Application.Services.SuggestionServices
 {
-    internal class PriceSuggestionService(ArkWalletDbContext dbContext, ReserveCalculationService reserveCalculationService) : IPriceSuggestionService
+    internal class PriceSuggestionService(ArkWalletDbContext dbContext) : IPriceSuggestionService
     {
         public async Task<List<PriceSuggestionDto>> GetBuyPriceSuggestionsAsync(long traderId, string symbol, int quantity)
         {
-            var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
-            var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(c => c.Symbol == symbol);
+            var trader = await dbContext.Traders
+                .FirstOrDefaultAsync(t => t.TelegramId == traderId);
+            var lastLongOrders = await dbContext.TradeOrders
+                .FromSql($@"
+                    SELECT * FROM TradeOrders
+                    WHERE Type = 0 AND CharacterTokenId = {symbol}
+                    ORDER BY Price DESC
+                    LIMIT 10
+                ")
+                .AsNoTracking()
+                .ToArrayAsync();
 
-            if (token == null || trader == null)
+            var lastShortOrder = await dbContext.TradeOrders
+                .FromSql($@"
+                    SELECT * FROM TradeOrders
+                    WHERE Type = 1 AND CharacterTokenId = {symbol}
+                    ORDER BY Price ASC
+                    LIMIT 1
+                ")
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
+
+            if (trader == null || lastLongOrders == null || lastLongOrders.Length == 0 || lastShortOrder == null)
                 return [];
 
-            decimal stock = trader.Balance;
+            decimal bid = lastLongOrders[0].Price;
+            decimal ask = lastShortOrder.Price;
 
-            decimal optimalPrice = Math.Floor(stock / quantity * 100) / 100;
-            decimal currentPrice = token.CurrentPrice;
-            decimal noBestPrice = token.CurrentPrice * 1.05M;
-            decimal closeBestPrice = token.CurrentPrice * 0.95M;
-            decimal farBestPrice = token.CurrentPrice * 0.80M;
+            decimal maxPrice = Math.Floor(trader.Balance / quantity);
+            decimal currentPrice = bid;
+            decimal marketPrice = ask;
+            decimal goodPrice = lastLongOrders.Average(o => o.Price);
+            decimal greatPrice = lastLongOrders.Last().Price;
 
             List<PriceSuggestionDto> preDto = [];
             List<PriceSuggestionDto> currectDto = [];
 
-            preDto.Add(new(optimalPrice,
+            preDto.Add(new(maxPrice,
                 "Доступная цена",
-                "Максимальная цена, по которой можно купить" +
+                "Максимальная цена, по которой можно купить " +
                 $"{quantity} шт. токенов"));
 
             preDto.Add(new(currentPrice,
                 "Истинная цена",
                 "Истинная цена токена в данный момент"));
 
-            preDto.Add(new(noBestPrice,
+            preDto.Add(new(marketPrice,
                 "Рыночная цена",
                 "Цена для быстрой покупки"));
 
-            preDto.Add(new(closeBestPrice,
+            preDto.Add(new(goodPrice,
                 "Оптимальная цена",
                 "Цена компромиса между выгодой и " +
                 "скоростью исполнения"));
 
-            preDto.Add(new(farBestPrice,
+            preDto.Add(new(greatPrice,
                 "Заниженная цена",
                 "Цена для выгодной покупки"));
 
@@ -52,22 +73,45 @@ namespace ArkWallet.Application.Services.SuggestionServices
 
             foreach (var dto in preDto)
             {
-                if (dto.Price <= optimalPrice && dto.Price < currentPrice * 1.30M)
+                if (dto.Price <= maxPrice)
                     currectDto.Add(dto);
             }
 
-            return currectDto;
+            return currectDto.DistinctBy(d => d.Price).ToList();
         }
 
-        public async Task<List<PriceSuggestionDto>> GetSellPriceSuggestionsAsync(long traderId, string symbol, int quantity)
+        public async Task<List<PriceSuggestionDto>> GetSellPriceSuggestionsAsync(string symbol)
         {
-            var item = await dbContext.PortfolioItems.FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
-            var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(c => c.Symbol == symbol);
+            var lastShortOrders = await dbContext.TradeOrders
+                .FromSql($@"
+                    SELECT * FROM TradeOrders
+                    WHERE Type = 1 AND CharacterTokenId = {symbol}
+                    ORDER BY Price ASC
+                    LIMIT 10
+                ")
+                .AsNoTracking()
+                .ToArrayAsync();
 
-            decimal currentPrice = token.CurrentPrice;
-            decimal noBestPrice = token.CurrentPrice * 0.95M;
-            decimal closeBestPrice = token.CurrentPrice * 1.05M;
-            decimal farBestPrice = token.CurrentPrice * 1.20M;
+            var lastLongOrder = await dbContext.TradeOrders
+                .FromSql($@"
+                    SELECT * FROM TradeOrders
+                    WHERE Type = 0 AND CharacterTokenId = {symbol}
+                    ORDER BY Price ASC
+                    LIMIT 1
+                ")
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
+
+            if (lastShortOrders == null || lastShortOrders.Length == 0 || lastLongOrder == null)
+                return [];
+
+            decimal bid = lastLongOrder.Price;
+            decimal ask = lastShortOrders[0].Price;
+
+            decimal currentPrice = bid;
+            decimal marketPrice = ask;
+            decimal goodPrice = lastShortOrders.Average(o => o.Price);
+            decimal greatPrice = lastShortOrders.Last().Price;
 
             List<PriceSuggestionDto> dto = [];
 
@@ -75,22 +119,22 @@ namespace ArkWallet.Application.Services.SuggestionServices
                 "Истинная цена",
                 "Истинная цена токена в данный момент"));
 
-            dto.Add(new(noBestPrice,
+            dto.Add(new(marketPrice,
                 "Рыночная цена",
                 "Цена для быстрой продажи"));
 
-            dto.Add(new(closeBestPrice,
+            dto.Add(new(goodPrice,
                 "Оптимальная цена",
                 "Цена компромиса между выгодой и " +
                 "скоростью исполнения"));
 
-            dto.Add(new(farBestPrice,
-                "Заниженная цена",
+            dto.Add(new(greatPrice,
+                "Завышенная цена",
                 "Цена для выгодной продажи"));
 
             dto = [.. dto.OrderByDescending(dto => dto.Price)];
 
-            return dto;
+            return dto.DistinctBy(d => d.Price).ToList(); ;
         }
     }
 }
