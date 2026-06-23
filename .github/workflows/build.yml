@@ -44,4 +44,5 @@ jobs:
         run: |
           ${{ runner.temp }}\scanner\dotnet-sonarscanner begin /k:"KIew-301_ArkWallet" /o:"kiew-301" /d:sonar.token="$env:SONAR_TOKEN"
           dotnet build
+          dotnet test
           ${{ runner.temp }}\scanner\dotnet-sonarscanner end /d:sonar.token="$env:SONAR_TOKEN"
