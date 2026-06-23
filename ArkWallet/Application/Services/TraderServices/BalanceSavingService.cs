@@ -7,7 +7,8 @@ namespace ArkWallet.Application.Services.TraderServices;
 
 internal class BalanceSavingService(ArkWalletDbContext db, ILogger<BalanceSavingService> logger)
 {
-    public async Task<BalanceSavingResult> SaveBalanceToDatabase(long traderTelegramId,
+    public async Task<BalanceSavingResult> SaveBalanceToDatabase(
+        long traderTelegramId,
         decimal totalBalance,
         decimal mainBalance,
         decimal longOrderReserve,
@@ -42,7 +43,8 @@ internal class BalanceSavingService(ArkWalletDbContext db, ILogger<BalanceSaving
         catch (Exception ex)
         {
             logger.LogError(ex, $"Ошибка сохранения баланса в истории");
-            return BalanceSavingResult.Fail("Внутренняя ошибка сервера");
+            var innerMessage = ex.InnerException?.Message ?? ex.Message;
+            return BalanceSavingResult.Fail($"Внутренняя ошибка сервера: {innerMessage}");
         }
     }
 }
