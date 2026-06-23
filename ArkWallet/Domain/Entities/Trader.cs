@@ -8,7 +8,7 @@ namespace ArkWallet.Domain.Entities
         [Key]
         public long TelegramId { get; set; }
         public string? Username { get; set; }
-        public decimal Balance { get; private set; } = 1000.0m;
+        public decimal Balance { get; private set; } = GetDefaultBalance();
         public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
         public virtual ICollection<PortfolioItem> Portfolio { get; set; } = new List<PortfolioItem>();
         public virtual ICollection<TradeOrder> Orders { get; set; } = new List<TradeOrder>();
@@ -30,9 +30,11 @@ namespace ArkWallet.Domain.Entities
             {
                 TelegramId = telegramId,
                 Username = username,
-                Balance = 1000.0m,
+                Balance = GetDefaultBalance(),
                 JoinedAt = DateTime.UtcNow
             };
         }
+
+        public static decimal GetDefaultBalance() => 1000.0m;
     }
 }
