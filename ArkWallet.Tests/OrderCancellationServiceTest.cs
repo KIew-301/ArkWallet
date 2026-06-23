@@ -89,7 +89,7 @@ public class OrderCancellationServiceTest
     }
 
     [Fact]
-    public async Task ProcessOrderAsync_CancelFilledOrders_ReturnsFails()
+    public async Task ProcessOrderAsync_CancelFilledOrders_ReturnsFail()
     {
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
@@ -110,5 +110,41 @@ public class OrderCancellationServiceTest
 
         Assert.False(resultCancelShortOrder.IsSuccess);
         Assert.Equal("Можно отменить только активный ордер", resultCancelShortOrder.Message);
+    }
+
+    [Fact]
+    public async Task ProcessOrderAsync_CancelAllOrders_ReturnsSuccess()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 5);
+
+        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 3, 200);
+        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 3, 150);
+        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 3, 100);
+        var result = await HelpMethods.CancelAllOrders(db, 101);
+
+        var orders = await HelpMethods.GetTraderOrders(db, 101);
+
+        Assert.True(result.IsSuccess);
+        Assert.Empty(orders);
+    }
+
+    [Fact]
+    public async Task ProcessOrderAsync_CancelAllOrdersWithoutActiveOrders_ReturnsFail()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        var result = await HelpMethods.CancelAllOrders(db, 101);
+
+        var orders = await HelpMethods.GetTraderOrders(db, 101);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("Нет активных одеров для отмены", result.Message);
     }
 }

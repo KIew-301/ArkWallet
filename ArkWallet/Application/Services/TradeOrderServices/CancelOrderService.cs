@@ -66,7 +66,7 @@ namespace ArkWallet.Application.Services.TradeOrderServices
                 foreach (var order in orders)
                     order.Cancel(traderId);
 
-                dbContext.TradeOrders.UpdateRange(orders);
+                await dbContext.SaveChangesAsync();
 
                 return new CancelOrderResult(true, $"Успешно отменённых ордеров: {orders.Length}");
             }

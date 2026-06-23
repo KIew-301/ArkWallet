@@ -135,7 +135,7 @@ public class OrderCreationServiceTest
         var resultShortOrder = await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 5, 100);
         var resultLongOrder = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
 
-        var orders = await HelpMethods.GetTraderOrders(db, 101, "ZZZ",OrderStatus.Active);
+        var orders = await HelpMethods.GetTraderOrders(db, 101, "ZZZ", OrderStatus.Active);
         var trader = await HelpMethods.GetTrader(db, 101);
         var portfolio = await HelpMethods.GetPortfolio(db, 101, "ZZZ");
 
