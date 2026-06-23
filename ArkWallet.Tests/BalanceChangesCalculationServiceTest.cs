@@ -1,0 +1,95 @@
+﻿using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using ArkWallet.Application.Services.TraderServices;
+using Microsoft.Extensions.Logging.Abstractions;
+
+namespace ArkWallet.Tests;
+
+public class BalanceChangesCalculationServiceTest
+{
+    [Fact]
+    public async Task MainBalanceCalculationChanges_NoChangesWithoutBalanceHistoryEntry_ReturnSuccess()
+    {
+        var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var snapshotServicelogger = NullLogger<BalanceSnapshotService>.Instance;
+        var snapshotService = new BalanceSnapshotService(db, snapshotServicelogger);
+
+        var calculationServicelogger = NullLogger<BalanceChangesCalculationService>.Instance;
+        var calculationService = new BalanceChangesCalculationService(db, snapshotService, calculationServicelogger);
+
+        await HelpMethods.RegisterTrader(db, 101);
+        var result = await calculationService.TakeMainBalanceChanges(101, 1);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1000m, result.CurrentBalance);
+        Assert.Equal(1000m, result.PreviousBalance);
+        Assert.Equal(0m, result.ChangeAbsolute);
+        Assert.Equal(0m, result.ChangePercent);
+    }
+
+    [Fact]
+    public async Task MainBalanceCalculationChanges_WithChangesWithoutBalanceHistoryEntry_ReturnSuccess()
+    {
+        var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var snapshotServicelogger = NullLogger<BalanceSnapshotService>.Instance;
+        var snapshotService = new BalanceSnapshotService(db, snapshotServicelogger);
+
+        var calculationServicelogger = NullLogger<BalanceChangesCalculationService>.Instance;
+        var calculationService = new BalanceChangesCalculationService(db, snapshotService, calculationServicelogger);
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.GiveMoney(db, 101, 2500);
+
+        var result = await calculationService.TakeMainBalanceChanges(101, 1);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(3500m, result.CurrentBalance);
+        Assert.Equal(1000m, result.PreviousBalance);
+        Assert.Equal(2500m, result.ChangeAbsolute);
+        Assert.Equal(250m, result.ChangePercent);
+    }
+
+    [Theory]
+    [InlineData(1, 2000, 1500)]
+    [InlineData(2, 2000, 2500)]
+    [InlineData(3, 2000, 1750)]
+    [InlineData(7, 2000, 1000)]
+    public async Task MainBalanceCalculationChanges_WithChangesWithBalanceHistoryEntryWithPeriods_ReturnSuccess(
+        int period, decimal currentBalance, decimal previousBalance)
+    {
+        var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var snapshotServicelogger = NullLogger<BalanceSnapshotService>.Instance;
+        var snapshotService = new BalanceSnapshotService(db, snapshotServicelogger);
+
+        var calculationServicelogger = NullLogger<BalanceChangesCalculationService>.Instance;
+        var calculationService = new BalanceChangesCalculationService(db, snapshotService, calculationServicelogger);
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.SaveBalanceSnapshot(db, 101, 1000, 1000, 0, 0, 0, DateTime.UtcNow.Date.AddDays(-7));
+        await HelpMethods.SaveBalanceSnapshot(db, 101, 1750, 1750, 0, 0, 0, DateTime.UtcNow.Date.AddDays(-3));
+        await HelpMethods.SaveBalanceSnapshot(db, 101, 2500, 2500, 0, 0, 0, DateTime.UtcNow.Date.AddDays(-2));
+        await HelpMethods.SaveBalanceSnapshot(db, 101, 1500, 1500, 0, 0, 0, DateTime.UtcNow.Date.AddDays(-1));
+        await HelpMethods.GiveMoney(db, 101, 1000);
+
+        var result = await calculationService.TakeMainBalanceChanges(101, period);
+        var changeAbsolute = currentBalance - previousBalance;
+        var changePercent = changeAbsolute / previousBalance * 100;
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(currentBalance, result.CurrentBalance);
+        Assert.Equal(previousBalance, result.PreviousBalance);
+        Assert.Equal(changeAbsolute, result.ChangeAbsolute, precision: 2);
+        Assert.Equal(changePercent, result.ChangePercent, precision: 2);
+
+    }
+}

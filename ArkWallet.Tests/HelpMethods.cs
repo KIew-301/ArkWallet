@@ -24,6 +24,12 @@ internal class HelpMethods
         return await service.RegisterTraderAsync(telegramId, name);
     }
 
+    public static async Task<TraderBalanceUpdatingResult> GiveMoney(ArkWalletDbContext db, long telegramId, decimal amount)
+    {
+        var service = new TraderBalanceUpdatingService(db);
+        return await service.AddToBalanceAsync(telegramId, amount);
+    }
+
     public static async Task<TokenCreationResult> CreateToken(ArkWalletDbContext db, string symbol, string name = "Token",
         CharacterRarity rarity = CharacterRarity.FourStar, int totalSupply = 1000, int price = 10000, bool isActive = true)
     {
