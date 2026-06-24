@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ArkWallet.Application.Services.TradeOrderServices
 {
-    internal class OrderCreationService(ArkWalletDbContext dbContext, TradingEngine tradingEngine, ITaskDispatcher taskDispatcher) : IOrderCreationService
+    internal class OrderCreationService(ArkWalletDbContext dbContext, TradingEngine tradingEngine, IOrderCreationFullValidationService orderCreationFullValidationService, ITaskDispatcher taskDispatcher) : IOrderCreationService
     {
         public async Task<OrderCreationResult> CreateOrderAsync(CreateOrderCommand command)
         {
@@ -24,6 +24,11 @@ namespace ArkWallet.Application.Services.TradeOrderServices
 
                 if (token == null)
                     return new OrderCreationResult(false, false, null, "Токена не существует");
+
+                var orderValidationResult = await orderCreationFullValidationService.ValidateAsync(command);
+
+                if (!orderValidationResult.IsValid)
+                    return new OrderCreationResult(false, false, null, orderValidationResult.Message);
 
                 var orderType = command.Direction.Equals("купить", StringComparison.CurrentCultureIgnoreCase)
                     ? OrderType.Buy
@@ -64,8 +69,7 @@ namespace ArkWallet.Application.Services.TradeOrderServices
 
                 var result = OrderDto.FromEntity(engineResult.OrderToAdd);
 
-                if (taskDispatcher != null)
-                    await taskDispatcher.SendTaskAsync("notification", NotificationEvent.FromOrderList(engineResult.UpdatedOrders));
+                await taskDispatcher.SendTaskAsync("notification", NotificationEvent.FromOrderList(engineResult.UpdatedOrders));
 
                 return new OrderCreationResult(true, order.IsFilled(), result);
             }

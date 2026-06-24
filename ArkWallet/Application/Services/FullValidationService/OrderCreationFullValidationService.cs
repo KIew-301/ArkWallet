@@ -3,7 +3,7 @@ using ArkWallet.Application.Contracts.TradeOrderServices;
 
 namespace ArkWallet.Application.Services.FullValidationService
 {
-    internal class OrderCreationFullValidationService(IOrderValidationService orderValidationService)
+    internal class OrderCreationFullValidationService(IOrderValidationService orderValidationService) : IOrderCreationFullValidationService
     {
         public async Task<ValidationResult> ValidateAsync(CreateOrderCommand request)
         {

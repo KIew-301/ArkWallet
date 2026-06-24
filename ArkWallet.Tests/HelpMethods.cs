@@ -3,6 +3,7 @@ using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Application.Services.CharacterTokenServices;
+using ArkWallet.Application.Services.FullValidationService;
 using ArkWallet.Application.Services.PortfolioServices;
 using ArkWallet.Application.Services.TradeOrderServices;
 using ArkWallet.Application.Services.TraderServices;
@@ -11,8 +12,10 @@ using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
+using Moq;
 using Microsoft.Extensions.Logging.Abstractions;
+using ArkWallet.Application.Common;
+using ArkWallet.Application.Contracts.Other;
 
 namespace ArkWallet.Tests;
 
@@ -47,7 +50,14 @@ internal class HelpMethods
         string symbol, int quantity, decimal price)
     {
         var engine = new TradingEngine();
-        var service = new OrderCreationService(db, engine, null);
+        var mockValidator = new Mock<IOrderCreationFullValidationService>();
+        mockValidator
+            .Setup(x => x.ValidateAsync(It.IsAny<CreateOrderCommand>()))
+            .ReturnsAsync(new ValidationResult(true));
+        var mockTaskDispatcher = new Mock<ITaskDispatcher>();
+        mockTaskDispatcher
+            .Setup(x => x.SendTaskAsync(It.IsAny<string>(), It.IsAny<object>()));
+        var service = new OrderCreationService(db, engine, mockValidator.Object, mockTaskDispatcher.Object);
         return await service.CreateOrderAsync(new CreateOrderCommand(traderId, direction, symbol, quantity, price));
     }
 

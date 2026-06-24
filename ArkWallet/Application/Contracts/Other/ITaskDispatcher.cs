@@ -1,6 +1,6 @@
 ﻿namespace ArkWallet.Application.Contracts.Other
 {
-    internal interface ITaskDispatcher
+    public interface ITaskDispatcher
     {
         Task SendTaskAsync(string taskType, object taskData);
     }
