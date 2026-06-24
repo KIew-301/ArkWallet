@@ -1,8 +1,10 @@
 ﻿using ArkWallet.Application.Contracts.TradeOrderServices;
+using ArkWallet.Application.Services.TraderServices;
 using ArkWallet.Domain.Exceptions;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Application.Services.TradeOrderServices
 {
@@ -15,11 +17,11 @@ namespace ArkWallet.Application.Services.TradeOrderServices
                 var order = await dbContext.TradeOrders.FirstOrDefaultAsync(o => o.Id == orderId);
                 var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
 
-                if (order == null)
-                    return new CancelOrderResult(false, "Ордера не существует");
-
                 if (trader == null)
                     return new CancelOrderResult(false, "Трейдер не найден");
+
+                if (order == null)
+                    return new CancelOrderResult(false, "Ордера не существует");
 
                 if (!order.IsActive())
                     return new CancelOrderResult(false, "Можно отменить только активный ордер");
@@ -44,11 +46,12 @@ namespace ArkWallet.Application.Services.TradeOrderServices
             }
             catch (DomainException ex)
             {
-                return new CancelOrderResult(false, ex.Message);
+                return CancelOrderResult.Fail($"Ошибка бизнес-логики: {ex.Message}");
             }
             catch (Exception ex)
             {
-                return new CancelOrderResult(false, "Ошибка системы");
+                var innerMessage = ex.InnerException?.Message ?? ex.Message;
+                return CancelOrderResult.Fail($"Внутренняя ошибка сервера: {innerMessage}");
             }
         }
 
@@ -72,11 +75,12 @@ namespace ArkWallet.Application.Services.TradeOrderServices
             }
             catch (DomainException ex)
             {
-                return new CancelOrderResult(false, ex.Message);
+                return CancelOrderResult.Fail($"Ошибка бизнес-логики: {ex.Message}");
             }
             catch (Exception ex)
             {
-                return new CancelOrderResult(false, "Ошибка системы");
+                var innerMessage = ex.InnerException?.Message ?? ex.Message;
+                return CancelOrderResult.Fail($"Внутренняя ошибка сервера: {innerMessage}");
             }
         }
     }

@@ -147,4 +147,33 @@ public class OrderCancellationServiceTest
         Assert.False(result.IsSuccess);
         Assert.Equal("Нет активных одеров для отмены", result.Message);
     }
+
+    [Fact]
+    public async Task CancelOrderAsync_OrderNotExist_RetursFail()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+
+        var result = await HelpMethods.CancelOrder(db, 101, "");
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("Ордера не существует", result.Message);
+    }
+
+    [Fact]
+    public async Task CancelOrderAsync_TraderNotExist_RetursFail()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.CreateToken(db, "ZZZ");
+
+        var result = await HelpMethods.CancelOrder(db, 101, "");
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("Трейдер не найден", result.Message);
+    }
 }
