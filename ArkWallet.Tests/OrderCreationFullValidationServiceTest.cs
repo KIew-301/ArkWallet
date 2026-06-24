@@ -17,7 +17,7 @@ public class OrderCreationFullValidationServiceTest
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
 
-        var validationService = new OrderValidationService(db, new ReserveCalculationService(db));
+        var validationService = new OrderValidationService(db);
         var service = new OrderCreationFullValidationService(validationService);
 
         var request = new CreateOrderCommand(
@@ -42,7 +42,7 @@ public class OrderCreationFullValidationServiceTest
         await HelpMethods.RegisterTrader(db, 101);
         await HelpMethods.CreateToken(db, "ZZZ");
 
-        var validationService = new OrderValidationService(db, new ReserveCalculationService(db));
+        var validationService = new OrderValidationService(db);
         var service = new OrderCreationFullValidationService(validationService);
 
         var request = new CreateOrderCommand(
@@ -68,7 +68,7 @@ public class OrderCreationFullValidationServiceTest
         await HelpMethods.RegisterTrader(db, 101);
         await HelpMethods.CreateToken(db, "ZZZ");
 
-        var validationService = new OrderValidationService(db, new ReserveCalculationService(db));
+        var validationService = new OrderValidationService(db);
         var service = new OrderCreationFullValidationService(validationService);
 
         var request = new CreateOrderCommand(
@@ -93,7 +93,7 @@ public class OrderCreationFullValidationServiceTest
 
         await HelpMethods.RegisterTrader(db, 101);
 
-        var validationService = new OrderValidationService(db, new ReserveCalculationService(db));
+        var validationService = new OrderValidationService(db);
         var service = new OrderCreationFullValidationService(validationService);
 
         var request = new CreateOrderCommand(
@@ -119,7 +119,7 @@ public class OrderCreationFullValidationServiceTest
         await HelpMethods.RegisterTrader(db, 101);
         await HelpMethods.CreateToken(db, "ZZZ");
 
-        var validationService = new OrderValidationService(db, new ReserveCalculationService(db));
+        var validationService = new OrderValidationService(db);
         var service = new OrderCreationFullValidationService(validationService);
 
         var request = new CreateOrderCommand(

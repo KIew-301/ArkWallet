@@ -1,12 +1,11 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.TradeOrderServices;
-using ArkWallet.Application.Services.Other;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace ArkWallet.Application.Services.TradeOrderServices
 {
-    internal class OrderValidationService(ArkWalletDbContext dbContext, ReserveCalculationService reserveCalculationService) : IOrderValidationService
+    internal class OrderValidationService(ArkWalletDbContext dbContext) : IOrderValidationService
     {
         public ValidationResult ValidateDirection(string direction)
         {

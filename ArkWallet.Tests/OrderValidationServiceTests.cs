@@ -15,7 +15,7 @@ public class OrderValidationServiceTests
     public void ValidateDirection_ShouldReturnExpectedResult(string direction, bool expected)
     {
         using var db = DbTest.CreateDbContext();
-        var service = new OrderValidationService(db, new ReserveCalculationService(db));
+        var service = new OrderValidationService(db);
 
         var result = service.ValidateDirection(direction);
 
@@ -29,7 +29,7 @@ public class OrderValidationServiceTests
     public void ValidatePrice_ShouldReturnExpectedResult(decimal price, bool expected)
     {
         using var db = DbTest.CreateDbContext();
-        var service = new OrderValidationService(db, new ReserveCalculationService(db));
+        var service = new OrderValidationService(db);
 
         var result = service.ValidatePrice(price);
 
@@ -43,7 +43,7 @@ public class OrderValidationServiceTests
     public void ValidateQuantity_ShouldReturnExpectedResult(int quantity, bool expected)
     {
         using var db = DbTest.CreateDbContext();
-        var service = new OrderValidationService(db, new ReserveCalculationService(db));
+        var service = new OrderValidationService(db);
 
         var result = service.ValidateQuantity(quantity);
 
@@ -57,7 +57,7 @@ public class OrderValidationServiceTests
         db.Database.EnsureCreated();
         await HelpMethods.RegisterTrader(db, 101);
 
-        var service = new OrderValidationService(db, new ReserveCalculationService(db));
+        var service = new OrderValidationService(db);
 
         var result = await service.ValidateTokenAsync(101, "ZZZ", "купить");
 
@@ -73,7 +73,7 @@ public class OrderValidationServiceTests
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
 
-        var service = new OrderValidationService(db, new ReserveCalculationService(db));
+        var service = new OrderValidationService(db);
 
         var result = await service.ValidateTokenAsync(101, "ZZZ", "продать");
 
@@ -88,7 +88,7 @@ public class OrderValidationServiceTests
         await HelpMethods.RegisterTrader(db, 101);
         await HelpMethods.CreateToken(db, "ZZZ");
 
-        var service = new OrderValidationService(db, new ReserveCalculationService(db));
+        var service = new OrderValidationService(db);
 
         var result = await service.ValidateTokenAsync(101, "ZZZ", "продать");
 
@@ -105,7 +105,7 @@ public class OrderValidationServiceTests
         await HelpMethods.CreateToken(db, "ZZZ");
         var orderResult = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
 
-        var service = new OrderValidationService(db, new ReserveCalculationService(db));
+        var service = new OrderValidationService(db);
 
         var result = await service.ValidateOrderCancellationAsync(101, orderResult.Order.Id);
 
@@ -119,7 +119,7 @@ public class OrderValidationServiceTests
         db.Database.EnsureCreated();
         await HelpMethods.RegisterTrader(db, 101);
 
-        var service = new OrderValidationService(db, new ReserveCalculationService(db));
+        var service = new OrderValidationService(db);
 
         var result = await service.ValidateOrderCancellationAsync(101, "non-existent-id");
 
@@ -138,7 +138,7 @@ public class OrderValidationServiceTests
 
         await HelpMethods.CancelOrder(db, 101, orderResult.Order.Id);
 
-        var service = new OrderValidationService(db, new ReserveCalculationService(db));
+        var service = new OrderValidationService(db);
 
         var result = await service.ValidateOrderCancellationAsync(101, orderResult.Order.Id);
 
@@ -156,7 +156,7 @@ public class OrderValidationServiceTests
         await HelpMethods.CreateToken(db, "ZZZ");
         var orderResult = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
 
-        var service = new OrderValidationService(db, new ReserveCalculationService(db));
+        var service = new OrderValidationService(db);
 
         var result = await service.ValidateOrderCancellationAsync(102, orderResult.Order.Id);
 
@@ -172,7 +172,7 @@ public class OrderValidationServiceTests
         await HelpMethods.RegisterTrader(db, 101);
         await HelpMethods.CreateToken(db, "ZZZ");
 
-        var service = new OrderValidationService(db, new ReserveCalculationService(db));
+        var service = new OrderValidationService(db);
 
         var result = await service.ValidateOrderCreationAsync(101, "ZZZ", "купить", 5, 100);
 
@@ -187,7 +187,7 @@ public class OrderValidationServiceTests
         await HelpMethods.RegisterTrader(db, 101);
         await HelpMethods.CreateToken(db, "ZZZ");
 
-        var service = new OrderValidationService(db, new ReserveCalculationService(db));
+        var service = new OrderValidationService(db);
 
         var result = await service.ValidateOrderCreationAsync(101, "ZZZ", "купить", 15, 100);
 
@@ -204,7 +204,7 @@ public class OrderValidationServiceTests
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
 
-        var service = new OrderValidationService(db, new ReserveCalculationService(db));
+        var service = new OrderValidationService(db);
 
         var result = await service.ValidateOrderCreationAsync(101, "ZZZ", "продать", 5, 100);
 
@@ -220,7 +220,7 @@ public class OrderValidationServiceTests
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.AddPortfolio(db, 101, "ZZZ", 3);
 
-        var service = new OrderValidationService(db, new ReserveCalculationService(db));
+        var service = new OrderValidationService(db);
 
         var result = await service.ValidateOrderCreationAsync(101, "ZZZ", "продать", 5, 100);
 
