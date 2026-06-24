@@ -13,13 +13,13 @@ namespace ArkWallet.Application.Services.FullValidationService
 
             var quantityValidationResult = orderValidationService.ValidateQuantity(request.Quantity);
             if (!quantityValidationResult.IsValid)
-                return ValidationResult.Failed(priceValidationResult.Message);
+                return ValidationResult.Failed(quantityValidationResult.Message);
 
             var tokenValidationResult = await orderValidationService.ValidateTokenAsync(request.TraderId, request.Symbol, request.Direction);
             if (!tokenValidationResult.IsValid)
-                return ValidationResult.Failed(priceValidationResult.Message);
+                return ValidationResult.Failed(tokenValidationResult.Message);
 
-            return null;
+            return ValidationResult.Success();
         }
     }
 }
