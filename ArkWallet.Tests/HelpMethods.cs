@@ -46,7 +46,7 @@ internal class HelpMethods
         return await service.CreateOrUpdatePortfolioAsync(traderId, symbol, quantity);
     }
 
-    public static async Task<OrderCreationResult> PlaceOrder(ArkWalletDbContext db, long traderId, string direction,
+    public static async Task<Result<OrderCreationData>> PlaceOrder(ArkWalletDbContext db, long traderId, string direction,
         string symbol, int quantity, decimal price)
     {
         var engine = new TradingEngine();
@@ -83,6 +83,14 @@ internal class HelpMethods
     {
         var service = new OrderCancelService(db);
         return await service.CancelOrderAsync(traderId, orderId);
+    }
+
+    public static async Task<Result> CancelOrder(ArkWalletDbContext db, long traderId, Result<OrderCreationData> result)
+    {
+        var service = new OrderCancelService(db);
+        if (!result.TryGetData(out var data))
+            return Result.Fail("Отсутствует созданный ордер");
+        return await service.CancelOrderAsync(traderId, data.Order.Id);
     }
 
     public static async Task<Result> CancelAllOrders(ArkWalletDbContext db, long traderId)

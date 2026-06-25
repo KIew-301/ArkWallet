@@ -107,7 +107,8 @@ public class OrderValidationServiceTests
 
         var service = new OrderValidationService(db);
 
-        var result = await service.ValidateOrderCancellationAsync(101, orderResult.Order.Id);
+        Assert.True(orderResult.TryGetData(out var data), orderResult.Message);
+        var result = await service.ValidateOrderCancellationAsync(101, data.Order.Id);
 
         Assert.True(result.IsValid);
     }
@@ -136,11 +137,12 @@ public class OrderValidationServiceTests
         await HelpMethods.CreateToken(db, "ZZZ");
         var orderResult = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
 
-        await HelpMethods.CancelOrder(db, 101, orderResult.Order.Id);
+        await HelpMethods.CancelOrder(db, 101, orderResult);
 
         var service = new OrderValidationService(db);
 
-        var result = await service.ValidateOrderCancellationAsync(101, orderResult.Order.Id);
+        Assert.True(orderResult.TryGetData(out var data), orderResult.Message);
+        var result = await service.ValidateOrderCancellationAsync(101, data.Order.Id);
 
         Assert.False(result.IsValid);
         Assert.Contains("Нельзя отменить неактивный ордер", result.Message);
@@ -158,7 +160,8 @@ public class OrderValidationServiceTests
 
         var service = new OrderValidationService(db);
 
-        var result = await service.ValidateOrderCancellationAsync(102, orderResult.Order.Id);
+        Assert.True(orderResult.TryGetData(out var data), orderResult.Message);
+        var result = await service.ValidateOrderCancellationAsync(102, data.Order.Id);
 
         Assert.False(result.IsValid);
         Assert.Contains("не своей", result.Message);

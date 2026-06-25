@@ -102,12 +102,12 @@ namespace ArkWallet.Infrastructure.Wizard
 
             var result = await _orderCreationService.CreateOrderAsync(command);
 
-            if (!result.IsSuccess)
-                return StepResult.Error(result.ErrorMessage);
+            if (!result.TryGetData(out var data))
+                return StepResult.Error(result.Message);
 
-            var orderDescription = result.Order.GetDesctiption();
+            var orderDescription = data.Order.GetDesctiption();
 
-            var message = result.IsFilled
+            var message = data.IsFilled
                 ? $"Ордер {orderDescription} успешно выставлен и уже исполнен."
                 : $"Ордер {orderDescription} успешно выставлен.";
 

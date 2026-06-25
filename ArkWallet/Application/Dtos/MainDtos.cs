@@ -14,10 +14,10 @@ namespace ArkWallet.Application.Dtos
         DateTime CreatedAt
     )
     {
-        internal static OrderDto? FromEntity(TradeOrder order)
+        internal static OrderDto FromEntity(TradeOrder order)
         {
             if (order == null)
-                return null;
+                throw new Exception("Невозможно создать DTO из пустого ордера");
 
             return new(
                 order.Id,

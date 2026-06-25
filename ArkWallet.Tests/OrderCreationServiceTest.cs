@@ -37,7 +37,7 @@ public class OrderCreationServiceTest
         await HelpMethods.CreateToken(db, "ZZZ");
         var result = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
 
-        Assert.True(result.IsSuccess, $"Order failed: {result.ErrorMessage}");
+        Assert.True(result.IsSuccess, $"Order failed: {result.Message}");
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public class OrderCreationServiceTest
         await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
         var result = await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 5, 100);
 
-        Assert.True(result.IsSuccess, $"Order failed: {result.ErrorMessage}");
+        Assert.True(result.IsSuccess, $"Order failed: {result.Message}");
     }
 
     [Fact]

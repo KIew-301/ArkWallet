@@ -1,4 +1,5 @@
-﻿using ArkWallet.Application.Dtos;
+﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Dtos;
 
 namespace ArkWallet.Application.Contracts.TradeOrderServices
 {
@@ -25,7 +26,7 @@ namespace ArkWallet.Application.Contracts.TradeOrderServices
         /// Может привести к немедленному исполнению если найдутся matching-ордера.
         /// </para>
         /// </remarks>
-        Task<OrderCreationResult> CreateOrderAsync(CreateOrderCommand command);
+        Task<Result<OrderCreationData>> CreateOrderAsync(CreateOrderCommand command);
     }
 
     /// <summary>
@@ -47,14 +48,10 @@ namespace ArkWallet.Application.Contracts.TradeOrderServices
     /// <summary>
     /// Результат операции создания ордера
     /// </summary>
-    /// <param name="IsSuccess">True если ордер успешно создан/исполнен</param>
     /// <param name="IsFilled">True если ордер полностью исполнен немедленно</param>
     /// <param name="Order">DTO созданного ордера (только при успехе)</param>
-    /// <param name="ErrorMessage">Сообщение об ошибке (только при неудаче)</param>
-    internal record OrderCreationResult(
-        bool IsSuccess,
+    internal record OrderCreationData(
         bool IsFilled,
-        OrderDto? Order = null,
-        string? ErrorMessage = null
+        OrderDto Order
     );
 }
