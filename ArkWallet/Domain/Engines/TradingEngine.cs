@@ -77,7 +77,7 @@ namespace ArkWallet.Domain.Engines
                 UpdatedOrders = GetUpdatedOrders(existingOrders, matches),
                 UpdatedTraders = traders.Values.Where(t => t.IsDirty).ToList(),
                 UpdatedPortfolios = portfolios.Values.Where(p => p.IsDirty && !traderIdWithNewPortfolio.Contains(p.TraderTelegramId)).ToList(),
-                OrderToAdd = remainingQuantity > 0 ? newOrder.WithQuantity(remainingQuantity) : null,
+                OrderToAdd = newOrder,
                 PortfoliosToAdd = portfolios.Values.Where(p => p.IsDirty && traderIdWithNewPortfolio.Contains(p.TraderTelegramId)).ToList(),
                 UpdatedToken = UpdateTokenPrice(token, trades),
                 IsSuccess = true
