@@ -6,7 +6,7 @@ namespace ArkWallet.Tests.ServiceTests;
 public class BalanceSnapshotServiceTest
 {
     [Fact]
-    public async Task BalanceSnapshot_TakeSnapshot_ReturnsSuccess()
+    public async Task TakeSnapshot_ValidData_ReturnsSuccess()
     {
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
@@ -33,7 +33,19 @@ public class BalanceSnapshotServiceTest
     }
 
     [Fact]
-    public async Task BalanceSnapshot_SaveSnapshot_ReturnsSuccess()
+    public async Task TakeSnapshot_NotExistTrader_ReturnsFail()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var resultSnapshot = await HelpMethods.TakeBalanceSnapshot(db, 101);
+
+        Assert.False(resultSnapshot.IsSuccess);
+        Assert.Equal("Трейдер на найден", resultSnapshot.Message);
+    }
+
+    [Fact]
+    public async Task SaveSnapshot_ValidData_ReturnsSuccess()
     {
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
@@ -63,7 +75,7 @@ public class BalanceSnapshotServiceTest
     }
 
     [Fact]
-    public async Task BalanceSnapshot_SaveSnapshotWithDefaultDate_ReturnsSuccess()
+    public async Task SaveSnapshot_WithDefaultDate_ReturnsFail()
     {
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
