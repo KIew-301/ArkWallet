@@ -84,6 +84,6 @@ public class BalanceSnapshotServiceTest
         var balanceHistory = await HelpMethods.GetBalanceHistory(db, resultSnapshot.traderTelegramId);
 
         Assert.False(saveSnapshotResult.IsSuccess);
-        Assert.Equal($"Некорретная дата и время снимка (default)", saveSnapshotResult.message);
+        Assert.Equal($"Некорретная дата и время снимка (default)", saveSnapshotResult.Message);
     }
 }

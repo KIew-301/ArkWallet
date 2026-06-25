@@ -1,13 +1,15 @@
-﻿using ArkWallet.Domain.Entities;
+﻿using ArkWallet.Application.Common;
+using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.Exceptions;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Application.Services.TraderServices;
+using static Result;
 
 internal class BalanceSavingService(ArkWalletDbContext db, ILogger<BalanceSavingService> logger)
 {
-    public async Task<BalanceSavingResult> SaveBalanceToDatabase(
+    public async Task<Result> SaveBalanceToDatabase(
         long traderTelegramId,
         decimal totalBalance,
         decimal mainBalance,
@@ -19,7 +21,7 @@ internal class BalanceSavingService(ArkWalletDbContext db, ILogger<BalanceSaving
         try
         {
             if (snapshotDateTime == default)
-                return BalanceSavingResult.Fail($"Некорретная дата и время снимка (default)");
+                return Fail($"Некорретная дата и время снимка (default)");
 
             var balanceSnapshot = BalanceSnapshot.Create(
                 traderTelegramId,
@@ -34,31 +36,17 @@ internal class BalanceSavingService(ArkWalletDbContext db, ILogger<BalanceSaving
             await db.BalanceSnapshots.AddAsync(balanceSnapshot);
             await db.SaveChangesAsync();
 
-            return BalanceSavingResult.Ok();
+            return Ok();
         }
         catch (DomainException ex)
         {
-            return BalanceSavingResult.Fail($"Ошибка бизнес-логики: {ex.Message}");
+            return Fail($"Ошибка бизнес-логики: {ex.Message}");
         }
         catch (Exception ex)
         {
             logger.LogError(ex, $"Ошибка сохранения баланса в истории");
             var innerMessage = ex.InnerException?.Message ?? ex.Message;
-            return BalanceSavingResult.Fail($"Внутренняя ошибка сервера: {innerMessage}");
+            return Fail($"Внутренняя ошибка сервера: {innerMessage}");
         }
     }
 }
-
-internal record BalanceSavingResult(
-    bool IsSuccess, string message)
-{
-    public static BalanceSavingResult Ok()
-    {
-        return new(true, "Данные о баланса сохранены в историю");
-    }
-
-    public static BalanceSavingResult Fail(string message)
-    {
-        return new(false, message);
-    }
-};

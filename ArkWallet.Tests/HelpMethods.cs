@@ -61,7 +61,7 @@ internal class HelpMethods
         return await service.CreateOrderAsync(new CreateOrderCommand(traderId, direction, symbol, quantity, price));
     }
 
-    public static async Task<BalanceSavingResult> SaveBalanceSnapshot(
+    public static async Task<Result> SaveBalanceSnapshot(
         ArkWalletDbContext db,
         long traderTelegramId,
         decimal totalBalance,
