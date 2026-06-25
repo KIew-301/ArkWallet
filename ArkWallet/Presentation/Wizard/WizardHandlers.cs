@@ -14,7 +14,7 @@ namespace ArkWallet.Infrastructure.Wizard
             if (result.IsSuccess)
                 return StepResult.Ok("completed", "Отлично! Вы успешно зарегистрированы!");
             else
-                return StepResult.Ok("completed", result.ErrorMessage);
+                return StepResult.Ok("completed", result.Message);
         }
 
         private async Task<StepResult> HandleSetDirection(UserSession session, string input)

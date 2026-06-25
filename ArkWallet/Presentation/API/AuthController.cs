@@ -46,7 +46,7 @@ internal class AuthController(ArkWalletDbContext dbContext, ITraderRegistrationS
         {
             var registrationResult = await traderRegistrationService.RegisterTraderAsync(userId, name);
             if (!registrationResult.IsSuccess)
-                return BadRequest(registrationResult.ErrorMessage);
+                return BadRequest(registrationResult.Message);
         }
 
         var token = tokenService.GenerateToken(userId);

@@ -1,4 +1,6 @@
-﻿namespace ArkWallet.Application.Contracts.TraderServices
+﻿using ArkWallet.Application.Common;
+
+namespace ArkWallet.Application.Contracts.TraderServices
 {
     /// <summary>
     /// Сервис для регистрации новых трейдеров в системе
@@ -23,13 +25,6 @@
         /// Использует доменный метод Create для создания сущности трейдера.
         /// </para>
         /// </remarks>
-        Task<RegistrationResult> RegisterTraderAsync(long telegramId, string name);
+        Task<Result> RegisterTraderAsync(long telegramId, string name);
     }
-
-    /// <summary>
-    /// Результат операции регистрации трейдера
-    /// </summary>
-    /// <param name="IsSuccess">True если регистрация успешно выполнена</param>
-    /// <param name="ErrorMessage">Сообщение об ошибке (только при неудаче)</param>
-    public record RegistrationResult(bool IsSuccess, string? ErrorMessage = null);
 }

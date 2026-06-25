@@ -21,7 +21,7 @@ namespace ArkWallet.Tests;
 
 internal class HelpMethods
 {
-    public static async Task<RegistrationResult> RegisterTrader(ArkWalletDbContext db, long telegramId, string name = "User")
+    public static async Task<Result> RegisterTrader(ArkWalletDbContext db, long telegramId, string name = "User")
     {
         var service = new TraderRegistrationService(db);
         return await service.RegisterTraderAsync(telegramId, name);

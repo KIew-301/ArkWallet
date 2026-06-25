@@ -14,7 +14,7 @@ public class TraderRegistrationServiceTest
         var result = await HelpMethods.RegisterTrader(db, id, name);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal(errorMessage, result.ErrorMessage);
+        Assert.Equal(errorMessage, result.Message);
     }
 
     [Fact]
