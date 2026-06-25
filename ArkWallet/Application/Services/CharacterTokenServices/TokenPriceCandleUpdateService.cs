@@ -1,14 +1,17 @@
-﻿using ArkWallet.Domain.Entities;
+﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.Exceptions;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Application.Services.CharacterTokenServices;
+using static Result;
 
 internal class TokenPriceCandleUpdateService(ArkWalletDbContext dbContext, TimeProvider timeProvider, ILogger<TokenPriceCandleUpdateService> logger)
 {
-    public async Task<TokenPriceCandleUpdateResult> UpdateTokenPriceCandleAsync(string symbol, decimal newPrice)
+    public async Task<Result> UpdateTokenPriceCandleAsync(string symbol, decimal newPrice)
     {
         const int SavingTimeFrameInMinute = 1;
 
@@ -16,7 +19,7 @@ internal class TokenPriceCandleUpdateService(ArkWalletDbContext dbContext, TimeP
         {
             var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(c => c.Symbol == symbol);
             if (token == null)
-                return TokenPriceCandleUpdateResult.Fail("Токен не найден");
+                return Fail("Токен не найден");
 
             var lastCandle = await dbContext.PriceCandles
                 .Where(c => c.CharacterTokenId == symbol)
@@ -43,31 +46,17 @@ internal class TokenPriceCandleUpdateService(ArkWalletDbContext dbContext, TimeP
             }
 
             await dbContext.SaveChangesAsync();
-            return TokenPriceCandleUpdateResult.Ok();
+            return Ok();
         }
         catch (DomainException ex)
         {
-            return TokenPriceCandleUpdateResult.Fail($"Ошибка бизнес-логики: {ex.Message}");
+            return Fail($"Ошибка бизнес-логики: {ex.Message}");
         }
         catch (Exception ex)
         {
             logger.LogError(ex, $"Ошибка сохранения баланса в истории");
             var innerMessage = ex.InnerException?.Message ?? ex.Message;
-            return TokenPriceCandleUpdateResult.Fail($"Внутренняя ошибка сервера: {innerMessage}");
+            return Fail($"Внутренняя ошибка сервера: {innerMessage}");
         }
     }
 }
-
-internal record TokenPriceCandleUpdateResult(
-    bool IsSuccess, string message)
-{
-    public static TokenPriceCandleUpdateResult Ok()
-    {
-        return new(true, "Данные цене сохранены в историю");
-    }
-
-    public static TokenPriceCandleUpdateResult Fail(string message)
-    {
-        return new(false, message);
-    }
-};

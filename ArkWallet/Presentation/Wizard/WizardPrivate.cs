@@ -46,7 +46,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 if (result.IsSuccess)
                     return StepResult.Ok("completed", "Portfolia update successful");
                 else
-                    return StepResult.Error(result.ErrorMessage);
+                    return StepResult.Error(result.Message);
             }
             catch (Exception ex)
             {

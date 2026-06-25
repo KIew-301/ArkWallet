@@ -1,4 +1,6 @@
-﻿namespace ArkWallet.Application.Contracts.PortfolioServices
+﻿using ArkWallet.Application.Common;
+
+namespace ArkWallet.Application.Contracts.PortfolioServices
 {
     /// <summary>
     /// Сервис для обновления портфеля трейдера
@@ -22,16 +24,6 @@
         /// Проверяет существование токена перед обновлением портфеля.
         /// </para>
         /// </remarks>
-        Task<PortfolioUpdatingResult> CreateOrUpdatePortfolioAsync(long traderId, string symbol, int quantity);
+        Task<Result> CreateOrUpdatePortfolioAsync(long traderId, string symbol, int quantity);
     }
-
-    /// <summary>
-    /// Результат операции обновления портфеля
-    /// </summary>
-    /// <param name="IsSuccess">True если операция успешно выполнена</param>
-    /// <param name="ErrorMessage">Сообщение об ошибке (только при неудаче)</param>
-    public record PortfolioUpdatingResult(
-        bool IsSuccess,
-        string? ErrorMessage = null
-    );
 }

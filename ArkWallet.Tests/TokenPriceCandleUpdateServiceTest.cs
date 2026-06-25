@@ -23,7 +23,7 @@ public class TokenPriceCandleUpdateServiceTest
 
         var candles = db.PriceCandles.Where(c => c.CharacterTokenId == "ZZZ").ToArray();
 
-        Assert.True(result.IsSuccess, result.message);
+        Assert.True(result.IsSuccess, result.Message);
         Assert.Single(candles);
         Assert.Equal(timeProvider.DateTimeOffsetNow, candles[0].Timestamp);
         Assert.Equal(1000m, candles[0].OpenPrice);
@@ -45,7 +45,7 @@ public class TokenPriceCandleUpdateServiceTest
         var result = await tokenPriceCandleUpdateService.UpdateTokenPriceCandleAsync("ZZZ", 1000m);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("Токен не найден", result.message);
+        Assert.Equal("Токен не найден", result.Message);
     }
 
     [Fact]

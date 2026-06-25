@@ -40,7 +40,7 @@ internal class HelpMethods
         return await service.CreateTokenAsync(new CreateTokenCommand(symbol, name, rarity, totalSupply, price, isActive));
     }
 
-    public static async Task<PortfolioUpdatingResult> AddPortfolio(ArkWalletDbContext db, long traderId, string symbol, int quantity)
+    public static async Task<Result> AddPortfolio(ArkWalletDbContext db, long traderId, string symbol, int quantity)
     {
         var service = new PortfolioUpdatingService(db);
         return await service.CreateOrUpdatePortfolioAsync(traderId, symbol, quantity);
