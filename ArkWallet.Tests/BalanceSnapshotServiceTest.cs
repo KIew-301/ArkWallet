@@ -60,4 +60,30 @@ public class BalanceSnapshotServiceTest
         Assert.Equal(250, balanceHistory[0].ShortOrderReserveBalance);
         Assert.Equal(500, balanceHistory[0].BalanceInTokens);
     }
+
+    [Fact]
+    public async Task BalanceSnapshot_SaveSnapshotWithDefaultDate_ReturnsSuccess()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        var resultSnapshot = new BalanceSnapshotResult(true, "", 101, 2000, 1000, 250, 250, 500, DateTime.UtcNow);
+
+        var saveSnapshotResult = await HelpMethods.SaveBalanceSnapshot(
+            db,
+            resultSnapshot.traderTelegramId,
+            resultSnapshot.totalBalance,
+            resultSnapshot.mainBalance,
+            resultSnapshot.longOrderReserve,
+            resultSnapshot.shortOrderReserve,
+            resultSnapshot.balanceInTokens,
+            default
+        );
+
+        var balanceHistory = await HelpMethods.GetBalanceHistory(db, resultSnapshot.traderTelegramId);
+
+        Assert.False(saveSnapshotResult.IsSuccess);
+        Assert.Equal($"Некорретная дата и время снимка (default)", saveSnapshotResult.message);
+    }
 }
