@@ -1,4 +1,4 @@
-﻿namespace ArkWallet.Tests;
+﻿namespace ArkWallet.Tests.HelpTools;
 
 internal class TestTimeProvider : TimeProvider
 {

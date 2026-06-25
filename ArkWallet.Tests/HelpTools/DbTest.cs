@@ -2,7 +2,7 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
-namespace ArkWallet.Tests
+namespace ArkWallet.Tests.HelpTools
 {
     internal class DbTest
     {

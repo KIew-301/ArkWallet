@@ -1,7 +1,8 @@
 ﻿using ArkWallet.Application.Services.TradeOrderServices;
 using ArkWallet.Application.Services.Other;
+using ArkWallet.Tests.HelpTools;
 
-namespace ArkWallet.Tests;
+namespace ArkWallet.Tests.ServiceTests;
 
 public class OrderValidationServiceTests
 {

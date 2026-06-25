@@ -1,4 +1,6 @@
-﻿namespace ArkWallet.Tests;
+﻿using ArkWallet.Tests.HelpTools;
+
+namespace ArkWallet.Tests.ServiceTests;
 
 public class OrderCancellationServiceTest
 {

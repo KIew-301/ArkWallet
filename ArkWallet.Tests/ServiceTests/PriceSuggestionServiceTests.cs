@@ -1,6 +1,7 @@
 ﻿using ArkWallet.Application.Services.SuggestionServices;
+using ArkWallet.Tests.HelpTools;
 
-namespace ArkWallet.Tests;
+namespace ArkWallet.Tests.ServiceTests;
 
 public class PriceSuggestionServiceTests
 {

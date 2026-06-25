@@ -1,6 +1,7 @@
 ﻿using ArkWallet.Application.Services.TraderServices;
+using ArkWallet.Tests.HelpTools;
 
-namespace ArkWallet.Tests;
+namespace ArkWallet.Tests.ServiceTests;
 
 public class BalanceSnapshotServiceTest
 {

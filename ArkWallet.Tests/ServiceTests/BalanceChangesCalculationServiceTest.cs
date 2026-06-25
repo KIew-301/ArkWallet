@@ -1,10 +1,11 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Application.Services.TraderServices;
+using ArkWallet.Tests.HelpTools;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
-namespace ArkWallet.Tests;
+namespace ArkWallet.Tests.ServiceTests;
 
 public class BalanceChangesCalculationServiceTest
 {

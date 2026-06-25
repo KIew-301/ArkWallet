@@ -1,10 +1,11 @@
 ﻿using ArkWallet.Application.Services.CharacterTokenServices;
+using ArkWallet.Tests.HelpTools;
 using Castle.Core.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-namespace ArkWallet.Tests;
+namespace ArkWallet.Tests.ServiceTests;
 
 public class TokenPriceCandleUpdateServiceTest
 {

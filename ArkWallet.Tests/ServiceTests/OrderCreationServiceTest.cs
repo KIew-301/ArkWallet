@@ -1,6 +1,7 @@
 ﻿using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Tests.HelpTools;
 
-namespace ArkWallet.Tests;
+namespace ArkWallet.Tests.ServiceTests;
 public class OrderCreationServiceTest
 {
     [Fact]
