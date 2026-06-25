@@ -69,7 +69,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 if (result.IsSuccess)
                     return StepResult.Ok("completed", "Balance update successful");
                 else
-                    return StepResult.Error(result.ErrorMessage);
+                    return StepResult.Error(result.Message);
             }
             catch (Exception ex)
             {

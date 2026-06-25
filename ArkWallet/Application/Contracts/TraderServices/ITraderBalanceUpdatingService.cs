@@ -1,4 +1,6 @@
-﻿namespace ArkWallet.Application.Contracts.TraderServices
+﻿using ArkWallet.Application.Common;
+
+namespace ArkWallet.Application.Contracts.TraderServices
 {
     /// <summary>
     /// Сервис для управления балансом трейдера
@@ -22,16 +24,6 @@
         /// Использует доменный метод AddToBalance для обновления баланса.
         /// </para>
         /// </remarks>
-        Task<TraderBalanceUpdatingResult> AddToBalanceAsync(long traderId, decimal amount);
+        Task<Result> AddToBalanceAsync(long traderId, decimal amount);
     }
-
-    /// <summary>
-    /// Результат операции обновления баланса трейдера
-    /// </summary>
-    /// <param name="IsSuccess">True если операция успешно выполнена</param>
-    /// <param name="ErrorMessage">Сообщение об ошибке (только при неудаче)</param>
-    public record TraderBalanceUpdatingResult(
-        bool IsSuccess,
-        string? ErrorMessage = null
-    );
 }

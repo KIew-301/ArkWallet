@@ -27,7 +27,7 @@ internal class HelpMethods
         return await service.RegisterTraderAsync(telegramId, name);
     }
 
-    public static async Task<TraderBalanceUpdatingResult> GiveMoney(ArkWalletDbContext db, long telegramId, decimal amount)
+    public static async Task<Result> GiveMoney(ArkWalletDbContext db, long telegramId, decimal amount)
     {
         var service = new TraderBalanceUpdatingService(db);
         return await service.AddToBalanceAsync(telegramId, amount);
