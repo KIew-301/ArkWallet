@@ -1,10 +1,6 @@
 ﻿using ArkWallet.Application.Services.CharacterTokenServices;
 using ArkWallet.Tests.HelpTools;
-using Castle.Core.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 namespace ArkWallet.Tests.ServiceTests;
 
 public class TokenPriceCandleUpdateServiceTest
@@ -62,7 +58,7 @@ public class TokenPriceCandleUpdateServiceTest
 
         await HelpMethods.CreateToken(db, "ZZZ");
 
-        foreach(var price in priceArray)
+        foreach (var price in priceArray)
         {
             await tokenPriceCandleUpdateService.UpdateTokenPriceCandleAsync("ZZZ", price);
             timeProvider.SkipInSeconds(20);

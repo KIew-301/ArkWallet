@@ -1,5 +1,4 @@
 ﻿using ArkWallet.Application.Common;
-using ArkWallet.Application.Services.TraderServices;
 
 namespace ArkWallet.Application.Contracts.TradeOrderServices
 {

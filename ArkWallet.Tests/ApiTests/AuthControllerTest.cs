@@ -1,5 +1,4 @@
 ﻿using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Application.Services.Other;
@@ -8,7 +7,6 @@ using ArkWallet.Presentation.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Moq;
-using Newtonsoft.Json.Linq;
 
 namespace ArkWallet.Tests.ApiTests;
 
@@ -74,8 +72,8 @@ public class AuthControllerTest
         var mockTraderAuthService = new Mock<ITraderAuthService>();
         mockTraderAuthService
             .Setup(x => x.AuthenticateUser(It.IsAny<string>(), It.IsAny<string>()))
-            .Returns(isAuthSuccess 
-            ? Result<TelegramInitData>.Ok(new(new(101, "User", "lastname", "username", "ru", false, true, "url"), "date", "chat_id", "chat_type")) 
+            .Returns(isAuthSuccess
+            ? Result<TelegramInitData>.Ok(new(new(101, "User", "lastname", "username", "ru", false, true, "url"), "date", "chat_id", "chat_type"))
             : Result<TelegramInitData>.Fail("Ошибка аутентификации"));
 
         var mockTraderRegistrationService = new Mock<ITraderRegistrationService>();

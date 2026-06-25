@@ -1,16 +1,16 @@
-﻿using ArkWallet.Application.Contracts.TraderServices;
+﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.Exceptions;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using ArkWallet.Application.Common;
 
 namespace ArkWallet.Application.Services.TraderServices;
 using static Result<BalanceChangesData>;
 
 internal class BalanceChangesCalculationService(
-    ArkWalletDbContext db, IBalanceSnapshotService balanceSnapshotService, 
+    ArkWalletDbContext db, IBalanceSnapshotService balanceSnapshotService,
     ILogger<BalanceChangesCalculationService> logger)
 {
     public async Task<Result<BalanceChangesData>> TakeMainBalanceChanges(long traderTelegramId, int periodDays)

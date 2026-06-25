@@ -1,7 +1,6 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Dtos;
-using ArkWallet.Application.Services.TraderServices;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 

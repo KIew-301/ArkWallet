@@ -13,8 +13,8 @@ namespace ArkWallet.Application.Services.TradeOrderServices;
 using static ArkWallet.Application.Common.Result<OrderCreationData>;
 
 internal class OrderCreationService(
-    ArkWalletDbContext dbContext, TradingEngine tradingEngine, 
-    IOrderCreationFullValidationService orderCreationFullValidationService, 
+    ArkWalletDbContext dbContext, TradingEngine tradingEngine,
+    IOrderCreationFullValidationService orderCreationFullValidationService,
     ITaskDispatcher taskDispatcher) : IOrderCreationService
 {
     public async Task<Result<OrderCreationData>> CreateOrderAsync(CreateOrderCommand command)

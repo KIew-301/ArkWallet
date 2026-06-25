@@ -1,11 +1,9 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.TradeOrderServices;
-using ArkWallet.Application.Services.TraderServices;
 using ArkWallet.Domain.Exceptions;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Application.Services.TradeOrderServices;
 using static Result;

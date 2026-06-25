@@ -1,9 +1,8 @@
-﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Contracts.PortfolioServices;
+﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Contracts.TradeOrderServices;
-using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Application.Services.CharacterTokenServices;
-using ArkWallet.Application.Services.FullValidationService;
 using ArkWallet.Application.Services.PortfolioServices;
 using ArkWallet.Application.Services.TradeOrderServices;
 using ArkWallet.Application.Services.TraderServices;
@@ -12,10 +11,8 @@ using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using Moq;
 using Microsoft.Extensions.Logging.Abstractions;
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.Other;
+using Moq;
 
 namespace ArkWallet.Tests.HelpTools;
 
@@ -74,8 +71,8 @@ internal class HelpMethods
         var logger = NullLogger<BalanceSavingService>.Instance;
         var service = new BalanceSavingService(db, logger);
         return await service.SaveBalanceToDatabase(
-            traderTelegramId, totalBalance, mainBalance, 
-            longOrderReserve, shortOrderReserve, balanceInTokens, 
+            traderTelegramId, totalBalance, mainBalance,
+            longOrderReserve, shortOrderReserve, balanceInTokens,
             snapshotDateTime);
     }
 

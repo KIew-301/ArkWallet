@@ -1,22 +1,15 @@
 ﻿using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Contracts.TraderServices;
-using ArkWallet.Application.Services.Other;
-using ArkWallet.Infrastructure.Data;
 using ArkWallet.Presentation.DTOs;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Web;
 
 namespace ArkWallet.Presentation.API;
 
 [ApiController]
 [Route("api/v1/[controller]")]
 public class AuthController(
-    ITraderRegistrationService traderRegistrationService, 
+    ITraderRegistrationService traderRegistrationService,
     IConfiguration configuration, ITokenService tokenService,
     ITraderAuthService traderAuthService) : ControllerBase
 {

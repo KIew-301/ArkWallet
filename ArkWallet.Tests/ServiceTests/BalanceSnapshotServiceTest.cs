@@ -37,7 +37,7 @@ public class BalanceSnapshotServiceTest
     {
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
-        
+
         await HelpMethods.RegisterTrader(db, 101);
         var resultSnapshot = new BalanceSnapshotData(101, 2000, 1000, 250, 250, 500, DateTime.UtcNow);
 

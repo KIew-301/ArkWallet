@@ -1,5 +1,4 @@
 ﻿using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.Exceptions;
 using ArkWallet.Infrastructure.Data;
