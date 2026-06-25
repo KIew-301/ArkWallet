@@ -50,7 +50,7 @@ internal class TraderAuthService(ILogger<TraderAuthService> logger) : ITraderAut
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, $"Ошибка аутентификации трейдера с данными:\n{initDataJson}");
+            logger.LogError(ex, $"Ошибка аутентификации трейдера с данными");
             return Fail("Внутренняя ошибка сервера");
         }
     }
