@@ -1,4 +1,5 @@
 ﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Domain.Exceptions;
 using Microsoft.Extensions.Logging;
 using System.Security.Cryptography;
@@ -10,7 +11,7 @@ using System.Web;
 namespace ArkWallet.Application.Services.Other;
 using static ArkWallet.Application.Common.Result<TelegramInitData>;
 
-internal class TraderAuthService(ILogger<TraderAuthService> logger)
+internal class TraderAuthService(ILogger<TraderAuthService> logger) : ITraderAuthService
 {
     private const int MaxAuthAgeSeconds = 86400; // 24 часа
 

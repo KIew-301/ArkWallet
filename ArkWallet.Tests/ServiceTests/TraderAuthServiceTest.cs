@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Web;
 
-namespace ArkWallet.Tests;
+namespace ArkWallet.Tests.ServiceTests;
 
 public class TraderAuthServiceTest
 {

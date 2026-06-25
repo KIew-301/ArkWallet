@@ -17,16 +17,26 @@ internal class TraderRegistrationService(ArkWalletDbContext dbContext) : ITrader
         if (telegramId <= 0)
             return Fail($"Некорректный ID пользователя {telegramId}");
 
-        var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == telegramId);
+        var isRegistered = await CheckTraderAlreadyRegistered(telegramId);
 
-        if (trader != null)
+        if (isRegistered)
             return Fail("Пользователь уже существует");
 
-        trader = Trader.Create(telegramId, name);
+        var trader = Trader.Create(telegramId, name);
 
         await dbContext.Traders.AddAsync(trader);
         await dbContext.SaveChangesAsync();
 
         return Ok();
+    }
+
+    public async Task<bool> CheckTraderAlreadyRegistered(long telegramId)
+    {
+        var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == telegramId);
+
+        if (trader == null)
+            return false;
+        else
+            return true;
     }
 }

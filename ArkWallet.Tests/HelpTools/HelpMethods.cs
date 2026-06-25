@@ -17,7 +17,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.Other;
 
-namespace ArkWallet.Tests;
+namespace ArkWallet.Tests.HelpTools;
 
 internal class HelpMethods
 {

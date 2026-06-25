@@ -26,5 +26,16 @@ namespace ArkWallet.Application.Contracts.TraderServices
         /// </para>
         /// </remarks>
         Task<Result> RegisterTraderAsync(long telegramId, string name);
+
+        /// <summary>
+        /// Проверяет, зарегистрирован ли трейдер с указанным Telegram ID
+        /// </summary>
+        /// <param name="telegramId">ID пользователя в Telegram</param>
+        /// <returns>true — если трейдер зарегистрирован, false — если нет</returns>
+        /// <remarks>
+        /// Используется для проверки существования трейдера без выполнения регистрации.
+        /// Например, в контроллерах аутентификации для решения: регистрировать нового пользователя или выдавать токен существующему.
+        /// </remarks>
+        Task<bool> CheckTraderAlreadyRegistered(long telegramId);
     }
 }
