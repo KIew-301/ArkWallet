@@ -45,8 +45,7 @@ internal class BalanceSavingService(ArkWalletDbContext db, ILogger<BalanceSaving
         catch (Exception ex)
         {
             logger.LogError(ex, $"Ошибка сохранения баланса в истории");
-            var innerMessage = ex.InnerException?.Message ?? ex.Message;
-            return Fail($"Внутренняя ошибка сервера: {innerMessage}");
+            return Fail($"Внутренняя ошибка сервера: {ex.InnerException?.Message ?? ex.Message}");
         }
     }
 }

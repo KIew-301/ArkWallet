@@ -52,9 +52,8 @@ internal class BalanceChangesCalculationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, $"Ошибка расчёта изменения баланса");
-            var innerMessage = ex.InnerException?.Message ?? ex.Message;
-            return Fail($"Внутренняя ошибка сервера: {innerMessage}");
+            logger.LogError(ex, "Ошибка расчёта изменений баланса");
+            return Fail($"Внутренняя ошибка сервера: {ex.InnerException?.Message ?? ex.Message}");
         }
     }
 }

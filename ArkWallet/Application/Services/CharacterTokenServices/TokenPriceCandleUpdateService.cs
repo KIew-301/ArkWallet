@@ -1,4 +1,5 @@
 ﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.Exceptions;
 using ArkWallet.Infrastructure.Data;
@@ -53,9 +54,8 @@ internal class TokenPriceCandleUpdateService(ArkWalletDbContext dbContext, TimeP
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, $"Ошибка сохранения баланса в истории");
-            var innerMessage = ex.InnerException?.Message ?? ex.Message;
-            return Fail($"Внутренняя ошибка сервера: {innerMessage}");
+            logger.LogError(ex, "Ошибка обновления цены токена");
+            return Fail($"Внутренняя ошибка сервера: {ex.InnerException?.Message ?? ex.Message}");
         }
     }
 }
