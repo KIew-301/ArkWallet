@@ -14,6 +14,6 @@ public class TokenCreationServiceTest
         var result = await HelpMethods.CreateToken(db, symbol, name, rarity, maxSupply, initialPrice, isTradable);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal(errorMessage, result.ErrorMessage);
+        Assert.Equal(errorMessage, result.Message);
     }
 }

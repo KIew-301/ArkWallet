@@ -33,7 +33,7 @@ internal class HelpMethods
         return await service.AddToBalanceAsync(telegramId, amount);
     }
 
-    public static async Task<TokenCreationResult> CreateToken(ArkWalletDbContext db, string symbol, string name = "Token",
+    public static async Task<Result<TokenCreationData>> CreateToken(ArkWalletDbContext db, string symbol, string name = "Token",
         CharacterRarity rarity = CharacterRarity.FourStar, int totalSupply = 1000, int price = 10000, bool isActive = true)
     {
         var service = new TokenCreationService(db);

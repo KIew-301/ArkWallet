@@ -22,7 +22,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 if (result.IsSuccess)
                     return StepResult.Ok("completed", "Token create successful");
                 else
-                    return StepResult.Error(result.ErrorMessage);
+                    return StepResult.Error(result.Message);
             }
             catch (Exception ex)
             {

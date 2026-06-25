@@ -1,4 +1,5 @@
-﻿using ArkWallet.Application.Dtos;
+﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Dtos;
 using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
 
@@ -25,7 +26,7 @@ namespace ArkWallet.Application.Contracts.CharacterTokenServices
         /// Операция выполняется в транзакции для обеспечения целостности данных.
         /// </para>
         /// </remarks>
-        Task<TokenCreationResult> CreateTokenAsync(CreateTokenCommand command);
+        Task<Result<TokenCreationData>> CreateTokenAsync(CreateTokenCommand command);
     }
 
     /// <summary>
@@ -67,12 +68,8 @@ namespace ArkWallet.Application.Contracts.CharacterTokenServices
     /// <summary>
     /// Результат операции создания токена
     /// </summary>
-    /// <param name="IsSuccess">True если токен успешно создан</param>
     /// <param name="Token">DTO созданного токена (только при успехе)</param>
-    /// <param name="ErrorMessage">Сообщение об ошибке (только при неудаче)</param>
-    public record TokenCreationResult(
-        bool IsSuccess,
-        TokenInfoDto? Token = null,
-        string? ErrorMessage = null
+    public record TokenCreationData(
+        TokenInfoDto? Token = null
     );
 }
