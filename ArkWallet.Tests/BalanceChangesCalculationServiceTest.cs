@@ -23,10 +23,11 @@ public class BalanceChangesCalculationServiceTest
         var result = await calculationService.TakeMainBalanceChanges(101, 1);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(1000m, result.CurrentBalance);
-        Assert.Equal(1000m, result.PreviousBalance);
-        Assert.Equal(0m, result.ChangeAbsolute);
-        Assert.Equal(0m, result.ChangePercent);
+        Assert.True(result.TryGetData(out var data));
+        Assert.Equal(1000m, data.CurrentBalance);
+        Assert.Equal(1000m, data.PreviousBalance);
+        Assert.Equal(0m, data.ChangeAbsolute);
+        Assert.Equal(0m, data.ChangePercent);
     }
 
     [Fact]
@@ -47,10 +48,11 @@ public class BalanceChangesCalculationServiceTest
         var result = await calculationService.TakeMainBalanceChanges(101, 1);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(3500m, result.CurrentBalance);
-        Assert.Equal(1000m, result.PreviousBalance);
-        Assert.Equal(2500m, result.ChangeAbsolute);
-        Assert.Equal(250m, result.ChangePercent);
+        Assert.True(result.TryGetData(out var data));
+        Assert.Equal(3500m, data.CurrentBalance);
+        Assert.Equal(1000m, data.PreviousBalance);
+        Assert.Equal(2500m, data.ChangeAbsolute);
+        Assert.Equal(250m, data.ChangePercent);
     }
 
     [Theory]
@@ -82,10 +84,11 @@ public class BalanceChangesCalculationServiceTest
         var changePercent = changeAbsolute / previousBalance * 100;
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(currentBalance, result.CurrentBalance);
-        Assert.Equal(previousBalance, result.PreviousBalance);
-        Assert.Equal(changeAbsolute, result.ChangeAbsolute, precision: 2);
-        Assert.Equal(changePercent, result.ChangePercent, precision: 2);
+        Assert.True(result.TryGetData(out var data));
+        Assert.Equal(currentBalance, data.CurrentBalance);
+        Assert.Equal(previousBalance, data.PreviousBalance);
+        Assert.Equal(changeAbsolute, data.ChangeAbsolute, precision: 2);
+        Assert.Equal(changePercent, data.ChangePercent, precision: 2);
     }
 
     [Fact]

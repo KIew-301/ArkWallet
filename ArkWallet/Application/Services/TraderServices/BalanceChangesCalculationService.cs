@@ -4,21 +4,25 @@ using ArkWallet.Domain.Exceptions;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using ArkWallet.Application.Common;
 
 namespace ArkWallet.Application.Services.TraderServices;
+using static Result<BalanceChangesData>;
 
-internal class BalanceChangesCalculationService(ArkWalletDbContext db, IBalanceSnapshotService balanceSnapshotService, ILogger<BalanceChangesCalculationService> logger)
+internal class BalanceChangesCalculationService(
+    ArkWalletDbContext db, IBalanceSnapshotService balanceSnapshotService, 
+    ILogger<BalanceChangesCalculationService> logger)
 {
-    public async Task<BalanceChangesCalculationResult> TakeMainBalanceChanges(long traderTelegramId, int periodDays)
+    public async Task<Result<BalanceChangesData>> TakeMainBalanceChanges(long traderTelegramId, int periodDays)
     {
         try
         {
             if (periodDays < 1)
-                return BalanceChangesCalculationResult.Fail($"Минимальный период для расчёта: 1 день");
+                return Fail($"Минимальный период для расчёта: 1 день");
 
             var currentSnapshot = await balanceSnapshotService.TakeTotalTraderBalanceSnapshot(traderTelegramId);
             if (!currentSnapshot.IsSuccess)
-                return BalanceChangesCalculationResult.Fail(currentSnapshot.message);
+                return Fail(currentSnapshot.message);
 
             var targetDate = currentSnapshot.dateTimeSnapshot.Date.AddDays(-periodDays);
             var previousSnapshot = await db.BalanceSnapshots
@@ -30,7 +34,7 @@ internal class BalanceChangesCalculationService(ArkWalletDbContext db, IBalanceS
                 var previousBalance = Trader.GetDefaultBalance();
                 var changeAbsolute = currentBalance - previousBalance;
                 var сhangePercent = changeAbsolute / previousBalance * 100m;
-                return BalanceChangesCalculationResult.Ok(currentBalance, previousBalance, changeAbsolute, сhangePercent);
+                return Ok(new BalanceChangesData(currentBalance, previousBalance, changeAbsolute, сhangePercent));
             }
             else
             {
@@ -38,33 +42,21 @@ internal class BalanceChangesCalculationService(ArkWalletDbContext db, IBalanceS
                 var previousBalance = previousSnapshot.MainBalance;
                 var changeAbsolute = currentBalance - previousBalance;
                 var сhangePercent = changeAbsolute / previousBalance * 100m;
-                return BalanceChangesCalculationResult.Ok(currentBalance, previousBalance, changeAbsolute, сhangePercent);
+                return Ok(new BalanceChangesData(currentBalance, previousBalance, changeAbsolute, сhangePercent));
             }
 
         }
         catch (DomainException ex)
         {
-            return BalanceChangesCalculationResult.Fail($"Ошибка бизнес-логики: {ex.Message}");
+            return Fail($"Ошибка бизнес-логики: {ex.Message}");
         }
         catch (Exception ex)
         {
             logger.LogError(ex, $"Ошибка расчёта изменения баланса");
             var innerMessage = ex.InnerException?.Message ?? ex.Message;
-            return BalanceChangesCalculationResult.Fail($"Внутренняя ошибка сервера: {innerMessage}");
+            return Fail($"Внутренняя ошибка сервера: {innerMessage}");
         }
     }
 }
 
-internal record BalanceChangesCalculationResult(
-    bool IsSuccess, string Message, decimal CurrentBalance, decimal PreviousBalance, decimal ChangeAbsolute, decimal ChangePercent)
-{
-    public static BalanceChangesCalculationResult Ok(decimal сurrentBalance, decimal previousBalance, decimal сhangeAbsolute, decimal сhangePercent)
-    {
-        return new(true, "Данные рассчитаны успешно", сurrentBalance, previousBalance, сhangeAbsolute, сhangePercent);
-    }
-
-    public static BalanceChangesCalculationResult Fail(string message)
-    {
-        return new(false, message, 0, 0, 0, 0);
-    }
-}
+internal record BalanceChangesData(decimal CurrentBalance, decimal PreviousBalance, decimal ChangeAbsolute, decimal ChangePercent);
