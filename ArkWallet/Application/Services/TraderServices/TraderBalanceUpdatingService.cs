@@ -11,7 +11,7 @@ internal class TraderBalanceUpdatingService(ArkWalletDbContext dbContext) : ITra
     public async Task<Result> AddToBalanceAsync(long traderId, decimal amount)
     {
         if (amount <= 0)
-            return Fail("Число должно быть больше 0");
+            return Fail("Сумма должна составлять больше 0");
 
         var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
 
