@@ -1,5 +1,7 @@
-﻿using ArkWallet.Application.Services.TraderServices;
+﻿using ArkWallet.Application.Contracts.TraderServices;
+using ArkWallet.Application.Services.TraderServices;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 
 namespace ArkWallet.Tests;
 
@@ -84,6 +86,45 @@ public class BalanceChangesCalculationServiceTest
         Assert.Equal(previousBalance, result.PreviousBalance);
         Assert.Equal(changeAbsolute, result.ChangeAbsolute, precision: 2);
         Assert.Equal(changePercent, result.ChangePercent, precision: 2);
+    }
 
+    [Fact]
+    public async Task MainBalanceCalculationChanges_WithoutPeriodForCalculation_ReturnSuccess()
+    {
+        var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var snapshotServicelogger = NullLogger<BalanceSnapshotService>.Instance;
+        var snapshotService = new BalanceSnapshotService(db, snapshotServicelogger);
+
+        var calculationServicelogger = NullLogger<BalanceChangesCalculationService>.Instance;
+        var calculationService = new BalanceChangesCalculationService(db, snapshotService, calculationServicelogger);
+
+        await HelpMethods.RegisterTrader(db, 101);
+        var result = await calculationService.TakeMainBalanceChanges(101, 0);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("Минимальный период для расчёта: 1 день", result.Message);
+    }
+
+    [Fact]
+    public async Task MainBalanceCalculationChanges_TakeCurrencySnapshotInvalid_ReturnsFail()
+    {
+        var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var mockSnapshotServiceService = new Mock<IBalanceSnapshotService>();
+        mockSnapshotServiceService
+            .Setup(x => x.TakeTotalTraderBalanceSnapshot(It.IsAny<long>()))
+            .ReturnsAsync(BalanceSnapshotResult.Fail("Error", 101));
+
+        var calculationServicelogger = NullLogger<BalanceChangesCalculationService>.Instance;
+        var calculationService = new BalanceChangesCalculationService(db, mockSnapshotServiceService.Object, calculationServicelogger);
+
+        await HelpMethods.RegisterTrader(db, 101);
+        var result = await calculationService.TakeMainBalanceChanges(101, 1);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("Error", result.Message);
     }
 }

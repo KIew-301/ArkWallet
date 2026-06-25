@@ -1,11 +1,12 @@
-﻿using ArkWallet.Domain.Exceptions;
+﻿using ArkWallet.Application.Contracts.TraderServices;
+using ArkWallet.Domain.Exceptions;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Application.Services.TraderServices;
 
-internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnapshotService> logger)
+internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnapshotService> logger) : IBalanceSnapshotService
 {
     public async Task<BalanceSnapshotResult> TakeTotalTraderBalanceSnapshot(long traderTelegramId)
     {
@@ -66,7 +67,7 @@ internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnap
     }
 }
 
-internal record BalanceSnapshotResult(
+public record BalanceSnapshotResult(
     bool IsSuccess, string message, long traderTelegramId, decimal totalBalance,
     decimal mainBalance, decimal longOrderReserve, decimal shortOrderReserve,
     decimal balanceInTokens, DateTime dateTimeSnapshot)
