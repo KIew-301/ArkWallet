@@ -1,14 +1,16 @@
-﻿using ArkWallet.Application.Contracts.TraderServices;
+﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Domain.Exceptions;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Application.Services.TraderServices;
+using static ArkWallet.Application.Common.Result<BalanceSnapshotData>;
 
 internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnapshotService> logger) : IBalanceSnapshotService
 {
-    public async Task<BalanceSnapshotResult> TakeTotalTraderBalanceSnapshot(long traderTelegramId)
+    public async Task<Result<BalanceSnapshotData>> TakeTotalTraderBalanceSnapshot(long traderTelegramId)
     {
         try
         {
@@ -18,7 +20,7 @@ internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnap
                 .FirstOrDefaultAsync(t => t.TelegramId == traderTelegramId);
 
             if (trader == null)
-                return BalanceSnapshotResult.Fail("Трейдер на найден", traderTelegramId);
+                return Fail("Трейдер на найден");
 
             var mainBalance = trader.Balance;
             var longOrderReserve = 0m;
@@ -53,32 +55,21 @@ internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnap
 
             var totalBalance = mainBalance + longOrderReserve + shortOrderReserve + balanceInTokens;
 
-            return BalanceSnapshotResult.Ok(traderTelegramId, totalBalance, mainBalance, longOrderReserve, shortOrderReserve, balanceInTokens);
+            return Ok(new(traderTelegramId, totalBalance, mainBalance, longOrderReserve, shortOrderReserve, balanceInTokens, DateTime.UtcNow));
         }
         catch (DomainException ex)
         {
-            return BalanceSnapshotResult.Fail($"Ошибка бизнес-логики: {ex.Message}", traderTelegramId);
+            return Fail($"Ошибка бизнес-логики: {ex.Message}");
         }
         catch (Exception ex)
         {
             logger.LogError(ex, $"Ошибка создания снапшота для трейдера {traderTelegramId}");
-            return BalanceSnapshotResult.Fail("Внутренняя ошибка сервера", traderTelegramId);
+            return Fail("Внутренняя ошибка сервера");
         }
     }
 }
 
-public record BalanceSnapshotResult(
-    bool IsSuccess, string message, long traderTelegramId, decimal totalBalance,
+public record BalanceSnapshotData(
+    long traderTelegramId, decimal totalBalance,
     decimal mainBalance, decimal longOrderReserve, decimal shortOrderReserve,
-    decimal balanceInTokens, DateTime dateTimeSnapshot)
-{
-    public static BalanceSnapshotResult Ok(long traderTelegramId, decimal totalBalance, decimal mainBalance, decimal longOrderReserve, decimal shortOrderReserve, decimal balanceInTokens)
-    {
-        return new(true, "Снимок сделан успешно", traderTelegramId, totalBalance, mainBalance, longOrderReserve, shortOrderReserve, balanceInTokens, DateTime.UtcNow);
-    }
-
-    public static BalanceSnapshotResult Fail(string message, long traderTelegramId)
-    {
-        return new(false, message, traderTelegramId, 0, 0, 0, 0, 0, DateTime.UtcNow);
-    }
-};
+    decimal balanceInTokens, DateTime dateTimeSnapshot);

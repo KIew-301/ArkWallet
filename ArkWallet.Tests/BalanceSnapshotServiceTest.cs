@@ -23,12 +23,12 @@ public class BalanceSnapshotServiceTest
 
         var resultSnapshot = await HelpMethods.TakeBalanceSnapshot(db, 102);
 
-        Assert.True(resultSnapshot.IsSuccess);
-        Assert.Equal(3300, resultSnapshot.totalBalance);
-        Assert.Equal(1200, resultSnapshot.mainBalance);
-        Assert.Equal(500, resultSnapshot.longOrderReserve);
-        Assert.Equal(400, resultSnapshot.shortOrderReserve);
-        Assert.Equal(1200, resultSnapshot.balanceInTokens);
+        Assert.True(resultSnapshot.TryGetData(out var data));
+        Assert.Equal(3300, data.totalBalance);
+        Assert.Equal(1200, data.mainBalance);
+        Assert.Equal(500, data.longOrderReserve);
+        Assert.Equal(400, data.shortOrderReserve);
+        Assert.Equal(1200, data.balanceInTokens);
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public class BalanceSnapshotServiceTest
         db.Database.EnsureCreated();
         
         await HelpMethods.RegisterTrader(db, 101);
-        var resultSnapshot = new BalanceSnapshotResult(true, "", 101, 2000, 1000, 250, 250, 500, DateTime.UtcNow);
+        var resultSnapshot = new BalanceSnapshotData(101, 2000, 1000, 250, 250, 500, DateTime.UtcNow);
 
         var saveSnapshotResult = await HelpMethods.SaveBalanceSnapshot(
             db,
@@ -68,7 +68,7 @@ public class BalanceSnapshotServiceTest
         db.Database.EnsureCreated();
 
         await HelpMethods.RegisterTrader(db, 101);
-        var resultSnapshot = new BalanceSnapshotResult(true, "", 101, 2000, 1000, 250, 250, 500, DateTime.UtcNow);
+        var resultSnapshot = new BalanceSnapshotData(101, 2000, 1000, 250, 250, 500, DateTime.UtcNow);
 
         var saveSnapshotResult = await HelpMethods.SaveBalanceSnapshot(
             db,

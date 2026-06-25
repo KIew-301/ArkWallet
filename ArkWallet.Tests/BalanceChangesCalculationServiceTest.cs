@@ -1,4 +1,5 @@
-﻿using ArkWallet.Application.Contracts.TraderServices;
+﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Application.Services.TraderServices;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -119,7 +120,7 @@ public class BalanceChangesCalculationServiceTest
         var mockSnapshotServiceService = new Mock<IBalanceSnapshotService>();
         mockSnapshotServiceService
             .Setup(x => x.TakeTotalTraderBalanceSnapshot(It.IsAny<long>()))
-            .ReturnsAsync(BalanceSnapshotResult.Fail("Error", 101));
+            .ReturnsAsync(Result<BalanceSnapshotData>.Fail("Error"));
 
         var calculationServicelogger = NullLogger<BalanceChangesCalculationService>.Instance;
         var calculationService = new BalanceChangesCalculationService(db, mockSnapshotServiceService.Object, calculationServicelogger);

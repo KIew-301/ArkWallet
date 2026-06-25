@@ -1,6 +1,6 @@
 ﻿namespace ArkWallet.Application.Common
 {
-    internal record Result<T>
+    public record Result<T>
     {
         public bool IsSuccess { get; }
         public string Message { get; }
@@ -29,7 +29,7 @@
         }
     }
 
-    internal record Result(bool IsSuccess, string Message)
+    public record Result(bool IsSuccess, string Message)
     {
         public static Result Ok() => new(true, "Success");
         public static Result Fail(string message) => new(false, message);

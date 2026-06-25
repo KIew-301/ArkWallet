@@ -1,4 +1,5 @@
-﻿using ArkWallet.Application.Services.TraderServices;
+﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Services.TraderServices;
 
 namespace ArkWallet.Application.Contracts.TraderServices;
 
@@ -26,5 +27,5 @@ public interface IBalanceSnapshotService
     /// Если для какого-то токена цена отсутствует, он не учитывается в расчёте.
     /// </para>
     /// </remarks>
-    Task<BalanceSnapshotResult> TakeTotalTraderBalanceSnapshot(long traderTelegramId);
+    Task<Result<BalanceSnapshotData>> TakeTotalTraderBalanceSnapshot(long traderTelegramId);
 }

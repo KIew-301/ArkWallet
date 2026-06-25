@@ -20,9 +20,9 @@ internal class BalanceChangesCalculationService(
             if (periodDays < 1)
                 return Fail($"Минимальный период для расчёта: 1 день");
 
-            var currentSnapshot = await balanceSnapshotService.TakeTotalTraderBalanceSnapshot(traderTelegramId);
-            if (!currentSnapshot.IsSuccess)
-                return Fail(currentSnapshot.message);
+            var currentSnapshotResult = await balanceSnapshotService.TakeTotalTraderBalanceSnapshot(traderTelegramId);
+            if (!currentSnapshotResult.TryGetData(out var currentSnapshot))
+                return Fail(currentSnapshotResult.Message);
 
             var targetDate = currentSnapshot.dateTimeSnapshot.Date.AddDays(-periodDays);
             var previousSnapshot = await db.BalanceSnapshots
