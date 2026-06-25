@@ -79,13 +79,13 @@ internal class HelpMethods
             snapshotDateTime);
     }
 
-    public static async Task<CancelOrderResult> CancelOrder(ArkWalletDbContext db, long traderId, string orderId)
+    public static async Task<Result> CancelOrder(ArkWalletDbContext db, long traderId, string orderId)
     {
         var service = new OrderCancelService(db);
         return await service.CancelOrderAsync(traderId, orderId);
     }
 
-    public static async Task<CancelOrderResult> CancelAllOrders(ArkWalletDbContext db, long traderId)
+    public static async Task<Result> CancelAllOrders(ArkWalletDbContext db, long traderId)
     {
         var service = new OrderCancelService(db);
         return await service.CancelAllOrderAsync(traderId);

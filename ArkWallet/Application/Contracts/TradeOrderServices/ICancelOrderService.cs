@@ -1,18 +1,11 @@
-﻿using ArkWallet.Application.Services.TraderServices;
+﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Services.TraderServices;
 
 namespace ArkWallet.Application.Contracts.TradeOrderServices
 {
-    public interface IOrderCancelService
+    internal interface IOrderCancelService
     {
-        Task<CancelOrderResult> CancelOrderAsync(long traderId, string orderId);
-        Task<CancelOrderResult> CancelAllOrderAsync(long traderId);
+        Task<Result> CancelOrderAsync(long traderId, string orderId);
+        Task<Result> CancelAllOrderAsync(long traderId);
     }
-
-    public record CancelOrderResult(bool IsSuccess, string Message = null)
-    {
-        public static CancelOrderResult Fail(string message)
-        {
-            return new(false, message);
-        }
-    };
 }

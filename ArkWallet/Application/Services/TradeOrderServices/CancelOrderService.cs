@@ -1,4 +1,5 @@
-﻿using ArkWallet.Application.Contracts.TradeOrderServices;
+﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Services.TraderServices;
 using ArkWallet.Domain.Exceptions;
 using ArkWallet.Domain.ValueObjects;
@@ -6,82 +7,82 @@ using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace ArkWallet.Application.Services.TradeOrderServices
+namespace ArkWallet.Application.Services.TradeOrderServices;
+using static Result;
+
+internal class OrderCancelService(ArkWalletDbContext dbContext) : IOrderCancelService
 {
-    internal class OrderCancelService(ArkWalletDbContext dbContext) : IOrderCancelService
+    public async Task<Result> CancelOrderAsync(long traderId, string orderId)
     {
-        public async Task<CancelOrderResult> CancelOrderAsync(long traderId, string orderId)
+        try
         {
-            try
+            var order = await dbContext.TradeOrders.FirstOrDefaultAsync(o => o.Id == orderId);
+            var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
+
+            if (trader == null)
+                return Fail("Трейдер не найден");
+
+            if (order == null)
+                return Fail("Ордера не существует");
+
+            if (!order.IsActive())
+                return Fail("Можно отменить только активный ордер");
+
+            order.Cancel(traderId);
+
+            if (order.IsLong())
             {
-                var order = await dbContext.TradeOrders.FirstOrDefaultAsync(o => o.Id == orderId);
-                var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
+                trader.AddToBalance(order.GetReservedBalance());
+            }
+            else
+            {
+                var portfolioItem = await dbContext.PortfolioItems
+                    .FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == order.CharacterTokenId);
+                portfolioItem.ReturnTokens(order.GetRemainingQuantity());
+            }
 
-                if (trader == null)
-                    return new CancelOrderResult(false, "Трейдер не найден");
+            dbContext.TradeOrders.Update(order);
+            await dbContext.SaveChangesAsync();
 
-                if (order == null)
-                    return new CancelOrderResult(false, "Ордера не существует");
+            return Ok();
+        }
+        catch (DomainException ex)
+        {
+            return Fail($"Ошибка бизнес-логики: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            var innerMessage = ex.InnerException?.Message ?? ex.Message;
+            return Fail($"Внутренняя ошибка сервера: {innerMessage}");
+        }
+    }
 
-                if (!order.IsActive())
-                    return new CancelOrderResult(false, "Можно отменить только активный ордер");
+    public async Task<Result> CancelAllOrderAsync(long traderId)
+    {
+        try
+        {
+            var orders = await dbContext.TradeOrders
+                .Where(o => o.TraderTelegramId == traderId && o.Status == OrderStatus.Active)
+                .ToArrayAsync();
 
+            if (orders == null || orders.Length == 0)
+                return Fail("Нет активных одеров для отмены");
+
+            foreach (var order in orders)
                 order.Cancel(traderId);
 
-                if (order.IsLong())
-                {
-                    trader.AddToBalance(order.GetReservedBalance());
-                }
-                else
-                {
-                    var portfolioItem = await dbContext.PortfolioItems
-                        .FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == order.CharacterTokenId);
-                    portfolioItem.ReturnTokens(order.GetRemainingQuantity());
-                }
+            await dbContext.SaveChangesAsync();
 
-                dbContext.TradeOrders.Update(order);
-                await dbContext.SaveChangesAsync();
-
-                return new CancelOrderResult(true);
-            }
-            catch (DomainException ex)
-            {
-                return CancelOrderResult.Fail($"Ошибка бизнес-логики: {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                var innerMessage = ex.InnerException?.Message ?? ex.Message;
-                return CancelOrderResult.Fail($"Внутренняя ошибка сервера: {innerMessage}");
-            }
+            return Ok();
         }
-
-        public async Task<CancelOrderResult> CancelAllOrderAsync(long traderId)
+        catch (DomainException ex)
         {
-            try
-            {
-                var orders = await dbContext.TradeOrders
-                    .Where(o => o.TraderTelegramId == traderId && o.Status == OrderStatus.Active)
-                    .ToArrayAsync();
-
-                if (orders == null || orders.Length == 0)
-                    return new CancelOrderResult(false, "Нет активных одеров для отмены");
-
-                foreach (var order in orders)
-                    order.Cancel(traderId);
-
-                await dbContext.SaveChangesAsync();
-
-                return new CancelOrderResult(true, $"Успешно отменённых ордеров: {orders.Length}");
-            }
-            catch (DomainException ex)
-            {
-                return CancelOrderResult.Fail($"Ошибка бизнес-логики: {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                var innerMessage = ex.InnerException?.Message ?? ex.Message;
-                return CancelOrderResult.Fail($"Внутренняя ошибка сервера: {innerMessage}");
-            }
+            return Fail($"Ошибка бизнес-логики: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            var innerMessage = ex.InnerException?.Message ?? ex.Message;
+            return Fail($"Внутренняя ошибка сервера: {innerMessage}");
         }
     }
 }
