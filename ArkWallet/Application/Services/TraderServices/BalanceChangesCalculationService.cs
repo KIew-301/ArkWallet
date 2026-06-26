@@ -11,7 +11,7 @@ using static Result<BalanceChangesData>;
 
 internal class BalanceChangesCalculationService(
     ArkWalletDbContext db, IBalanceSnapshotService balanceSnapshotService,
-    ILogger<BalanceChangesCalculationService> logger)
+    ILogger<BalanceChangesCalculationService> logger) : IBalanceChangesCalculationService
 {
     public async Task<Result<BalanceChangesData>> TakeMainBalanceChanges(long traderTelegramId, int periodDays)
     {
@@ -58,4 +58,4 @@ internal class BalanceChangesCalculationService(
     }
 }
 
-internal record BalanceChangesData(decimal CurrentBalance, decimal PreviousBalance, decimal ChangeAbsolute, decimal ChangePercent);
+public record BalanceChangesData(decimal CurrentBalance, decimal PreviousBalance, decimal ChangeAbsolute, decimal ChangePercent);
