@@ -8,7 +8,7 @@ namespace ArkWallet.Presentation.API;
 
 [ApiController]
 [Route("api/v1/[controller]")]
-internal class TradersController(IBalanceChangesCalculationService balanceChangesCalculationService) : ControllerBase
+public class TradersController(IBalanceChangesCalculationService balanceChangesCalculationService) : ControllerBase
 {
     [Authorize]
     [HttpGet("balance")]
