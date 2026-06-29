@@ -10,13 +10,17 @@ namespace ArkWallet.Domain.Entities
         public string Id { get; set; } = Guid.NewGuid().ToString();
 
         // Внешние ключи
-        public long TraderTelegramId { get; set; }
-        public string CharacterTokenId { get; set; }
+        public long TraderTelegramId { get; private set; }
+        public string CharacterTokenId { get; private set; }
 
         // Данные владения
-        public int Quantity { get; set; }
-        public decimal AverageBuyPrice { get; set; }
-        public DateTime AcquiredAt { get; set; } = DateTime.UtcNow;
+        public int Quantity { get; private set; }
+        public int SellingQuantity { get; private set; }
+        public int ReserveQuantity { get; private set; }
+        public decimal AverageBuyPrice { get; private set; }
+        public decimal AverageSellPrice { get; private set; }
+        public decimal AverageReservePrice { get; private set; }
+        public DateTime AcquiredAt { get; private set; } = DateTime.UtcNow;
 
         // Навигационные свойства
         public virtual Trader? Trader { get; set; }
@@ -39,11 +43,10 @@ namespace ArkWallet.Domain.Entities
         public decimal GetProfitLoss(CharacterToken token)
             => GetCurrentValue(token) - GetTotalValue();
 
-        public void AddTokens(int quantity, decimal buyPrice)
+        public void BuyTokens(int quantity, decimal buyPrice)
         {
             if (quantity <= 0) throw new DomainException("Количество токенов меньше 0");
 
-            // Пересчет средней цены
             var totalCost = Quantity * AverageBuyPrice + quantity * buyPrice;
             Quantity += quantity;
             AverageBuyPrice = totalCost / Quantity;
@@ -51,17 +54,61 @@ namespace ArkWallet.Domain.Entities
             MarkDirty();
         }
 
-        public void ReturnTokens(int quantity)
+        public void ReserveTokens(int quantity, decimal reservePrice)
         {
             if (quantity <= 0) throw new DomainException("Количество токенов меньше 0");
-            Quantity += quantity;
+
+            Quantity -= quantity;
+
+            var totalCost = ReserveQuantity * AverageReservePrice + quantity * reservePrice;
+            ReserveQuantity += quantity;
+            AverageReservePrice = totalCost / ReserveQuantity;
+
+            if (Quantity == 0)
+                AverageBuyPrice = 0;
+
             MarkDirty();
         }
 
-        public void RemoveTokens(int quantity)
+        public void SellTokens(int quantity, decimal sellPrice)
+        {
+            if (quantity <= 0) throw new DomainException("Количество токенов меньше 0");
+
+            ReserveQuantity -= quantity;
+
+            var totalCost = SellingQuantity * AverageSellPrice + quantity * sellPrice;
+            SellingQuantity += quantity;
+            AverageSellPrice = totalCost / SellingQuantity;
+
+            if (ReserveQuantity == 0)
+                AverageReservePrice = 0;
+
+            MarkDirty();
+        }
+
+        public void ReturnTokens(int quantity)
+        {
+            if (quantity <= 0) throw new DomainException("Количество токенов меньше 0");
+
+            ReserveQuantity -= quantity;
+
+            var totalCost = Quantity * AverageBuyPrice + quantity * AverageReservePrice;
+            Quantity += quantity;
+            AverageBuyPrice = totalCost / Quantity;
+
+            if (ReserveQuantity == 0)
+                AverageReservePrice = 0;
+
+            MarkDirty();
+        }
+
+        public void RemoveTokens(int quantity, decimal buyPrice)
         {
             if (quantity <= 0) throw new DomainException("Количество токенов меньше или равно 0");
             if (quantity > Quantity) throw new DomainException("Больше токенов недостаточно");
+
+            if (Quantity == 0)
+                AverageBuyPrice = 0;
 
             Quantity -= quantity;
             MarkDirty();

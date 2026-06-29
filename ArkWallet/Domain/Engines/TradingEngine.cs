@@ -1,4 +1,5 @@
 ﻿using ArkWallet.Domain.Entities;
+using ArkWallet.Domain.Exceptions;
 using ArkWallet.Domain.ValueObjects;
 
 namespace ArkWallet.Domain.Engines
@@ -32,7 +33,7 @@ namespace ArkWallet.Domain.Engines
                 if (!portfolios.TryGetValue(newOrder.TraderTelegramId, out var sellerPortfolio))
                     return TradingResult.Failed("В портфеле отсуствует данный токен");
 
-                sellerPortfolio.RemoveTokens(newOrder.Quantity);
+                sellerPortfolio.ReserveTokens(newOrder.Quantity, newOrder.Price);
                 sellerPortfolio.MarkDirty();
             }
 
@@ -120,17 +121,18 @@ namespace ArkWallet.Domain.Engines
             }
 
             // Обновляем портфели
-            var buyerPortfolio = portfolios.ContainsKey(trade.BuyerId) ? portfolios[trade.BuyerId] : null;
-
-            if (buyerPortfolio != null)
-            {
-                buyerPortfolio.AddTokens(quantity, price);
-            }
+            if (portfolios.TryGetValue(trade.BuyerId, out var buyerPortfolio))
+                buyerPortfolio.BuyTokens(quantity, price);
             else
             {
                 buyerPortfolio = PortfolioItem.Create(trade.BuyerId, trade.CharacterTokenId, quantity, price);
                 portfolios[trade.BuyerId] = buyerPortfolio;
             }
+
+            if (portfolios.TryGetValue(trade.SellerId, out var sellerPortfolio))
+                sellerPortfolio.SellTokens(quantity, price);
+            else
+                throw new DomainException("Матчинг - один из продавцов не имеет токенов в портфеле при активном ордере на продажу");
 
             buyer.MarkDirty();
             seller.MarkDirty();
@@ -140,8 +142,8 @@ namespace ArkWallet.Domain.Engines
         private List<TradeOrder> FindMatchingOrders(TradeOrder order, OrderBook orderBook)
         {
             return order.Type == OrderType.Buy
-                ? orderBook.Asks.Where(ask => ask.Price <= order.Price).ToList()
-                : orderBook.Bids.Where(bid => bid.Price >= order.Price).ToList();
+                ? orderBook.Asks.Where(ask => ask.Price <= order.Price).OrderBy(o => o.Price).ToList()
+                : orderBook.Bids.Where(bid => bid.Price >= order.Price).OrderByDescending(o => o.Price).ToList();
         }
 
         private CharacterToken UpdateTokenPrice(CharacterToken token, List<Trade> trades)

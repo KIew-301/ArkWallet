@@ -27,7 +27,7 @@ internal class PortfolioUpdatingService(ArkWalletDbContext dbContext) : IPortfol
         }
         else
         {
-            item.AddTokens(quantity, token.CurrentPrice);
+            item.BuyTokens(quantity, token.CurrentPrice);
         }
 
         await dbContext.SaveChangesAsync();
