@@ -45,7 +45,7 @@ public class TraderAuthServiceTest
         var initData = "user=%7b%22id%22%3a777%2c%22first_name%22%3a%22Test%22%2c%22last_name%22%" +
             "3a%22User%22%2c%22username%22%3a%22testuser%22%2c%22language_code%22%3a%22ru%22%2c%22is_premium%22%" +
             "3afalse%2c%22allows_write_to_pm%22%3atrue%2c%22photo_url%22%3a%22https%" +
-            "3a%2f%2ft.me%2fi%2fuserpic%2f123.jpg%22%7d&auth_date=1782410033&chat_instance=1234567890123456789&" +
+            "3a%2f%2ft.me%2fi%2fuserpic%2f123.jpg%22%7d&auth_date=5782410033&chat_instance=1234567890123456789&" +
             "chat_type=private&hash=25e386173eff2d0d8de01ee74269c6fc6409403ae89a23a453ba2982064a8230";
         var result = service.AuthenticateUser(initData, botToken);
 
