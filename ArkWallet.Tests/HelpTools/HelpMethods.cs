@@ -34,13 +34,19 @@ internal class HelpMethods
         CharacterRarity rarity = CharacterRarity.FourStar, int totalSupply = 1000, int price = 10000, bool isActive = true)
     {
         var service = new TokenCreationService(db);
-        return await service.CreateTokenAsync(new CreateTokenCommand(symbol, name, rarity, totalSupply, price, isActive));
+        return await service.CreateTokenAsync(new CreateTokenCommand(symbol, name, rarity, price, totalSupply, isActive));
     }
 
     public static async Task<Result> AddPortfolio(ArkWalletDbContext db, long traderId, string symbol, int quantity)
     {
         var service = new PortfolioUpdatingService(db);
         return await service.CreateOrUpdatePortfolioAsync(traderId, symbol, quantity);
+    }
+
+    public static async Task GiveToken(ArkWalletDbContext db, long traderId, string symbol, int quantity)
+    {
+        var item = await db.PortfolioItems.FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
+        if (item != null) item.Quantity += quantity; 
     }
 
     public static async Task<Result<OrderCreationData>> PlaceOrder(ArkWalletDbContext db, long traderId, string direction,
