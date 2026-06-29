@@ -1,4 +1,5 @@
-﻿using ArkWallet.Application.Dtos;
+﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Dtos;
 
 namespace ArkWallet.Application.Contracts.PortfolioServices
 {
@@ -13,7 +14,7 @@ namespace ArkWallet.Application.Contracts.PortfolioServices
         /// <param name="traderId">ID трейдера в Telegram</param>
         /// <param name="symbol">Символ токена</param>
         /// <returns>DTO с балансом токена или null если токен отсутствует в портфеле</returns>
-        Task<TokenBalanceDto?> GetTokenBalanceAsync(long traderId, string symbol);
+        Task<Result<TokenBalanceDto>> GetTokenBalanceAsync(long traderId, string symbol);
 
         /// <summary>
         /// Получает список всех токенов в портфеле трейдера
@@ -23,6 +24,6 @@ namespace ArkWallet.Application.Contracts.PortfolioServices
         /// <remarks>
         /// Возвращает пустой список если портфель трейдера пуст.
         /// </remarks>
-        Task<List<TokenBalanceDto>> GetTraderTokensAsync(long traderId);
+        Task<Result<TokenBalanceDto[]>> GetTraderTokensAsync(long traderId);
     }
 }

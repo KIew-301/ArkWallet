@@ -1,5 +1,6 @@
 ﻿using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
+using System.Reflection;
 
 namespace ArkWallet.Application.Dtos
 {
@@ -45,19 +46,34 @@ namespace ArkWallet.Application.Dtos
     };
 
     public record TokenBalanceDto(
-        string Symbol,
-        int Quantity
+        string Symbol, 
+        string TokenName, 
+        decimal Quantity,
+        decimal AverageBuyPrice,
+        decimal BalanceInToken, 
+        decimal ProfitPercent
     )
     {
-        internal static TokenBalanceDto? FromEntity(PortfolioItem? item, int reserved = 0)
+        internal static TokenBalanceDto FromEntity(PortfolioItem item)
         {
             if (item == null)
-                return null;
+                throw new Exception($"{MethodBase.GetCurrentMethod()?.Name} - item не может быть null");
+
+            if (item.CharacterToken == null)
+                throw new Exception($"{MethodBase.GetCurrentMethod()?.Name} - item.CharacterToken не может быть null");
+
+            var balanceInToken = item.Quantity * item.CharacterToken.CurrentPrice;
+            var cost = item.Quantity * item.AverageBuyPrice;
+            var procentProfit = balanceInToken / cost * 100 - 100;
 
             return new(
                 item.CharacterTokenId,
-                item.Quantity - reserved
-                );
+                item.CharacterToken.Name,
+                item.Quantity,
+                item.AverageBuyPrice,
+                balanceInToken,
+                procentProfit
+            );
         }
     };
 
