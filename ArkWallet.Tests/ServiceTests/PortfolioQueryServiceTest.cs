@@ -25,7 +25,7 @@ public class PortfolioQueryServiceTest
         await HelpMethods.AddPortfolio(db, 101, "YYY", 27);
         await HelpMethods.AddPortfolio(db, 101, "XXX", 4);
 
-        await HelpMethods.GiveToken(db, 101, "ZZZ", -6);
+        await HelpMethods.RemoveToken(db, 101, "ZZZ", 6);
         await HelpMethods.GiveToken(db, 101, "XXX", 4);
 
         var result = await portfolioQueryService.GetTraderTokensAsync(101);

@@ -46,7 +46,13 @@ internal class HelpMethods
     public static async Task GiveToken(ArkWalletDbContext db, long traderId, string symbol, int quantity)
     {
         var item = await db.PortfolioItems.FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
-        if (item != null) item.Quantity += quantity; 
+        if (item != null) item.BuyTokens(quantity, item.AverageBuyPrice); 
+    }
+
+    public static async Task RemoveToken(ArkWalletDbContext db, long traderId, string symbol, int quantity)
+    {
+        var item = await db.PortfolioItems.FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
+        if (item != null) item.RemoveTokens(quantity, item.AverageBuyPrice);
     }
 
     public static async Task<Result<OrderCreationData>> PlaceOrder(ArkWalletDbContext db, long traderId, string direction,

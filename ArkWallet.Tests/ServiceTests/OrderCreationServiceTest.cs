@@ -164,7 +164,7 @@ public class OrderCreationServiceTest
     }
 
     [Fact]
-    public async Task ProcessOrderAsync_ComplexExecutionMultipleMarketOrders_ReturnsSuccess()
+    public async Task ProcessOrderAsync_FullMatchingTest_ReturnsSuccess()
     {
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
@@ -178,16 +178,16 @@ public class OrderCreationServiceTest
         await HelpMethods.AddPortfolio(db, 103, "ZZZ", 50); // 2 - 1000, 50
         await HelpMethods.GiveMoney(db, 101, 1000);         // 2 - 2000, 0
 
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 50);      // 1 - 1750, 0 | 2 - 1000, 5 | 3 - 1000, 50
-        await HelpMethods.PlaceOrder(db, 102, "купить", "ZZZ", 10, 60);     // 1 - 1750, 0 | 2 - 400, 5 | 3 - 1000, 50
-        await HelpMethods.PlaceOrder(db, 103, "продать", "ZZZ", 10, 30);    // 1 - 1750, 0 | 2 - 400, 15 | 3 - 1600, 40
-        await HelpMethods.PlaceOrder(db, 102, "купить", "ZZZ", 2, 90);      // 1 - 1750, 0 | 2 - 220, 15 | 3 - 1600, 40
+        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 50);      // 1 - 1750, 0 | 2 - 1000, 5 | 3 - 1000, 50 - первый 
+        await HelpMethods.PlaceOrder(db, 102, "купить", "ZZZ", 10, 60);     // 1 - 1750, 0 | 2 - 400, 5 | 3 - 1000, 50 - второй /матчится 3-им полностью
+        await HelpMethods.PlaceOrder(db, 103, "продать", "ZZZ", 10, 30);    // 1 - 1750, 0 | 2 - 400, 15 | 3 - 1600, 40 - третий /матчится 2-ым полностью
+        await HelpMethods.PlaceOrder(db, 102, "купить", "ZZZ", 2, 90);      // 1 - 1750, 0 | 2 - 220, 15 | 3 - 1600, 40 - четвёртый /матчится 8-ым полностью
         await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 100, 150);  // Error
-        await HelpMethods.PlaceOrder(db, 103, "продать", "ZZZ", 5, 150);    // 1 - 1750, 0 | 2 - 220, 15 | 3 - 1600, 35
-        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 5, 150);    // 1 - 1750, 0 | 2 - 220, 10 | 3 - 1600, 35
+        await HelpMethods.PlaceOrder(db, 103, "продать", "ZZZ", 5, 150);    // 1 - 1750, 0 | 2 - 220, 15 | 3 - 1600, 35 - пятый /матчится седьмым полностью
+        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 5, 150);    // 1 - 1750, 0 | 2 - 220, 10 | 3 - 1600, 35 - шестой /не матчится
         await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 2, 15000);   // Error
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 2, 150);     // 1 - 1450, 2 | 2 - 220, 10 | 3 - 1900, 35
-        await HelpMethods.PlaceOrder(db, 103, "продать", "ZZZ", 30, 10);    // 1 - 1450, 7 | 2 - 220, 12 | 3 - 2330, 5
+        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 2, 150);     // 1 - 1450, 2 | 2 - 220, 10 | 3 - 1900, 35 - седьмой /матчится вторым полностью
+        await HelpMethods.PlaceOrder(db, 103, "продать", "ZZZ", 30, 10);    // 1 - 1450, 7 | 2 - 220, 12 | 3 - 2330, 5 - восьмой /матчится 4-ым на 2
 
         var trader1 = await HelpMethods.GetTrader(db, 101);
         var trader2 = await HelpMethods.GetTrader(db, 102);
@@ -213,9 +213,29 @@ public class OrderCreationServiceTest
         Assert.Equal(220, trader2.Balance);
         Assert.Equal(2330, trader3.Balance);
 
+        // Портфель 101
         Assert.Equal(7, portfolio1.Quantity);
+        Assert.Equal(78.57m, portfolio1.AverageBuyPrice, 2);
+        Assert.Equal(0, portfolio1.ReserveQuantity);
+        Assert.Equal(0, portfolio1.AverageReservePrice);
+        Assert.Equal(0, portfolio1.SellingQuantity);
+        Assert.Equal(0, portfolio1.AverageSellPrice);
+
+        // Портфель 102
         Assert.Equal(12, portfolio2.Quantity);
+        Assert.Equal(2826.11m, portfolio2.AverageBuyPrice, 2);
+        Assert.Equal(5, portfolio2.ReserveQuantity);
+        Assert.Equal(150m, portfolio2.AverageReservePrice);
+        Assert.Equal(0, portfolio2.SellingQuantity);
+        Assert.Equal(0, portfolio2.AverageSellPrice);
+
+        // Портфель 103
         Assert.Equal(5, portfolio3.Quantity);
+        Assert.Equal(10000m, portfolio3.AverageBuyPrice, 2);
+        Assert.Equal(26, portfolio3.ReserveQuantity);
+        Assert.Equal(22.73m, portfolio3.AverageReservePrice, 2);
+        Assert.Equal(19, portfolio3.SellingQuantity);
+        Assert.Equal(70.00m, portfolio3.AverageSellPrice, 2);
 
         Assert.Empty(activeOrders1);
         Assert.Single(activeOrders2);
