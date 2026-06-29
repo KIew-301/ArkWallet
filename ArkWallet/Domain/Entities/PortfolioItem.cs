@@ -107,10 +107,11 @@ namespace ArkWallet.Domain.Entities
             if (quantity <= 0) throw new DomainException("Количество токенов меньше или равно 0");
             if (quantity > Quantity) throw new DomainException("Больше токенов недостаточно");
 
+            Quantity -= quantity;
+
             if (Quantity == 0)
                 AverageBuyPrice = 0;
 
-            Quantity -= quantity;
             MarkDirty();
         }
 
