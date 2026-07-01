@@ -1,10 +1,6 @@
-﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Services.CharacterTokenServices;
-using ArkWallet.Infrastructure.Data;
+﻿using ArkWallet.Application.Services.CharacterTokenServices;
 using ArkWallet.Tests.HelpTools;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
 
 namespace ArkWallet.Tests.ServiceTests;
 

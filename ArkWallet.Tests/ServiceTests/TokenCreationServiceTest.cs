@@ -1,9 +1,6 @@
-﻿using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Services.CharacterTokenServices;
+﻿using ArkWallet.Application.Services.CharacterTokenServices;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Tests.HelpTools;
-using Microsoft.CodeAnalysis;
 
 namespace ArkWallet.Tests.ServiceTests;
 

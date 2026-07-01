@@ -1,5 +1,4 @@
-﻿using ArkWallet.Application.Contracts.PortfolioServices;
-using ArkWallet.Application.Services.PortfolioServices;
+﻿using ArkWallet.Application.Services.PortfolioServices;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Tests.HelpTools;
 using Microsoft.Extensions.Logging.Abstractions;

@@ -24,7 +24,7 @@ namespace ArkWallet.Presentation.Wizard
         {
             var portfolioQueryResult = await portfolioQueryService.GetTraderTokensAsync(session.Id);
 
-            if (!portfolioQueryResult.TryGetData(out var portfolioItems)) 
+            if (!portfolioQueryResult.TryGetData(out var portfolioItems))
                 return $"{baseQuestion}\n\n💎 У вас есть: 0\n";
             else
                 return $"{baseQuestion}\n\n💎 У вас есть: {string.Join(" ", portfolioItems.Select(t => t.Symbol))}\n";
@@ -50,14 +50,14 @@ namespace ArkWallet.Presentation.Wizard
                 var portfolioQueryResult = await portfolioQueryService.GetTokenBalanceAsync(session.Id, symbol);
 
 
-                    if (portfolioQueryResult.TryGetData(out var data))
-                        return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
-                               $"💰 Текущая цена: {token.CurrentPrice:F2}\n" +
-                               $"📦 Всего в портфеле: {data.Quantity} шт\n";
-                    else
-                        return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
+                if (portfolioQueryResult.TryGetData(out var data))
+                    return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
                            $"💰 Текущая цена: {token.CurrentPrice:F2}\n" +
-                           $"📦 Всего в портфеле: 0 шт\n";
+                           $"📦 Всего в портфеле: {data.Quantity} шт\n";
+                else
+                    return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
+                       $"💰 Текущая цена: {token.CurrentPrice:F2}\n" +
+                       $"📦 Всего в портфеле: 0 шт\n";
             }
         }
 

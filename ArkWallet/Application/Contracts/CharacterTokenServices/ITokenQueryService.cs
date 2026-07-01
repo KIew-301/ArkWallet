@@ -1,7 +1,5 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Domain.Entities;
-using ArkWallet.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
 
 namespace ArkWallet.Application.Contracts.CharacterTokenServices;
 
@@ -55,6 +53,6 @@ public record TokenInfo(
             dailyChangePercent,
             token.IconUrl,
             token.ImageUrl
-        );  
+        );
     }
 }

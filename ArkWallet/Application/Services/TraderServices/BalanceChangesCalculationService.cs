@@ -44,7 +44,6 @@ internal class BalanceChangesCalculationService(
                 var сhangePercent = changeAbsolute / previousBalance * 100m;
                 return Ok(new BalanceChangesData(currentBalance, previousBalance, changeAbsolute, сhangePercent));
             }
-
         }
         catch (DomainException ex)
         {
