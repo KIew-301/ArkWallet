@@ -1,9 +1,7 @@
-﻿namespace ArkWallet.Presentation.DTOs
+﻿using ArkWallet.Application.Contracts.TradeOrderServices;
+
+namespace ArkWallet.Presentation.DTOs
 {
-    public record GetOrdersRequest(bool IncludeActive, bool IncludeInactive);
-    public record GetOrdersResponse(OrderItem[] Orders);
-    public record OrderItem(
-        string OrderId, string Symbol, string TokenName,
-        string Direction, decimal TotalQuantity, decimal FilledQuantity,
-        decimal FillPercent, decimal OrderPrice, decimal CurrentPrice, string IconUrl);
+    public record GetOrdersRequest(bool IncludeActive, bool IncludeFilled, bool IncludeCancelled);
+    public record GetOrdersResponse(OrderInfo[] Orders);
 }
