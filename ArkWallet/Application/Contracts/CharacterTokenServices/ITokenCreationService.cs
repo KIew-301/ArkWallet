@@ -38,13 +38,17 @@ namespace ArkWallet.Application.Contracts.CharacterTokenServices
     /// <param name="StartPrice">Начальная цена токена</param>
     /// <param name="TotalSupply">Общее количество выпускаемых токенов</param>
     /// <param name="IsActive">Флаг активности токена</param>
+    /// <param name="ImageUrl">Ссылка на изображение токена</param>
+    /// <param name="IconUrl">Ссылка на иконку токена</param>
     public record CreateTokenCommand(
         string Symbol,
         string Name,
         CharacterRarity Rarity,
         decimal StartPrice,
         int TotalSupply,
-        bool IsActive
+        bool IsActive,
+        string ImageUrl,
+        string IconUrl
     )
     {
         /// <summary>
@@ -53,15 +57,15 @@ namespace ArkWallet.Application.Contracts.CharacterTokenServices
         /// <returns>Сущность CharacterToken с данными из команды</returns>
         internal CharacterToken ToEntity()
         {
-            return new()
-            {
-                Symbol = Symbol,
-                Name = Name,
-                Rarity = Rarity,
-                CurrentPrice = StartPrice,
-                TotalSupply = TotalSupply,
-                IsActive = IsActive
-            };
+            return CharacterToken.Create(
+                Symbol,
+                Name,
+                Rarity,
+                StartPrice,
+                TotalSupply,
+                ImageUrl,
+                IconUrl
+            );
         }
     };
 

@@ -30,11 +30,28 @@ internal class HelpMethods
         return await service.AddToBalanceAsync(telegramId, amount);
     }
 
-    public static async Task<Result<TokenCreationData>> CreateToken(ArkWalletDbContext db, string symbol, string name = "Token",
-        CharacterRarity rarity = CharacterRarity.FourStar, int totalSupply = 1000, decimal price = 10000, bool isActive = true)
+    public static async Task<Result<TokenCreationData>> CreateToken(
+        ArkWalletDbContext db,
+        string symbol,
+        string name = "Token",
+        CharacterRarity rarity = CharacterRarity.FourStar,
+        int totalSupply = 1000,
+        decimal price = 10000,
+        bool isActive = true,
+        string imageUrl = "image.zzz",
+        string iconUrl = "icon.zzz")
     {
         var service = new TokenCreationService(db);
-        return await service.CreateTokenAsync(new CreateTokenCommand(symbol, name, rarity, price, totalSupply, isActive));
+        return await service.CreateTokenAsync(new CreateTokenCommand(
+            symbol,
+            name,
+            rarity,
+            price,
+            totalSupply,
+            isActive,
+            imageUrl,
+            iconUrl
+        ));
     }
 
     public static async Task<Result> AddPortfolio(ArkWalletDbContext db, long traderId, string symbol, int quantity)
