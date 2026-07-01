@@ -205,4 +205,80 @@ public class OrderQueryServiceTest
         Assert.True(result.TryGetData(out var data));
         Assert.Empty(data);
     }
+
+    [Fact]
+    public async Task GetTraderOrdersAsync_WithTokenInfo_ReturnsIconAndCurrentPrice()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ", "Zero", CharacterRarity.FourStar, 1000, 100m,  true, "image.png", "icon.png");
+        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+
+        var logger = NullLogger<OrderQueryService>.Instance;
+        var service = new OrderQueryService(db, logger);
+
+        var result = await service.GetTraderOrdersAsync(101, withTokenInfo: true);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var data));
+
+        var orderInfo = data.First();
+        Assert.Equal("icon.png", orderInfo.IconUrl);
+        Assert.Equal(100m, orderInfo.CurrentPrice);
+    }
+
+    [Fact]
+    public async Task GetTraderOrdersAsync_WithoutTokenInfo_IconAndCurrentPriceAreNull()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ", "Zero", CharacterRarity.FourStar, 1000, 100m, true, "image.png", "icon.png");
+        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+
+        var logger = NullLogger<OrderQueryService>.Instance;
+        var service = new OrderQueryService(db, logger);
+
+        var result = await service.GetTraderOrdersAsync(101, withTokenInfo: false);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var data));
+
+        var orderInfo = data.First();
+        Assert.Null(orderInfo.IconUrl);
+        Assert.Null(orderInfo.CurrentPrice);
+    }
+
+    [Fact]
+    public async Task GetTraderOrdersAsync_WithTokenInfoAndMultipleOrders_ReturnsAllWithTokenInfo()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ", "Zero", CharacterRarity.FourStar, 1000, 100m, true, "image1.png", "icon1.png");
+        await HelpMethods.CreateToken(db, "YYY", "One", CharacterRarity.FiveStar, 500, 50m, true, "image2.png", "icon2.png");
+        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 101, "YYY", 10);
+        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 101, "продать", "YYY", 3, 200);
+
+        var logger = NullLogger<OrderQueryService>.Instance;
+        var service = new OrderQueryService(db, logger);
+
+        var result = await service.GetTraderOrdersAsync(101, withTokenInfo: true);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var data));
+        Assert.Equal(2, data.Count);
+
+        foreach (var orderInfo in data)
+        {
+            Assert.NotNull(orderInfo.IconUrl);
+            Assert.NotNull(orderInfo.CurrentPrice);
+        }
+    }
 }

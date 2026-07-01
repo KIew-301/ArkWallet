@@ -1,5 +1,6 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.TradeOrderServices;
+using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.Exceptions;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
@@ -18,7 +19,8 @@ internal class OrderQueryService(
         long traderTelegramId,
         bool includeActive = true,
         bool includeFilled = true,
-        bool includeCancelled = true)
+        bool includeCancelled = true,
+        bool withTokenInfo = false)
     {
         try
         {
@@ -45,7 +47,7 @@ internal class OrderQueryService(
 
             var result = orders
                 .Where(o => o.CharacterToken != null)
-                .Select(o => OrderInfo.FromEntity(o, o.CharacterToken!))
+                .Select(o => OrderInfo.FromEntity(o, o.CharacterToken!, withTokenInfo))
                 .ToList();
 
             return Ok(result);

@@ -16,6 +16,7 @@ public interface IOrderQueryService
     /// <param name="includeActive">Включать активные ордера</param>
     /// <param name="includeFilled">Включать исполненные ордера</param>
     /// <param name="includeCancelled">Включать отменённые ордера</param>
+    /// <param name="withTokenInfo">Включать информацию о токене (иконка, текущая цена)</param>
     /// <returns>Список ордеров с основной информацией</returns>
     /// <remarks>
     /// <para>
@@ -29,7 +30,8 @@ public interface IOrderQueryService
         long traderTelegramId,
         bool includeActive = true,
         bool includeFilled = true,
-        bool includeCancelled = true);
+        bool includeCancelled = true,
+        bool withTokenInfo = false);
 }
 
 /// <summary>
@@ -44,6 +46,8 @@ public interface IOrderQueryService
 /// <param name="FillPercent">Процент исполнения (0-100)</param>
 /// <param name="Price">Цена за токен</param>
 /// <param name="Status">Статус ордера (Active/Filled/Cancelled)</param>
+/// <param name="IconUrl">Ссылка на иконку токена</param>
+/// <param name="CurrentPrice">Текущая рыночная цена токена</param>
 public record OrderInfo(
     string OrderId,
     string Symbol,
@@ -53,10 +57,12 @@ public record OrderInfo(
     decimal FilledQuantity,
     decimal FillPercent,
     decimal Price,
-    string Status
+    string Status,
+    string? IconUrl = null,
+    decimal? CurrentPrice = null
 )
 {
-    internal static OrderInfo FromEntity(TradeOrder order, CharacterToken token)
+    internal static OrderInfo FromEntity(TradeOrder order, CharacterToken token, bool withTokenInfo)
     {
         var fillPercent = order.Quantity > 0
             ? (decimal)order.FilledQuantity / order.Quantity * 100m
@@ -71,7 +77,9 @@ public record OrderInfo(
             order.FilledQuantity,
             fillPercent,
             order.Price,
-            order.Status.ToString()
+            order.Status.ToString(),
+            withTokenInfo ? token.IconUrl : null,
+            withTokenInfo ? token.CurrentPrice : null
         );
     }
 }
