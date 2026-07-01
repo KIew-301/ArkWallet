@@ -1,6 +1,7 @@
-﻿namespace ArkWallet.Presentation.DTOs
+﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
+
+namespace ArkWallet.Presentation.DTOs
 {
-    public record GetPriceHistoryRequest(string Symbol, int PeriodDays);
-    public record GetPriceHistoryResponse(Candle[] Candles);
-    public record Candle(DateTime Timestamp, decimal OpenPrice, decimal LowPrice, decimal HighPrice, decimal ClosePrice);
+    public record GetPriceHistoryRequest(string Symbol, DateTimeOffset StartDateTimeOffset, DateTimeOffset EndDateTimeOffset);
+    public record GetPriceHistoryResponse(PriceCandleInfo[] Candles);
 }
