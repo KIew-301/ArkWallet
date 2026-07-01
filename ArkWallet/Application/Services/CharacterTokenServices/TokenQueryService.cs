@@ -1,5 +1,6 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Domain.Exceptions;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -35,10 +36,14 @@ internal class TokenQueryService(
 
             return Ok(result);
         }
+        catch (DomainException ex)
+        {
+            return Fail($"Ошибка бизнес-логики: {ex.Message}");
+        }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Ошибка получения списка токенов");
-            return Fail("Внутренняя ошибка сервера");
+            logger.LogError(ex, "TokenQueryService:TakeTokenPriceChangesAsync Error");
+            return Fail($"Внутренняя ошибка сервера: {ex.InnerException?.Message ?? ex.Message}");
         }
     }
 }
