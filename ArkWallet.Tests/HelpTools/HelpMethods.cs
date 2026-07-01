@@ -31,7 +31,7 @@ internal class HelpMethods
     }
 
     public static async Task<Result<TokenCreationData>> CreateToken(ArkWalletDbContext db, string symbol, string name = "Token",
-        CharacterRarity rarity = CharacterRarity.FourStar, int totalSupply = 1000, int price = 10000, bool isActive = true)
+        CharacterRarity rarity = CharacterRarity.FourStar, int totalSupply = 1000, decimal price = 10000, bool isActive = true)
     {
         var service = new TokenCreationService(db);
         return await service.CreateTokenAsync(new CreateTokenCommand(symbol, name, rarity, price, totalSupply, isActive));
@@ -133,4 +133,11 @@ internal class HelpMethods
         await db.BalanceSnapshots
             .Where(s => s.TraderId == traderId)
             .ToArrayAsync();
+
+    public static async Task CreatePriceCandle(ArkWalletDbContext db, string symbol, decimal price, DateTime timestamp)
+    {
+        var candle = PriceCandle.CreateNew(symbol, price, timestamp);
+        await db.PriceCandles.AddAsync(candle);
+        await db.SaveChangesAsync();
+    }
 }
