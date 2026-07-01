@@ -1,5 +1,6 @@
-﻿namespace ArkWallet.Presentation.DTOs
+﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
+
+namespace ArkWallet.Presentation.DTOs
 {
-    public record GetTokenListResponse(TokenItem[] Tokens);
-    public record TokenItem(string Symbol, string TokenName, decimal Price, decimal DailyChangePercent, string IconUrl, string ImageUrl);
+    public record GetTokenListResponse(TokenInfo[] Tokens);
 }

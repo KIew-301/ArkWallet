@@ -7,6 +7,7 @@ using System.Security.Claims;
 namespace ArkWallet.Presentation.API;
 
 [ApiController]
+[Route("api/v1/[controller]")]
 public class PortfoliosContoller(IPortfolioQueryService portfolioQueryService) : ControllerBase
 {
     [Authorize]
@@ -18,7 +19,7 @@ public class PortfoliosContoller(IPortfolioQueryService portfolioQueryService) :
 
         var result = await portfolioQueryService.GetTraderTokensAsync(userTelegramId);
 
-        if (result.TryGetData(out var data))
+        if (!result.TryGetData(out var data))
             return BadRequest(result.Message);
 
         return Ok(new GetPortfolioResponse(data));
