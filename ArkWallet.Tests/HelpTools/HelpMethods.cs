@@ -107,13 +107,13 @@ internal class HelpMethods
 
     public static async Task<Result> CancelOrder(ArkWalletDbContext db, long traderId, string orderId)
     {
-        var service = new OrderCancelService(db);
+        var service = new OrderCancellationService(db);
         return await service.CancelOrderAsync(traderId, orderId);
     }
 
     public static async Task<Result> CancelOrder(ArkWalletDbContext db, long traderId, Result<OrderCreationData> result)
     {
-        var service = new OrderCancelService(db);
+        var service = new OrderCancellationService(db);
         if (!result.TryGetData(out var data))
             return Result.Fail("Отсутствует созданный ордер");
         return await service.CancelOrderAsync(traderId, data.Order.Id);
@@ -121,7 +121,7 @@ internal class HelpMethods
 
     public static async Task<Result> CancelAllOrders(ArkWalletDbContext db, long traderId)
     {
-        var service = new OrderCancelService(db);
+        var service = new OrderCancellationService(db);
         return await service.CancelAllOrderAsync(traderId);
     }
 
