@@ -1,4 +1,5 @@
 ﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.Exceptions;
 using ArkWallet.Infrastructure.Data;
@@ -8,7 +9,9 @@ using Microsoft.Extensions.Logging;
 namespace ArkWallet.Application.Services.CharacterTokenServices;
 using static Result;
 
-internal class TokenPriceCandleUpdateService(ArkWalletDbContext dbContext, TimeProvider timeProvider, ILogger<TokenPriceCandleUpdateService> logger)
+internal class TokenPriceCandleUpdateService(
+    ArkWalletDbContext dbContext, TimeProvider timeProvider, 
+    ILogger<TokenPriceCandleUpdateService> logger) : ITokenPriceCandleUpdateService
 {
     public async Task<Result> UpdateTokenPriceCandleAsync(string symbol, decimal newPrice)
     {
