@@ -6,7 +6,7 @@ namespace ArkWallet.Application.Contracts.TradeOrderServices
     /// <summary>
     /// Сервис для создания новых торговых ордеров
     /// </summary>
-    internal interface IOrderCreationService
+    public interface IOrderCreationService
     {
         /// <summary>
         /// Создает новый торговый ордер и обрабатывает его через торговый движок
@@ -50,7 +50,7 @@ namespace ArkWallet.Application.Contracts.TradeOrderServices
     /// </summary>
     /// <param name="IsFilled">True если ордер полностью исполнен немедленно</param>
     /// <param name="Order">DTO созданного ордера (только при успехе)</param>
-    internal record OrderCreationData(
+    public record OrderCreationData(
         bool IsFilled,
         OrderDto Order
     );
