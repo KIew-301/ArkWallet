@@ -1,5 +1,8 @@
-﻿using ArkWallet.Domain.ValueObjects;
+﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Tests.HelpTools;
+using Moq;
 
 namespace ArkWallet.Tests.ServiceTests;
 public class OrderCreationServiceTest
@@ -266,5 +269,127 @@ public class OrderCreationServiceTest
         Assert.Equal(2, orders.Length);
         Assert.Equal(500, trader.Balance);
         Assert.Equal(5, portfolio.Quantity);
+    }
+
+    [Fact]
+    public async Task CreateOrderAsync_WhenPriceUpdateFails_ReturnsFail()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
+
+        var mockTokenPriceCandleUpdateService = new Mock<ITokenPriceCandleUpdateService>();
+        mockTokenPriceCandleUpdateService
+            .Setup(x => x.UpdateTokenPriceCandleAsync(It.IsAny<string>(), It.IsAny<decimal>()))
+            .ReturnsAsync(Result.Fail("Ошибка обновления цены"));
+
+        await HelpMethods.PlaceOrder(
+            db, 102, "продать", "ZZZ", 5, 100,
+            tokenPriceCandleUpdateService: mockTokenPriceCandleUpdateService.Object);
+        var result = await HelpMethods.PlaceOrder(
+            db, 101, "купить", "ZZZ", 5, 100,
+            tokenPriceCandleUpdateService: mockTokenPriceCandleUpdateService.Object);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("Ошибка обновления цены", result.Message);
+    }
+
+    [Fact]
+    public async Task CreateOrderAsync_WhenPriceUpdateSuccess_UpdatesPriceByLastTrade()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
+
+        var mockTokenPriceCandleUpdateService = new Mock<ITokenPriceCandleUpdateService>();
+        mockTokenPriceCandleUpdateService
+            .Setup(x => x.UpdateTokenPriceCandleAsync(It.IsAny<string>(), It.IsAny<decimal>()))
+            .ReturnsAsync(Result.Ok());
+
+        var result = await HelpMethods.PlaceOrder(
+            db, 101, "купить", "ZZZ", 5, 100,
+            tokenPriceCandleUpdateService: mockTokenPriceCandleUpdateService.Object);
+
+        Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
+    public async Task CreateOrderAsync_WhenNoTrades_DoesNotUpdatePrice()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+
+        var mockTokenPriceCandleUpdateService = new Mock<ITokenPriceCandleUpdateService>();
+
+        var result = await HelpMethods.PlaceOrder(
+            db, 101, "купить", "ZZZ", 5, 100,
+            tokenPriceCandleUpdateService: mockTokenPriceCandleUpdateService.Object);
+
+        Assert.True(result.IsSuccess);
+
+        mockTokenPriceCandleUpdateService.Verify(
+            x => x.UpdateTokenPriceCandleAsync(It.IsAny<string>(), It.IsAny<decimal>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateOrderAsync_WithMultipleTrades_UpdatesPriceByLastTrade()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.RegisterTrader(db, 103);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 103, "ZZZ", 10);
+
+        decimal? lastUpdatedPrice = null;
+
+        var mockTokenPriceCandleUpdateService = new Mock<ITokenPriceCandleUpdateService>();
+        mockTokenPriceCandleUpdateService
+            .Setup(x => x.UpdateTokenPriceCandleAsync(It.IsAny<string>(), It.IsAny<decimal>()))
+            .Callback<string, decimal>((symbol, price) =>
+            {
+                lastUpdatedPrice = price;
+            })
+            .ReturnsAsync(Result.Ok());
+
+        await HelpMethods.PlaceOrder(
+            db, 101, "купить", "ZZZ", 5, 115,
+            tokenPriceCandleUpdateService: mockTokenPriceCandleUpdateService.Object);
+        await HelpMethods.PlaceOrder(
+            db, 102, "купить", "ZZZ", 5, 110,
+            tokenPriceCandleUpdateService: mockTokenPriceCandleUpdateService.Object);
+        await HelpMethods.PlaceOrder(
+            db, 103, "продать", "ZZZ", 5, 90,
+            tokenPriceCandleUpdateService: mockTokenPriceCandleUpdateService.Object);
+        await HelpMethods.PlaceOrder(
+            db, 101, "продать", "ZZZ", 5, 120,
+            tokenPriceCandleUpdateService: mockTokenPriceCandleUpdateService.Object);
+        await HelpMethods.PlaceOrder(
+            db, 101, "купить", "ZZZ", 5, 60,
+            tokenPriceCandleUpdateService: mockTokenPriceCandleUpdateService.Object);
+        await HelpMethods.PlaceOrder(
+            db, 103, "продать", "ZZZ", 5, 50,
+            tokenPriceCandleUpdateService: mockTokenPriceCandleUpdateService.Object);
+
+        Assert.Equal(110m, lastUpdatedPrice);
+
+        mockTokenPriceCandleUpdateService.Verify(
+            x => x.UpdateTokenPriceCandleAsync("ZZZ", It.IsAny<decimal>()),
+            Times.Exactly(2));
     }
 }

@@ -22,7 +22,7 @@ namespace ArkWallet.Infrastructure.Wizard
         // ORDER SERVICES
         private readonly IOrderValidationService _orderValidationService;
         private readonly IOrderCreationService _orderCreationService;
-        private readonly IOrderCancelService _cancelOrderService;
+        private readonly IOrderCancellationService _cancelOrderService;
 
         // PORTFOLIO & TOKEN SERVICES
         private readonly IPortfolioQueryService _portfolioQueryService;
@@ -42,7 +42,7 @@ namespace ArkWallet.Infrastructure.Wizard
             ITraderBalanceUpdatingService traderBalanceUpdatingService,
             IOrderValidationService orderValidationService,
             IOrderCreationService orderCreationService,
-            IOrderCancelService cancelOrderService,
+            IOrderCancellationService cancelOrderService,
             IPortfolioQueryService portfolioQueryService,
             IPortfolioUpdatingService portfolioUpdatingService,
             ITokenCreationService tokenCreationServices,

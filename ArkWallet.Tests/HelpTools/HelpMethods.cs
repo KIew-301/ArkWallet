@@ -73,7 +73,8 @@ internal class HelpMethods
     }
 
     public static async Task<Result<OrderCreationData>> PlaceOrder(ArkWalletDbContext db, long traderId, string direction,
-        string symbol, int quantity, decimal price)
+        string symbol, int quantity, decimal price, ITokenPriceCandleUpdateService? tokenPriceCandleUpdateService = null
+    )
     {
         var engine = new TradingEngine();
         var mockValidator = new Mock<IOrderCreationFullValidationService>();
@@ -83,7 +84,17 @@ internal class HelpMethods
         var mockTaskDispatcher = new Mock<ITaskDispatcher>();
         mockTaskDispatcher
             .Setup(x => x.SendTaskAsync(It.IsAny<string>(), It.IsAny<object>()));
-        var service = new OrderCreationService(db, engine, mockValidator.Object, mockTaskDispatcher.Object);
+
+        if (tokenPriceCandleUpdateService == null)
+        {
+            var mockTokenPriceCandleUpdateService = new Mock<ITokenPriceCandleUpdateService>();
+            mockTokenPriceCandleUpdateService
+                .Setup(x => x.UpdateTokenPriceCandleAsync(It.IsAny<string>(), It.IsAny<decimal>()))
+                .ReturnsAsync(new Result(true, "Success"));
+            tokenPriceCandleUpdateService = mockTokenPriceCandleUpdateService.Object;
+        }    
+
+        var service = new OrderCreationService(db, engine, mockValidator.Object, tokenPriceCandleUpdateService, mockTaskDispatcher.Object);
         return await service.CreateOrderAsync(new CreateOrderCommand(traderId, direction, symbol, quantity, price));
     }
 
@@ -107,13 +118,13 @@ internal class HelpMethods
 
     public static async Task<Result> CancelOrder(ArkWalletDbContext db, long traderId, string orderId)
     {
-        var service = new OrderCancelService(db);
+        var service = new OrderCancellationService(db);
         return await service.CancelOrderAsync(traderId, orderId);
     }
 
     public static async Task<Result> CancelOrder(ArkWalletDbContext db, long traderId, Result<OrderCreationData> result)
     {
-        var service = new OrderCancelService(db);
+        var service = new OrderCancellationService(db);
         if (!result.TryGetData(out var data))
             return Result.Fail("Отсутствует созданный ордер");
         return await service.CancelOrderAsync(traderId, data.Order.Id);
@@ -121,7 +132,7 @@ internal class HelpMethods
 
     public static async Task<Result> CancelAllOrders(ArkWalletDbContext db, long traderId)
     {
-        var service = new OrderCancelService(db);
+        var service = new OrderCancellationService(db);
         return await service.CancelAllOrderAsync(traderId);
     }
 

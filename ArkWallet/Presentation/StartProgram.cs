@@ -116,7 +116,7 @@ class Program
         builder.Services.AddScoped<IQuantitySuggestionService, QuantitySuggestionService>();
 
         // TradeOrderServices
-        builder.Services.AddScoped<IOrderCancelService, OrderCancelService>();
+        builder.Services.AddScoped<IOrderCancellationService, OrderCancellationService>();
         builder.Services.AddScoped<IOrderCreationService, OrderCreationService>();
         builder.Services.AddScoped<IOrderValidationService, OrderValidationService>();
 

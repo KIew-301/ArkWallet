@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace ArkWallet.Application.Services.TradeOrderServices;
 using static Result;
 
-internal class OrderCancelService(ArkWalletDbContext dbContext) : IOrderCancelService
+internal class OrderCancellationService(ArkWalletDbContext dbContext) : IOrderCancellationService
 {
     public async Task<Result> CancelOrderAsync(long traderId, string orderId)
     {
