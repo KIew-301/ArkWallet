@@ -73,7 +73,8 @@ internal class HelpMethods
     }
 
     public static async Task<Result<OrderCreationData>> PlaceOrder(ArkWalletDbContext db, long traderId, string direction,
-        string symbol, int quantity, decimal price)
+        string symbol, int quantity, decimal price, ITokenPriceCandleUpdateService? tokenPriceCandleUpdateService = null
+    )
     {
         var engine = new TradingEngine();
         var mockValidator = new Mock<IOrderCreationFullValidationService>();
@@ -83,7 +84,17 @@ internal class HelpMethods
         var mockTaskDispatcher = new Mock<ITaskDispatcher>();
         mockTaskDispatcher
             .Setup(x => x.SendTaskAsync(It.IsAny<string>(), It.IsAny<object>()));
-        var service = new OrderCreationService(db, engine, mockValidator.Object, mockTaskDispatcher.Object);
+
+        if (tokenPriceCandleUpdateService == null)
+        {
+            var mockTokenPriceCandleUpdateService = new Mock<ITokenPriceCandleUpdateService>();
+            mockTokenPriceCandleUpdateService
+                .Setup(x => x.UpdateTokenPriceCandleAsync(It.IsAny<string>(), It.IsAny<decimal>()))
+                .ReturnsAsync(new Result(true, "Success"));
+            tokenPriceCandleUpdateService = mockTokenPriceCandleUpdateService.Object;
+        }    
+
+        var service = new OrderCreationService(db, engine, mockValidator.Object, tokenPriceCandleUpdateService, mockTaskDispatcher.Object);
         return await service.CreateOrderAsync(new CreateOrderCommand(traderId, direction, symbol, quantity, price));
     }
 
