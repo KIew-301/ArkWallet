@@ -1,4 +1,5 @@
 ﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Dtos;
@@ -15,6 +16,7 @@ using static ArkWallet.Application.Common.Result<OrderCreationData>;
 internal class OrderCreationService(
     ArkWalletDbContext dbContext, TradingEngine tradingEngine,
     IOrderCreationFullValidationService orderCreationFullValidationService,
+    ITokenPriceCandleUpdateService tokenPriceCandleUpdateService,
     ITaskDispatcher taskDispatcher) : IOrderCreationService
 {
     public async Task<Result<OrderCreationData>> CreateOrderAsync(CreateOrderCommand command)
@@ -67,6 +69,15 @@ internal class OrderCreationService(
 
             if (!engineResult.IsSuccess)
                 return Fail("Не удалось выставить ордер");
+
+            if (engineResult.Trades.Count > 0)
+            {
+                var tokenPriceUpdateResult = await tokenPriceCandleUpdateService
+                    .UpdateTokenPriceCandleAsync(command.Symbol, engineResult.Trades.Last().Price);
+
+                if (!tokenPriceUpdateResult.IsSuccess)
+                    return Fail(tokenPriceUpdateResult.Message);
+            }
 
             await SaveTradingResultAsync(engineResult);
 
