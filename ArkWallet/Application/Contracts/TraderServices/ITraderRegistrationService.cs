@@ -12,6 +12,7 @@ namespace ArkWallet.Application.Contracts.TraderServices
         /// </summary>
         /// <param name="telegramId">ID пользователя в Telegram</param>
         /// <param name="name">Имя пользователя</param>
+        /// <param name="enableNotyfi">Включить уведомления пользователя</param>
         /// <returns>Результат операции регистрации</returns>
         /// <remarks>
         /// <para>
@@ -25,7 +26,7 @@ namespace ArkWallet.Application.Contracts.TraderServices
         /// Использует доменный метод Create для создания сущности трейдера.
         /// </para>
         /// </remarks>
-        Task<Result> RegisterTraderAsync(long telegramId, string name);
+        Task<Result> RegisterTraderAsync(long telegramId, string name, bool enableNotyfi = true);
 
         /// <summary>
         /// Проверяет, зарегистрирован ли трейдер с указанным Telegram ID

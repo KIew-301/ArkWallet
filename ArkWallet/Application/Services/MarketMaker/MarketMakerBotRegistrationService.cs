@@ -28,7 +28,7 @@ internal class MarketMakerBotRegistrationService(
             if (initialPower <= 0)
                 return Fail("Начальная мощность должна быть больше нуля");
 
-            var registrationResult = await traderRegistrationService.RegisterTraderAsync(telegramFakeId, $"MarketMakerBot_{symbol}");
+            var registrationResult = await traderRegistrationService.RegisterTraderAsync(telegramFakeId, $"MarketMakerBot_{symbol}", false);
 
             if (!registrationResult.IsSuccess)
                 return Fail($"Не удалось зарегистрировать трейдера: {registrationResult.Message}");
