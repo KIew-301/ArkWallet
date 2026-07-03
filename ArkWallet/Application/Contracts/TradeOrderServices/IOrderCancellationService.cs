@@ -5,7 +5,7 @@ namespace ArkWallet.Application.Contracts.TradeOrderServices;
 /// <summary>
 /// Сервис для отмены торговых ордеров
 /// </summary>
-internal interface IOrderCancellationService
+public interface IOrderCancellationService
 {
     /// <summary>
     /// Отменяет конкретный ордер по его идентификатору

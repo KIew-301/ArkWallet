@@ -8,7 +8,10 @@ namespace ArkWallet.Presentation.API
 {
     [ApiController]
     [Route("api/v1/[controller]")]
-    public class OrdersController(IOrderQueryService orderQueryService, IOrderCreationService orderCreationService) : ControllerBase
+    public class OrdersController(
+        IOrderQueryService orderQueryService, 
+        IOrderCreationService orderCreationService,
+        IOrderCancellationService orderCancellationService) : ControllerBase
     {
         [Authorize]
         [HttpGet("order")]
@@ -42,6 +45,36 @@ namespace ArkWallet.Presentation.API
                 return BadRequest(result.Message);
 
             return Ok(new CreateOrderResponse(data.Order.Id, data.IsFilled));
+        }
+
+        [Authorize]
+        [HttpDelete("order/{orderId}")]
+        public async Task<IActionResult> CancelOrder(string orderId)
+        {
+            if (!long.TryParse(User?.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userTelegramId))
+                return Unauthorized();
+
+            var result = await orderCancellationService.CancelOrderAsync(userTelegramId, orderId);
+
+            if (!result.IsSuccess)
+                return BadRequest(result.Message);
+
+            return Ok(new { Message = "Ордер успешно отменён" });
+        }
+
+        [Authorize]
+        [HttpDelete("orders")]
+        public async Task<IActionResult> CancelAllOrders()
+        {
+            if (!long.TryParse(User?.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userTelegramId))
+                return Unauthorized();
+
+            var result = await orderCancellationService.CancelAllOrderAsync(userTelegramId);
+
+            if (!result.IsSuccess)
+                return BadRequest(result.Message);
+
+            return Ok(new { Message = "Все ордера успешно отменены" });
         }
     }
 }
