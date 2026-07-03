@@ -20,7 +20,7 @@ public class MarketMakerBotRegistrationServiceTest
 
         var mockRegistrationService = new Mock<ITraderRegistrationService>();
         mockRegistrationService
-            .Setup(x => x.RegisterTraderAsync(It.IsAny<long>(), It.IsAny<string>()))
+            .Setup(x => x.RegisterTraderAsync(It.IsAny<long>(), It.IsAny<string>(), It.IsAny<bool>()))
             .ReturnsAsync(Result.Ok());
 
         var logger = NullLogger<MarketMakerBotRegistrationService>.Instance;
@@ -73,7 +73,7 @@ public class MarketMakerBotRegistrationServiceTest
 
         var mockRegistrationService = new Mock<ITraderRegistrationService>();
         mockRegistrationService
-            .Setup(x => x.RegisterTraderAsync(It.IsAny<long>(), It.IsAny<string>()))
+            .Setup(x => x.RegisterTraderAsync(It.IsAny<long>(), It.IsAny<string>(), It.IsAny<bool>()))
             .ReturnsAsync(Result.Fail("Registration error"));
 
         var logger = NullLogger<MarketMakerBotRegistrationService>.Instance;

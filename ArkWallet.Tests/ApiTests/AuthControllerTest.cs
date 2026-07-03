@@ -81,7 +81,7 @@ public class AuthControllerTest
             .Setup(x => x.CheckTraderAlreadyRegistered(It.IsAny<long>()))
             .ReturnsAsync(isTraderRegistered);
         mockTraderRegistrationService
-            .Setup(x => x.RegisterTraderAsync(It.IsAny<long>(), It.IsAny<string>()))
+            .Setup(x => x.RegisterTraderAsync(It.IsAny<long>(), It.IsAny<string>(), It.IsAny<bool>()))
             .ReturnsAsync(canRegister ? Result.Ok() : Result.Fail("Ошибка регистрации"));
 
         var mockTokenService = new Mock<ITokenService>();

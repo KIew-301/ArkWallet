@@ -85,7 +85,8 @@ internal class OrderCreationService(
 
             var result = OrderDto.FromEntity(engineResult.OrderToAdd);
 
-            await taskDispatcher.SendTaskAsync("notification", NotificationEvent.FromOrderList(engineResult.UpdatedOrders));
+            if (trader.NotificationOn)
+                await taskDispatcher.SendTaskAsync("notification", NotificationEvent.FromOrderList(engineResult.UpdatedOrders));
 
             return Ok(new(order.IsFilled(), result));
         }
