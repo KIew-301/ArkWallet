@@ -18,7 +18,7 @@ internal class MarketMakerBot
     /// <summary>Время следующего изменения мощности</summary>
     public DateTime NextPowerChange { get; private set; }
 
-    /// <summary>Время следующей балансировки</summary>
+    /// <summary>Время обновления сетки</summary>
     public DateTime NextRebalance { get; private set; }
 
     /// <summary>Активен ли бот</summary>
@@ -36,7 +36,6 @@ internal class MarketMakerBot
             BasePower = initialPower,
             Role = botRole,
             NextPowerChange = DateTime.UtcNow.AddMinutes(Random.Shared.Next(20, 60)),
-            NextRebalance = DateTime.UtcNow.AddMinutes(Random.Shared.Next(10, 30))
         };
     }
 
@@ -48,15 +47,10 @@ internal class MarketMakerBot
         NextPowerChange = DateTime.UtcNow.AddMinutes(Random.Shared.Next(20, 60));
     }
 
-    /// <summary>Устанавливает направление на основе баланса портфеля</summary>
-    public void UpdateDirection(decimal balance, decimal balanceInTokens)
+    /// <summary>Обновляет время обновления сетки</summary>
+    public void UpdateRebalanced()
     {
-        if (balanceInTokens >= balance)
-            Role = BotRole.Seller;
-        else
-            Role = BotRole.Buyer;
-
-        NextRebalance = DateTime.UtcNow.AddMinutes(Random.Shared.Next(10, 180));
+        NextRebalance = DateTime.UtcNow.AddHours(1);
     }
 }
 

@@ -12,6 +12,7 @@ internal class ArkWalletDbContext : DbContext
     public DbSet<TradeOrder> TradeOrders { get; set; }
     public DbSet<PriceCandle> PriceCandles { get; set; }
     public DbSet<BalanceSnapshot> BalanceSnapshots { get; set; }
+    public DbSet<MarketMakerBot> MarketMakerBots { get; set; }
 
     public ArkWalletDbContext(DbContextOptions<ArkWalletDbContext> options) : base(options)
     {
