@@ -26,6 +26,8 @@ public class MarketMakerOrderServiceTest
         await HelpMethods.AddPortfolio(db, 102, "ZZZ", 100);
 
         var bot = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 50);
+        await db.MarketMakerBots.AddAsync(bot);
+        await db.SaveChangesAsync();
 
         var mockOrderCreationService = new Mock<IOrderCreationService>();
         mockOrderCreationService
@@ -44,7 +46,7 @@ public class MarketMakerOrderServiceTest
         var logger = NullLogger<MarketMakerOrderService>.Instance;
         var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, logger);
 
-        var result = await service.ExecuteMarketOrderAsync(bot);
+        var result = await service.ExecuteMarketOrderAsync((int)bot.TraderId, bot.Symbol);
 
         Assert.True(result.IsSuccess, result.Message);
 
@@ -65,6 +67,8 @@ public class MarketMakerOrderServiceTest
         await HelpMethods.GiveMoney(db, 102, 10000);
 
         var bot = MarketMakerBot.Create(101, "ZZZ", BotRole.Seller, 50);
+        await db.MarketMakerBots.AddAsync(bot);
+        await db.SaveChangesAsync();
 
         var mockOrderCreationService = new Mock<IOrderCreationService>();
         mockOrderCreationService
@@ -83,7 +87,7 @@ public class MarketMakerOrderServiceTest
         var logger = NullLogger<MarketMakerOrderService>.Instance;
         var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, logger);
 
-        var result = await service.ExecuteMarketOrderAsync(bot);
+        var result = await service.ExecuteMarketOrderAsync((int)bot.TraderId, bot.Symbol);
 
         Assert.True(result.IsSuccess, result.Message);
 
@@ -93,21 +97,39 @@ public class MarketMakerOrderServiceTest
     }
 
     [Fact]
-    public async Task ExecuteMarketOrderAsync_TokenNotFound_ReturnsFail()
+    public async Task ExecuteMarketOrderAsync_BotNotFound_ReturnsFail()
     {
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
-
-        var bot = MarketMakerBot.Create(101, "UNKNOWN", BotRole.Buyer, 50);
 
         var mockOrderCreationService = new Mock<IOrderCreationService>();
         var logger = NullLogger<MarketMakerOrderService>.Instance;
         var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, logger);
 
-        var result = await service.ExecuteMarketOrderAsync(bot);
+        var result = await service.ExecuteMarketOrderAsync(101, "ZZZ");
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("Токен UNKNOWN не найден", result.Message);
+        Assert.Equal("Бот для трейдера 101 и токена ZZZ не найден", result.Message);
+    }
+
+    [Fact]
+    public async Task ExecuteMarketOrderAsync_TokenNotFound_ReturnsFail()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var bot = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 50);
+        await db.MarketMakerBots.AddAsync(bot);
+        await db.SaveChangesAsync();
+
+        var mockOrderCreationService = new Mock<IOrderCreationService>();
+        var logger = NullLogger<MarketMakerOrderService>.Instance;
+        var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, logger);
+
+        var result = await service.ExecuteMarketOrderAsync((int)bot.TraderId, bot.Symbol);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("Токен ZZZ не найден", result.Message);
     }
 
     [Fact]
@@ -122,6 +144,8 @@ public class MarketMakerOrderServiceTest
         await HelpMethods.AddPortfolio(db, 102, "ZZZ", 100);
 
         var bot = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 50);
+        await db.MarketMakerBots.AddAsync(bot);
+        await db.SaveChangesAsync();
 
         var mockOrderCreationService = new Mock<IOrderCreationService>();
         mockOrderCreationService
@@ -140,7 +164,7 @@ public class MarketMakerOrderServiceTest
         var logger = NullLogger<MarketMakerOrderService>.Instance;
         var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, logger);
 
-        await service.ExecuteMarketOrderAsync(bot);
+        await service.ExecuteMarketOrderAsync((int)bot.TraderId, bot.Symbol);
 
         mockOrderCreationService.Verify(
             x => x.CreateOrderAsync(It.Is<CreateOrderCommand>(c => c.Quantity == 15)),
@@ -159,6 +183,8 @@ public class MarketMakerOrderServiceTest
         await HelpMethods.AddPortfolio(db, 102, "ZZZ", 100);
 
         var bot = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 50);
+        await db.MarketMakerBots.AddAsync(bot);
+        await db.SaveChangesAsync();
 
         var mockOrderCreationService = new Mock<IOrderCreationService>();
         mockOrderCreationService
@@ -168,7 +194,7 @@ public class MarketMakerOrderServiceTest
         var logger = NullLogger<MarketMakerOrderService>.Instance;
         var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, logger);
 
-        var result = await service.ExecuteMarketOrderAsync(bot);
+        var result = await service.ExecuteMarketOrderAsync((int)bot.TraderId, bot.Symbol);
 
         Assert.False(result.IsSuccess);
         Assert.Equal("Не удалось создать ордер: Order creation failed", result.Message);
