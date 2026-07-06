@@ -65,8 +65,8 @@ namespace ArkWallet.Domain.Engines
                 UpdateTradersAndPortfolios(traders, portfolios, trade, tradeQuantity, tradePrice, newOrder.Price);
 
                 // ОБНОВЛЯЕМ ОРДЕРА
-                UpdateOrderFill(newOrder, tradeQuantity);
-                UpdateOrderFill(match, tradeQuantity);
+                newOrder.UpdateOrderFill(tradeQuantity, trade.Price);
+                match.UpdateOrderFill(tradeQuantity, trade.Price);
 
                 remainingQuantity -= tradeQuantity;
             }
@@ -171,14 +171,6 @@ namespace ArkWallet.Domain.Engines
             };
         }
 
-        private void UpdateOrderFill(TradeOrder order, int filledQuantity)
-        {
-            order.FilledQuantity += filledQuantity;
-            if (order.IsFilled())
-            {
-                order.MarkAsFilled();
-            }
-        }
         private OrderBook CreateOrderBook(string characterTokenId)
         {
             return _orderBooks[characterTokenId] = new OrderBook();
