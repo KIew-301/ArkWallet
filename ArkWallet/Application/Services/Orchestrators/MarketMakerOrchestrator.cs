@@ -213,11 +213,6 @@ internal class MarketMakerOrchestrator(
                             && o.Status == OrderStatus.Active)
                 .ToListAsync();
 
-            foreach (var order in existingOrders)
-            {
-                order.Cancel(bot.TraderId);
-            }
-
             var commands = marketMakerGridEngine.GetOrdersToPlace(bot, token.CurrentPrice, existingOrders);
 
             foreach (var command in commands)
