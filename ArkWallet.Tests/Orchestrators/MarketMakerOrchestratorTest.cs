@@ -5,6 +5,7 @@ using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Dtos;
 using ArkWallet.Application.Services.Orchestrators;
 using ArkWallet.Domain.Entities;
+using ArkWallet.Domain.Engines;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Tests.HelpTools;
@@ -17,6 +18,8 @@ namespace ArkWallet.Tests.Orchestrators;
 
 public class MarketMakerOrchestratorTest
 {
+    private readonly FixedGridEngine _fixedGridEngine = new();
+
     [Fact]
     public async Task EnsureBotsRegisteredAsync_WhenBotsNotExist_RegistersThem()
     {
@@ -33,6 +36,7 @@ public class MarketMakerOrchestratorTest
         var orchestrator = new MarketMakerOrchestrator(
             db,
             mockBotRegistrationService.Object,
+            null!,
             null!,
             null!,
             null!,
@@ -70,6 +74,7 @@ public class MarketMakerOrchestratorTest
             null!,
             null!,
             null!,
+            null!,
             logger);
 
         var result = await orchestrator.EnsureBotsRegisteredAsync();
@@ -101,6 +106,7 @@ public class MarketMakerOrchestratorTest
         var orchestrator = new MarketMakerOrchestrator(
             db,
             mockBotRegistrationService.Object,
+            null!,
             null!,
             null!,
             null!,
@@ -137,6 +143,7 @@ public class MarketMakerOrchestratorTest
             null!,
             null!,
             null!,
+            null!,
             logger);
 
         var result = await orchestrator.EnsureBotsRegisteredAsync();
@@ -161,6 +168,7 @@ public class MarketMakerOrchestratorTest
             db,
             null!,
             mockPortfolioUpdatingService.Object,
+            null!,
             null!,
             null!,
             logger);
@@ -191,6 +199,7 @@ public class MarketMakerOrchestratorTest
             db,
             null!,
             mockPortfolioUpdatingService.Object,
+            null!,
             null!,
             null!,
             logger);
@@ -226,6 +235,7 @@ public class MarketMakerOrchestratorTest
             mockPortfolioUpdatingService.Object,
             null!,
             null!,
+            null!,
             logger);
 
         var result = await orchestrator.EnsureTraderBalancesAsync();
@@ -256,6 +266,7 @@ public class MarketMakerOrchestratorTest
             db,
             null!,
             mockPortfolioUpdatingService.Object,
+            null!,
             null!,
             null!,
             logger);
@@ -291,6 +302,7 @@ public class MarketMakerOrchestratorTest
             mockPortfolioUpdatingService.Object,
             null!,
             null!,
+            null!,
             logger);
 
         var result = await orchestrator.EnsureTraderBalancesAsync();
@@ -308,6 +320,7 @@ public class MarketMakerOrchestratorTest
         var logger = NullLogger<MarketMakerOrchestrator>.Instance;
         var orchestrator = new MarketMakerOrchestrator(
             db,
+            null!,
             null!,
             null!,
             null!,
@@ -337,6 +350,7 @@ public class MarketMakerOrchestratorTest
             null!,
             null!,
             null!,
+            null!,
             logger);
 
         var result = await orchestrator.UpdateAllBotsGridAsync();
@@ -356,6 +370,9 @@ public class MarketMakerOrchestratorTest
         var bot = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 20);
         await db.MarketMakerBots.AddAsync(bot);
         await db.SaveChangesAsync();
+
+        var fixedGridEngine = new FixedGridEngine();
+        var marketMakerGridEngine = new MarketMakerGridEngine(fixedGridEngine);
 
         var mockOrderCreationService = new Mock<IOrderCreationService>();
         mockOrderCreationService
@@ -378,6 +395,7 @@ public class MarketMakerOrchestratorTest
             null!,
             mockOrderCreationService.Object,
             null!,
+            marketMakerGridEngine,
             logger);
 
         var result = await orchestrator.UpdateAllBotsGridAsync();
@@ -401,6 +419,9 @@ public class MarketMakerOrchestratorTest
         await db.MarketMakerBots.AddAsync(bot);
         await db.SaveChangesAsync();
 
+        var fixedGridEngine = new FixedGridEngine();
+        var marketMakerGridEngine = new MarketMakerGridEngine(fixedGridEngine);
+
         var mockOrderCreationService = new Mock<IOrderCreationService>();
         mockOrderCreationService
             .Setup(x => x.CreateOrderAsync(It.IsAny<CreateOrderCommand>()))
@@ -413,6 +434,7 @@ public class MarketMakerOrchestratorTest
             null!,
             mockOrderCreationService.Object,
             null!,
+            marketMakerGridEngine,
             logger);
 
         var result = await orchestrator.UpdateAllBotsGridAsync();
@@ -429,6 +451,7 @@ public class MarketMakerOrchestratorTest
         var logger = NullLogger<MarketMakerOrchestrator>.Instance;
         var orchestrator = new MarketMakerOrchestrator(
             db,
+            null!,
             null!,
             null!,
             null!,
@@ -460,6 +483,9 @@ public class MarketMakerOrchestratorTest
         await db.MarketMakerBots.AddAsync(bot);
         await db.SaveChangesAsync();
 
+        var fixedGridEngine = new FixedGridEngine();
+        var marketMakerGridEngine = new MarketMakerGridEngine(fixedGridEngine);
+
         var mockOrderCreationService = new Mock<IOrderCreationService>();
         mockOrderCreationService
             .Setup(x => x.CreateOrderAsync(It.IsAny<CreateOrderCommand>()))
@@ -486,6 +512,7 @@ public class MarketMakerOrchestratorTest
             null!,
             mockOrderCreationService.Object,
             mockMarketMakerOrderService.Object,
+            marketMakerGridEngine,
             logger);
 
         var result = await orchestrator.ProcessBotsAsync();
@@ -517,6 +544,9 @@ public class MarketMakerOrchestratorTest
         await db.MarketMakerBots.AddAsync(bot);
         await db.SaveChangesAsync();
 
+        var fixedGridEngine = new FixedGridEngine();
+        var marketMakerGridEngine = new MarketMakerGridEngine(fixedGridEngine);
+
         var mockOrderCreationService = new Mock<IOrderCreationService>();
         mockOrderCreationService
             .Setup(x => x.CreateOrderAsync(It.IsAny<CreateOrderCommand>()))
@@ -543,6 +573,7 @@ public class MarketMakerOrchestratorTest
             null!,
             mockOrderCreationService.Object,
             mockMarketMakerOrderService.Object,
+            marketMakerGridEngine,
             logger);
 
         var result = await orchestrator.ProcessBotsAsync();

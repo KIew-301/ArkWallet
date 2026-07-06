@@ -21,10 +21,9 @@ internal class MarketMakerOrchestrator(
     IPortfolioUpdatingService portfolioUpdatingService,
     IOrderCreationService orderCreationService,
     IMarketMakerOrderService marketMakerOrderService,
+    MarketMakerGridEngine marketMakerGridEngine,
     ILogger<MarketMakerOrchestrator> logger) : IMarketMakerOrchestrator
 {
-    private readonly MarketMakerGridEngine _gridEngine = new();
-
     public async Task<Result> EnsureBotsRegisteredAsync()
     {
         try
@@ -219,7 +218,7 @@ internal class MarketMakerOrchestrator(
                 order.Cancel(bot.TraderId);
             }
 
-            var commands = _gridEngine.GetOrdersToPlace(bot, token.CurrentPrice, existingOrders);
+            var commands = marketMakerGridEngine.GetOrdersToPlace(bot, token.CurrentPrice, existingOrders);
 
             foreach (var command in commands)
             {
