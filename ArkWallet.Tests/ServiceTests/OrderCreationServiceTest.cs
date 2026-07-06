@@ -2,7 +2,9 @@
 using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Tests.HelpTools;
+using Microsoft.EntityFrameworkCore;
 using Moq;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ArkWallet.Tests.ServiceTests;
 public class OrderCreationServiceTest
@@ -391,5 +393,60 @@ public class OrderCreationServiceTest
         mockTokenPriceCandleUpdateService.Verify(
             x => x.UpdateTokenPriceCandleAsync("ZZZ", It.IsAny<decimal>()),
             Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task ProcessOrderAsync_CalculatesAverageExecutionPrice_ForMultipleMatches()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101, "Buyer");
+        await HelpMethods.RegisterTrader(db, 102, "Seller1");
+        await HelpMethods.RegisterTrader(db, 103, "Seller2");
+        await HelpMethods.RegisterTrader(db, 104, "Seller3");
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 103, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 104, "ZZZ", 10);
+        await HelpMethods.GiveMoney(db, 101, 10000);
+
+        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 90);
+        await HelpMethods.PlaceOrder(db, 103, "продать", "ZZZ", 4, 95);
+        await HelpMethods.PlaceOrder(db, 104, "продать", "ZZZ", 5, 100);
+
+        var result = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 10, 100);
+
+        Assert.True(result.TryGetData(out var data));
+
+        var order = await db.TradeOrders.FirstOrDefaultAsync(o => o.Id == data.Order.Id);
+        Assert.NotNull(order);
+        Assert.Equal(95m, order.AverageExecutePrice);
+    }
+
+    [Fact]
+    public async Task ProcessOrderAsync_CalculatesAverageExecutionPrice_ForPartialFill()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101, "Buyer");
+        await HelpMethods.RegisterTrader(db, 102, "Seller1");
+        await HelpMethods.RegisterTrader(db, 103, "Seller2");
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 103, "ZZZ", 10);
+        await HelpMethods.GiveMoney(db, 101, 10000);
+
+        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 90);
+        await HelpMethods.PlaceOrder(db, 103, "продать", "ZZZ", 4, 95);
+
+        var result = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+
+        Assert.True(result.TryGetData(out var data));
+
+        var order = await db.TradeOrders.FirstOrDefaultAsync(o => o.Id == data.Order.Id);
+        Assert.NotNull(order);
+        Assert.Equal(92m, order.AverageExecutePrice);
     }
 }
