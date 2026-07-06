@@ -3,7 +3,7 @@ using ArkWallet.Domain.Entities;
 
 namespace ArkWallet.Domain.Engines;
 
-internal class MarketMakerGridEngine
+internal class MarketMakerGridEngine(FixedGridEngine fixedGridEngine)
 {
     private readonly Random _random = new();
 
@@ -11,15 +11,13 @@ internal class MarketMakerGridEngine
         MarketMakerBot bot,
         decimal currentPrice,
         List<TradeOrder> existingOrders,
-        int stepsCount = 20,
-        decimal minPricePercent = 0.8m,
-        decimal maxPricePercent = 1.2m)
+        int stepsCount = 20)
     {
         var commands = new List<CreateOrderCommand>();
 
         if (bot.Role == BotRole.Buyer)
         {
-            var grid = GenerateGrid(currentPrice, stepsCount, minPricePercent, true);
+            var grid = fixedGridEngine.GetGridBelowPrice(currentPrice, stepsCount + 1);
 
             for (int i = 0; i < grid.Count - 1; i++)
             {
@@ -36,14 +34,14 @@ internal class MarketMakerGridEngine
                         "купить",
                         bot.Symbol,
                         quantity,
-                        Math.Round(price, 2)
+                        price
                     ));
                 }
             }
         }
         else if (bot.Role == BotRole.Seller)
         {
-            var grid = GenerateGrid(currentPrice, stepsCount, maxPricePercent, false);
+            var grid = fixedGridEngine.GetGridAbovePrice(currentPrice, stepsCount);
 
             for (int i = 0; i < grid.Count - 1; i++)
             {
@@ -60,35 +58,13 @@ internal class MarketMakerGridEngine
                         "продать",
                         bot.Symbol,
                         quantity,
-                        Math.Round(price, 2)
+                        price
                     ));
                 }
             }
         }
 
         return commands;
-    }
-
-    private List<decimal> GenerateGrid(decimal currentPrice, int stepsCount, decimal limitPercent, bool isBuyer)
-    {
-        var grid = new List<decimal>();
-        var price = currentPrice;
-        var limitPrice = currentPrice * limitPercent;
-
-        for (int i = 0; i <= stepsCount; i++)
-        {
-            var step = price * 0.001m;
-            price = isBuyer ? price - step : price + step;
-
-            if (isBuyer && price < limitPrice)
-                break;
-            if (!isBuyer && price > limitPrice)
-                break;
-
-            grid.Add(price);
-        }
-
-        return grid;
     }
 
     private decimal GetRandomPriceInRange(decimal lowerBound, decimal upperBound)
