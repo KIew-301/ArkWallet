@@ -2,5 +2,9 @@
 
 namespace ArkWallet.Presentation.DTOs
 {
+    /// <summary>
+    /// Ответ со списком токенов
+    /// </summary>
+    /// <param name="Tokens">Массив токенов</param>
     public record GetTokenListResponse(TokenInfo[] Tokens);
 }

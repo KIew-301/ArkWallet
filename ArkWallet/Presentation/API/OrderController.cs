@@ -6,6 +6,9 @@ using System.Security.Claims;
 
 namespace ArkWallet.Presentation.API
 {
+    /// <summary>
+    /// Контроллер для управления ордерами
+    /// </summary>
     [ApiController]
     [Route("api/v1/[controller]")]
     public class OrdersController(
@@ -13,6 +16,14 @@ namespace ArkWallet.Presentation.API
         IOrderCreationService orderCreationService,
         IOrderCancellationService orderCancellationService) : ControllerBase
     {
+        /// <summary>
+        /// Получение списка ордеров текущего пользователя
+        /// </summary>
+        /// <param name="request">Параметры фильтрации по статусам</param>
+        /// <returns>Список ордеров</returns>
+        /// <response code="200">Список ордеров успешно получен</response>
+        /// <response code="401">Пользователь не авторизован</response>
+        /// <response code="400">Ошибка получения данных</response>
         [Authorize]
         [HttpGet("order")]
         public async Task<IActionResult> GetOrders([FromQuery] GetOrdersRequest request)
@@ -29,6 +40,14 @@ namespace ArkWallet.Presentation.API
             return Ok(new GetOrdersResponse(data.ToArray()));
         }
 
+        /// <summary>
+        /// Создание нового ордера
+        /// </summary>
+        /// <param name="request">Параметры ордера</param>
+        /// <returns>ID созданного ордера и статус исполнения</returns>
+        /// <response code="200">Ордер успешно создан</response>
+        /// <response code="401">Пользователь не авторизован</response>
+        /// <response code="400">Ошибка создания ордера</response>
         [Authorize]
         [HttpPost("order")]
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
@@ -47,6 +66,14 @@ namespace ArkWallet.Presentation.API
             return Ok(new CreateOrderResponse(data.Order.Id, data.IsFilled));
         }
 
+        /// <summary>
+        /// Отмена конкретного ордера
+        /// </summary>
+        /// <param name="orderId">ID ордера для отмены</param>
+        /// <returns>Сообщение об успешной отмене</returns>
+        /// <response code="200">Ордер успешно отменён</response>
+        /// <response code="401">Пользователь не авторизован</response>
+        /// <response code="400">Ошибка отмены ордера</response>
         [Authorize]
         [HttpDelete("order/{orderId}")]
         public async Task<IActionResult> CancelOrder(string orderId)
@@ -62,6 +89,13 @@ namespace ArkWallet.Presentation.API
             return Ok(new { Message = "Ордер успешно отменён" });
         }
 
+        /// <summary>
+        /// Отмена всех активных ордеров текущего пользователя
+        /// </summary>
+        /// <returns>Сообщение об успешной отмене</returns>
+        /// <response code="200">Все ордера успешно отменены</response>
+        /// <response code="401">Пользователь не авторизован</response>
+        /// <response code="400">Ошибка отмены ордеров</response>
         [Authorize]
         [HttpDelete("orders")]
         public async Task<IActionResult> CancelAllOrders()

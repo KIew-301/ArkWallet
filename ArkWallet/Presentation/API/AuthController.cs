@@ -6,6 +6,9 @@ using Microsoft.Extensions.Configuration;
 
 namespace ArkWallet.Presentation.API;
 
+/// <summary>
+/// Контроллер аутентификации через Telegram WebApp
+/// </summary>
 [ApiController]
 [Route("api/v1/[controller]")]
 public class AuthController(
@@ -13,6 +16,14 @@ public class AuthController(
     IConfiguration configuration, ITokenService tokenService,
     ITraderAuthService traderAuthService) : ControllerBase
 {
+    /// <summary>
+    /// Вход в систему через Telegram WebApp InitData
+    /// </summary>
+    /// <param name="request">Данные авторизации из Telegram</param>
+    /// <returns>JWT-токен для доступа к API</returns>
+    /// <response code="200">Успешная аутентификация, возвращён токен</response>
+    /// <response code="401">Неверные данные авторизации</response>
+    /// <response code="400">Ошибка регистрации пользователя</response>
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {

@@ -6,10 +6,21 @@ using System.Security.Claims;
 
 namespace ArkWallet.Presentation.API;
 
+/// <summary>
+/// Контроллер для получения данных о трейдере
+/// </summary>
 [ApiController]
 [Route("api/v1/[controller]")]
 public class TradersController(IBalanceChangesCalculationService balanceChangesCalculationService) : ControllerBase
 {
+    /// <summary>
+    /// Получение текущего баланса и его изменений за период
+    /// </summary>
+    /// <param name="request">Период для расчёта изменений</param>
+    /// <returns>Данные о балансе и изменениях</returns>
+    /// <response code="200">Данные баланса успешно получены</response>
+    /// <response code="401">Пользователь не авторизован</response>
+    /// <response code="400">Ошибка получения данных</response>
     [Authorize]
     [HttpGet("balance")]
     public async Task<IActionResult> GetBalance([FromQuery] GetBalanceRequest request)
