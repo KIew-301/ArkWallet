@@ -9,7 +9,7 @@ namespace ArkWallet.Infrastructure.Wizard
         private void ConfigureAdditionHandlers()
         {
             _config.Commands["/admincreatetoken"][0].Handler = AdminHandleTokenCreate;
-            _config.Commands["/adminaddtokentouser"][0].Handler = AdminHandleAddTokenToUser;
+            _config.Commands["/adminsettokentouser"][0].Handler = AdminHandleSetTokenToUser;
             _config.Commands["/adminaddbalancetouser"][0].Handler = AdminHandleAddBalanceToUser;
         }
 
@@ -31,7 +31,7 @@ namespace ArkWallet.Infrastructure.Wizard
             }
         }
 
-        private async Task<StepResult> AdminHandleAddTokenToUser(UserSession session, string input)
+        private async Task<StepResult> AdminHandleSetTokenToUser(UserSession session, string input)
         {
             try
             {
