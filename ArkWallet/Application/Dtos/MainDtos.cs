@@ -47,7 +47,7 @@ namespace ArkWallet.Application.Dtos
 
     public record TokenBalanceDto(
         string Symbol,
-        string TokenName,
+        string Name,
         decimal Quantity,
         decimal AverageBuyPrice,
         decimal BalanceInToken,
