@@ -111,7 +111,7 @@ public class TokenPriceCandleQueryServiceTest
         Assert.Equal(1000m, candle.HighPrice);
         Assert.Equal(1000m, candle.LowPrice);
         Assert.Equal(1000m, candle.ClosePrice);
-        Assert.Equal(dateCreated, candle.Timestamp);
+        Assert.Equal(dateCreated, candle.DateTime);
     }
 
     [Fact]
