@@ -1,4 +1,5 @@
 ﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Application.Contracts.Orchestrators;
 using ArkWallet.Presentation.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +11,7 @@ namespace ArkWallet.Presentation.API;
 /// </summary>
 [ApiController]
 [Route("api/v1/[controller]")]
-public class TokensController(ITokenQueryService tokenQueryService, ITokenPriceCandleQueryService tokenPriceCandleQueryService) : ControllerBase
+public class TokensController(ITokenQueryService tokenQueryService, ICandleOrchestrator candleOrchestrator) : ControllerBase
 {
     /// <summary>
     /// Получение списка всех активных токенов
@@ -35,7 +36,7 @@ public class TokensController(ITokenQueryService tokenQueryService, ITokenPriceC
     }
 
     /// <summary>
-    /// Получение истории цен (свечей) для указанного токена
+    /// Получение истории цен (свечей) для указанного токена в указанном тайм-фрейме
     /// </summary>
     /// <param name="request">Параметры запроса (символ, период)</param>
     /// <returns>Список свечей</returns>
@@ -49,10 +50,10 @@ public class TokensController(ITokenQueryService tokenQueryService, ITokenPriceC
     [HttpGet("candle")]
     public async Task<IActionResult> GetPriceCandle([FromQuery] GetPriceHistoryRequest request)
     {
-        var (symbol, start, end) = (request.Symbol, request.StartDateTimeOffset, request.EndDateTimeOffset);
+        var (symbol, start, end, tf) = (request.Symbol, request.StartDateTimeOffset, request.EndDateTimeOffset, request.TimeFrameInMinutes);
 
-        var result = await tokenPriceCandleQueryService.GetPriceCandlesAsync(
-            symbol, start.UtcDateTime, end.UtcDateTime);
+        var result = await candleOrchestrator.GetAggregatedCandlesAsync(
+            symbol, start.UtcDateTime, end.UtcDateTime, tf);
 
         if (!result.TryGetData(out var data))
             return BadRequest(result.Message);
