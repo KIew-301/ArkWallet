@@ -1,4 +1,5 @@
 ﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.Exceptions;
 using ArkWallet.Infrastructure.Data;
@@ -7,7 +8,8 @@ using Microsoft.Extensions.Logging;
 namespace ArkWallet.Application.Services.TraderServices;
 using static Result;
 
-internal class BalanceSavingService(ArkWalletDbContext db, ILogger<BalanceSavingService> logger)
+internal class BalanceSavingService(
+    ArkWalletDbContext db, ILogger<BalanceSavingService> logger) : IBalanceSavingService
 {
     public async Task<Result> SaveBalanceToDatabase(
         long traderTelegramId,
