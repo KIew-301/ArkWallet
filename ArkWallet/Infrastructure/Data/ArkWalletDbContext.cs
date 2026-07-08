@@ -5,6 +5,7 @@ namespace ArkWallet.Infrastructure.Data;
 
 internal class ArkWalletDbContext : DbContext
 {
+    public DbSet<AppState> AppStates { get; set; }
     public DbSet<Trader> Traders { get; set; }
     public DbSet<CharacterToken> CharacterTokens { get; set; }
     public DbSet<PortfolioItem> PortfolioItems { get; set; }
