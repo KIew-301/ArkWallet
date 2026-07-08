@@ -7,6 +7,7 @@ using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Application.Contracts.SuggestionServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TraderServices;
+using ArkWallet.Application.Contracts.TradeServices;
 using ArkWallet.Application.Services.CharacterTokenServices;
 using ArkWallet.Application.Services.FullValidationService;
 using ArkWallet.Application.Services.MarketMaker;
@@ -16,6 +17,7 @@ using ArkWallet.Application.Services.PortfolioServices;
 using ArkWallet.Application.Services.SuggestionServices;
 using ArkWallet.Application.Services.TradeOrderServices;
 using ArkWallet.Application.Services.TraderServices;
+using ArkWallet.Application.Services.TradeServices;
 using ArkWallet.Application.Workers;
 using ArkWallet.Domain.Engines;
 using ArkWallet.Entities.Configurations;
@@ -32,6 +34,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Models;
+using System.Reflection;
 using System.Text;
 
 class Program
@@ -47,20 +51,31 @@ class Program
             options.AddDefaultPolicy(policy =>
             {
                 policy.AllowAnyMethod()
-                      .AllowAnyHeader();
+                      .AllowAnyHeader()
+                      .AllowAnyOrigin();
             });
         });
+
+        // Configuration
+        var configuration = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddUserSecrets<Program>()
+            .Build();
+
+        builder.Configuration.AddConfiguration(configuration);
 
         builder.Services.AddAuthentication("Bearer")
             .AddJwtBearer(options =>
             {
+                var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"]);
+
                 options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
                 {
                     ValidateIssuer = false,
                     ValidateAudience = false,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
+                    IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(key),
                     ClockSkew = TimeSpan.Zero
                 };
 
@@ -78,11 +93,9 @@ class Program
                 };
             });
 
-        // Configuration
-        var configuration = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.json", optional: true)
-            .AddUserSecrets<Program>()
-            .Build();
+        builder.Services.AddAuthorization();
+        builder.Services.AddControllers();
+        builder.Services.AddRouting(options => options.LowercaseUrls = true);
 
         builder.Services.AddSingleton<IConfiguration>(configuration);
 
@@ -90,28 +103,99 @@ class Program
         builder.Services.AddDbContext<ArkWalletDbContext>(options =>
             options.UseSqlite("Data Source=arkwallet.db"));
 
+        // Swagger
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen(c =>
+        {
+            c.SwaggerDoc("v1", new OpenApiInfo
+            {
+                Title = "ArkWallet API",
+                Version = "v1",
+                Description = "API для платформы ArkWallet",
+                Contact = new OpenApiContact
+                {
+                    Name = "ArkWallet Team",
+                    Email = "support@arkwallet.com"
+                }
+            });
+
+            // Настройка JWT для Swagger
+            c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                Description = "JWT Authorization header using the Bearer scheme. Enter your token in the text input below.",
+                Name = "Authorization",
+                In = ParameterLocation.Header,
+                Type = SecuritySchemeType.Http,
+                Scheme = "Bearer"
+            });
+
+            c.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id = "Bearer"
+                        }
+                    },
+                    Array.Empty<string>()
+                }
+            });
+
+            // Включить XML комментарии для документации
+            var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+            var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+            if (File.Exists(xmlPath))
+            {
+                c.IncludeXmlComments(xmlPath);
+            }
+        });
+
         // Services
         RegisterServices(builder.Services);
 
         // Background Services
         builder.Services.AddHostedService<MarketMakerWorker>();
         builder.Services.AddHostedService<NotificationWorker>();
+        builder.Services.AddHostedService<BalanceSavingSnapshotWorker>();
 
-        var serviceProvider = builder.Services.BuildServiceProvider();
+        var app = builder.Build();
 
-        await using (var scope = serviceProvider.CreateAsyncScope())
+        // Swagger
+        app.UseSwagger();
+        app.UseSwaggerUI(c =>
+        {
+            c.SwaggerEndpoint("/swagger/v1/swagger.json", "ArkWallet API v1");
+            c.RoutePrefix = "swagger";
+        });
+        
+        app.UseHttpsRedirection();
+        app.UseCors();
+        app.UseAuthentication();
+        app.UseAuthorization();
+        app.UseDefaultFiles();
+        app.UseStaticFiles();
+        app.MapControllers();
+
+        // Применение миграций
+        using (var scope = app.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ArkWalletDbContext>();
             await db.Database.MigrateAsync();
             Console.WriteLine("Миграции применены!");
         }
 
-        // Telegram Bot
-        var bot = serviceProvider.GetRequiredService<TelegramBot>();
-        await bot.Start();
+        // Telegram BotS
+        using (var scope = app.Services.CreateScope())
+        { 
+            var bot = scope.ServiceProvider.GetRequiredService<TelegramBot>();
+            await bot.Start();
+        }
 
         // Hosted Services
-        var hostedServices = serviceProvider.GetServices<IHostedService>();
+        var hostedServices = app.Services.GetServices<IHostedService>();
         foreach (var hostedService in hostedServices)
             await hostedService.StartAsync(CancellationToken.None);
 
@@ -125,12 +209,14 @@ class Program
 
         // Domain Engines
         services.AddScoped<TradingEngine>();
+        services.AddScoped<FixedGridEngine>();
+        services.AddScoped<MarketMakerGridEngine>();
 
         // Telegram Bot
         services.AddScoped<TelegramBot>();
 
         // RabbitMQ
-        services.AddScoped<RabbitMQService>();
+        services.AddSingleton<RabbitMQService>();
         services.AddScoped<ITaskDispatcher, RabbitMQTaskDispatcher>();
 
         // Wizard
@@ -142,6 +228,7 @@ class Program
         services.AddScoped<ITokenPriceCandleUpdateService, TokenPriceCandleUpdateService>();
         services.AddScoped<ITokenQueryService, TokenQueryService>();
         services.AddScoped<ITokenPriceChangesCalculationService, TokenPriceChangeCalculationService>();
+        services.AddScoped<ITokenPriceCandleQueryService, TokenPriceCandleQueryService>();
 
         // Decorators
         services.AddScoped<IButtonDecorator, ButtonDecorator>();
@@ -167,25 +254,19 @@ class Program
         services.AddScoped<ITraderRegistrationService, TraderRegistrationService>();
         services.AddScoped<IBalanceSnapshotService, BalanceSnapshotService>();
         services.AddScoped<IBalanceChangesCalculationService, BalanceChangesCalculationService>();
+        services.AddScoped<IBalanceSavingService, BalanceSavingService>();
 
         // MarketMaker
         services.AddScoped<IMarketMakerBotRegistrationService, MarketMakerBotRegistrationService>();
         services.AddScoped<IMarketMakerOrchestrator, MarketMakerOrchestrator>();
         services.AddScoped<IMarketMakerOrderService, MarketMakerOrderService>();
 
+        // Trade Services
+        services.AddScoped<ITradeQueryService, TradeQueryService>();
+
         // Other
         services.AddScoped<ReserveCalculationService>();
         services.AddScoped<ITraderAuthService, TraderAuthService>();
         services.AddScoped<ITokenService, TokenService>();
-    }
-
-    public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<ArkWalletDbContext>
-    {
-        public ArkWalletDbContext CreateDbContext(string[] args)
-        {
-            var optionsBuilder = new DbContextOptionsBuilder<ArkWalletDbContext>();
-            optionsBuilder.UseSqlite("Data Source=arkwallet.db");
-            return new ArkWalletDbContext(optionsBuilder.Options);
-        }
     }
 }
