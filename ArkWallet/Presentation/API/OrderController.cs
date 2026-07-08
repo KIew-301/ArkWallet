@@ -24,6 +24,9 @@ namespace ArkWallet.Presentation.API
         /// <response code="200">Список ордеров успешно получен</response>
         /// <response code="401">Пользователь не авторизован</response>
         /// <response code="400">Ошибка получения данных</response>
+        [ProducesResponseType(typeof(GetOrdersResponse), 200)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(400)]
         [Authorize]
         [HttpGet("order")]
         public async Task<IActionResult> GetOrders([FromQuery] GetOrdersRequest request)
@@ -48,6 +51,9 @@ namespace ArkWallet.Presentation.API
         /// <response code="200">Ордер успешно создан</response>
         /// <response code="401">Пользователь не авторизован</response>
         /// <response code="400">Ошибка создания ордера</response>
+        [ProducesResponseType(typeof(CreateOrderResponse), 200)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(400)]
         [Authorize]
         [HttpPost("order")]
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
@@ -74,6 +80,9 @@ namespace ArkWallet.Presentation.API
         /// <response code="200">Ордер успешно отменён</response>
         /// <response code="401">Пользователь не авторизован</response>
         /// <response code="400">Ошибка отмены ордера</response>
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(400)]
         [Authorize]
         [HttpDelete("order/{orderId}")]
         public async Task<IActionResult> CancelOrder(string orderId)
@@ -96,6 +105,9 @@ namespace ArkWallet.Presentation.API
         /// <response code="200">Все ордера успешно отменены</response>
         /// <response code="401">Пользователь не авторизован</response>
         /// <response code="400">Ошибка отмены ордеров</response>
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(400)]
         [Authorize]
         [HttpDelete("orders")]
         public async Task<IActionResult> CancelAllOrders()

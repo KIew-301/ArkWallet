@@ -21,6 +21,9 @@ public class TradersController(IBalanceChangesCalculationService balanceChangesC
     /// <response code="200">Данные баланса успешно получены</response>
     /// <response code="401">Пользователь не авторизован</response>
     /// <response code="400">Ошибка получения данных</response>
+    [ProducesResponseType(typeof(GetBalanceResponse), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(400)]
     [Authorize]
     [HttpGet("balance")]
     public async Task<IActionResult> GetBalance([FromQuery] GetBalanceRequest request)

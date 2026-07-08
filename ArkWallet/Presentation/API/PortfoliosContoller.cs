@@ -11,7 +11,7 @@ namespace ArkWallet.Presentation.API;
 /// </summary>
 [ApiController]
 [Route("api/v1/[controller]")]
-public class PortfoliosContoller(IPortfolioQueryService portfolioQueryService) : ControllerBase
+public class PortfoliosController(IPortfolioQueryService portfolioQueryService) : ControllerBase
 {
     /// <summary>
     /// Получение текущего портфеля трейдера
@@ -20,8 +20,11 @@ public class PortfoliosContoller(IPortfolioQueryService portfolioQueryService) :
     /// <response code="200">Данные портфеля успешно получены</response>
     /// <response code="401">Пользователь не авторизован</response>
     /// <response code="400">Ошибка получения данных</response>
+    [ProducesResponseType(typeof(GetPortfolioResponse), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(400)]
     [Authorize]
-    [HttpGet("porfolio")]
+    [HttpGet("portfolio")]
     public async Task<IActionResult> GetPortfolio()
     {
         if (!long.TryParse(User?.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userTelegramId))

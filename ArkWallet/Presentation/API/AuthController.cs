@@ -24,6 +24,9 @@ public class AuthController(
     /// <response code="200">Успешная аутентификация, возвращён токен</response>
     /// <response code="401">Неверные данные авторизации</response>
     /// <response code="400">Ошибка регистрации пользователя</response>
+    [ProducesResponseType(typeof(LoginResponse), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(400)]
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {

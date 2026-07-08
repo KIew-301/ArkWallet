@@ -19,6 +19,9 @@ public class TokensController(ITokenQueryService tokenQueryService, ITokenPriceC
     /// <response code="200">Список токенов успешно получен</response>
     /// <response code="401">Пользователь не авторизован</response>
     /// <response code="400">Ошибка получения данных</response>
+    [ProducesResponseType(typeof(GetTokenListResponse), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(400)]
     [Authorize]
     [HttpGet("token")]
     public async Task<IActionResult> GetToken()
@@ -39,6 +42,9 @@ public class TokensController(ITokenQueryService tokenQueryService, ITokenPriceC
     /// <response code="200">Список свечей успешно получен</response>
     /// <response code="401">Пользователь не авторизован</response>
     /// <response code="400">Ошибка получения данных</response>
+    [ProducesResponseType(typeof(GetPriceHistoryResponse), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(400)]
     [Authorize]
     [HttpGet("candle")]
     public async Task<IActionResult> GetPriceCandle([FromQuery] GetPriceHistoryRequest request)
