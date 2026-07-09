@@ -131,7 +131,7 @@ public class TradeQueryServiceTest
         Assert.True(result.TryGetData(out var data));
 
         var trade = data.First();
-        Assert.Equal("ZZZ", trade.Symbol);
+        Assert.Equal("ZZZ", trade.TokenInfo.Symbol);
         Assert.Equal(100m, trade.ExecutionPrice);
         Assert.Equal(5m, trade.Quantity);
     }
@@ -159,32 +159,6 @@ public class TradeQueryServiceTest
         Assert.True(result.TryGetData(out var data));
 
         var trade = data.First();
-        Assert.Equal("icon.png", trade.TokenIconUrl);
-    }
-
-    [Fact]
-    public async Task GetTraderTradesAsync_WithoutTokenInfo_IconIsNull()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.RegisterTrader(db, 102);
-        await HelpMethods.CreateToken(db, "ZZZ", "Zero", CharacterRarity.FourStar, 1000, 100m, true, "image.png", "icon.png");
-        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
-
-        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 5, 100);
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
-
-        var logger = NullLogger<TradeQueryService>.Instance;
-        var service = new TradeQueryService(db, logger);
-
-        var result = await service.GetTraderTradesAsync(101, withTokenInfo: false);
-
-        Assert.True(result.IsSuccess);
-        Assert.True(result.TryGetData(out var data));
-
-        var trade = data.First();
-        Assert.Null(trade.TokenIconUrl);
+        Assert.Equal("icon.png", trade.TokenInfo.IconUrl);
     }
 }

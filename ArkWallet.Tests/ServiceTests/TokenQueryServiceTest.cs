@@ -72,11 +72,11 @@ public class TokenQueryServiceTest
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var data));
 
-        var tokenInfo = data.First();
-        Assert.Equal("ZZZ", tokenInfo.Symbol);
-        Assert.Equal("Zero", tokenInfo.Name);
-        Assert.Equal(100m, tokenInfo.CurrentPrice);
-        Assert.Equal(11.11m, tokenInfo.DailyChangePercent);
+        var token = data.First();
+        Assert.Equal("ZZZ", token.TokenInfo.Symbol);
+        Assert.Equal("Zero", token.TokenInfo.Name);
+        Assert.Equal(100m, token.TokenInfo.CurrentPrice);
+        Assert.Equal(11.11m, token.DailyChangePercent);
     }
 
     [Fact]
@@ -100,8 +100,8 @@ public class TokenQueryServiceTest
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var data));
 
-        var tokenInfo = data.First();
-        Assert.Equal(100m, tokenInfo.CurrentPrice);
-        Assert.Equal(0m, tokenInfo.DailyChangePercent);
+        var token = data.First();
+        Assert.Equal(100m, token.TokenInfo.CurrentPrice);
+        Assert.Equal(0m, token.DailyChangePercent);
     }
 }

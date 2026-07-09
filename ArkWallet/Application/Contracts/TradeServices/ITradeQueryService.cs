@@ -1,4 +1,5 @@
 ﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Domain.Entities;
 
 namespace ArkWallet.Application.Contracts.TradeServices;
@@ -30,33 +31,40 @@ public interface ITradeQueryService
 /// <summary>
 /// DTO с информацией о сделке для отображения на клиенте
 /// </summary>
-/// <param name="Symbol">Символ токена</param>
 /// <param name="TraderRole">Роль трейдера в сделке (Buyer/Seller)</param>
-/// <param name="ExecutionPrice">Цена исполнения</param>
-/// <param name="Quantity">Количество токенов</param>
-/// <param name="Profit">Прибыль/убыток (положительное для продавца, отрицательное для покупателя)</param>
-/// <param name="TradeDateTime">Дата и время сделки</param>
-/// <param name="TokenIconUrl">Ссылка на иконку токена</param>
+/// <param name="ExecutionPrice">Цена исполнения сделки</param>
+/// <param name="Quantity">Количество токенов в сделке</param>
+/// <param name="Profit">Прибыль/убыток. Положительное число для продавца, отрицательное для покупателя</param>
+/// <param name="TradeDateTime">Дата и время совершения сделки (UTC)</param>
+/// <param name="TokenInfo">Информация о токене (символ, название, иконка и др.)</param>
 public record TradeInfo(
-    string Symbol,
     string TraderRole,
     decimal ExecutionPrice,
     decimal Quantity,
     decimal Profit,
     DateTime TradeDateTime,
-    string? TokenIconUrl = null
+    TokenInfo? TokenInfo
 )
 {
-    internal static TradeInfo FromEntity(Trade trade, bool withTokenInfo)
+    /// <summary>
+    /// Создаёт DTO из сущности Trade
+    /// </summary>
+    /// <param name="trade">Сущность сделки</param>
+    /// <param name="withTokenInfo">Флаг, определяющий, нужно ли включать полную информацию о токене</param>
+    /// <returns>DTO с информацией о сделке</returns>
+    internal static TradeInfo FromEntity(Trade trade)
     {
+        var tokenInfo = trade.CharacterToken != null
+            ? TokenInfo.FromEntity(trade.CharacterToken)
+            : null;
+
         return new TradeInfo(
-            trade.CharacterTokenId,
-            "", // TraderRole будет установлен отдельно
+            string.Empty, // TraderRole будет установлен отдельно в сервисе
             trade.Price,
             trade.Quantity,
-            0, // Profit будет рассчитан отдельно
+            0m, // Profit будет рассчитан отдельно в сервисе
             trade.ExecutedAt,
-            withTokenInfo ? trade.CharacterToken?.IconUrl : null
+            tokenInfo!
         );
     }
 }

@@ -38,7 +38,7 @@ namespace ArkWallet.Presentation.Wizard
                 return baseKeyword;
 
             foreach (var token in portfolioItems)
-                baseKeyword.Add(new() { Text = token.Symbol, Value = token.Symbol });
+                baseKeyword.Add(new() { Text = token.TokenInfo.Symbol, Value = token.TokenInfo.Symbol });
 
             return baseKeyword;
         }

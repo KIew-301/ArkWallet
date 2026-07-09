@@ -42,11 +42,11 @@ public class CandleAggregatorServiceTest
     [Fact]
     public async Task AggregateAsync_WithSingleCandle_ReturnsSameCandle()
     {
-        var now = DateTime.UtcNow;
+        var baseTime = new DateTime(2026, 7, 9, 14, 3, 0, DateTimeKind.Utc);
         var candles = new List<PriceCandleInfo>
-        {
-            new(100, 102, 99, 101, now, 0)
-        };
+{
+    new(100, 102, 99, 101, baseTime, 0)
+};
 
         var result = await _service.AggregateAsync(candles, 5);
 
@@ -58,7 +58,9 @@ public class CandleAggregatorServiceTest
         Assert.Equal(102, candle.HighPrice);
         Assert.Equal(99, candle.LowPrice);
         Assert.Equal(101, candle.ClosePrice);
-        Assert.Equal(now, candle.DateTime);
+
+        var expectedDateTime = new DateTime(2026, 7, 9, 14, 0, 0, DateTimeKind.Utc);
+        Assert.Equal(expectedDateTime, candle.DateTime);
     }
 
     [Fact]
