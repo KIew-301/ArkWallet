@@ -23,7 +23,7 @@ internal class BalanceSavingService(
         try
         {
             if (snapshotDateTime == default)
-                return Fail($"Некорретная дата и время снимка (default)");
+                return Fail($"Некорректная дата и время снимка (default)");
 
             var balanceSnapshot = BalanceSnapshot.Create(
                 traderTelegramId,
