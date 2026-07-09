@@ -208,7 +208,7 @@ class Program
         services.AddScoped<MarketMakerGridEngine>();
 
         // Telegram Bot
-        services.AddScoped<TelegramBot>();
+        services.AddSingleton<TelegramBot>();
 
         // RabbitMQ
         services.AddSingleton<RabbitMQService>();
