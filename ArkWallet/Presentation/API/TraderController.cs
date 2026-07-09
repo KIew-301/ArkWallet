@@ -42,7 +42,7 @@ public class TradersController(IBalanceChangesCalculationService balanceChangesC
         if (!resultMain.TryGetData(out var dataMain))
             return BadRequest(resultMain.Message);
 
-        if (!resultMain.TryGetData(out var dataTotal))
+        if (!resultTotal.TryGetData(out var dataTotal))
             return BadRequest(resultTotal.Message);
 
         return Ok(new GetBalanceResponse(
