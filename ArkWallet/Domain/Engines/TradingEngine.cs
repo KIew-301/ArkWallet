@@ -15,7 +15,7 @@ namespace ArkWallet.Domain.Engines
             Dictionary<long, PortfolioItem> portfolios,
             CharacterToken token)
         {
-            // ВАЛИДАЦИЯ (только логическая)
+            // Валидация (только логическая)
             if (newOrder == null)
                 return TradingResult.Failed("Ордер не может быть null");
 
@@ -41,7 +41,7 @@ namespace ArkWallet.Domain.Engines
             var orderBook = CreateOrderBook(newOrder.CharacterTokenId);
             orderBook.LoadOrders(existingOrders, newOrder.TraderTelegramId);
 
-            // МАТЧИНГ
+            // Матчинг
             var matches = FindMatchingOrders(newOrder, orderBook);
             var trades = new List<Trade>();
             var traderIdWithNewPortfolio = new List<long>();
@@ -54,24 +54,24 @@ namespace ArkWallet.Domain.Engines
                 var tradeQuantity = Math.Min(remainingQuantity, match.GetRemainingQuantity());
                 var tradePrice = match.Price;
 
-                // СОЗДАЕМ СДЕЛКУ
+                // Создаем сделку
                 var trade = CreateTrade(newOrder, match, tradeQuantity, tradePrice);
                 trades.Add(trade);
 
                 if (!portfolios.ContainsKey(trade.BuyerId))
                     traderIdWithNewPortfolio.Add(trade.BuyerId);
 
-                // 🔥 РАССЧИТЫВАЕМ ИЗМЕНЕНИЯ (НЕ сохраняем в БД!)
+                // Рассчитываем изменения (не сохраняем в бд)
                 UpdateTradersAndPortfolios(traders, portfolios, trade, tradeQuantity, tradePrice, newOrder.Price);
 
-                // ОБНОВЛЯЕМ ОРДЕРА
+                // Обновляем ордера
                 newOrder.UpdateOrderFill(tradeQuantity, trade.Price);
                 match.UpdateOrderFill(tradeQuantity, trade.Price);
 
                 remainingQuantity -= tradeQuantity;
             }
 
-            // 🔥 ВОЗВРАЩАЕМ РЕЗУЛЬТАТ ДЛЯ СОХРАНЕНИЯ
+            // Возвращаем результат для сохранения
             return new TradingResult
             {
                 Trades = trades,
