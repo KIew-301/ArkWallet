@@ -194,12 +194,7 @@ class Program
             await bot.Start();
         }
 
-        // Hosted Services
-        var hostedServices = app.Services.GetServices<IHostedService>();
-        foreach (var hostedService in hostedServices)
-            await hostedService.StartAsync(CancellationToken.None);
-
-        Console.ReadLine();
+        await app.RunAsync();
     }
 
     private static void RegisterServices(IServiceCollection services)
@@ -226,9 +221,11 @@ class Program
         // CharacterTokenServices
         services.AddScoped<ITokenCreationService, TokenCreationService>();
         services.AddScoped<ITokenPriceCandleUpdateService, TokenPriceCandleUpdateService>();
+        services.AddScoped<ICandleAggregatorService, CandleAggregatorService>();
         services.AddScoped<ITokenQueryService, TokenQueryService>();
         services.AddScoped<ITokenPriceChangesCalculationService, TokenPriceChangeCalculationService>();
         services.AddScoped<ITokenPriceCandleQueryService, TokenPriceCandleQueryService>();
+        services.AddScoped<ICandleOrchestrator, CandleOrchestrator>();
 
         // Decorators
         services.AddScoped<IButtonDecorator, ButtonDecorator>();
