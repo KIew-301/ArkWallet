@@ -28,9 +28,9 @@ public class TradersControllerTest
         var okResult = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsType<GetBalanceResponse>(okResult.Value);
 
-        Assert.Equal(1250, response.CurrentBalance);
-        Assert.Equal(250, response.ChangeAbsolute);
-        Assert.Equal(25, response.ChangePercent);
+        Assert.Equal(1250, response.MainBalance.CurrentBalance);
+        Assert.Equal(250, response.MainBalance.ChangeAbsolute);
+        Assert.Equal(25, response.MainBalance.ChangePercent);
     }
 
     [Fact]
