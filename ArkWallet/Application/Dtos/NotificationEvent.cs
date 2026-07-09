@@ -9,21 +9,35 @@ namespace ArkWallet.Application.Dtos
         string Message
     )
     {
-        static internal List<NotificationEvent> FromOrderList(List<TradeOrder> orders)
+        static internal List<NotificationEvent> FromOrderList<T>(List<TradeOrder> orders, List<Trader> traders, ILogger<T> logger)
         {
-            if (orders == null || orders.Count == 0)
+            try
+            {
+                if (orders == null || orders.Count == 0)
+                    return [];
+
+                var notificationOn = traders.ToDictionary(t => t.TelegramId, t => t.NotificationOn);
+
+                List<NotificationEvent> list = [];
+
+                foreach (var order in orders)
+                {
+                    var traderId = order.TraderTelegramId;
+                    var notifyOn = notificationOn[traderId];
+                    var message = $"💸 Ордер {OrderDto.FromEntity(order).GetDesctiption()} успешно исполнен";
+
+
+                    if (notifyOn && order != null && order.Status == OrderStatus.Filled)
+                        list.Add(new(traderId, message));
+                }
+
+                return list;
+            }
+            catch
+            {
+                logger.Log(LogLevel.Error, "Ошибка при формировании уведомлений о выполнении ордеров"); 
                 return [];
-
-            List<NotificationEvent> list = [];
-
-            foreach (var order in orders)
-                if (order != null && order.Status == OrderStatus.Filled)
-                    list.Add(new(
-                        order.TraderTelegramId,
-                        $"Ордер {OrderDto.FromEntity(order).GetDesctiption()} успешно исполнен")
-                    );
-
-            return list;
+            }
         }
     };
 
