@@ -5,6 +5,8 @@ namespace ArkWallet.Application.Services.CharacterTokenServices;
 
 internal class CandleAggregatorService : ICandleAggregatorService
 {
+    private static readonly DateTime Epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
     public Task<Result<List<PriceCandleInfo>>> AggregateAsync(List<PriceCandleInfo> candles, int timeframeMinutes)
     {
         try
@@ -18,7 +20,7 @@ internal class CandleAggregatorService : ICandleAggregatorService
             var grouped = candles
                 .GroupBy(c => GetGroupKey(c.DateTime, timeframeMinutes))
                 .OrderBy(g => g.Key)
-                .Select(g => AggregateGroup(g.ToList()))
+                .Select(g => AggregateGroup(g))
                 .ToList();
 
             return Task.FromResult(Result<List<PriceCandleInfo>>.Ok(grouped));
@@ -29,24 +31,43 @@ internal class CandleAggregatorService : ICandleAggregatorService
         }
     }
 
-    private DateTime GetGroupKey(DateTime timestamp, int timeframeMinutes)
+    private static DateTime GetGroupKey(DateTime timestamp, int timeframeMinutes)
     {
-        var minutes = (timestamp.Minute / timeframeMinutes) * timeframeMinutes;
-        return new DateTime(timestamp.Year, timestamp.Month, timestamp.Day, timestamp.Hour, minutes, 0);
+        if (timeframeMinutes >= 1440)
+        {
+            var days = timeframeMinutes / 1440;
+            var totalDays = (timestamp.Date - Epoch).Days;
+            var groupedDays = (totalDays / days) * days;
+            return Epoch.AddDays(groupedDays);
+        }
+
+        if (timeframeMinutes >= 60)
+        {
+            var hoursBlock = timeframeMinutes / 60;
+            var totalHours = (timestamp.Date - Epoch).Days * 24 + timestamp.Hour;
+            var groupedHours = (totalHours / hoursBlock) * hoursBlock;
+            return Epoch.AddHours(groupedHours);
+        }
+
+        var totalMinutes = (int)(timestamp - timestamp.Date).TotalMinutes;
+        var groupedMinutes = (totalMinutes / timeframeMinutes) * timeframeMinutes;
+        return timestamp.Date.AddMinutes(groupedMinutes);
     }
 
-    private PriceCandleInfo AggregateGroup(List<PriceCandleInfo> group)
+    private static PriceCandleInfo AggregateGroup(IGrouping<DateTime, PriceCandleInfo> group)
     {
-        var first = group.First();
-        var last = group.Last();
+        var candles = group.ToList();
+        var first = candles[0];
+        var last = candles[^1];
+        var epochTimestamp = new DateTimeOffset(group.Key, TimeSpan.Zero).ToUnixTimeSeconds();
 
         return new PriceCandleInfo(
             first.OpenPrice,
-            group.Max(c => c.HighPrice),
-            group.Min(c => c.LowPrice),
+            candles.Max(c => c.HighPrice),
+            candles.Min(c => c.LowPrice),
             last.ClosePrice,
-            first.DateTime,
-            first.Timestamp
+            group.Key,
+            epochTimestamp
         );
     }
 }
