@@ -5,8 +5,10 @@
 /// </summary>
 internal class MarketMakerBot
 {
+    #pragma warning disable CS0169 // EF Core uses private setter
     public long Id { get; private set; }
-    public string Symbol { get; private set; }
+    #pragma warning restore CS0169
+    public string Symbol { get; private set; } = string.Empty;
     public long TraderId { get; private set; }
 
     /// <summary>Базовая мощность (объём ордера в токенах)</summary>
@@ -54,8 +56,14 @@ internal class MarketMakerBot
     }
 }
 
+/// <summary>
+/// Роль бота на рынке
+/// </summary>
 public enum BotRole
 {
+    /// <summary>Бот выступает в роли покупателя</summary>
     Buyer,
+
+    /// <summary>Бот выступает в роли продавца</summary>
     Seller
 }
