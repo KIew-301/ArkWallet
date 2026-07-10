@@ -10,7 +10,7 @@ namespace ArkWallet.Presentation.API
     /// <summary>
     /// Контроллер для управления ордерами
     /// </summary>
-    [ExcludeFromCodeCoverage]
+    [ExcludeFromCodeCoverage(Justification = "API-контроллер: только маршрутизация HTTP-запросов к сервисам. Не содержит бизнес-логики, тестируется интеграционно.")]
     [ApiController]
     [Route("api/v1/[controller]")]
     public class OrdersController(

@@ -8,7 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Presentation.Wizard
 {
-    [ExcludeFromCodeCoverage]
+    [ExcludeFromCodeCoverage(Justification = "UI-декоратор: форматирование текста вопросов для Telegram-интерфейса. Не содержит бизнес-логики.")]
     internal class QuestionDecorator(ArkWalletDbContext dbContext, IPortfolioQueryService portfolioQueryService, ReserveCalculationService reserveCalculationService) : IQuestionDecorator
     {
         public async Task<string> DecorateQuestionAsync(string stepName, string baseQuestion, UserSession session)

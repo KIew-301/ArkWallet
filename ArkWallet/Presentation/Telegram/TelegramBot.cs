@@ -11,7 +11,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ArkWallet.Telegram
 {
-    [ExcludeFromCodeCoverage]
+    [ExcludeFromCodeCoverage(Justification = "Telegram-бот: точка входа Telegram API, зависит от внешнего клиента и polling. Тестируется интеграционно.")]
     internal partial class TelegramBot(IServiceProvider serviceProvider)
     {
         // Интерфейс для взаимодействия с ботом
