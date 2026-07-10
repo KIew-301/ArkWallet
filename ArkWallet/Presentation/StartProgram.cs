@@ -36,8 +36,10 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
+[ExcludeFromCodeCoverage(Justification = "Точка входа приложения: конфигурация DI, middleware и инфраструктуры. Не содержит бизнес-логики.")]
 class Program
 {
     static async Task Main(string[] args)

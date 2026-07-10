@@ -5,10 +5,12 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace ArkWallet.Infrastructure
 {
+    [ExcludeFromCodeCoverage(Justification = "Инфраструктурный воркер, интегрируется с RabbitMQ. Логика зависит от внешних сервисов и не подлежит юнит-тестированию.")]
     internal class NotificationWorker : BackgroundService
     {
         private readonly RabbitMQService _rabbitMQService;

@@ -2,9 +2,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Application.Workers;
 
+[ExcludeFromCodeCoverage(Justification = "Фоновый воркер, делегирует работу IBalanceSnapshotOrchestrator. Логика оркестратора уже покрыта тестами.")]
 internal class BalanceSavingSnapshotWorker(
     IServiceProvider serviceProvider,
     ILogger<BalanceSavingSnapshotWorker> logger) : BackgroundService

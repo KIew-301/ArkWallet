@@ -2,9 +2,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Application.Workers;
 
+[ExcludeFromCodeCoverage(Justification = "Фоновый воркер, координирует вызовы оркестратора в бесконечном цикле. Тестируется через оркестратор и отдельные сервисы.")]
 internal class MarketMakerWorker : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
