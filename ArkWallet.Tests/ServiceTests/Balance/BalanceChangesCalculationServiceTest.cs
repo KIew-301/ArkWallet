@@ -109,7 +109,7 @@ public class BalanceChangesCalculationServiceTest
         var result = await calculationService.TakeMainBalanceChanges(101, 0);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("Минимальный период для расчёта: 1 день", result.Message);
+        Assert.Equal("РњРёРЅРёРјР°Р»СЊРЅС‹Р№ РїРµСЂРёРѕРґ РґР»СЏ СЂР°СЃС‡С‘С‚Р°: 1 РґРµРЅСЊ", result.Message);
     }
 
     [Fact]
@@ -131,5 +131,69 @@ public class BalanceChangesCalculationServiceTest
 
         Assert.False(result.IsSuccess);
         Assert.Equal("Error", result.Message);
+    }
+
+    [Fact]
+    public async Task TotalBalanceCalculationChanges_NoHistory_ReturnSuccess()
+    {
+        var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var snapshotServicelogger = NullLogger<BalanceSnapshotService>.Instance;
+        var snapshotService = new BalanceSnapshotService(db, snapshotServicelogger);
+
+        var calculationServicelogger = NullLogger<BalanceChangesCalculationService>.Instance;
+        var calculationService = new BalanceChangesCalculationService(db, snapshotService, calculationServicelogger);
+
+        await HelpMethods.RegisterTrader(db, 202);
+        var result = await calculationService.TakeTotalBalanceChanges(202, 1);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var data));
+        Assert.Equal(data.CurrentBalance, data.PreviousBalance);
+        Assert.Equal(0m, data.ChangeAbsolute);
+        Assert.Equal(0m, data.ChangePercent);
+    }
+
+    [Fact]
+    public async Task TotalBalanceCalculationChanges_WithHistory_ReturnSuccess()
+    {
+        var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var snapshotServicelogger = NullLogger<BalanceSnapshotService>.Instance;
+        var snapshotService = new BalanceSnapshotService(db, snapshotServicelogger);
+
+        var calculationServicelogger = NullLogger<BalanceChangesCalculationService>.Instance;
+        var calculationService = new BalanceChangesCalculationService(db, snapshotService, calculationServicelogger);
+
+        await HelpMethods.RegisterTrader(db, 202);
+        await HelpMethods.SaveBalanceSnapshot(db, 202, 1000, 1000, 0, 0, 0, DateTime.UtcNow.Date.AddDays(-7));
+        await HelpMethods.GiveMoney(db, 202, 500);
+
+        var result = await calculationService.TakeTotalBalanceChanges(202, 7);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var data));
+        Assert.Equal(1500m, data.CurrentBalance);
+        Assert.Equal(1000m, data.PreviousBalance);
+        Assert.Equal(500m, data.ChangeAbsolute);
+    }
+
+    [Fact]
+    public async Task TotalBalanceCalculationChanges_InvalidPeriod_ReturnsFail()
+    {
+        var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var snapshotServicelogger = NullLogger<BalanceSnapshotService>.Instance;
+        var snapshotService = new BalanceSnapshotService(db, snapshotServicelogger);
+
+        var calculationServicelogger = NullLogger<BalanceChangesCalculationService>.Instance;
+        var calculationService = new BalanceChangesCalculationService(db, snapshotService, calculationServicelogger);
+
+        var result = await calculationService.TakeTotalBalanceChanges(202, 0);
+
+        Assert.False(result.IsSuccess);
     }
 }
