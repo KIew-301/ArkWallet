@@ -86,7 +86,7 @@ public class FixedGridEngineTest
 
         foreach (var testCase in testCases)
         {
-            var result = _engine.RoundToStep(testCase.Value);
+            var result = FixedGridEngine.RoundToStep(testCase.Value);
             Assert.Equal(testCase.Expected, result);
         }
     }

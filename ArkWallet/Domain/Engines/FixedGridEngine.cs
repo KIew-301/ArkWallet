@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System.Buffers;
+using System.Globalization;
 
 namespace ArkWallet.Domain.Engines;
 
@@ -6,6 +7,7 @@ internal class FixedGridEngine
 {
     private const decimal BASE_PRICE = 1000m;
     private const decimal STEP_MULTIPLIER = 1.001m;
+    private static readonly SearchValues<char> DecimalSeparators = SearchValues.Create(".,");
 
     public List<decimal> GetGridAbovePrice(decimal currentPrice, int count = 10)
     {
@@ -58,7 +60,7 @@ internal class FixedGridEngine
         return RoundToStep(value);
     }
 
-    private int FindClosestIndex(decimal price)
+    private static int FindClosestIndex(decimal price)
     {
         if (price <= 0)
             return 0;
@@ -66,7 +68,7 @@ internal class FixedGridEngine
         return (int)Math.Round(Math.Log((double)(price / BASE_PRICE)) / Math.Log((double)STEP_MULTIPLIER));
     }
 
-    public decimal RoundToStep(decimal value)
+    public static decimal RoundToStep(decimal value)
     {
         var step = value * 0.001m;
         var stepString = step.ToString(CultureInfo.InvariantCulture);
@@ -84,7 +86,7 @@ internal class FixedGridEngine
         if (firstNonZeroIndex == -1)
             return Math.Round(value, 0, MidpointRounding.AwayFromZero);
 
-        var dotIndex = stepString.IndexOfAny(new[] { '.', ',' });
+        var dotIndex = stepString.AsSpan().IndexOfAny(DecimalSeparators);
         var decimalPlaces = 0;
 
         if (dotIndex == -1)
