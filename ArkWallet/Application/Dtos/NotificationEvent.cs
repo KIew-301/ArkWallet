@@ -27,15 +27,15 @@ namespace ArkWallet.Application.Dtos
                     var message = $"💸 Ордер {OrderDto.FromEntity(order).GetDesctiption()} успешно исполнен";
 
 
-                    if (notifyOn && order != null && order.Status == OrderStatus.Filled)
+                    if (notifyOn && order.Status == OrderStatus.Filled)
                         list.Add(new(traderId, message));
                 }
 
                 return list;
             }
-            catch
+            catch (Exception ex)
             {
-                logger.Log(LogLevel.Error, "Ошибка при формировании уведомлений о выполнении ордеров"); 
+                logger.Log(LogLevel.Error, ex, "Ошибка при формировании уведомлений о выполнении ордеров"); 
                 return [];
             }
         }
