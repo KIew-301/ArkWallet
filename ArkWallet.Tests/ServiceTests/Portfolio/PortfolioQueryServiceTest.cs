@@ -83,6 +83,41 @@ public class PortfolioQueryServiceTest
         Assert.Empty(data);
     }
 
+    [Fact]
+    public async Task GetTokenBalance_TokenExists_ReturnsSuccess()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var portfolioQueryService = GetPortfolioQueryService(db);
+
+        await HelpMethods.RegisterTrader(db, 201);
+        await HelpMethods.CreateToken(db, "AAA", price: 500);
+        await HelpMethods.AddPortfolio(db, 201, "AAA", 10);
+
+        var result = await portfolioQueryService.GetTokenBalanceAsync(201, "AAA");
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var data));
+        Assert.Equal(10, data.Quantity);
+        Assert.Equal(500, data.AverageBuyPrice);
+    }
+
+    [Fact]
+    public async Task GetTokenBalance_TokenNotExists_ReturnsFail()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var portfolioQueryService = GetPortfolioQueryService(db);
+
+        await HelpMethods.RegisterTrader(db, 201);
+
+        var result = await portfolioQueryService.GetTokenBalanceAsync(201, "ZZZ");
+
+        Assert.False(result.IsSuccess);
+    }
+
     private PortfolioQueryService GetPortfolioQueryService(ArkWalletDbContext db)
     {
         var logger = NullLogger<PortfolioQueryService>.Instance;
