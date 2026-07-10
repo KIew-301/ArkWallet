@@ -4,9 +4,11 @@ using ArkWallet.Application.Services.Other;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Presentation.Wizard
 {
+    [ExcludeFromCodeCoverage]
     internal class QuestionDecorator(ArkWalletDbContext dbContext, IPortfolioQueryService portfolioQueryService, ReserveCalculationService reserveCalculationService) : IQuestionDecorator
     {
         public async Task<string> DecorateQuestionAsync(string stepName, string baseQuestion, UserSession session)

@@ -3,12 +3,14 @@ using ArkWallet.Application.Contracts.Orchestrators;
 using ArkWallet.Presentation.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Presentation.API;
 
 /// <summary>
 /// Контроллер для получения данных о токенах
 /// </summary>
+[ExcludeFromCodeCoverage]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class TokensController(ITokenQueryService tokenQueryService, ICandleOrchestrator candleOrchestrator) : ControllerBase

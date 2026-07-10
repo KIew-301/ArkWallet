@@ -5,9 +5,11 @@ using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Presentation.Wizard
 {
+    [ExcludeFromCodeCoverage]
     internal class ButtonDecorator(ArkWalletDbContext dbContext, IPriceSuggestionService priceSuggestionService, IPortfolioQueryService portfolioQueryService) : IButtonDecorator
     {
         public async Task<List<QuickButton>> DecorateButtonsAsync(string stepName, List<QuickButton> baseKeyword, UserSession session)

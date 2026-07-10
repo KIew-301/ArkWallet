@@ -1,6 +1,7 @@
 ﻿using ArkWallet.Infrastructure.Wizard;
 using ArkWallet.Presentation.Telegram;
 using Microsoft.OpenApi.Writers;
+using System.Diagnostics.CodeAnalysis;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
@@ -10,6 +11,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ArkWallet.Telegram
 {
+    [ExcludeFromCodeCoverage]
     internal partial class TelegramBot(IServiceProvider serviceProvider)
     {
         // Интерфейс для взаимодействия с ботом

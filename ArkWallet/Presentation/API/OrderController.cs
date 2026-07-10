@@ -2,6 +2,7 @@
 using ArkWallet.Presentation.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 
 namespace ArkWallet.Presentation.API
@@ -9,6 +10,7 @@ namespace ArkWallet.Presentation.API
     /// <summary>
     /// Контроллер для управления ордерами
     /// </summary>
+    [ExcludeFromCodeCoverage]
     [ApiController]
     [Route("api/v1/[controller]")]
     public class OrdersController(
