@@ -252,6 +252,7 @@ class Program
         services.AddScoped<IBalanceSnapshotService, BalanceSnapshotService>();
         services.AddScoped<IBalanceChangesCalculationService, BalanceChangesCalculationService>();
         services.AddScoped<IBalanceSavingService, BalanceSavingService>();
+        services.AddScoped<IBalanceSnapshotOrchestrator, BalanceSnapshotOrchestrator>();
 
         // MarketMaker
         services.AddScoped<IMarketMakerBotRegistrationService, MarketMakerBotRegistrationService>();
