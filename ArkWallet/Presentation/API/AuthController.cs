@@ -3,12 +3,14 @@ using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Presentation.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Presentation.API;
 
 /// <summary>
 /// Контроллер аутентификации через Telegram WebApp
 /// </summary>
+[ExcludeFromCodeCoverage(Justification = "API-контроллер: только маршрутизация HTTP-запросов к сервисам. Не содержит бизнес-логики, тестируется интеграционно.")]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class AuthController(
