@@ -75,6 +75,7 @@ namespace ArkWallet.Application.Dtos
     );
 
     public record PortfolioSummaryDto(
+        /// <summary>Список токенов в портфеле</summary>
         List<PortfolioItemInfo> Tokens
     );
 }

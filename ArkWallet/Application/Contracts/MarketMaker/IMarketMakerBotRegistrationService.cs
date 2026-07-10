@@ -13,6 +13,7 @@ public interface IMarketMakerBotRegistrationService
     /// </summary>
     /// <param name="telegramFakeId">Ложный телеграмм Id для регистрации</param>
     /// <param name="symbol">Символ токена, с которым работает бот</param>
+    /// <param name="botRole">Роль бота (Buyer/Seller)</param>
     /// <param name="initialPower">Начальная мощность бота</param>
     /// <returns>Результат операции с данными созданного бота</returns>
     /// <remarks>

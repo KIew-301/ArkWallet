@@ -50,7 +50,6 @@ public record TradeInfo(
     /// Создаёт DTO из сущности Trade
     /// </summary>
     /// <param name="trade">Сущность сделки</param>
-    /// <param name="withTokenInfo">Флаг, определяющий, нужно ли включать полную информацию о токене</param>
     /// <returns>DTO с информацией о сделке</returns>
     internal static TradeInfo FromEntity(Trade trade)
     {
