@@ -32,6 +32,10 @@ public class PortfolioQueryServiceTest
         Assert.True(result.TryGetData(out var data));
         Assert.Equal(3, data.Length);
 
+        Assert.NotNull(data[0].TokenInfo);
+        Assert.NotNull(data[1].TokenInfo);
+        Assert.NotNull(data[2].TokenInfo);
+
         Assert.Equal("ZZZ", data[0].TokenInfo.Symbol);
         Assert.Equal("YYY", data[1].TokenInfo.Symbol);
         Assert.Equal("XXX", data[2].TokenInfo.Symbol);
