@@ -49,10 +49,10 @@ namespace ArkWallet.Application.Contracts.PortfolioServices
         internal static PortfolioItemInfo FromEntity(PortfolioItem item)
         {
             if (item == null)
-                throw new Exception($"{MethodBase.GetCurrentMethod()?.Name} - item не может быть null");
+                throw new ArgumentNullException(nameof(item), $"{MethodBase.GetCurrentMethod()?.Name} - item не может быть null");
 
             if (item.CharacterToken == null)
-                throw new Exception($"{MethodBase.GetCurrentMethod()?.Name} - item.CharacterToken не может быть null");
+                throw new ArgumentNullException(nameof(item.CharacterToken), $"{MethodBase.GetCurrentMethod()?.Name} - item.CharacterToken не может быть null");
 
             var balanceInToken = item.Quantity * item.CharacterToken.CurrentPrice;
             var cost = item.Quantity * item.AverageBuyPrice;
