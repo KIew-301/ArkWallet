@@ -109,7 +109,7 @@ public class MarketMakerOrderServiceTest
         var result = await service.ExecuteMarketOrderAsync(101, "ZZZ");
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("Бот для трейдера 101 и токена ZZZ не найден", result.Message);
+        Assert.Equal("Р‘РѕС‚ РґР»СЏ С‚СЂРµР№РґРµСЂР° 101 Рё С‚РѕРєРµРЅР° ZZZ РЅРµ РЅР°Р№РґРµРЅ", result.Message);
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public class MarketMakerOrderServiceTest
         var result = await service.ExecuteMarketOrderAsync((int)bot.TraderId, bot.Symbol);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("Токен ZZZ не найден", result.Message);
+        Assert.Equal($"РўРѕРєРµРЅ {bot.Symbol} РЅРµ РЅР°Р№РґРµРЅ", result.Message);
     }
 
     [Fact]
@@ -158,6 +158,33 @@ public class MarketMakerOrderServiceTest
         var result = await service.ExecuteMarketOrderAsync((int)bot.TraderId, bot.Symbol);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("Не удалось создать ордер: Order creation failed", result.Message);
+        Assert.Equal("РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ РѕСЂРґРµСЂ: Order creation failed", result.Message);
+    }
+
+    [Fact]
+    public async Task ExecuteMarketOrderAsync_WhenExceptionThrown_ReturnsFail()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ", price: 100);
+
+        var bot = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 50);
+        await db.MarketMakerBots.AddAsync(bot);
+        await db.SaveChangesAsync();
+
+        var mockOrderCreationService = new Mock<IOrderCreationService>();
+        mockOrderCreationService
+            .Setup(x => x.CreateOrderAsync(It.IsAny<CreateOrderCommand>()))
+            .ThrowsAsync(new InvalidOperationException("db error"));
+
+        var logger = NullLogger<MarketMakerOrderService>.Instance;
+        var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, logger);
+
+        var result = await service.ExecuteMarketOrderAsync((int)bot.TraderId, bot.Symbol);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("db error", result.Message);
     }
 }

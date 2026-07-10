@@ -3,6 +3,7 @@ using ArkWallet.Application.Contracts.MarketMaker;
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Application.Services.MarketMaker;
 using ArkWallet.Domain.Entities;
+using ArkWallet.Domain.Exceptions;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Tests.HelpTools;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -46,7 +47,7 @@ public class MarketMakerBotRegistrationServiceTest
         var result = await service.RegisterBotAsync(101, "", BotRole.Buyer, 50);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("Символ токена не может быть пустым", result.Message);
+        Assert.Equal("РЎРёРјРІРѕР» С‚РѕРєРµРЅР° РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ РїСѓСЃС‚С‹Рј", result.Message);
     }
 
     [Fact]
@@ -62,7 +63,7 @@ public class MarketMakerBotRegistrationServiceTest
         var result = await service.RegisterBotAsync(101, "ZZZ", BotRole.Buyer, 0);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("Начальная мощность должна быть больше нуля", result.Message);
+        Assert.Equal("РќР°С‡Р°Р»СЊРЅР°СЏ РјРѕС‰РЅРѕСЃС‚СЊ РґРѕР»Р¶РЅР° Р±С‹С‚СЊ Р±РѕР»СЊС€Рµ РЅСѓР»СЏ", result.Message);
     }
 
     [Fact]
@@ -82,6 +83,46 @@ public class MarketMakerBotRegistrationServiceTest
         var result = await service.RegisterBotAsync(101, "ZZZ", BotRole.Buyer, 50);
 
         Assert.False(result.IsSuccess);
-        Assert.Contains("Не удалось зарегистрировать трейдера", result.Message);
+        Assert.Contains("РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°С‚СЊ С‚СЂРµР№РґРµСЂР°", result.Message);
+    }
+
+    [Fact]
+    public async Task RegisterBotAsync_WhenDomainExceptionThrown_ReturnsFail()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var mockRegistrationService = new Mock<ITraderRegistrationService>();
+        mockRegistrationService
+            .Setup(x => x.RegisterTraderAsync(It.IsAny<long>(), It.IsAny<string>(), It.IsAny<bool>()))
+            .ThrowsAsync(new DomainException("test domain error"));
+
+        var logger = NullLogger<MarketMakerBotRegistrationService>.Instance;
+        var service = new MarketMakerBotRegistrationService(db, mockRegistrationService.Object, logger);
+
+        var result = await service.RegisterBotAsync(101, "ZZZ", BotRole.Buyer, 50);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("test domain error", result.Message);
+    }
+
+    [Fact]
+    public async Task RegisterBotAsync_WhenGeneralExceptionThrown_ReturnsFail()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var mockRegistrationService = new Mock<ITraderRegistrationService>();
+        mockRegistrationService
+            .Setup(x => x.RegisterTraderAsync(It.IsAny<long>(), It.IsAny<string>(), It.IsAny<bool>()))
+            .ThrowsAsync(new InvalidOperationException("unexpected error"));
+
+        var logger = NullLogger<MarketMakerBotRegistrationService>.Instance;
+        var service = new MarketMakerBotRegistrationService(db, mockRegistrationService.Object, logger);
+
+        var result = await service.RegisterBotAsync(101, "ZZZ", BotRole.Buyer, 50);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("unexpected error", result.Message);
     }
 }

@@ -584,4 +584,134 @@ public class MarketMakerOrchestratorTest
             x => x.ExecuteMarketOrderAsync(It.IsAny<long>(), It.IsAny<string>()),
             Times.AtLeastOnce);
     }
+
+    [Fact]
+    public async Task EnsureBotsRegisteredAsync_WhenExceptionThrown_ReturnsFail()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var mockBotRegistrationService = new Mock<IMarketMakerBotRegistrationService>();
+        mockBotRegistrationService
+            .Setup(x => x.RegisterBotAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<BotRole>(), It.IsAny<decimal>()))
+            .ThrowsAsync(new InvalidOperationException("db connection lost"));
+
+        var logger = NullLogger<MarketMakerOrchestrator>.Instance;
+        var orchestrator = new MarketMakerOrchestrator(
+            db,
+            mockBotRegistrationService.Object,
+            null!,
+            null!,
+            null!,
+            null!,
+            logger);
+
+        var result = await orchestrator.EnsureBotsRegisteredAsync();
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Внутренняя ошибка сервера", result.Message);
+    }
+
+    [Fact]
+    public async Task EnsureTraderBalancesAsync_WhenPortfolioUpdateThrowsException_ReturnsFail()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var trader = Trader.Create(101, "Bot");
+        await db.Traders.AddAsync(trader);
+        await db.SaveChangesAsync();
+
+        var mockPortfolioUpdatingService = new Mock<IPortfolioUpdatingService>();
+        mockPortfolioUpdatingService
+            .Setup(x => x.CreateOrUpdatePortfolioAsync(It.IsAny<long>(), It.IsAny<string>(), It.IsAny<int>()))
+            .ThrowsAsync(new InvalidOperationException("portfolio error"));
+
+        var logger = NullLogger<MarketMakerOrchestrator>.Instance;
+        var orchestrator = new MarketMakerOrchestrator(
+            db,
+            null!,
+            mockPortfolioUpdatingService.Object,
+            null!,
+            null!,
+            null!,
+            logger);
+
+        var result = await orchestrator.EnsureTraderBalancesAsync();
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Внутренняя ошибка сервера", result.Message);
+    }
+
+    [Fact]
+    public async Task UpdateAllBotsGridAsync_WhenUpdateBotGridThrowsException_ReturnsFail()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var bot = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 20);
+        await db.MarketMakerBots.AddAsync(bot);
+        await db.SaveChangesAsync();
+
+        await HelpMethods.CreateToken(db, "ZZZ", price: 100);
+
+        var mockOrderCreationService = new Mock<IOrderCreationService>();
+        mockOrderCreationService
+            .Setup(x => x.CreateOrderAsync(It.IsAny<CreateOrderCommand>()))
+            .ThrowsAsync(new InvalidOperationException("order error"));
+
+        var fixedGridEngine = new FixedGridEngine();
+        var marketMakerGridEngine = new MarketMakerGridEngine(fixedGridEngine);
+
+        var logger = NullLogger<MarketMakerOrchestrator>.Instance;
+        var orchestrator = new MarketMakerOrchestrator(
+            db,
+            null!,
+            null!,
+            mockOrderCreationService.Object,
+            null!,
+            marketMakerGridEngine,
+            logger);
+
+        var result = await orchestrator.UpdateAllBotsGridAsync();
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Внутренняя ошибка сервера", result.Message);
+    }
+
+    [Fact]
+    public async Task ProcessBotsAsync_WhenExceptionThrown_ReturnsFail()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var bot = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 20);
+        await db.MarketMakerBots.AddAsync(bot);
+        await db.SaveChangesAsync();
+
+        await HelpMethods.CreateToken(db, "ZZZ", price: 100);
+
+        var mockOrderCreationService = new Mock<IOrderCreationService>();
+        mockOrderCreationService
+            .Setup(x => x.CreateOrderAsync(It.IsAny<CreateOrderCommand>()))
+            .ThrowsAsync(new InvalidOperationException("process error"));
+
+        var fixedGridEngine = new FixedGridEngine();
+        var marketMakerGridEngine = new MarketMakerGridEngine(fixedGridEngine);
+
+        var logger = NullLogger<MarketMakerOrchestrator>.Instance;
+        var orchestrator = new MarketMakerOrchestrator(
+            db,
+            null!,
+            null!,
+            mockOrderCreationService.Object,
+            null!,
+            marketMakerGridEngine,
+            logger);
+
+        var result = await orchestrator.ProcessBotsAsync();
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Внутренняя ошибка сервера", result.Message);
+    }
 }
