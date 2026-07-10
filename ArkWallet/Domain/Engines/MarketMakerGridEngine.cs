@@ -76,7 +76,7 @@ internal class MarketMakerGridEngine(FixedGridEngine fixedGridEngine)
         return min + (decimal)_random.NextDouble() * range;
     }
 
-    private bool HasOrderInRange(List<TradeOrder> orders, decimal lowerBound, decimal upperBound, string direction)
+    private static bool HasOrderInRange(List<TradeOrder> orders, decimal lowerBound, decimal upperBound, string direction)
     {
         var min = Math.Min(lowerBound, upperBound);
         var max = Math.Max(lowerBound, upperBound);
