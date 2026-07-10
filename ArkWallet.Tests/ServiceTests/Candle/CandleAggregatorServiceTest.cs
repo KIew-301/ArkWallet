@@ -5,7 +5,7 @@ namespace ArkWallet.Tests.ServiceTests.Candle;
 
 public class CandleAggregatorServiceTest
 {
-    private readonly ICandleAggregatorService _service = new CandleAggregatorService();
+    private readonly CandleAggregatorService _service = new CandleAggregatorService();
 
     [Fact]
     public async Task AggregateAsync_WithNullCandles_ReturnsEmptyList()
