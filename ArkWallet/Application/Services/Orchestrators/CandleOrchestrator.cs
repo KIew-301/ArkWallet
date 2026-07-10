@@ -26,7 +26,7 @@ internal class CandleOrchestrator(
             if (!candlesResult.TryGetData(out var candles))
                 return Result<List<PriceCandleInfo>>.Fail(candlesResult.Message);
 
-            if (!candles.Any())
+            if (candles.Count == 0)
                 return Result<List<PriceCandleInfo>>.Ok(new List<PriceCandleInfo>());
 
             if (timeframeMinutes == 1)
