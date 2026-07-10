@@ -5,13 +5,13 @@ namespace ArkWallet.Application.Services.CharacterTokenServices;
 
 internal class CandleAggregatorService : ICandleAggregatorService
 {
-    private static readonly DateTime Epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime Epoch = DateTime.UnixEpoch;
 
     public Task<Result<List<PriceCandleInfo>>> AggregateAsync(List<PriceCandleInfo> candles, int timeframeMinutes)
     {
         try
         {
-            if (candles == null || !candles.Any())
+            if (candles is null || candles.Count == 0)
                 return Task.FromResult(Result<List<PriceCandleInfo>>.Ok(new List<PriceCandleInfo>()));
 
             if (timeframeMinutes <= 0)
