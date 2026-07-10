@@ -27,7 +27,7 @@ namespace ArkWallet.Presentation.Wizard
             if (!portfolioQueryResult.TryGetData(out var portfolioItems))
                 return $"{baseQuestion}\n\n💎 У вас есть: 0\n";
             else
-                return $"{baseQuestion}\n\n💎 У вас есть: {string.Join(" ", portfolioItems.Select(t => t.TokenInfo.Symbol))}\n";
+                return $"{baseQuestion}\n\n💎 У вас есть: {string.Join(" ", portfolioItems.Select(t => t.TokenInfo?.Symbol ?? "???"))}\n";
         }
 
         private async Task<string> DecorateQuantityQuestion(string baseQuestion, UserSession session)
