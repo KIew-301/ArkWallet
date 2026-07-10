@@ -4,6 +4,7 @@ using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Domain.Entities;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Application.Services.MarketMaker;
@@ -14,8 +15,6 @@ internal class MarketMakerOrderService(
     IOrderCreationService orderCreationService,
     ILogger<MarketMakerOrderService> logger) : IMarketMakerOrderService
 {
-    private Random _rnd = new Random();
-
     public async Task<Result> ExecuteMarketOrderAsync(long traderIdInBot, string symbolInBot)
     {
         try
@@ -41,7 +40,7 @@ internal class MarketMakerOrderService(
             var minPower = (int)(bot.BasePower * 0.5m);
             var maxPower = (int)(bot.BasePower + minPower);
 
-            var quantity = (int)_rnd.Next(minPower, maxPower);
+            var quantity = RandomNumberGenerator.GetInt32(minPower, maxPower);
             var direction = isBuyer ? "купить" : "продать";
 
             var command = new CreateOrderCommand(
