@@ -156,6 +156,8 @@ internal class MarketMakerOrchestrator(
                 .Where(b => b.IsActive && b.Symbol == "ZZZ")
                 .ToListAsync();
 
+            bots = bots.OrderBy(_ => Guid.NewGuid()).ToList();
+
             if (bots.Count == 0)
                 return Result.Fail("Список ботов пуст");
 

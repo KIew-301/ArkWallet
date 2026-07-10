@@ -35,22 +35,22 @@ internal class MarketMakerBot
             Symbol = symbol,
             BasePower = initialPower,
             Role = botRole,
-            NextPowerChange = DateTime.UtcNow.AddMinutes(Random.Shared.Next(20, 60)),
+            NextPowerChange = DateTime.UtcNow.AddMinutes(Random.Shared.Next(2, 5)),
         };
     }
 
     /// <summary>Обновляет мощность случайным образом</summary>
     public void UpdatePower(decimal minPower, decimal maxPower)
     {
-        var change = Random.Shared.Next(-15, 15);
+        var change = Random.Shared.Next(-35, 35);
         BasePower = Math.Clamp(BasePower + change, minPower, maxPower);
-        NextPowerChange = DateTime.UtcNow.AddMinutes(Random.Shared.Next(20, 60));
+        NextPowerChange = DateTime.UtcNow.AddMinutes(Random.Shared.Next(2, 5));
     }
 
     /// <summary>Обновляет время обновления сетки</summary>
     public void UpdateRebalanced()
     {
-        NextRebalance = DateTime.UtcNow.AddHours(1);
+        NextRebalance = DateTime.UtcNow.AddMinutes(10);
     }
 }
 

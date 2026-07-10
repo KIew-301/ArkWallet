@@ -94,7 +94,9 @@ internal class HelpMethods
             tokenPriceCandleUpdateService = mockTokenPriceCandleUpdateService.Object;
         }    
 
-        var service = new OrderCreationService(db, engine, mockValidator.Object, tokenPriceCandleUpdateService, mockTaskDispatcher.Object);
+        var logger = NullLogger<OrderCreationService>.Instance;
+
+        var service = new OrderCreationService(db, engine, mockValidator.Object, tokenPriceCandleUpdateService, mockTaskDispatcher.Object, logger);
         return await service.CreateOrderAsync(new CreateOrderCommand(traderId, direction, symbol, quantity, price));
     }
 

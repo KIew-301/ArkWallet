@@ -14,6 +14,8 @@ internal class MarketMakerOrderService(
     IOrderCreationService orderCreationService,
     ILogger<MarketMakerOrderService> logger) : IMarketMakerOrderService
 {
+    private Random _rnd = new Random();
+
     public async Task<Result> ExecuteMarketOrderAsync(long traderIdInBot, string symbolInBot)
     {
         try
@@ -36,7 +38,10 @@ internal class MarketMakerOrderService(
                 ? token.CurrentPrice * (1 + deviation)
                 : token.CurrentPrice * (1 - deviation);
 
-            var quantity = (int)Math.Max(bot.BasePower * 0.3m, 1);
+            var minPower = (int)(bot.BasePower * 0.5m);
+            var maxPower = (int)(bot.BasePower + minPower);
+
+            var quantity = (int)_rnd.Next(minPower, maxPower);
             var direction = isBuyer ? "купить" : "продать";
 
             var command = new CreateOrderCommand(

@@ -133,45 +133,6 @@ public class MarketMakerOrderServiceTest
     }
 
     [Fact]
-    public async Task ExecuteMarketOrderAsync_QuantityIsCalculatedCorrectly()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.RegisterTrader(db, 102);
-        await HelpMethods.CreateToken(db, "ZZZ", price: 100);
-        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 100);
-
-        var bot = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 50);
-        await db.MarketMakerBots.AddAsync(bot);
-        await db.SaveChangesAsync();
-
-        var mockOrderCreationService = new Mock<IOrderCreationService>();
-        mockOrderCreationService
-            .Setup(x => x.CreateOrderAsync(It.IsAny<CreateOrderCommand>()))
-            .ReturnsAsync(Result<OrderCreationData>.Ok(new OrderCreationData(true, new OrderDto(
-                "1",
-                OrderType.Buy,
-                101,
-                "ZZZ",
-                15,
-                120,
-                OrderStatus.Active,
-                DateTime.UtcNow
-            ))));
-
-        var logger = NullLogger<MarketMakerOrderService>.Instance;
-        var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, logger);
-
-        await service.ExecuteMarketOrderAsync((int)bot.TraderId, bot.Symbol);
-
-        mockOrderCreationService.Verify(
-            x => x.CreateOrderAsync(It.Is<CreateOrderCommand>(c => c.Quantity == 15)),
-            Times.Once);
-    }
-
-    [Fact]
     public async Task ExecuteMarketOrderAsync_OrderCreationFails_ReturnsFail()
     {
         using var db = DbTest.CreateDbContext();
