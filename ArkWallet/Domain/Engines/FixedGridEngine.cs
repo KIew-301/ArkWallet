@@ -54,7 +54,7 @@ internal class FixedGridEngine
         return grid.OrderBy(x => x).ToList();
     }
 
-    private decimal GetGridValue(int index)
+    private static decimal GetGridValue(int index)
     {
         var value = BASE_PRICE * (decimal)Math.Pow((double)STEP_MULTIPLIER, index);
         return RoundToStep(value);
