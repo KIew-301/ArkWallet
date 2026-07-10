@@ -13,7 +13,7 @@ namespace ArkWallet.Telegram
     internal partial class TelegramBot(IServiceProvider serviceProvider)
     {
         // Интерфейс для взаимодействия с ботом
-        ITelegramBotClient botClient;
+        ITelegramBotClient botClient = null!;
 
         public async Task Start()
         {
@@ -90,6 +90,7 @@ namespace ArkWallet.Telegram
 
                 await botClient.AnswerCallbackQuery(callbackQuery.Id, cancellationToken: cancellationToken);
 
+                if (callbackData == null) return;
                 var (answer, buttons) = await wizardEngine.ProcessInput(chatId, callbackData);
 
                 if (IsAuthorizedUser(chatId))
