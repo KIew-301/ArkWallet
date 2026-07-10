@@ -1,49 +1,312 @@
-# ArkWallet
+# 🏦 ArkWallet — High-Load Token Trading Simulator
 
-A system for virtual trading with tokens linked to game characters.
+<div align="center">
 
-## `Architecture`
+![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)
+![C#](https://img.shields.io/badge/C%23-239120?style=for-the-badge&logo=csharp&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
+![RabbitMQ](https://img.shields.io/badge/RabbitMQ-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)
+![Telegram](https://img.shields.io/badge/Telegram_Bot-26A5E4?style=for-the-badge&logo=telegram&logoColor=white)
+![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)
+![SonarCloud](https://img.shields.io/badge/SonarCloud-F3702A?style=for-the-badge&logo=sonarcloud&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge&logo=mit&logoColor=white)
 
-- **Domain**: Entities & business logic
-- **Application**: Services & use cases 
-- **Infrastructure**: Data access
-- **Presentation**: Telegram bot
+</div>
 
-## `Key Services`
+---
 
-### `Domain Services`
-- **TradingEngine** - Order matching and trade execution
+## 📋 Table of Contents
 
-### `Presentation Services`  
-- **Wizard** - Step-by-step user interface for command processing
+- [🧠 Overview](#-overview)
+- [🚀 Core Capabilities](#-core-capabilities)
+- [🧱 Architecture](#-architecture)
+- [⚙️ Trading Engine](#️-trading-engine)
+- [🏗️ Domain Model](#️-domain-model)
+- [🔧 Service Layer](#-service-layer)
+- [📡 API Endpoints](#-api-endpoints)
+- [🛠 Technology Stack](#-technology-stack)
+- [🤝 Connect](#-connect)
+- [📄 License](#-license)
 
-### `Application Services`
+---
 
-#### `Token Services`
-- **TokenCreationService** - Create new character tokens
-- **TokenQueryService** - Get token information and prices
+## 🧠 Overview
 
-#### `Portfolio Services`
-- **PortfolioQueryService** - Get portfolio balances and positions
-- **PortfolioUpdatingService** - Update portfolio after trades
+**ArkWallet** is a **high-load token trading platform** built as a mini-app for Telegram. It simulates a full-featured trading ecosystem with real-time order matching, balance snapshots, candle aggregation, and an automated market-making system.
 
-#### `Order Services`
-- **OrderCreationService** - Create and process new orders
-- **OrderCancelService** - Cancel active orders
-- **OrderQueryService** - Get order information and history
-- **OrderValidationService** - Validate order parameters
+> **Key Objective:** Demonstrate production-ready architecture, clean code principles, and deep understanding of distributed systems — not just a working prototype.
 
-#### `Trader Services`
-- **TraderRegistrationService** - Register new traders
-- **TraderQueryService** - Get trader information
-- **TraderBalanceUpdatingService** - Update trader balances
+---
 
-#### `Suggestion Services`
-- **PriceSuggestionService** - Generate optimal price recommendations
-- **QuantitySuggestionService** - Generate optimal quantity suggestions
+## 🚀 Core Capabilities
 
-## `Contacts`
-- Telegram - https://t.me/DominoDominion
+| Feature | Description |
+|---------|-------------|
+| **💱 Token Trading** | Place buy/sell orders via REST API or Telegram Bot |
+| **⚡ Order Matching Engine** | Custom engine with partial fills, average execution price, and in-memory transactionality |
+| **📊 Balance Snapshots** | Periodic full-state balance snapshots with historical analytics |
+| **🕯️ Candle Aggregation** | Flexible timeframe aggregation (1m, 5m, 15m, 1h, etc.) |
+| **🤖 Market Maker Bots** | Automated liquidity providers with dynamic pricing grids |
+| **📨 Notification System** | RabbitMQ-based event bus with Telegram notifications |
 
-## 📄 `License`
-This project is licensed under the MIT License - see the [Licence.md](Licence.md) file for details.
+---
+
+## 🧱 Architecture
+
+The project follows **Clean Architecture** with **Domain-Driven Design** principles, strictly separated into four layers:
+
+<div align="center">
+<br>
+<table>
+<tr>
+<td align="center" width="25%">
+<strong>🎨 Presentation</strong><br>
+REST API (Swagger)<br>
+Telegram Bot
+</td>
+<td align="center" width="25%">
+<strong>🔧 Infrastructure</strong><br>
+EF Core<br>
+RabbitMQ<br>
+Background Jobs
+</td>
+<td align="center" width="25%">
+<strong>⚙️ Application</strong><br>
+Use Cases<br>
+DTOs<br>
+Service Contracts
+</td>
+<td align="center" width="25%">
+<strong>💎 Domain</strong><br>
+Entities<br>
+Value Objects<br>
+Engines
+</td>
+</tr>
+</table>
+<br>
+</div>
+
+### Design Principles Applied
+
+- ✅ **SOLID** — Single Responsibility, Dependency Injection
+- ✅ **Domain-Driven Design** — Rich domain model, value objects, invariants
+- ✅ **Result Pattern** — Explicit error handling without exceptions
+- ✅ **Unit Testing** — xUnit + Moq with coverage via Coverlet
+- ✅ **Code Quality** — SonarCloud integration
+
+---
+
+## ⚙️ Trading Engine
+
+At the core of the platform lies a **custom order matching engine** that processes trades atomically in memory before persisting to the database.
+
+### Processing Pipeline
+
+| Step | Action |
+|------|--------|
+| **1️⃣ Validation** | Verify price, quantity, and trader funds |
+| **2️⃣ Reserve Funds** | Lock balance (buy) or tokens (sell) |
+| **3️⃣ Load Order Book** | Fetch active opposite-side orders from DB |
+| **4️⃣ Find Matches** | Sort by best price (ascending for buys, descending for sells) |
+| **5️⃣ Execute Trades** | Calculate trade volume, update balances/portfolios, track partial fills |
+| **6️⃣ Return Result** | Atomic `TradingResult` with all changes for single DB transaction |
+
+### Key Characteristics
+
+| Property | Implementation |
+|----------|---------------|
+| **🔒 Encapsulation** | Engine lives in Domain layer, zero external dependencies |
+| **🔄 Partial Fills** | Orders stay active with remaining quantity |
+| **📊 Average Price** | Weighted average calculated across all fills |
+| **⚛️ Atomicity** | All changes computed in-memory, saved in single DB transaction |
+
+### Example Execution
+
+**Input:**
+- New order: **Buy 10 ZZZ @ 100**
+- Order Book:
+  - Sell 3 ZZZ @ 90
+  - Sell 4 ZZZ @ 95
+  - Sell 5 ZZZ @ 100
+
+**Execution:**
+
+| Trade | Qty | Price | Total |
+|-------|-----|-------|-------|
+| 1 | 3 | 90 | 270 |
+| 2 | 4 | 95 | 380 |
+| 3 | 3 | 100 | 300 |
+| **Total** | **10** | | **950** |
+
+**Result:** Average execution price = 95, order fully filled, token price updated to 100.
+
+---
+
+## 🏗️ Domain Model
+
+The domain layer contains a rich set of entities with encapsulated business logic and enforced invariants.
+
+### Entity Catalog
+
+| Entity | Responsibility | Key Invariants |
+|--------|---------------|----------------|
+| **👤 Trader** | User account with balance management | Balance ≥ 0, unique Telegram ID |
+| **💾 BalanceSnapshot** | Immutable full-state balance record | Created via factory method only |
+| **🎲 CharacterToken** | Tradable token with price and supply | Price ≥ 0, symbol uniqueness |
+| **📦 PortfolioItem** | Token holdings with reserve tracking | Quantity + Reserve + Selling = total |
+| **📝 TradeOrder** | Buy/sell order with status lifecycle | Price/quantity > 0, cancel only own active orders |
+| **🔄 Trade** | Executed exchange record | Always links buyer and seller |
+| **🕯️ PriceCandle** | OHLC price data per timeframe | Open ≤ High, Low ≤ Close |
+| **🤖 MarketMakerBot** | Automated liquidity provider | Dynamic power with randomized intervals |
+
+
+### Business Invariants
+
+| Entity | Invariant |
+|--------|-----------|
+| **Trader** | Balance cannot be negative |
+| **TradeOrder** | Price and quantity must be > 0 |
+| **TradeOrder** | Only active orders can be cancelled |
+| **TradeOrder** | Only order owner can cancel |
+| **PortfolioItem** | Cannot reserve more than available |
+| **PortfolioItem** | Cannot sell more than reserved |
+| **CharacterToken** | Price cannot be negative |
+| **BalanceSnapshot** | Immutable after creation |
+
+---
+
+## 🔧 Service Layer
+
+All services follow the **Single Responsibility Principle** and are organized by domain area.
+
+### Token Services
+
+| Service | Purpose |
+|---------|---------|
+| `ITokenCreationService` | Create new tokens with uniqueness validation |
+| `ITokenQueryService` | List all active tokens |
+| `ITokenPriceCandleQueryService` | Fetch historical price candles |
+| `ITokenPriceCandleUpdateService` | Update candles on price change (new candle per minute) |
+| `ITokenPriceChangesCalculationService` | Calculate absolute and percentage price changes |
+| `ICandleAggregatorService` | Aggregate 1m candles into higher timeframes |
+
+### Order Services
+
+| Service | Purpose |
+|---------|---------|
+| `IOrderCreationService` | Create and process orders through trading engine |
+| `IOrderCreationFullValidationService` | Full validation pipeline for order creation |
+| `IOrderValidationService` | Individual parameter validation (price, quantity, direction) |
+| `IOrderCancellationService` | Cancel single or all active orders with fund return |
+| `IOrderQueryService` | Query orders with status filtering |
+
+### Trader Services
+
+| Service | Purpose |
+|---------|---------|
+| `ITraderRegistrationService` | Register new traders |
+| `ITraderBalanceUpdatingService` | Top up trader balance |
+| `IBalanceSnapshotService` | Create full balance snapshots |
+| `IBalanceSavingService` | Persist snapshots to database |
+| `IBalanceChangesCalculationService` | Calculate balance changes over periods |
+
+### Portfolio Services
+
+| Service | Purpose |
+|---------|---------|
+| `IPortfolioQueryService` | Query token balances with profit/loss calculation |
+| `IPortfolioUpdatingService` | Create or update portfolio positions |
+
+### Trade Services
+
+| Service | Purpose |
+|---------|---------|
+| `ITradeQueryService` | Query trade history with profit/loss per trade |
+
+### Market Maker Services
+
+| Service | Purpose |
+|---------|---------|
+| `IMarketMakerBotRegistrationService` | Register bots as traders |
+| `IMarketMakerOrderService` | Execute market orders based on bot role and power |
+
+### Orchestration Services
+
+| Service | Purpose |
+|---------|---------|
+| `IMarketMakerOrchestrator` | Manage bot lifecycle (registration, balance, grids, orders) |
+| `ICandleOrchestrator` | Fetch and aggregate candles |
+
+### Suggestion Services
+
+| Service | Purpose |
+|---------|---------|
+| `IPriceSuggestionService` | Generate price suggestions for orders |
+| `IQuantitySuggestionService` | Generate quantity suggestions based on available funds |
+
+### Telegram Decorators
+
+| Service | Purpose |
+|---------|---------|
+| `IQuestionDecorator` | Enrich Wizard questions with trader context |
+| `IButtonDecorator` | Dynamically generate context-aware buttons |
+
+### Authentication Services
+
+| Service | Purpose |
+|---------|---------|
+| `ITokenService` | Generate JWT tokens (7-day lifetime, HMAC-SHA256) |
+| `ITraderAuthService` | Authenticate via Telegram WebApp InitData |
+
+---
+
+## 📡 API Endpoints
+
+| Controller | Method | Endpoint | Description |
+|-----------|--------|----------|-------------|
+| **Auth** | POST | `/api/auth/login` | Telegram WebApp authentication |
+| **Tokens** | GET | `/api/tokens/token` | List all active tokens |
+| **Tokens** | GET | `/api/tokens/price-candle` | Get price candles with aggregation |
+| **Orders** | GET | `/api/orders` | Get orders with status filtering |
+| **Orders** | POST | `/api/orders` | Create new order |
+| **Orders** | DELETE | `/api/orders/{orderId}` | Cancel specific order |
+| **Orders** | DELETE | `/api/orders` | Cancel all active orders |
+| **Portfolios** | GET | `/api/portfolios` | Get trader portfolio |
+| **Traders** | GET | `/api/traders/balance` | Get balance with period changes |
+| **Trades** | GET | `/api/trades` | Get trade history |
+
+---
+
+## 🛠 Technology Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Runtime** | .NET 9 |
+| **Framework** | ASP.NET Core 9 |
+| **Database** | SQLite (Entity Framework Core 9) |
+| **Message Broker** | RabbitMQ (RabbitMQ.Client 7.2.0) |
+| **Authentication** | JWT (Microsoft.AspNetCore.Authentication.JwtBearer 9) |
+| **API Documentation** | Swagger / OpenAPI (Swashbuckle.AspNetCore 9.0.6) |
+| **Telegram SDK** | Telegram.Bot 22.7.5 |
+| **Testing** | xUnit + Moq + Coverlet |
+| **CI/CD** | GitHub Actions + SSH + systemd |
+| **Code Quality** | SonarCloud |
+| **Architecture** | Clean Architecture + DDD + CQRS |
+
+---
+
+## 🤝 Connect
+
+- **Telegram:** [@DominoDominion](https://t.me/DominoDominion)
+- **GitHub:** [github.com/KIew-301](https://github.com/KIew-301)
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+
+---
