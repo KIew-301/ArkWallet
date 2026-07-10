@@ -74,8 +74,10 @@ namespace ArkWallet.Application.Dtos
         decimal Balance
     );
 
+    /// <summary>
+    /// Сводка по портфелю трейдера
+    /// </summary>
     public record PortfolioSummaryDto(
-        /// <summary>Список токенов в портфеле</summary>
         List<PortfolioItemInfo> Tokens
     );
 }
