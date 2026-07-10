@@ -275,6 +275,7 @@ ServiceFabricBackup/
 # Local plan files
 PLAN.md
 ORDER.md
+CONTEXT.md
 
 # Business Intelligence projects
 *.rdl.data
