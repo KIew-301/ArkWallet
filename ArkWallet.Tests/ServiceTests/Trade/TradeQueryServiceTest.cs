@@ -131,6 +131,7 @@ public class TradeQueryServiceTest
         Assert.True(result.TryGetData(out var data));
 
         var trade = data.First();
+        Assert.NotNull(trade.TokenInfo);
         Assert.Equal("ZZZ", trade.TokenInfo.Symbol);
         Assert.Equal(100m, trade.ExecutionPrice);
         Assert.Equal(5m, trade.Quantity);
@@ -159,6 +160,7 @@ public class TradeQueryServiceTest
         Assert.True(result.TryGetData(out var data));
 
         var trade = data.First();
+        Assert.NotNull(trade.TokenInfo);
         Assert.Equal("icon.png", trade.TokenInfo.IconUrl);
     }
 }
