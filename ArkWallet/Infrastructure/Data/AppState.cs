@@ -1,6 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 
+namespace ArkWallet.Infrastructure.Data;
+
 internal class AppState(string key, string value)
 {
     [Key]
