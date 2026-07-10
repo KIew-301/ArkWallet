@@ -36,7 +36,7 @@ public class CandleAggregatorServiceTest
         var result = await _service.AggregateAsync(candles, 0);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("Òàéìôðåéì äîëæåí áûòü áîëüøå 0", result.Message);
+        Assert.Equal("Ð¢Ð°Ð¹Ð¼Ñ„Ñ€ÐµÐ¹Ð¼ Ð´Ð¾Ð»Ð¶ÐµÐ½ Ð±Ñ‹Ñ‚ÑŒ Ð±Ð¾Ð»ÑŒÑˆÐµ 0", result.Message);
     }
 
     [Fact]
@@ -188,5 +188,121 @@ public class CandleAggregatorServiceTest
         Assert.Equal(105, data2[1].HighPrice);
         Assert.Equal(101, data2[1].LowPrice);
         Assert.Equal(104, data2[1].ClosePrice);
+    }
+
+    [Fact]
+    public async Task AggregateAsync_HourlyTimeframe_GroupsByHours()
+    {
+        var baseTime = new DateTime(2026, 7, 8, 10, 0, 0, DateTimeKind.Utc);
+        var candles = new List<PriceCandleInfo>
+        {
+            new(100, 102, 99, 101, baseTime, 0),
+            new(101, 103, 100, 102, baseTime.AddMinutes(15), 0),
+            new(105, 110, 104, 108, baseTime.AddHours(1), 0),
+            new(108, 112, 107, 110, baseTime.AddHours(1).AddMinutes(30), 0)
+        };
+
+        var result = await _service.AggregateAsync(candles, 60);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var data));
+        Assert.Equal(2, data.Count);
+
+        Assert.Equal(100, data[0].OpenPrice);
+        Assert.Equal(103, data[0].HighPrice);
+        Assert.Equal(99, data[0].LowPrice);
+        Assert.Equal(102, data[0].ClosePrice);
+
+        Assert.Equal(105, data[1].OpenPrice);
+        Assert.Equal(112, data[1].HighPrice);
+        Assert.Equal(104, data[1].LowPrice);
+        Assert.Equal(110, data[1].ClosePrice);
+    }
+
+    [Fact]
+    public async Task AggregateAsync_TwoHourTimeframe_GroupsByTwoHours()
+    {
+        var baseTime = new DateTime(2026, 7, 8, 8, 0, 0, DateTimeKind.Utc);
+        var candles = new List<PriceCandleInfo>
+        {
+            new(100, 102, 99, 101, baseTime, 0),
+            new(103, 105, 102, 104, baseTime.AddHours(1), 0),
+            new(107, 110, 106, 109, baseTime.AddHours(2), 0),
+            new(109, 111, 108, 110, baseTime.AddHours(3), 0)
+        };
+
+        var result = await _service.AggregateAsync(candles, 120);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var data));
+        Assert.Equal(2, data.Count);
+
+        Assert.Equal(100, data[0].OpenPrice);
+        Assert.Equal(105, data[0].HighPrice);
+        Assert.Equal(99, data[0].LowPrice);
+        Assert.Equal(104, data[0].ClosePrice);
+
+        Assert.Equal(107, data[1].OpenPrice);
+        Assert.Equal(111, data[1].HighPrice);
+        Assert.Equal(106, data[1].LowPrice);
+        Assert.Equal(110, data[1].ClosePrice);
+    }
+
+    [Fact]
+    public async Task AggregateAsync_DailyTimeframe_GroupsByDays()
+    {
+        var baseTime = new DateTime(2026, 7, 8, 14, 0, 0, DateTimeKind.Utc);
+        var candles = new List<PriceCandleInfo>
+        {
+            new(100, 102, 99, 101, baseTime, 0),
+            new(101, 103, 100, 102, baseTime.AddHours(6), 0),
+            new(105, 110, 104, 108, baseTime.AddDays(1), 0),
+            new(108, 112, 107, 110, baseTime.AddDays(1).AddHours(4), 0)
+        };
+
+        var result = await _service.AggregateAsync(candles, 1440);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var data));
+        Assert.Equal(2, data.Count);
+
+        Assert.Equal(100, data[0].OpenPrice);
+        Assert.Equal(103, data[0].HighPrice);
+        Assert.Equal(99, data[0].LowPrice);
+        Assert.Equal(102, data[0].ClosePrice);
+
+        Assert.Equal(105, data[1].OpenPrice);
+        Assert.Equal(112, data[1].HighPrice);
+        Assert.Equal(104, data[1].LowPrice);
+        Assert.Equal(110, data[1].ClosePrice);
+    }
+
+    [Fact]
+    public async Task AggregateAsync_WeeklyTimeframe_GroupsByWeeks()
+    {
+        var day0 = new DateTime(2026, 7, 6, 12, 0, 0, DateTimeKind.Utc);
+        var candles = new List<PriceCandleInfo>
+        {
+            new(100, 102, 99, 101, day0, 0),
+            new(101, 103, 100, 102, day0.AddDays(2), 0),
+            new(110, 115, 109, 113, day0.AddDays(10), 0),
+            new(113, 116, 112, 114, day0.AddDays(12), 0)
+        };
+
+        var result = await _service.AggregateAsync(candles, 10080);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var data));
+        Assert.Equal(2, data.Count);
+
+        Assert.Equal(100, data[0].OpenPrice);
+        Assert.Equal(103, data[0].HighPrice);
+        Assert.Equal(99, data[0].LowPrice);
+        Assert.Equal(102, data[0].ClosePrice);
+
+        Assert.Equal(110, data[1].OpenPrice);
+        Assert.Equal(116, data[1].HighPrice);
+        Assert.Equal(109, data[1].LowPrice);
+        Assert.Equal(114, data[1].ClosePrice);
     }
 }
