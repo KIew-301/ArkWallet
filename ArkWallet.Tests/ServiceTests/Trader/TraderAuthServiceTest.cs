@@ -1,11 +1,11 @@
-п»їusing ArkWallet.Application.Services.Other;
+using ArkWallet.Application.Services.Other;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Web;
 
-namespace ArkWallet.Tests.ServiceTests;
+namespace ArkWallet.Tests.ServiceTests.Trader;
 
 public class TraderAuthServiceTest
 {
@@ -50,7 +50,7 @@ public class TraderAuthServiceTest
         var result = service.AuthenticateUser(initData, botToken);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("Р”Р°РЅРЅС‹Рµ РЅРµРґРµР№СЃС‚РІРёС‚РµР»СЊРЅС‹", result.Message);
+        Assert.Equal("Данные недействительны", result.Message);
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public class TraderAuthServiceTest
         var result = service.AuthenticateUser(initData, botToken);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("РќРµРєРѕСЂСЂРµРєС‚РЅР°СЏ СЃС‚СЂРѕРєР° Р°РІС‚РѕСЂРёР·Р°С†РёРё", result.Message);
+        Assert.Equal("Некорректная строка авторизации", result.Message);
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public class TraderAuthServiceTest
         var result = service.AuthenticateUser(initData, botToken);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("РџРѕС‚РµСЂСЏРЅ С‚РѕРєРµРЅ Р±РѕС‚Р°", result.Message);
+        Assert.Equal("Потерян токен бота", result.Message);
     }
 
     [Fact]
@@ -95,7 +95,7 @@ public class TraderAuthServiceTest
         var result = service.AuthenticateUser(initData, botToken);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("РћС€РёР±РєР° РґРµСЃРµСЂРёР°Р»РёР·Р°С†РёРё РґР°РЅРЅС‹С… РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ", result.Message);
+        Assert.Equal("Ошибка десериализации данных пользователя", result.Message);
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public class TraderAuthServiceTest
         var result = service.AuthenticateUser(initData, botToken);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("Р”Р°С‚Р° Р°СѓС‚РµРЅС‚РёС„РёРєР°С†РёРё РЅРµ РѕР±РЅР°СЂСѓР¶РµРЅР°", result.Message);
+        Assert.Equal("Дата аутентификации не обнаружена", result.Message);
     }
 
     [Fact]
@@ -126,7 +126,7 @@ public class TraderAuthServiceTest
         var result = service.AuthenticateUser(initData, botToken);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("РСЃС‚РµРєР»Р° РґР°С‚Р° Р°СѓС‚РµРЅС‚РёС„РёРєР°С†РёРё", result.Message);
+        Assert.Equal("Истекла дата аутентификации", result.Message);
     }
 
     [Fact]
@@ -142,7 +142,7 @@ public class TraderAuthServiceTest
         var result = service.AuthenticateUser(initData, botToken);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("РҐРµС€ РЅРµ РѕР±РЅР°СЂСѓР¶РµРЅ", result.Message);
+        Assert.Equal("Хеш не обнаружен", result.Message);
     }
 
     private static string BuildInitData(string botToken, Dictionary<string, string> parameters)

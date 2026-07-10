@@ -1,9 +1,9 @@
-п»їusing ArkWallet.Application.Contracts.TradeOrderServices;
+using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Services.FullValidationService;
 using ArkWallet.Application.Services.TradeOrderServices;
 using ArkWallet.Tests.HelpTools;
 
-namespace ArkWallet.Tests.ServiceTests;
+namespace ArkWallet.Tests.ServiceTests.Order;
 
 public class OrderCreationFullValidationServiceTest
 {
@@ -22,7 +22,7 @@ public class OrderCreationFullValidationServiceTest
 
         var request = new CreateOrderCommand(
             TraderId: 101,
-            Direction: "РєСѓРїРёС‚СЊ",
+            Direction: "купить",
             Symbol: "ZZZ",
             Quantity: 5,
             Price: 100
@@ -47,7 +47,7 @@ public class OrderCreationFullValidationServiceTest
 
         var request = new CreateOrderCommand(
             TraderId: 101,
-            Direction: "РєСѓРїРёС‚СЊ",
+            Direction: "купить",
             Symbol: "ZZZ",
             Quantity: 5,
             Price: 0
@@ -56,7 +56,7 @@ public class OrderCreationFullValidationServiceTest
         var result = await service.ValidateAsync(request);
 
         Assert.False(result.IsValid);
-        Assert.Contains("Р¦РµРЅР° РґРѕР»Р¶РЅР° Р±С‹С‚СЊ Р±РѕР»СЊС€Рµ 0", result.Message);
+        Assert.Contains("Цена должна быть больше 0", result.Message);
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public class OrderCreationFullValidationServiceTest
 
         var request = new CreateOrderCommand(
             TraderId: 101,
-            Direction: "РєСѓРїРёС‚СЊ",
+            Direction: "купить",
             Symbol: "ZZZ",
             Quantity: 0,
             Price: 100
@@ -82,7 +82,7 @@ public class OrderCreationFullValidationServiceTest
         var result = await service.ValidateAsync(request);
 
         Assert.False(result.IsValid);
-        Assert.Contains("РљРѕР»РёС‡РµСЃС‚РІРѕ РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ Р±РѕР»СЊС€Рµ 0", result.Message);
+        Assert.Contains("Количество должно быть больше 0", result.Message);
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public class OrderCreationFullValidationServiceTest
 
         var request = new CreateOrderCommand(
             TraderId: 101,
-            Direction: "РїСЂРѕРґР°С‚СЊ",
+            Direction: "продать",
             Symbol: "UNKNOWN",
             Quantity: 5,
             Price: 100
@@ -107,7 +107,7 @@ public class OrderCreationFullValidationServiceTest
         var result = await service.ValidateAsync(request);
 
         Assert.False(result.IsValid);
-        Assert.Contains("РЅРµ РѕР±Р»Р°РґР°РµС‚", result.Message);
+        Assert.Contains("не обладает", result.Message);
     }
 
     [Fact]
@@ -124,7 +124,7 @@ public class OrderCreationFullValidationServiceTest
 
         var request = new CreateOrderCommand(
             TraderId: 101,
-            Direction: "РїСЂРѕРґР°С‚СЊ",
+            Direction: "продать",
             Symbol: "ZZZ",
             Quantity: 5,
             Price: 100
@@ -133,6 +133,6 @@ public class OrderCreationFullValidationServiceTest
         var result = await service.ValidateAsync(request);
 
         Assert.False(result.IsValid);
-        Assert.Contains("РЅРµ РѕР±Р»Р°РґР°РµС‚", result.Message);
+        Assert.Contains("не обладает", result.Message);
     }
 }

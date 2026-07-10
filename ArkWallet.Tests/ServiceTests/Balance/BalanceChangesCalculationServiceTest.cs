@@ -1,11 +1,11 @@
-п»їusing ArkWallet.Application.Common;
+using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Application.Services.TraderServices;
 using ArkWallet.Tests.HelpTools;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
-namespace ArkWallet.Tests.ServiceTests;
+namespace ArkWallet.Tests.ServiceTests.Balance;
 
 public class BalanceChangesCalculationServiceTest
 {
@@ -109,7 +109,7 @@ public class BalanceChangesCalculationServiceTest
         var result = await calculationService.TakeMainBalanceChanges(101, 0);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("РњРёРЅРёРјР°Р»СЊРЅС‹Р№ РїРµСЂРёРѕРґ РґР»СЏ СЂР°СЃС‡С‘С‚Р°: 1 РґРµРЅСЊ", result.Message);
+        Assert.Equal("Минимальный период для расчёта: 1 день", result.Message);
     }
 
     [Fact]

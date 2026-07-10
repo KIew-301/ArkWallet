@@ -1,4 +1,4 @@
-п»їusing ArkWallet.Application.Common;
+using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Services.CharacterTokenServices;
 using ArkWallet.Domain.ValueObjects;
@@ -6,7 +6,7 @@ using ArkWallet.Tests.HelpTools;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
-namespace ArkWallet.Tests.ServiceTests;
+namespace ArkWallet.Tests.ServiceTests.Token;
 
 public class TokenQueryServiceTest
 {
@@ -90,7 +90,7 @@ public class TokenQueryServiceTest
         var mockPriceChangeService = new Mock<ITokenPriceChangesCalculationService>();
         mockPriceChangeService
             .Setup(x => x.TakeTokenPriceChangesAsync("ZZZ", 1))
-            .ReturnsAsync(Result<TokenPriceChangesData>.Fail("РќРµС‚ РёСЃС‚РѕСЂРёРё С†РµРЅС‹Р«"));
+            .ReturnsAsync(Result<TokenPriceChangesData>.Fail("Нет истории ценыЫ"));
 
         var logger = NullLogger<TokenQueryService>.Instance;
         var service = new TokenQueryService(db, mockPriceChangeService.Object, logger);

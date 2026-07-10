@@ -1,8 +1,8 @@
-п»їusing ArkWallet.Application.Services.CharacterTokenServices;
+using ArkWallet.Application.Services.CharacterTokenServices;
 using ArkWallet.Tests.HelpTools;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace ArkWallet.Tests.ServiceTests;
+namespace ArkWallet.Tests.ServiceTests.Token;
 
 public class TokenPriceChangeCalculationServiceTest
 {
@@ -19,7 +19,7 @@ public class TokenPriceChangeCalculationServiceTest
         var result = await service.TakeTokenPriceChangesAsync("UNKNOWN", 1);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("РўРѕРєРµРЅ СЃ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂРѕРј UNKNOWN РЅРµ РЅР°Р№РґРµРЅ", result.Message);
+        Assert.Equal("Токен с идентификатором UNKNOWN не найден", result.Message);
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public class TokenPriceChangeCalculationServiceTest
         var result = await service.TakeTokenPriceChangesAsync("ZZZ", 0);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("РњРёРЅРёРјР°Р»СЊРЅС‹Р№ РїРµСЂРёРѕРґ РґР»СЏ СЂР°СЃС‡С‘С‚Р°: 1 РґРµРЅСЊ", result.Message);
+        Assert.Equal("Минимальный период для расчёта: 1 день", result.Message);
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public class TokenPriceChangeCalculationServiceTest
         var result = await service.TakeTokenPriceChangesAsync("ZZZ", 1);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("РСЃС‚РѕСЂРёРё С†РµРЅС‹ С‚РѕРєРµРЅР° РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚", result.Message);
+        Assert.Equal("Истории цены токена не существует", result.Message);
     }
 
     [Fact]

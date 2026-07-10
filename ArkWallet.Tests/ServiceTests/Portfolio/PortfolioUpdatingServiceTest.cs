@@ -1,6 +1,6 @@
-﻿using ArkWallet.Tests.HelpTools;
+using ArkWallet.Tests.HelpTools;
 
-namespace ArkWallet.Tests.ServiceTests;
+namespace ArkWallet.Tests.ServiceTests.Portfolio;
 
 public class PortfolioUpdatingServiceTest
 {

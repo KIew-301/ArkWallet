@@ -1,6 +1,6 @@
-п»їusing ArkWallet.Tests.HelpTools;
+using ArkWallet.Tests.HelpTools;
 
-namespace ArkWallet.Tests.ServiceTests;
+namespace ArkWallet.Tests.ServiceTests.Trader;
 
 public class TraderBalanceUpdatingServiceTest
 {
@@ -14,7 +14,7 @@ public class TraderBalanceUpdatingServiceTest
         var result = await HelpMethods.GiveMoney(db, 101, 0);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("РЎСѓРјРјР° РґРѕР»Р¶РЅР° СЃРѕСЃС‚Р°РІР»СЏС‚СЊ Р±РѕР»СЊС€Рµ 0", result.Message);
+        Assert.Equal("Сумма должна составлять больше 0", result.Message);
     }
 
     [Fact]
@@ -26,6 +26,6 @@ public class TraderBalanceUpdatingServiceTest
         var result = await HelpMethods.GiveMoney(db, 101, 1000);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("РўСЂРµР№РґРµСЂР° РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚", result.Message);
+        Assert.Equal("Трейдера не существует", result.Message);
     }
 }

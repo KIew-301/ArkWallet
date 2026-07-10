@@ -1,13 +1,13 @@
-п»їusing ArkWallet.Tests.HelpTools;
+using ArkWallet.Tests.HelpTools;
 
-namespace ArkWallet.Tests.ServiceTests;
+namespace ArkWallet.Tests.ServiceTests.Trader;
 
 public class TraderRegistrationServiceTest
 {
     [Theory]
-    [InlineData(0, "Test", "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ ID РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ 0")]
-    [InlineData(-50, "Test", "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ ID РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ -50")]
-    [InlineData(1, "", "РРјСЏ РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ РїСѓСЃС‚С‹Рј")]
+    [InlineData(0, "Test", "Некорректный ID пользователя 0")]
+    [InlineData(-50, "Test", "Некорректный ID пользователя -50")]
+    [InlineData(1, "", "Имя не может быть пустым")]
     public async Task RegisterUserAsync_WithInvalidData_ReturnsFailure(long id, string name, string errorMessage)
     {
         using var db = DbTest.CreateDbContext();

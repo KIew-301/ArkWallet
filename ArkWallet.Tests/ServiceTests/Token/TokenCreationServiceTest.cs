@@ -1,16 +1,16 @@
-п»їusing ArkWallet.Application.Services.CharacterTokenServices;
+using ArkWallet.Application.Services.CharacterTokenServices;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Tests.HelpTools;
 
-namespace ArkWallet.Tests.ServiceTests;
+namespace ArkWallet.Tests.ServiceTests.Token;
 
 public class TokenCreationServiceTest
 {
     [Theory]
-    [InlineData("", "РўРµСЃС‚-РІР°Р»СЋС‚Р°", CharacterRarity.FourStar, 10000, 1000, true, "РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ С‚РѕРєРµРЅР° РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ РїСѓСЃС‚С‹Рј")]
-    [InlineData("ZZZ", "РўРµСЃС‚-РІР°Р»СЋС‚Р°", CharacterRarity.FourStar, 0, 1000, true, "Р¦РµРЅР° РґРѕР»Р¶РЅР° Р±С‹С‚СЊ Р±РѕР»СЊС€Рµ 0")]
-    [InlineData("ZZZ", "РўРµСЃС‚-РІР°Р»СЋС‚Р°", CharacterRarity.FourStar, 10000, 0, true, "РћР±С‰РµРµ РєРѕР»РёС‡РµСЃС‚РІРѕ РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ Р±РѕР»СЊС€Рµ 0")]
-    [InlineData("ZZZ", "", CharacterRarity.FourStar, 10000, 1000, true, "РРјСЏ С‚РѕРєРµРЅР° РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ РїСѓСЃС‚С‹Рј")]
+    [InlineData("", "Тест-валюта", CharacterRarity.FourStar, 10000, 1000, true, "Идентификатор токена не может быть пустым")]
+    [InlineData("ZZZ", "Тест-валюта", CharacterRarity.FourStar, 0, 1000, true, "Цена должна быть больше 0")]
+    [InlineData("ZZZ", "Тест-валюта", CharacterRarity.FourStar, 10000, 0, true, "Общее количество должно быть больше 0")]
+    [InlineData("ZZZ", "", CharacterRarity.FourStar, 10000, 1000, true, "Имя токена не может быть пустым")]
     public async Task CreateTokenAsync_WithInvalidData_ReturnsFail(string symbol, string name, CharacterRarity rarity, int initialPrice, int maxSupply, bool isTradable, string errorMessage)
     {
         using var db = DbTest.CreateDbContext();
@@ -32,7 +32,7 @@ public class TokenCreationServiceTest
         var result = await service.CreateTokenAsync(null);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("РљРѕРјР°РЅРґР° РЅР° СЃРѕР·РґР°РЅРёРµ РЅРµРєРѕСЂСЂРµРєС‚РЅР°", result.Message);
+        Assert.Equal("Команда на создание некорректна", result.Message);
     }
 
     [Fact]
@@ -46,6 +46,6 @@ public class TokenCreationServiceTest
 
         Assert.True(result1.IsSuccess);
         Assert.False(result2.IsSuccess);
-        Assert.Equal("РўР°РєРѕР№ С‚РѕРєРµРЅ СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚", result2.Message);
+        Assert.Equal("Такой токен уже существует", result2.Message);
     }
 }

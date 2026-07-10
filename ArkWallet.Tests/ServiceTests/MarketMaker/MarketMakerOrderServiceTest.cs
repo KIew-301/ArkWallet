@@ -1,4 +1,4 @@
-п»їusing ArkWallet.Application.Common;
+using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.MarketMaker;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Dtos;
@@ -10,7 +10,7 @@ using ArkWallet.Tests.HelpTools;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
-namespace ArkWallet.Tests.ServiceTests;
+namespace ArkWallet.Tests.ServiceTests.MarketMaker;
 
 public class MarketMakerOrderServiceTest
 {
@@ -109,7 +109,7 @@ public class MarketMakerOrderServiceTest
         var result = await service.ExecuteMarketOrderAsync(101, "ZZZ");
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("Р‘РѕС‚ РґР»СЏ С‚СЂРµР№РґРµСЂР° 101 Рё С‚РѕРєРµРЅР° ZZZ РЅРµ РЅР°Р№РґРµРЅ", result.Message);
+        Assert.Equal("Бот для трейдера 101 и токена ZZZ не найден", result.Message);
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public class MarketMakerOrderServiceTest
         var result = await service.ExecuteMarketOrderAsync((int)bot.TraderId, bot.Symbol);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("РўРѕРєРµРЅ ZZZ РЅРµ РЅР°Р№РґРµРЅ", result.Message);
+        Assert.Equal("Токен ZZZ не найден", result.Message);
     }
 
     [Fact]
@@ -158,6 +158,6 @@ public class MarketMakerOrderServiceTest
         var result = await service.ExecuteMarketOrderAsync((int)bot.TraderId, bot.Symbol);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ РѕСЂРґРµСЂ: Order creation failed", result.Message);
+        Assert.Equal("Не удалось создать ордер: Order creation failed", result.Message);
     }
 }

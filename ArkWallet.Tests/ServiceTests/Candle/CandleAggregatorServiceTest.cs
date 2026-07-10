@@ -1,7 +1,7 @@
-п»їusing ArkWallet.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Services.CharacterTokenServices;
 
-namespace ArkWallet.Tests.ServiceTests;
+namespace ArkWallet.Tests.ServiceTests.Candle;
 
 public class CandleAggregatorServiceTest
 {
@@ -36,7 +36,7 @@ public class CandleAggregatorServiceTest
         var result = await _service.AggregateAsync(candles, 0);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("РўР°Р№РјС„СЂРµР№Рј РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ Р±РѕР»СЊС€Рµ 0", result.Message);
+        Assert.Equal("Таймфрейм должен быть больше 0", result.Message);
     }
 
     [Fact]

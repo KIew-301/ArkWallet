@@ -1,4 +1,4 @@
-п»їusing ArkWallet.Application.Common;
+using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.MarketMaker;
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Application.Services.MarketMaker;
@@ -8,7 +8,7 @@ using ArkWallet.Tests.HelpTools;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
-namespace ArkWallet.Tests.ServiceTests;
+namespace ArkWallet.Tests.ServiceTests.MarketMaker;
 
 public class MarketMakerBotRegistrationServiceTest
 {
@@ -46,7 +46,7 @@ public class MarketMakerBotRegistrationServiceTest
         var result = await service.RegisterBotAsync(101, "", BotRole.Buyer, 50);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("РЎРёРјРІРѕР» С‚РѕРєРµРЅР° РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ РїСѓСЃС‚С‹Рј", result.Message);
+        Assert.Equal("Символ токена не может быть пустым", result.Message);
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public class MarketMakerBotRegistrationServiceTest
         var result = await service.RegisterBotAsync(101, "ZZZ", BotRole.Buyer, 0);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("РќР°С‡Р°Р»СЊРЅР°СЏ РјРѕС‰РЅРѕСЃС‚СЊ РґРѕР»Р¶РЅР° Р±С‹С‚СЊ Р±РѕР»СЊС€Рµ РЅСѓР»СЏ", result.Message);
+        Assert.Equal("Начальная мощность должна быть больше нуля", result.Message);
     }
 
     [Fact]
@@ -82,6 +82,6 @@ public class MarketMakerBotRegistrationServiceTest
         var result = await service.RegisterBotAsync(101, "ZZZ", BotRole.Buyer, 50);
 
         Assert.False(result.IsSuccess);
-        Assert.Contains("РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°С‚СЊ С‚СЂРµР№РґРµСЂР°", result.Message);
+        Assert.Contains("Не удалось зарегистрировать трейдера", result.Message);
     }
 }
