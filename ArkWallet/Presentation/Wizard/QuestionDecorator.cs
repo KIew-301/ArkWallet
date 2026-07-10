@@ -4,9 +4,11 @@ using ArkWallet.Application.Services.Other;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Presentation.Wizard
 {
+    [ExcludeFromCodeCoverage(Justification = "UI-декоратор: форматирование текста вопросов для Telegram-интерфейса. Не содержит бизнес-логики.")]
     internal class QuestionDecorator(ArkWalletDbContext dbContext, IPortfolioQueryService portfolioQueryService, ReserveCalculationService reserveCalculationService) : IQuestionDecorator
     {
         public async Task<string> DecorateQuestionAsync(string stepName, string baseQuestion, UserSession session)
@@ -27,7 +29,7 @@ namespace ArkWallet.Presentation.Wizard
             if (!portfolioQueryResult.TryGetData(out var portfolioItems))
                 return $"{baseQuestion}\n\n💎 У вас есть: 0\n";
             else
-                return $"{baseQuestion}\n\n💎 У вас есть: {string.Join(" ", portfolioItems.Select(t => t.Symbol))}\n";
+                return $"{baseQuestion}\n\n💎 У вас есть: {string.Join(" ", portfolioItems.Select(t => t.TokenInfo?.Symbol ?? "???"))}\n";
         }
 
         private async Task<string> DecorateQuantityQuestion(string baseQuestion, UserSession session)

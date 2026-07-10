@@ -181,7 +181,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 return StepResult.Ok("completed", result);
             }
 
-            result += string.Join("\n", portfolioInfo.Select(p => $"{Indent(6)}{p.Symbol} - {p.Quantity} шт."));
+            result += string.Join("\n", portfolioInfo.Select(p => $"{Indent(6)}{p.TokenInfo?.Symbol ?? "???"} - {p.Quantity} шт."));
 
             return StepResult.Ok("completed", result);
         }

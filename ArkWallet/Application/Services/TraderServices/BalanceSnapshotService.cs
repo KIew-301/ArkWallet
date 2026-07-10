@@ -27,8 +27,8 @@ internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnap
             var shortOrderReserve = 0m;
             var balanceInTokens = 0m;
 
-            var longOrders = trader.Orders.Where(o => o.IsLong());
-            var shortOrders = trader.Orders.Where(o => o.IsShort());
+            var longOrders = trader.Orders.Where(o => o.IsLong() && o.IsActive());
+            var shortOrders = trader.Orders.Where(o => o.IsShort() && o.IsActive());
             var portfolioItems = trader.Portfolio;
             var activeSymbols = shortOrders
                 .Select(o => o.CharacterTokenId)

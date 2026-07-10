@@ -5,9 +5,11 @@ using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Presentation.Wizard
 {
+    [ExcludeFromCodeCoverage(Justification = "UI-декоратор: форматирование кнопок для Telegram-интерфейса. Не содержит бизнес-логики.")]
     internal class ButtonDecorator(ArkWalletDbContext dbContext, IPriceSuggestionService priceSuggestionService, IPortfolioQueryService portfolioQueryService) : IButtonDecorator
     {
         public async Task<List<QuickButton>> DecorateButtonsAsync(string stepName, List<QuickButton> baseKeyword, UserSession session)
@@ -38,7 +40,8 @@ namespace ArkWallet.Presentation.Wizard
                 return baseKeyword;
 
             foreach (var token in portfolioItems)
-                baseKeyword.Add(new() { Text = token.Symbol, Value = token.Symbol });
+                if (token.TokenInfo is not null)
+                    baseKeyword.Add(new() { Text = token.TokenInfo.Symbol, Value = token.TokenInfo.Symbol });
 
             return baseKeyword;
         }

@@ -1,5 +1,24 @@
 ﻿namespace ArkWallet.Presentation.DTOs
 {
+    /// <summary>
+    /// Запрос на получение баланса
+    /// </summary>
+    /// <param name="PeriodDays">Период для расчёта изменений (дней)</param>
     public record GetBalanceRequest(int PeriodDays);
-    public record GetBalanceResponse(decimal CurrentBalance, decimal ChangeAbsolute, decimal ChangePercent);
+    /// <summary>
+    /// Ответ с данными о балансе
+    /// </summary>
+    /// <param name="MainBalance">Информация о текущем основном балансе</param>
+    /// <param name="TotalBalance">Информация о полном балансе (включая резервированные и в токенах)</param>
+    public record GetBalanceResponse(
+        BalanceInfo MainBalance,
+        BalanceInfo TotalBalance
+    );
+    /// <summary>
+    /// Ответ с данными о балансе
+    /// </summary>
+    /// <param name="CurrentBalance">Текущий баланс</param>
+    /// <param name="ChangeAbsolute">Абсолютное изменение</param>
+    /// <param name="ChangePercent">Процентное изменение</param>
+    public record BalanceInfo(decimal CurrentBalance, decimal ChangeAbsolute, decimal ChangePercent);
 }

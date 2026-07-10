@@ -29,6 +29,9 @@ namespace ArkWallet.Domain.Entities
         /// <summary>Цена за один токен в базовой валюте.</summary>
         public decimal Price { get; set; }
 
+        /// <summary>Средняя цена исполнения за один токен в базовой валюте.</summary>
+        public decimal AverageExecutePrice { get; set; }
+
         /// <summary>Общее количество токенов в ордере.</summary>
         public int Quantity { get; set; }
 
@@ -100,8 +103,24 @@ namespace ArkWallet.Domain.Entities
                 CharacterTokenId = symbol,
                 TraderTelegramId = traderId,
                 Price = price,
-                Quantity = quantity
+                Quantity = quantity,
+                AverageExecutePrice = 0
             };
+        }
+
+        /// <summary>
+        /// Заполняет ордер.
+        /// </summary>
+        /// <param name="filledQuantity">На какое количество токенов заполнен ордер.</param>
+        /// <param name="price">По какой цене заполнен ордер.</param>
+        public void UpdateOrderFill(int filledQuantity, decimal price)
+        {
+            var totalCost = FilledQuantity * AverageExecutePrice + filledQuantity * price;
+            FilledQuantity += filledQuantity;
+            AverageExecutePrice = totalCost / FilledQuantity;
+
+            if (IsFilled())
+                MarkAsFilled();
         }
 
         /// <summary>

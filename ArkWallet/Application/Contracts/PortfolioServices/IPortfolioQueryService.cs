@@ -1,5 +1,8 @@
 ﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Dtos;
+using ArkWallet.Domain.Entities;
+using System.Reflection;
 
 namespace ArkWallet.Application.Contracts.PortfolioServices
 {
@@ -14,7 +17,7 @@ namespace ArkWallet.Application.Contracts.PortfolioServices
         /// <param name="traderId">ID трейдера в Telegram</param>
         /// <param name="symbol">Символ токена</param>
         /// <returns>DTO с балансом токена или null если токен отсутствует в портфеле</returns>
-        Task<Result<TokenBalanceDto>> GetTokenBalanceAsync(long traderId, string symbol);
+        Task<Result<PortfolioItemInfo>> GetTokenBalanceAsync(long traderId, string symbol);
 
         /// <summary>
         /// Получает список всех токенов в портфеле трейдера
@@ -24,6 +27,48 @@ namespace ArkWallet.Application.Contracts.PortfolioServices
         /// <remarks>
         /// Возвращает пустой список если портфель трейдера пуст.
         /// </remarks>
-        Task<Result<TokenBalanceDto[]>> GetTraderTokensAsync(long traderId);
+        Task<Result<PortfolioItemInfo[]>> GetTraderTokensAsync(long traderId);
+    }
+
+    /// <summary>
+    /// DTO с информацией о токене в портфеле для отображения на клиенте
+    /// </summary>
+    /// <param name="Quantity">Количество токенов в портфеле</param>
+    /// <param name="AverageBuyPrice">Средняя цена покупки токена</param>
+    /// <param name="BalanceInToken">Общая стоимость токенов в портфеле по текущей цене (Quantity * CurrentPrice)</param>
+    /// <param name="ProfitPercent">Процент прибыли/убытка относительно средней цены покупки ((BalanceInToken / Cost) * 100 - 100)</param>
+    /// <param name="TokenInfo">Информация о токене (символ, название, иконка и др.)</param>
+    public record PortfolioItemInfo(
+        decimal Quantity,
+        decimal AverageBuyPrice,
+        decimal BalanceInToken,
+        decimal ProfitPercent,
+        TokenInfo? TokenInfo
+    )
+    {
+        internal static PortfolioItemInfo FromEntity(PortfolioItem item)
+        {
+            if (item == null)
+                throw new ArgumentNullException(nameof(item), $"{MethodBase.GetCurrentMethod()?.Name} - item не может быть null");
+
+            if (item.CharacterToken == null)
+                throw new ArgumentNullException(nameof(item.CharacterToken), $"{MethodBase.GetCurrentMethod()?.Name} - item.CharacterToken не может быть null");
+
+            var balanceInToken = item.Quantity * item.CharacterToken.CurrentPrice;
+            var cost = item.Quantity * item.AverageBuyPrice;
+            var profitPercent = balanceInToken / cost * 100 - 100;
+
+            var tokenInfo = item.CharacterToken != null
+                ? TokenInfo.FromEntity(item.CharacterToken)
+                : null;
+
+            return new(
+                item.Quantity,
+                item.AverageBuyPrice,
+                balanceInToken,
+                profitPercent,
+                tokenInfo
+            );
+        }
     }
 }

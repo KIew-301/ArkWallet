@@ -5,7 +5,7 @@ namespace ArkWallet.Application.Contracts.PortfolioServices
     /// <summary>
     /// Сервис для обновления портфеля трейдера
     /// </summary>
-    internal interface IPortfolioUpdatingService
+    public interface IPortfolioUpdatingService
     {
         /// <summary>
         /// Создает или обновляет позицию в портфеле трейдера

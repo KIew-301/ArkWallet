@@ -32,7 +32,7 @@ internal class TradeQueryService(
                 .Select(t =>
                 {
                     var isBuyer = t.BuyerId == traderTelegramId;
-                    var info = TradeInfo.FromEntity(t, withTokenInfo);
+                    var info = TradeInfo.FromEntity(t);
 
                     return info with
                     {

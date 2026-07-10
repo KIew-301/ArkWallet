@@ -26,7 +26,7 @@ namespace ArkWallet.Entities.Configurations
                 }
             ];
 
-            Commands["/adminaddtokentouser"] = steps;
+            Commands["/adminsettokentouser"] = steps;
 
             steps =
             [

@@ -27,7 +27,14 @@ internal class PortfolioUpdatingService(ArkWalletDbContext dbContext) : IPortfol
         }
         else
         {
-            item.BuyTokens(quantity, token.CurrentPrice);
+            var diff = item.Quantity - quantity;
+            if (diff < 0)
+                item.BuyTokens(-diff, token.CurrentPrice);
+            else if (diff > 0)
+            {
+                item.ReserveTokens(diff, token.CurrentPrice);
+                item.SellTokens(diff, token.CurrentPrice);
+            }
         }
 
         await dbContext.SaveChangesAsync();

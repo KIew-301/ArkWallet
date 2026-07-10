@@ -1,5 +1,7 @@
 ﻿using ArkWallet.Infrastructure.Wizard;
 using ArkWallet.Presentation.Telegram;
+using Microsoft.OpenApi.Writers;
+using System.Diagnostics.CodeAnalysis;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
@@ -9,18 +11,11 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ArkWallet.Telegram
 {
-    internal partial class TelegramBot
+    [ExcludeFromCodeCoverage(Justification = "Telegram-бот: точка входа Telegram API, зависит от внешнего клиента и polling. Тестируется интеграционно.")]
+    internal partial class TelegramBot(IServiceProvider serviceProvider)
     {
         // Интерфейс для взаимодействия с ботом
-        ITelegramBotClient botClient;
-
-        // Взаимодействие с системой
-        private WizardEngine _wizardEngine;
-
-        public TelegramBot(WizardEngine wizardEngine)
-        {
-            _wizardEngine = wizardEngine;
-        }
+        ITelegramBotClient botClient = null!;
 
         public async Task Start()
         {
@@ -90,11 +85,15 @@ namespace ArkWallet.Telegram
 
             try
             {
+                using var scope = serviceProvider.CreateScope();
+                var wizardEngine = scope.ServiceProvider.GetRequiredService<WizardEngine>();
+
                 Console.WriteLine($"Received callback");
 
                 await botClient.AnswerCallbackQuery(callbackQuery.Id, cancellationToken: cancellationToken);
 
-                var (answer, buttons) = await _wizardEngine.ProcessInput(chatId, callbackData);
+                if (callbackData == null) return;
+                var (answer, buttons) = await wizardEngine.ProcessInput(chatId, callbackData);
 
                 if (IsAuthorizedUser(chatId))
                 {
@@ -143,7 +142,10 @@ namespace ArkWallet.Telegram
             {
                 if (IsAuthorizedUser(chatId))
                 {
-                    var (answer, buttons) = await _wizardEngine.ProcessInput(chatId, input);
+                    using var scope = serviceProvider.CreateScope();
+                    var wizardEngine = scope.ServiceProvider.GetRequiredService<WizardEngine>();
+
+                    var (answer, buttons) = await wizardEngine.ProcessInput(chatId, input);
 
                     if (string.IsNullOrEmpty(answer)) return;
 

@@ -1,6 +1,11 @@
-﻿using ArkWallet.Application.Dtos;
+﻿using ArkWallet.Application.Contracts.PortfolioServices;
+using ArkWallet.Application.Dtos;
 
 namespace ArkWallet.Presentation.DTOs
 {
-    public record GetPortfolioResponse(TokenBalanceDto[] Items);
+    /// <summary>
+    /// Ответ со списком токенов в портфеле
+    /// </summary>
+    /// <param name="Items">Массив токенов с количеством</param>
+    public record GetPortfolioResponse(PortfolioItemInfo[] Items);
 }

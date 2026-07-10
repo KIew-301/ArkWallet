@@ -269,6 +269,14 @@ ServiceFabricBackup/
 *.ldf
 *.ndf
 
+# SQLite database files
+*.db
+
+# Local plan files
+PLAN.md
+ORDER.md
+CONTEXT.md
+
 # Business Intelligence projects
 *.rdl.data
 *.bim.layout
@@ -400,3 +408,7 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 *Demo*
+.env
+.env.*
+!.env.example
+wwwroot

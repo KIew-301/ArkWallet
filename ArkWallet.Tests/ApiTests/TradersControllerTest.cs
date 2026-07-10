@@ -19,6 +19,10 @@ public class TradersControllerTest
             .Setup(x => x.TakeMainBalanceChanges(It.IsAny<long>(), It.IsAny<int>()))
             .ReturnsAsync(Result<BalanceChangesData>
                 .Ok(new BalanceChangesData(1250, 1000, 250, 25)));
+        mockBalanceChangesCalculationService
+            .Setup(x => x.TakeTotalBalanceChanges(It.IsAny<long>(), It.IsAny<int>()))
+            .ReturnsAsync(Result<BalanceChangesData>
+                .Ok(new BalanceChangesData(1250, 1000, 250, 25)));
 
         var traderController = new TradersController(mockBalanceChangesCalculationService.Object);
         traderController.AddContext("101");
@@ -28,9 +32,12 @@ public class TradersControllerTest
         var okResult = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsType<GetBalanceResponse>(okResult.Value);
 
-        Assert.Equal(1250, response.CurrentBalance);
-        Assert.Equal(250, response.ChangeAbsolute);
-        Assert.Equal(25, response.ChangePercent);
+        Assert.Equal(1250, response.MainBalance.CurrentBalance);
+        Assert.Equal(250, response.MainBalance.ChangeAbsolute);
+        Assert.Equal(25, response.MainBalance.ChangePercent);
+        Assert.Equal(1250, response.TotalBalance.CurrentBalance);
+        Assert.Equal(250, response.TotalBalance.ChangeAbsolute);
+        Assert.Equal(25, response.TotalBalance.ChangePercent);
     }
 
     [Fact]

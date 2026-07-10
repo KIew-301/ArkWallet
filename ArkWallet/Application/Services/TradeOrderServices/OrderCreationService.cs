@@ -17,7 +17,8 @@ internal class OrderCreationService(
     ArkWalletDbContext dbContext, TradingEngine tradingEngine,
     IOrderCreationFullValidationService orderCreationFullValidationService,
     ITokenPriceCandleUpdateService tokenPriceCandleUpdateService,
-    ITaskDispatcher taskDispatcher) : IOrderCreationService
+    ITaskDispatcher taskDispatcher,
+    ILogger<OrderCreationService> logger) : IOrderCreationService
 {
     public async Task<Result<OrderCreationData>> CreateOrderAsync(CreateOrderCommand command)
     {
@@ -85,7 +86,11 @@ internal class OrderCreationService(
 
             var result = OrderDto.FromEntity(engineResult.OrderToAdd);
 
-            await taskDispatcher.SendTaskAsync("notification", NotificationEvent.FromOrderList(engineResult.UpdatedOrders));
+            var ordersToNotify = engineResult.UpdatedOrders.Where(o => o.Status == OrderStatus.Filled).ToList();
+            if (engineResult.OrderToAdd.IsFilled())
+                ordersToNotify.Add(engineResult.OrderToAdd);
+
+            await taskDispatcher.SendTaskAsync("notification", NotificationEvent.FromOrderList(ordersToNotify, engineResult.UpdatedTraders, logger));
 
             return Ok(new(order.IsFilled(), result));
         }

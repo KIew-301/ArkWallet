@@ -17,6 +17,20 @@ namespace ArkWallet.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.10");
 
+            modelBuilder.Entity("AppState", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("AppStates");
+                });
+
             modelBuilder.Entity("ArkWallet.Domain.Entities.BalanceSnapshot", b =>
                 {
                     b.Property<long>("Id")
@@ -62,6 +76,14 @@ namespace ArkWallet.Migrations
                     b.Property<decimal>("CurrentPrice")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("IconUrl")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
 
@@ -78,6 +100,42 @@ namespace ArkWallet.Migrations
                     b.HasKey("Symbol");
 
                     b.ToTable("CharacterTokens");
+                });
+
+            modelBuilder.Entity("ArkWallet.Domain.Entities.MarketMakerBot", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("BasePower")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("NextPowerChange")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("NextRebalance")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Symbol")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("TraderId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("MarketMakerBots");
                 });
 
             modelBuilder.Entity("ArkWallet.Domain.Entities.PortfolioItem", b =>
@@ -194,6 +252,9 @@ namespace ArkWallet.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("TEXT");
 
+                    b.Property<decimal>("AverageExecutePrice")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("CharacterTokenId")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -242,6 +303,9 @@ namespace ArkWallet.Migrations
 
                     b.Property<DateTime>("JoinedAt")
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("NotificationOn")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Username")
                         .HasColumnType("TEXT");

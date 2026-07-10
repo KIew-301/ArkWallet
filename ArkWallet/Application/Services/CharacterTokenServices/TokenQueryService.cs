@@ -6,14 +6,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Application.Services.CharacterTokenServices;
-using static Result<List<TokenInfo>>;
+using static Result<List<TokenInfoWithPriceChange>>;
 
 internal class TokenQueryService(
     ArkWalletDbContext dbContext,
     ITokenPriceChangesCalculationService priceChangeService,
     ILogger<TokenQueryService> logger) : ITokenQueryService
 {
-    public async Task<Result<List<TokenInfo>>> GetAllActiveTokensAsync()
+    public async Task<Result<List<TokenInfoWithPriceChange>>> GetAllActiveTokensAsync()
     {
         try
         {
@@ -21,7 +21,7 @@ internal class TokenQueryService(
                 .Where(t => t.IsActive)
                 .ToListAsync();
 
-            var result = new List<TokenInfo>();
+            var result = new List<TokenInfoWithPriceChange>();
 
             foreach (var token in tokens)
             {
@@ -31,7 +31,7 @@ internal class TokenQueryService(
                     ? changeData.ChangePercent
                     : 0m;
 
-                result.Add(TokenInfo.FromEntity(token, dailyChangePercent));
+                result.Add(TokenInfoWithPriceChange.FromEntity(token, dailyChangePercent));
             }
 
             return Ok(result);

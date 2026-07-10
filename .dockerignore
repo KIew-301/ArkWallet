@@ -1,0 +1,67 @@
+# ============================================
+# Игнорируемые файлы при сборке Docker образа
+# ============================================
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Build artifacts
+bin/
+obj/
+[Bb]uild/
+[Dd]ebug/
+[Rr]elease/
+*.msi
+*.exe
+*.dll
+*.pdb
+
+# Test results
+TestResults/
+*.coverage
+*.trx
+
+# Data
+/data/
+/data-staging/
+/data-prod/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+*.dockerignore
+
+# Secrets
+*.secret
+*.key
+*.pem
+*.crt
+*.pfx
+*.p12
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/

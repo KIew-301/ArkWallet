@@ -9,7 +9,7 @@ using static ArkWallet.Application.Common.Result;
 
 internal class TraderRegistrationService(ArkWalletDbContext dbContext) : ITraderRegistrationService
 {
-    public async Task<Result> RegisterTraderAsync(long telegramId, string name)
+    public async Task<Result> RegisterTraderAsync(long telegramId, string name, bool enableNotyfi = true)
     {
         if (string.IsNullOrWhiteSpace(name))
             return Fail("Имя не может быть пустым");
@@ -23,6 +23,9 @@ internal class TraderRegistrationService(ArkWalletDbContext dbContext) : ITrader
             return Fail("Пользователь уже существует");
 
         var trader = Trader.Create(telegramId, name);
+
+        if (!enableNotyfi)
+            trader.NotificationOn = false;
 
         await dbContext.Traders.AddAsync(trader);
         await dbContext.SaveChangesAsync();

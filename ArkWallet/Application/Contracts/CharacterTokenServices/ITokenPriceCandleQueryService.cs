@@ -1,5 +1,6 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Domain.Entities;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ArkWallet.Application.Contracts.CharacterTokenServices;
 
@@ -33,13 +34,15 @@ public interface ITokenPriceCandleQueryService
 /// <param name="HighPrice">Максимальная цена</param>
 /// <param name="LowPrice">Минимальная цена</param>
 /// <param name="ClosePrice">Цена закрытия</param>
-/// <param name="Timestamp">Время свечи</param>
+/// <param name="DateTime">Время свечи (UTC)</param>
+/// <param name="Timestamp">Время свечи в формате Unix timestamp (секунды)</param>
 public record PriceCandleInfo(
     decimal OpenPrice,
     decimal HighPrice,
     decimal LowPrice,
     decimal ClosePrice,
-    DateTime Timestamp
+    DateTime DateTime,
+    long Timestamp
 )
 {
     internal static PriceCandleInfo FromEntity(PriceCandle candle)
@@ -49,7 +52,9 @@ public record PriceCandleInfo(
             candle.HighPrice,
             candle.LowPrice,
             candle.ClosePrice,
-            candle.Timestamp
+            candle.Timestamp,
+            new DateTimeOffset(candle.Timestamp)
+                .ToUnixTimeSeconds()
         );
     }
 }

@@ -2,16 +2,31 @@
 using ArkWallet.Presentation.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 
 namespace ArkWallet.Presentation.API;
 
+/// <summary>
+/// Контроллер для получения данных о портфеле трейдера
+/// </summary>
+[ExcludeFromCodeCoverage(Justification = "API-контроллер: только маршрутизация HTTP-запросов к сервисам. Не содержит бизнес-логики, тестируется интеграционно.")]
 [ApiController]
 [Route("api/v1/[controller]")]
-public class PortfoliosContoller(IPortfolioQueryService portfolioQueryService) : ControllerBase
+public class PortfoliosController(IPortfolioQueryService portfolioQueryService) : ControllerBase
 {
+    /// <summary>
+    /// Получение текущего портфеля трейдера
+    /// </summary>
+    /// <returns>Список токенов в портфеле с их количеством</returns>
+    /// <response code="200">Данные портфеля успешно получены</response>
+    /// <response code="401">Пользователь не авторизован</response>
+    /// <response code="400">Ошибка получения данных</response>
+    [ProducesResponseType(typeof(GetPortfolioResponse), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(400)]
     [Authorize]
-    [HttpGet("porfolio")]
+    [HttpGet("portfolio")]
     public async Task<IActionResult> GetPortfolio()
     {
         if (!long.TryParse(User?.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userTelegramId))
