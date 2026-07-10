@@ -19,7 +19,7 @@ internal class BalanceSavingSnapshotWorker(
                 using var scope = serviceProvider.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<ArkWalletDbContext>();
 
-                DateTime? lastUpdate = db.AppStates.Find("balanceSnapshotsLastUpdate")?.GetValue<DateTime>();
+                DateTime? lastUpdate = (await db.AppStates.FindAsync("balanceSnapshotsLastUpdate"))?.GetValue<DateTime>();
                 DateTime now = DateTime.UtcNow;
 
                 if (lastUpdate == null || now.AddSeconds(-UpdatePeriodInSeconds) > lastUpdate)
@@ -35,7 +35,7 @@ internal class BalanceSavingSnapshotWorker(
         }
     }
 
-    private async Task CreateAndSaveSnaphotsForAllTraders(ArkWalletDbContext db, IServiceScope scope)
+    private static async Task CreateAndSaveSnaphotsForAllTraders(ArkWalletDbContext db, IServiceScope scope)
     {
         var ids = db.Traders.Select(t => t.TelegramId).ToArray();
 
@@ -63,19 +63,19 @@ internal class BalanceSavingSnapshotWorker(
                 if (!savintResult.IsSuccess)
                 {
                     await transaction.RollbackAsync();
-                    throw new Exception("Ошибка сохранения снимка баланса");
+                    throw new InvalidOperationException("Ошибка сохранения снимка баланса");
                 }
             }
             else
             {
                 await transaction.RollbackAsync();
-                throw new Exception("Ошибка в создании снимка баланса");
+                throw new InvalidOperationException("Ошибка в создании снимка баланса");
             }
         }
 
         DateTime now = DateTime.UtcNow;
 
-        var state = db.AppStates.Find("balanceSnapshotsLastUpdate");
+        var state = await db.AppStates.FindAsync("balanceSnapshotsLastUpdate");
 
         if (state == null)
         {
