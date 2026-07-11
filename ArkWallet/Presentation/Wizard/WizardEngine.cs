@@ -49,7 +49,6 @@ namespace ArkWallet.Infrastructure.Wizard
             IPortfolioUpdatingService portfolioUpdatingService,
             ITokenCreationService tokenCreationServices,
             IPriceSuggestionService priceSuggestionService,
-            IQuantitySuggestionService quantitySuggestionService,
             IQuestionDecorator questionDecorator,
             IButtonDecorator buttonDecorator,
             WizardConfiguration config
