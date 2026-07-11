@@ -7,6 +7,17 @@ using System.Reflection;
 
 namespace ArkWallet.Application.Dtos
 {
+    /// <summary>
+    /// DTO ордера на покупку/продажу токена
+    /// </summary>
+    /// <param name="Id">Уникальный идентификатор ордера</param>
+    /// <param name="Direction">Направление ордера (покупка или продажа)</param>
+    /// <param name="OwnerId">Telegram ID владельца ордера</param>
+    /// <param name="Symbol">Символ токена</param>
+    /// <param name="Quantity">Количество токенов</param>
+    /// <param name="Price">Цена за единицу токена</param>
+    /// <param name="Status">Статус ордера</param>
+    /// <param name="CreatedAt">Дата и время создания ордера</param>
     public record OrderDto(
         string Id,
         OrderType Direction,
@@ -48,6 +59,12 @@ namespace ArkWallet.Application.Dtos
         }
     };
 
+    /// <summary>
+    /// DTO с основной информацией о токене
+    /// </summary>
+    /// <param name="Symbol">Символ токена</param>
+    /// <param name="Name">Название токена</param>
+    /// <param name="CurrentPrice">Текущая цена токена</param>
     public record TokenInfoDto(
         string Symbol,
         string Name,
@@ -68,6 +85,12 @@ namespace ArkWallet.Application.Dtos
     };
 
 
+    /// <summary>
+    /// DTO с информацией о трейдере
+    /// </summary>
+    /// <param name="Id">Telegram ID трейдера</param>
+    /// <param name="Name">Имя трейдера</param>
+    /// <param name="Balance">Текущий баланс трейдера</param>
     public record TraderInfoDto(
         long Id,
         string Name,
