@@ -9,7 +9,6 @@ using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Application.Contracts.TradeServices;
 using ArkWallet.Application.Services.CharacterTokenServices;
-using ArkWallet.Application.Services.FullValidationService;
 using ArkWallet.Application.Services.MarketMaker;
 using ArkWallet.Application.Services.Orchestrators;
 using ArkWallet.Application.Services.Other;
@@ -243,7 +242,6 @@ class Program
         // TradeOrderServices
         services.AddScoped<IOrderCancellationService, OrderCancellationService>();
         services.AddScoped<IOrderCreationService, OrderCreationService>();
-        services.AddScoped<IOrderCreationFullValidationService, OrderCreationFullValidationService>();
         services.AddScoped<IOrderValidationService, OrderValidationService>();
         services.AddScoped<IOrderQueryService, OrderQueryService>();
 

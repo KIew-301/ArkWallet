@@ -88,6 +88,23 @@ namespace ArkWallet.Application.Services.TradeOrderServices
 
             return new ValidationResult(true);
         }
+
+        public async Task<ValidationResult> ValidateFullOrderAsync(CreateOrderCommand request)
+        {
+            var priceValidationResult = ValidatePrice(request.Price);
+            if (!priceValidationResult.IsValid)
+                return ValidationResult.Failed(priceValidationResult.Message);
+
+            var quantityValidationResult = ValidateQuantity(request.Quantity);
+            if (!quantityValidationResult.IsValid)
+                return ValidationResult.Failed(quantityValidationResult.Message);
+
+            var tokenValidationResult = await ValidateTokenAsync(request.TraderId, request.Symbol, request.Direction);
+            if (!tokenValidationResult.IsValid)
+                return ValidationResult.Failed(tokenValidationResult.Message);
+
+            return ValidationResult.Success();
+        }
     }
 
     public static class OrderDirections
