@@ -1,9 +1,6 @@
 ﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
-using System.Diagnostics;
-using System.Reflection;
 
 namespace ArkWallet.Application.Dtos
 {
@@ -85,22 +82,5 @@ namespace ArkWallet.Application.Dtos
     };
 
 
-    /// <summary>
-    /// DTO с информацией о трейдере
-    /// </summary>
-    /// <param name="Id">Telegram ID трейдера</param>
-    /// <param name="Name">Имя трейдера</param>
-    /// <param name="Balance">Текущий баланс трейдера</param>
-    public record TraderInfoDto(
-        long Id,
-        string Name,
-        decimal Balance
-    );
 
-    /// <summary>
-    /// Сводка по портфелю трейдера
-    /// </summary>
-    public record PortfolioSummaryDto(
-        List<PortfolioItemInfo> Tokens
-    );
 }
