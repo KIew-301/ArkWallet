@@ -1,9 +1,11 @@
 ﻿using Microsoft.Extensions.Configuration;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Exceptions;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Infrastructure
 {
+    [ExcludeFromCodeCoverage(Justification = "Инфраструктурный сервис RabbitMQ, зависит от внешнего брокера. Тестируется интеграционно.")]
     internal class RabbitMQService : IAsyncDisposable
     {
         private readonly IConnection _connection;
