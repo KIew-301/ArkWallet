@@ -264,7 +264,6 @@ class Program
         services.AddScoped<ITradeQueryService, TradeQueryService>();
 
         // Other
-        services.AddScoped<ReserveCalculationService>();
         services.AddScoped<ITraderAuthService, TraderAuthService>();
         services.AddScoped<ITokenService, TokenService>();
     }
