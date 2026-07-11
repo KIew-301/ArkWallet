@@ -1,12 +1,14 @@
 ﻿using ArkWallet.Application.Contracts.Other;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using System.Diagnostics.CodeAnalysis;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
 namespace ArkWallet.Application.Services.Other;
 
+[ExcludeFromCodeCoverage(Justification = "JWT-инфраструктура, зависит от IConfiguration, нет бизнес-логики.")]
 internal class TokenService(IConfiguration configuration) : ITokenService
 {
     private readonly string _jwtKey = configuration["Jwt:SecretKey"]
