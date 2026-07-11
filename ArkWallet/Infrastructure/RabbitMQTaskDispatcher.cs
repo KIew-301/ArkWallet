@@ -1,10 +1,12 @@
 ﻿using ArkWallet.Application.Contracts.Other;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace ArkWallet.Infrastructure
 {
+    [ExcludeFromCodeCoverage(Justification = "Инфраструктурный диспетчер задач RabbitMQ, зависит от внешнего брокера. Тестируется интеграционно.")]
     internal class RabbitMQTaskDispatcher : ITaskDispatcher
     {
         private readonly RabbitMQService _rabbitMQService;

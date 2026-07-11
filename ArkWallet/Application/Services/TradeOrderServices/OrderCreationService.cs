@@ -15,7 +15,7 @@ using static ArkWallet.Application.Common.Result<OrderCreationData>;
 
 internal class OrderCreationService(
     ArkWalletDbContext dbContext, TradingEngine tradingEngine,
-    IOrderCreationFullValidationService orderCreationFullValidationService,
+    IOrderValidationService orderValidationService,
     ITokenPriceCandleUpdateService tokenPriceCandleUpdateService,
     ITaskDispatcher taskDispatcher,
     ILogger<OrderCreationService> logger) : IOrderCreationService
@@ -33,7 +33,7 @@ internal class OrderCreationService(
             if (token == null)
                 return Fail("Токена не существует");
 
-            var orderValidationResult = await orderCreationFullValidationService.ValidateAsync(command);
+            var orderValidationResult = await orderValidationService.ValidateFullOrderAsync(command);
 
             if (!orderValidationResult.IsValid)
                 return Fail(orderValidationResult.Message);

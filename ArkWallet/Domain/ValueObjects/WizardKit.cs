@@ -27,14 +27,6 @@
         public static StepResult Error(string message) => new() { Success = false, Message = message };
     }
 
-    public class AdditionMessage
-    {
-        public long ChatId { get; set; }
-        public string? Message { get; set; }
-
-    }
-
-
     public class UserSession
     {
         public long Id { get; set; }

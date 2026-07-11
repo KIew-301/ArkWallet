@@ -1,5 +1,4 @@
 using ArkWallet.Application.Contracts.TradeOrderServices;
-using ArkWallet.Application.Services.FullValidationService;
 using ArkWallet.Application.Services.TradeOrderServices;
 using ArkWallet.Tests.HelpTools;
 
@@ -18,17 +17,16 @@ public class OrderCreationFullValidationServiceTest
         await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
 
         var validationService = new OrderValidationService(db);
-        var service = new OrderCreationFullValidationService(validationService);
 
         var request = new CreateOrderCommand(
             TraderId: 101,
-            Direction: "купить",
+            Direction: "РєСѓРїРёС‚СЊ",
             Symbol: "ZZZ",
             Quantity: 5,
             Price: 100
         );
 
-        var result = await service.ValidateAsync(request);
+        var result = await validationService.ValidateFullOrderAsync(request);
 
         Assert.True(result.IsValid);
     }
@@ -43,20 +41,19 @@ public class OrderCreationFullValidationServiceTest
         await HelpMethods.CreateToken(db, "ZZZ");
 
         var validationService = new OrderValidationService(db);
-        var service = new OrderCreationFullValidationService(validationService);
 
         var request = new CreateOrderCommand(
             TraderId: 101,
-            Direction: "купить",
+            Direction: "РєСѓРїРёС‚СЊ",
             Symbol: "ZZZ",
             Quantity: 5,
             Price: 0
         );
 
-        var result = await service.ValidateAsync(request);
+        var result = await validationService.ValidateFullOrderAsync(request);
 
         Assert.False(result.IsValid);
-        Assert.Contains("Цена должна быть больше 0", result.Message);
+        Assert.Contains("Р¦РµРЅР° РґРѕР»Р¶РЅР° Р±С‹С‚СЊ Р±РѕР»СЊС€Рµ 0", result.Message);
     }
 
     [Fact]
@@ -69,20 +66,19 @@ public class OrderCreationFullValidationServiceTest
         await HelpMethods.CreateToken(db, "ZZZ");
 
         var validationService = new OrderValidationService(db);
-        var service = new OrderCreationFullValidationService(validationService);
 
         var request = new CreateOrderCommand(
             TraderId: 101,
-            Direction: "купить",
+            Direction: "РєСѓРїРёС‚СЊ",
             Symbol: "ZZZ",
             Quantity: 0,
             Price: 100
         );
 
-        var result = await service.ValidateAsync(request);
+        var result = await validationService.ValidateFullOrderAsync(request);
 
         Assert.False(result.IsValid);
-        Assert.Contains("Количество должно быть больше 0", result.Message);
+        Assert.Contains("РљРѕР»РёС‡РµСЃС‚РІРѕ РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ Р±РѕР»СЊС€Рµ 0", result.Message);
     }
 
     [Fact]
@@ -94,20 +90,19 @@ public class OrderCreationFullValidationServiceTest
         await HelpMethods.RegisterTrader(db, 101);
 
         var validationService = new OrderValidationService(db);
-        var service = new OrderCreationFullValidationService(validationService);
 
         var request = new CreateOrderCommand(
             TraderId: 101,
-            Direction: "продать",
+            Direction: "РїСЂРѕРґР°С‚СЊ",
             Symbol: "UNKNOWN",
             Quantity: 5,
             Price: 100
         );
 
-        var result = await service.ValidateAsync(request);
+        var result = await validationService.ValidateFullOrderAsync(request);
 
         Assert.False(result.IsValid);
-        Assert.Contains("не обладает", result.Message);
+        Assert.Contains("РЅРµ РѕР±Р»Р°РґР°РµС‚", result.Message);
     }
 
     [Fact]
@@ -120,19 +115,18 @@ public class OrderCreationFullValidationServiceTest
         await HelpMethods.CreateToken(db, "ZZZ");
 
         var validationService = new OrderValidationService(db);
-        var service = new OrderCreationFullValidationService(validationService);
 
         var request = new CreateOrderCommand(
             TraderId: 101,
-            Direction: "продать",
+            Direction: "РїСЂРѕРґР°С‚СЊ",
             Symbol: "ZZZ",
             Quantity: 5,
             Price: 100
         );
 
-        var result = await service.ValidateAsync(request);
+        var result = await validationService.ValidateFullOrderAsync(request);
 
         Assert.False(result.IsValid);
-        Assert.Contains("не обладает", result.Message);
+        Assert.Contains("РЅРµ РѕР±Р»Р°РґР°РµС‚", result.Message);
     }
 }

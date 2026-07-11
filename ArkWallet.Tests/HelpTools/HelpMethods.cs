@@ -77,9 +77,9 @@ internal class HelpMethods
     )
     {
         var engine = new TradingEngine();
-        var mockValidator = new Mock<IOrderCreationFullValidationService>();
+        var mockValidator = new Mock<IOrderValidationService>();
         mockValidator
-            .Setup(x => x.ValidateAsync(It.IsAny<CreateOrderCommand>()))
+            .Setup(x => x.ValidateFullOrderAsync(It.IsAny<CreateOrderCommand>()))
             .ReturnsAsync(new ValidationResult(true));
         var mockTaskDispatcher = new Mock<ITaskDispatcher>();
         mockTaskDispatcher

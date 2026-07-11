@@ -3,14 +3,15 @@ using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Presentation.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ArkWallet.Presentation.API;
 
 /// <summary>
 /// Контроллер для получения данных о трейдере
 /// </summary>
+[ExcludeFromCodeCoverage(Justification = "API-контроллер: только маршрутизация HTTP-запросов к сервисам. Не содержит бизнес-логики, тестируется интеграционно.")]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class TradersController(IBalanceChangesCalculationService balanceChangesCalculationService) : ControllerBase

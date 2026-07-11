@@ -74,17 +74,18 @@ namespace ArkWallet.Application.Contracts.TradeOrderServices
         /// <param name="price">Цена за токен</param>
         /// <returns>Результат валидации</returns>
         ValidationResult ValidatePrice(decimal price);
+
+        /// <summary>
+        /// Выполняет полную валидацию команды создания ордера
+        /// </summary>
+        /// <param name="request">Команда создания ордера</param>
+        /// <returns>Результат валидации</returns>
+        /// <remarks>
+        /// Последовательно проверяет: цену, количество, наличие токена у трейдера.
+        /// При первой ошибке валидация прекращается.
+        /// </remarks>
+        Task<ValidationResult> ValidateFullOrderAsync(CreateOrderCommand request);
     }
 
-    /// <summary>
-    /// Результат валидации цены с возможным предложением
-    /// </summary>
-    /// <param name="IsValid">True если цена валидна</param>
-    /// <param name="Message">Сообщение об ошибке или предупреждении</param>
-    /// <param name="SuggestedPrice">Предложенная цена (опционально)</param>
-    public record PriceValidationResult(
-        bool IsValid,
-        string? Message = null,
-        decimal? SuggestedPrice = null
-    );
+
 }

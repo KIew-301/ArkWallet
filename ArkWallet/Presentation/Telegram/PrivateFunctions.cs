@@ -1,16 +1,10 @@
 ﻿using Microsoft.Extensions.Configuration;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Presentation.Telegram
 {
-    public interface IConfigurationService
-    {
-        Task<string> GetToken();
-        Task<long> GetPAId();
-        Task<long> GetSAId();
-        Task<long> GetTAId();
-    }
-
-    internal class ConfigurationService : IConfigurationService
+    [ExcludeFromCodeCoverage(Justification = "Инфраструктурный сервис конфигурации, зависит от User Secrets. Тестируется интеграционно.")]
+    internal class ConfigurationService
     {
         static readonly string telegramBotName = "Main";
 
