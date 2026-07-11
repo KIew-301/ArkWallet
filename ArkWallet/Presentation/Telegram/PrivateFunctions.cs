@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Configuration;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Presentation.Telegram
 {
@@ -10,6 +11,7 @@ namespace ArkWallet.Presentation.Telegram
         Task<long> GetTAId();
     }
 
+    [ExcludeFromCodeCoverage(Justification = "Инфраструктурный сервис конфигурации, зависит от User Secrets. Тестируется интеграционно.")]
     internal class ConfigurationService : IConfigurationService
     {
         static readonly string telegramBotName = "Main";
