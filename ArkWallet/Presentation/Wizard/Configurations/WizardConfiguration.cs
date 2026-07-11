@@ -1,7 +1,9 @@
 ﻿using ArkWallet.Domain.ValueObjects;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Entities.Configurations
 {
+    [ExcludeFromCodeCoverage(Justification = "Конфигурация шагов wizard, статические данные без логики. Тестируется через интеграционные сценарии.")]
     partial class WizardConfiguration
     {
         public Dictionary<string, List<WizardStep>> Commands { get; } = new();
