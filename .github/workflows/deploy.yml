@@ -36,10 +36,22 @@ jobs:
               cd $APP_DIR
             fi
 
-            # Copy server .env if not exists
-            if [ ! -f ".env" ]; then
-              cp .env.server .env
-              echo "[!] Created .env from template - please fill in secrets!"
+            # Create .env from GitHub Secrets if not exists
+            if [ ! -f "$APP_DIR/.env" ]; then
+              cat > "$APP_DIR/.env" << 'ENVEOF'
+            POSTGRES_DB=arkwallet
+            POSTGRES_USER=arkwallet
+            POSTGRES_PASSWORD=arkwallet_secure_pass_2024
+            JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
+            TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+            TELEGRAM_ADMIN_ID=${{ secrets.TELEGRAM_ADMIN_ID }}
+            TELEGRAM_ADMIN_ID_ADDITION=${{ secrets.TELEGRAM_ADMIN_ID_ADDITION }}
+            TELEGRAM_ADMIN_ID_ADDITION_THIRD=${{ secrets.TELEGRAM_ADMIN_ID_ADDITION_THIRD }}
+            RABBITMQ_USER=arkwallet
+            RABBITMQ_PASSWORD=rabbit_secure_pass_2024
+            NGROK_AUTHTOKEN=${{ secrets.NGROK_AUTHTOKEN }}
+            ENVEOF
+              echo "[!] Created .env from GitHub Secrets"
             fi
 
             # Build and restart
