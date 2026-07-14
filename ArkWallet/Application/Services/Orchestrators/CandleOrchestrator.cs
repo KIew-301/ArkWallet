@@ -15,9 +15,8 @@ internal class CandleOrchestrator(
         DateTime endDateTime,
         int timeframeMinutes)
     {
-        try
+        return await ServiceErrorHandler.ExecuteAsync<List<PriceCandleInfo>>(async () =>
         {
-            // 1. Получаем свечи из сервиса
             var candlesResult = await candleQueryService.GetPriceCandlesAsync(
                 symbol,
                 startDateTime,
@@ -38,11 +37,6 @@ internal class CandleOrchestrator(
                 return Result<List<PriceCandleInfo>>.Fail(aggregatedResult.Message);
 
             return Result<List<PriceCandleInfo>>.Ok(aggregated);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "CandleOrchestrator:GetAggregatedCandlesAsync Error");
-            return Result<List<PriceCandleInfo>>.Fail($"Внутренняя ошибка сервера: {ex.Message}");
-        }
+        }, logger, nameof(CandleOrchestrator));
     }
 }

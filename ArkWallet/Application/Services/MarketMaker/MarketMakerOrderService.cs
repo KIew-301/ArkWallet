@@ -17,7 +17,7 @@ internal class MarketMakerOrderService(
 {
     public async Task<Result> ExecuteMarketOrderAsync(long traderIdInBot, string symbolInBot)
     {
-        try
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             var bot = await dbContext.MarketMakerBots.FirstOrDefaultAsync(b => b.Symbol == symbolInBot && b.TraderId == traderIdInBot);
 
@@ -57,11 +57,6 @@ internal class MarketMakerOrderService(
                 return Fail($"Не удалось создать ордер: {result.Message}");
 
             return Ok();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "MarketMakerOrderService:ExecuteMarketOrderAsync Error");
-            return Fail($"Внутренняя ошибка сервера: {ex.Message}");
-        }
+        }, logger, nameof(MarketMakerOrderService));
     }
 }

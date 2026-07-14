@@ -1,7 +1,6 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.Exceptions;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -17,7 +16,7 @@ internal class TokenPriceCandleUpdateService(
     {
         const int SavingTimeFrameInMinute = 1;
 
-        try
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(c => c.Symbol == symbol);
             if (token == null)
@@ -49,15 +48,6 @@ internal class TokenPriceCandleUpdateService(
 
             await dbContext.SaveChangesAsync();
             return Ok();
-        }
-        catch (DomainException ex)
-        {
-            return Fail($"Ошибка бизнес-логики: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Ошибка обновления цены токена");
-            return Fail($"Внутренняя ошибка сервера: {ex.InnerException?.Message ?? ex.Message}");
-        }
+        }, logger, nameof(TokenPriceCandleUpdateService));
     }
 }

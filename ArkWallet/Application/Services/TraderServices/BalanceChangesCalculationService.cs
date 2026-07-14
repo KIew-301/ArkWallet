@@ -1,7 +1,6 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.Exceptions;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -39,7 +38,7 @@ internal class BalanceChangesCalculationService(
         Func<BalanceSnapshotData, decimal> currentSelector,
         Func<BalanceSnapshot, decimal> previousSelector)
     {
-        try
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             if (periodDays < 1)
                 return Fail("Минимальный период для расчёта: 1 день");
@@ -63,15 +62,6 @@ internal class BalanceChangesCalculationService(
                 : 0m;
 
             return Ok(new BalanceChangesData(currentBalance, previousBalance, changeAbsolute, changePercent));
-        }
-        catch (DomainException ex)
-        {
-            return Fail($"Ошибка бизнес-логики: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Ошибка расчёта изменений баланса для трейдера {TraderId}", traderTelegramId);
-            return Fail($"Внутренняя ошибка сервера: {ex.Message}");
-        }
+        }, logger, nameof(BalanceChangesCalculationService));
     }
 }

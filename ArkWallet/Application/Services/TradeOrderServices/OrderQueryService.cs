@@ -1,7 +1,6 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.Exceptions;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -22,7 +21,7 @@ internal class OrderQueryService(
         bool includeCancelled = true,
         bool withTokenInfo = false)
     {
-        try
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             var statuses = new List<OrderStatus>();
 
@@ -51,15 +50,6 @@ internal class OrderQueryService(
                 .ToList();
 
             return Ok(result);
-        }
-        catch (DomainException ex)
-        {
-            return Fail($"Ошибка бизнес-логики: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "OrderQueryService:GetTraderOrdersAsync Error");
-            return Fail($"Внутренняя ошибка сервера: {ex.InnerException?.Message ?? ex.Message}");
-        }
+        }, logger, nameof(OrderQueryService));
     }
 }

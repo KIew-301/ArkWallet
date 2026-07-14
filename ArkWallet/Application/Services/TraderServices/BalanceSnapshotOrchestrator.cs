@@ -16,7 +16,7 @@ internal class BalanceSnapshotOrchestrator(
 {
     public async Task<Result> CreateSnapshotsForAllTradersAsync()
     {
-        try
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             var traderIds = await dbContext.Traders
                 .Select(t => t.TelegramId)
@@ -70,11 +70,6 @@ internal class BalanceSnapshotOrchestrator(
                 await transaction.RollbackAsync();
                 throw;
             }
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Ошибка при создании снимков баланса");
-            return Fail($"Внутренняя ошибка сервера: {ex.Message}");
-        }
+        }, logger, nameof(BalanceSnapshotOrchestrator));
     }
 }

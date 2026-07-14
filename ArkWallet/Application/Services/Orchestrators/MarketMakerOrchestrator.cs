@@ -26,7 +26,7 @@ internal class MarketMakerOrchestrator(
 {
     public async Task<Result> EnsureBotsRegisteredAsync()
     {
-        try
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             var botConfigs = new[]
             {
@@ -58,17 +58,12 @@ internal class MarketMakerOrchestrator(
             }
 
             return Result.Ok();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "MarketMakerOrchestrator:EnsureBotsRegisteredAsync Error");
-            return Result.Fail($"Внутренняя ошибка сервера: {ex.Message}");
-        }
+        }, logger, nameof(MarketMakerOrchestrator));
     }
 
     public async Task<Result> EnsureTraderBalancesAsync()
     {
-        try
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             var botConfigs = new[]
             {
@@ -113,17 +108,12 @@ internal class MarketMakerOrchestrator(
             }
 
             return Result.Ok();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "MarketMakerOrchestrator:EnsureTraderBalancesAsync Error");
-            return Result.Fail($"Внутренняя ошибка сервера: {ex.Message}");
-        }
+        }, logger, nameof(MarketMakerOrchestrator));
     }
 
     public async Task<Result> UpdateAllBotsGridAsync()
     {
-        try
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             var bots = await dbContext.MarketMakerBots
                 .Where(b => b.IsActive && b.Symbol == "ZZZ")
@@ -140,17 +130,12 @@ internal class MarketMakerOrchestrator(
             }
 
             return Result.Ok();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "MarketMakerOrchestrator:UpdateAllBotsGridAsync Error");
-            return Result.Fail($"Внутренняя ошибка сервера: {ex.Message}");
-        }
+        }, logger, nameof(MarketMakerOrchestrator));
     }
 
     public async Task<Result> ProcessBotsAsync()
     {
-        try
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             var bots = await dbContext.MarketMakerBots
                 .Where(b => b.IsActive && b.Symbol == "ZZZ")
@@ -188,17 +173,12 @@ internal class MarketMakerOrchestrator(
 
             await dbContext.SaveChangesAsync();
             return Result.Ok();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "MarketMakerOrchestrator:ProcessBotsAsync Error");
-            return Result.Fail($"Внутренняя ошибка сервера: {ex.Message}");
-        }
+        }, logger, nameof(MarketMakerOrchestrator));
     }
 
     private async Task<Result> UpdateBotGridAsync(MarketMakerBot bot)
     {
-        try
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             var token = await dbContext.CharacterTokens
                 .FirstOrDefaultAsync(t => t.Symbol == bot.Symbol);
@@ -228,11 +208,6 @@ internal class MarketMakerOrchestrator(
 
             logger.LogDebug("Grid updated for bot {BotId}, {Count} orders placed", bot.Id, commands.Count);
             return Result.Ok();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "MarketMakerOrchestrator:UpdateBotGridAsync Error for bot {BotId}", bot.Id);
-            return Result.Fail($"Внутренняя ошибка сервера: {ex.Message}");
-        }
+        }, logger, nameof(MarketMakerOrchestrator));
     }
 }

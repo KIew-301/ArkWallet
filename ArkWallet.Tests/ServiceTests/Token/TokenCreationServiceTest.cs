@@ -1,6 +1,7 @@
 using ArkWallet.Application.Services.CharacterTokenServices;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Tests.HelpTools;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ArkWallet.Tests.ServiceTests.Token;
 
@@ -28,7 +29,7 @@ public class TokenCreationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        var service = new TokenCreationService(db);
+        var service = new TokenCreationService(db, NullLogger<TokenCreationService>.Instance);
         var result = await service.CreateTokenAsync(null);
 
         Assert.False(result.IsSuccess);

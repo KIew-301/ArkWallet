@@ -2,7 +2,6 @@
 using ArkWallet.Application.Contracts.MarketMaker;
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.Exceptions;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -18,7 +17,7 @@ internal class MarketMakerBotRegistrationService(
 {
     public async Task<Result<MarketMakerBotRegistrationData>> RegisterBotAsync(int telegramFakeId, string symbol, BotRole botRole, decimal initialPower = 50)
     {
-        try
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             using var transaction = await dbContext.Database.BeginTransactionAsync();
 
@@ -44,15 +43,6 @@ internal class MarketMakerBotRegistrationService(
                 BotId: bot.Id,
                 TraderId: telegramFakeId
             ));
-        }
-        catch (DomainException ex)
-        {
-            return Fail($"Ошибка бизнес-логики: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "MarketMakerBotRegistrationService:RegisterBotAsync Error");
-            return Fail($"Внутренняя ошибка сервера: {ex.Message}");
-        }
+        }, logger, nameof(MarketMakerBotRegistrationService));
     }
 }

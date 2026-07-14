@@ -1,18 +1,18 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.TradeOrderServices;
-using ArkWallet.Domain.Exceptions;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Application.Services.TradeOrderServices;
 using static Result;
 
-internal class OrderCancellationService(ArkWalletDbContext dbContext) : IOrderCancellationService
+internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<OrderCancellationService> logger) : IOrderCancellationService
 {
     public async Task<Result> CancelOrderAsync(long traderId, string orderId)
     {
-        try
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             var order = await dbContext.TradeOrders.FirstOrDefaultAsync(o => o.Id == orderId);
             var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
@@ -43,21 +43,12 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext) : IOrderCa
             await dbContext.SaveChangesAsync();
 
             return Ok();
-        }
-        catch (DomainException ex)
-        {
-            return Fail($"Ошибка бизнес-логики: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            var innerMessage = ex.InnerException?.Message ?? ex.Message;
-            return Fail($"Внутренняя ошибка сервера: {innerMessage}");
-        }
+        }, logger, nameof(OrderCancellationService));
     }
 
     public async Task<Result> CancelAllOrderAsync(long traderId)
     {
-        try
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             var orders = await dbContext.TradeOrders
                 .Where(o => o.TraderTelegramId == traderId && o.Status == OrderStatus.Active)
@@ -72,15 +63,6 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext) : IOrderCa
             await dbContext.SaveChangesAsync();
 
             return Ok();
-        }
-        catch (DomainException ex)
-        {
-            return Fail($"Ошибка бизнес-логики: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            var innerMessage = ex.InnerException?.Message ?? ex.Message;
-            return Fail($"Внутренняя ошибка сервера: {innerMessage}");
-        }
+        }, logger, nameof(OrderCancellationService));
     }
 }
