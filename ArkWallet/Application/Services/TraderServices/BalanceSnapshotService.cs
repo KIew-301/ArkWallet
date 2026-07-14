@@ -1,6 +1,5 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.TraderServices;
-using ArkWallet.Domain.Exceptions;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -12,7 +11,7 @@ internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnap
 {
     public async Task<Result<BalanceSnapshotData>> TakeTotalTraderBalanceSnapshot(long traderTelegramId)
     {
-        try
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             var trader = await db.Traders
                 .Include(t => t.Portfolio)
@@ -56,16 +55,7 @@ internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnap
             var totalBalance = mainBalance + longOrderReserve + shortOrderReserve + balanceInTokens;
 
             return Ok(new(traderTelegramId, totalBalance, mainBalance, longOrderReserve, shortOrderReserve, balanceInTokens, DateTime.UtcNow));
-        }
-        catch (DomainException ex)
-        {
-            return Fail($"Ошибка бизнес-логики: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, $"Ошибка создания снапшота для трейдера {traderTelegramId}");
-            return Fail("Внутренняя ошибка сервера");
-        }
+        }, logger, nameof(BalanceSnapshotService));
     }
 }
 

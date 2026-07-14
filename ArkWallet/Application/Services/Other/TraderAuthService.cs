@@ -1,6 +1,5 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.Other;
-using ArkWallet.Domain.Exceptions;
 using Microsoft.Extensions.Logging;
 using System.Security.Cryptography;
 using System.Text;
@@ -17,7 +16,7 @@ internal class TraderAuthService(ILogger<TraderAuthService> logger) : ITraderAut
 
     public Result<TelegramInitData> AuthenticateUser(string initDataJson, string? botToken)
     {
-        try
+        return ServiceErrorHandler.Execute(() =>
         {
             if (string.IsNullOrEmpty(initDataJson) || initDataJson.Length < 10)
                 return Fail("Некорректная строка авторизации");
@@ -43,16 +42,7 @@ internal class TraderAuthService(ILogger<TraderAuthService> logger) : ITraderAut
             );
 
             return Ok(data);
-        }
-        catch (DomainException ex)
-        {
-            return Fail($"Ошибка бизнес-логики: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, $"Ошибка аутентификации трейдера с данными");
-            return Fail("Внутренняя ошибка сервера");
-        }
+        }, logger, nameof(TraderAuthService));
     }
 
     private static Result IsTelegramAuthValid(string initData, string botToken)

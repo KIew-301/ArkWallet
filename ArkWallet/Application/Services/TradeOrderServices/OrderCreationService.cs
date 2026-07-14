@@ -5,7 +5,6 @@ using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Dtos;
 using ArkWallet.Domain.Engines;
 using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.Exceptions;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -22,7 +21,7 @@ internal class OrderCreationService(
 {
     public async Task<Result<OrderCreationData>> CreateOrderAsync(CreateOrderCommand command)
     {
-        try
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == command.TraderId);
             var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(t => t.Symbol == command.Symbol);
@@ -93,15 +92,7 @@ internal class OrderCreationService(
             await taskDispatcher.SendTaskAsync("notification", NotificationEvent.FromOrderList(ordersToNotify, engineResult.UpdatedTraders, logger));
 
             return Ok(new(order.IsFilled(), result));
-        }
-        catch (DomainException ex)
-        {
-            return Fail(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return Fail(ex.Message);
-        }
+        }, logger, nameof(OrderCreationService));
     }
 
     private async Task<TradeOrder[]> GetActiveOrdersForMatchingAsync(string symbol)

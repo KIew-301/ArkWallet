@@ -1,6 +1,5 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Domain.Exceptions;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -18,7 +17,7 @@ internal class TokenPriceCandleQueryService(
         DateTime startDateTime,
         DateTime endDateTime)
     {
-        try
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             if (startDateTime >= endDateTime)
                 return Fail("Дата начала должна быть меньше даты окончания");
@@ -39,15 +38,6 @@ internal class TokenPriceCandleQueryService(
                 .ToList();
 
             return Ok(result);
-        }
-        catch (DomainException ex)
-        {
-            return Fail($"Ошибка бизнес-логики: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "TokenPriceCandleQueryService:GetPriceCandlesAsync Error");
-            return Fail($"Внутренняя ошибка сервера: {ex.InnerException?.Message ?? ex.Message}");
-        }
+        }, logger, nameof(TokenPriceCandleQueryService));
     }
 }

@@ -1,6 +1,5 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Domain.Exceptions;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -12,7 +11,7 @@ internal class TokenPriceChangeCalculationService(ArkWalletDbContext dbContext, 
 {
     public async Task<Result<TokenPriceChangesData>> TakeTokenPriceChangesAsync(string symbol, int periodDays)
     {
-        try
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             if (periodDays < 1)
                 return Fail($"Минимальный период для расчёта: 1 день");
@@ -33,15 +32,6 @@ internal class TokenPriceChangeCalculationService(ArkWalletDbContext dbContext, 
             var changeAbsolute = currentBalance - previousBalance;
             var сhangePercent = changeAbsolute / previousBalance * 100m;
             return Ok(new TokenPriceChangesData(currentBalance, previousBalance, changeAbsolute, сhangePercent));
-        }
-        catch (DomainException ex)
-        {
-            return Fail($"Ошибка бизнес-логики: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "TokenPriceChangeCalculationService:TakeTokenPriceChangesAsync Error");
-            return Fail($"Внутренняя ошибка сервера: {ex.InnerException?.Message ?? ex.Message}");
-        }
+        }, logger, nameof(TokenPriceChangeCalculationService));
     }
 }

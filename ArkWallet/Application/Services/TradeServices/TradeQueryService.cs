@@ -1,7 +1,6 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.TradeServices;
 using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.Exceptions;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -16,7 +15,7 @@ internal class TradeQueryService(
 {
     public async Task<Result<List<TradeInfo>>> GetTraderTradesAsync(long traderTelegramId, bool withTokenInfo = false)
     {
-        try
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             var trades = await dbContext.Trades
                 .Where(t => t.BuyerId == traderTelegramId || t.SellerId == traderTelegramId)
@@ -43,15 +42,6 @@ internal class TradeQueryService(
                 .ToList();
 
             return Ok(result);
-        }
-        catch (DomainException ex)
-        {
-            return Fail($"Ошибка бизнес-логики: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "TradeQueryService:GetTraderTradesAsync Error");
-            return Fail($"Внутренняя ошибка сервера: {ex.InnerException?.Message ?? ex.Message}");
-        }
+        }, logger, nameof(TradeQueryService));
     }
 }
