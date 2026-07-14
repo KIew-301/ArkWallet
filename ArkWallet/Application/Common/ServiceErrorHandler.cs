@@ -1,8 +1,10 @@
+using System.Diagnostics.CodeAnalysis;
 using ArkWallet.Domain.Exceptions;
 using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Application.Common;
 
+[ExcludeFromCodeCoverage(Justification = "Инфраструктурный обработчик ошибок, catch-блоки не содержат бизнес-логики")]
 internal static class ServiceErrorHandler
 {
     internal static async Task<Result<T>> ExecuteAsync<T>(
