@@ -1,0 +1,81 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: arkwallet-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-arkwallet}
+      POSTGRES_USER: ${POSTGRES_USER:-arkwallet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-arkwallet}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: arkwallet-rabbitmq
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: arkwallet-app
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: "http://+:5000"
+      Database__Provider: "PostgreSQL"
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-arkwallet};Username=${POSTGRES_USER:-arkwallet};Password=${POSTGRES_PASSWORD}"
+      Jwt__SecretKey: ${JWT_SECRET_KEY}
+      Telegram__BotToken__Main: ${TELEGRAM_BOT_TOKEN}
+      Telegram__AdminId__Main: ${TELEGRAM_ADMIN_ID}
+      Telegram__AdminId__Addition: ${TELEGRAM_ADMIN_ID_ADDITION}
+      Telegram__AdminId__AdditionThird: ${TELEGRAM_ADMIN_ID_ADDITION_THIRD}
+      RabbitMQ__UserName: ${RABBITMQ_USER:-guest}
+      RabbitMQ__Password: ${RABBITMQ_PASSWORD:-guest}
+      RabbitMQ__HostName: rabbitmq
+    ports:
+      - "5000:5000"
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: arkwallet-ngrok
+    restart: always
+    depends_on:
+      - app
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+    command: "http app:5000"
+    ports:
+      - "4040:4040"
+
+volumes:
+  postgres_data:
+  rabbitmq_data:

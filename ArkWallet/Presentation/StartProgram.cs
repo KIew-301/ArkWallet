@@ -60,6 +60,7 @@ class Program
         // Configuration
         var configuration = new ConfigurationBuilder()
             .AddJsonFile("appsettings.json", optional: true)
+            .AddEnvironmentVariables()
             .AddUserSecrets<Program>()
             .Build();
 
@@ -101,8 +102,19 @@ class Program
         builder.Services.AddSingleton<IConfiguration>(configuration);
 
         // Main
-        builder.Services.AddDbContext<ArkWalletDbContext>(options =>
-            options.UseSqlite("Data Source=arkwallet.db"));
+        var dbProvider = builder.Configuration["Database:Provider"] ?? "SQLite";
+        if (dbProvider == "PostgreSQL")
+        {
+            var connStr = builder.Configuration.GetConnectionString("DefaultConnection")
+                ?? "Host=localhost;Port=5432;Database=arkwallet;Username=arkwallet;Password=arkwallet";
+            builder.Services.AddDbContext<ArkWalletDbContext>(options =>
+                options.UseNpgsql(connStr));
+        }
+        else
+        {
+            builder.Services.AddDbContext<ArkWalletDbContext>(options =>
+                options.UseSqlite("Data Source=arkwallet.db"));
+        }
 
         // Swagger
         builder.Services.AddEndpointsApiExplorer();
@@ -184,8 +196,17 @@ class Program
         using (var scope = app.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ArkWalletDbContext>();
-            await db.Database.MigrateAsync();
-            Console.WriteLine("Миграции применены!");
+            var provider = app.Services.GetRequiredService<IConfiguration>()["Database:Provider"] ?? "SQLite";
+            if (provider == "PostgreSQL")
+            {
+                await db.Database.EnsureCreatedAsync();
+                Console.WriteLine("PostgreSQL schema ensured!");
+            }
+            else
+            {
+                await db.Database.MigrateAsync();
+                Console.WriteLine("Миграции применены!");
+            }
         }
 
         // Telegram BotS
