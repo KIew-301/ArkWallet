@@ -14,9 +14,9 @@ public class PriceSuggestionServiceTests
         await HelpMethods.RegisterTrader(db, 101);
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
-        await HelpMethods.PlaceOrder(db, 101, "ÍÛÔËÚ¸", "ZZZ", 5, 100);
-        await HelpMethods.PlaceOrder(db, 101, "ÍÛÔËÚ¸", "ZZZ", 5, 90);
-        await HelpMethods.PlaceOrder(db, 101, "ÔÓ‰‡Ú¸", "ZZZ", 5, 120);
+        await HelpMethods.PlaceOrder(db, 101, "–∫—É–ø–∏—Ç—å", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 101, "–∫—É–ø–∏—Ç—å", "ZZZ", 5, 90);
+        await HelpMethods.PlaceOrder(db, 101, "–ø—Ä–æ–¥–∞—Ç—å", "ZZZ", 5, 120);
 
         var service = new PriceSuggestionService(db);
 
@@ -34,7 +34,7 @@ public class PriceSuggestionServiceTests
         db.Database.EnsureCreated();
 
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.PlaceOrder(db, 101, "ÍÛÔËÚ¸", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 101, "–∫—É–ø–∏—Ç—å", "ZZZ", 5, 100);
 
         var service = new PriceSuggestionService(db);
 
@@ -52,7 +52,7 @@ public class PriceSuggestionServiceTests
         await HelpMethods.RegisterTrader(db, 101);
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
-        await HelpMethods.PlaceOrder(db, 101, "ÔÓ‰‡Ú¸", "ZZZ", 5, 120);
+        await HelpMethods.PlaceOrder(db, 101, "–ø—Ä–æ–¥–∞—Ç—å", "ZZZ", 5, 120);
 
         var service = new PriceSuggestionService(db);
 
@@ -70,7 +70,7 @@ public class PriceSuggestionServiceTests
         await HelpMethods.RegisterTrader(db, 101);
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
-        await HelpMethods.PlaceOrder(db, 101, "ÍÛÔËÚ¸", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 101, "–∫—É–ø–∏—Ç—å", "ZZZ", 5, 100);
 
         var service = new PriceSuggestionService(db);
 
@@ -88,7 +88,7 @@ public class PriceSuggestionServiceTests
         await HelpMethods.RegisterTrader(db, 101);
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
-        await HelpMethods.PlaceOrder(db, 101, "ÍÛÔËÚ¸", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 101, "–∫—É–ø–∏—Ç—å", "ZZZ", 5, 100);
 
         var service = new PriceSuggestionService(db);
 
@@ -106,7 +106,7 @@ public class PriceSuggestionServiceTests
         await HelpMethods.RegisterTrader(db, 101);
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
-        await HelpMethods.PlaceOrder(db, 101, "ÔÓ‰‡Ú¸", "ZZZ", 5, 120);
+        await HelpMethods.PlaceOrder(db, 101, "–ø—Ä–æ–¥–∞—Ç—å", "ZZZ", 5, 120);
 
         var service = new PriceSuggestionService(db);
 
@@ -125,9 +125,9 @@ public class PriceSuggestionServiceTests
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.GiveMoney(db, 101, 10000);
         await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
-        await HelpMethods.PlaceOrder(db, 101, "ÍÛÔËÚ¸", "ZZZ", 5, 100);
-        await HelpMethods.PlaceOrder(db, 101, "ÍÛÔËÚ¸", "ZZZ", 5, 90);
-        await HelpMethods.PlaceOrder(db, 101, "ÔÓ‰‡Ú¸", "ZZZ", 5, 120);
+        await HelpMethods.PlaceOrder(db, 101, "–∫—É–ø–∏—Ç—å", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 101, "–∫—É–ø–∏—Ç—å", "ZZZ", 5, 90);
+        await HelpMethods.PlaceOrder(db, 101, "–ø—Ä–æ–¥–∞—Ç—å", "ZZZ", 5, 120);
 
         var service = new PriceSuggestionService(db);
 
@@ -147,9 +147,9 @@ public class PriceSuggestionServiceTests
         await HelpMethods.RegisterTrader(db, 101);
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
-        await HelpMethods.PlaceOrder(db, 101, "ÍÛÔËÚ¸", "ZZZ", 5, 100);
-        await HelpMethods.PlaceOrder(db, 101, "ÔÓ‰‡Ú¸", "ZZZ", 5, 120);
-        await HelpMethods.PlaceOrder(db, 101, "ÔÓ‰‡Ú¸", "ZZZ", 5, 130);
+        await HelpMethods.PlaceOrder(db, 101, "–∫—É–ø–∏—Ç—å", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 101, "–ø—Ä–æ–¥–∞—Ç—å", "ZZZ", 5, 120);
+        await HelpMethods.PlaceOrder(db, 101, "–ø—Ä–æ–¥–∞—Ç—å", "ZZZ", 5, 130);
 
         var service = new PriceSuggestionService(db);
 
@@ -170,9 +170,9 @@ public class PriceSuggestionServiceTests
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.GiveMoney(db, 101, 10000);
         await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
-        await HelpMethods.PlaceOrder(db, 101, "ÍÛÔËÚ¸", "ZZZ", 5, 400);
-        await HelpMethods.PlaceOrder(db, 101, "ÍÛÔËÚ¸", "ZZZ", 5, 600);
-        await HelpMethods.PlaceOrder(db, 101, "ÔÓ‰‡Ú¸", "ZZZ", 5, 1000);
+        await HelpMethods.PlaceOrder(db, 101, "–∫—É–ø–∏—Ç—å", "ZZZ", 5, 400);
+        await HelpMethods.PlaceOrder(db, 101, "–∫—É–ø–∏—Ç—å", "ZZZ", 5, 600);
+        await HelpMethods.PlaceOrder(db, 101, "–ø—Ä–æ–¥–∞—Ç—å", "ZZZ", 5, 1000);
 
         var service = new PriceSuggestionService(db);
 
@@ -194,9 +194,9 @@ public class PriceSuggestionServiceTests
         await HelpMethods.RegisterTrader(db, 101);
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
-        await HelpMethods.PlaceOrder(db, 101, "ÍÛÔËÚ¸", "ZZZ", 5, 100);
-        await HelpMethods.PlaceOrder(db, 101, "ÔÓ‰‡Ú¸", "ZZZ", 5, 120);
-        await HelpMethods.PlaceOrder(db, 101, "ÔÓ‰‡Ú¸", "ZZZ", 5, 130);
+        await HelpMethods.PlaceOrder(db, 101, "–∫—É–ø–∏—Ç—å", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 101, "–ø—Ä–æ–¥–∞—Ç—å", "ZZZ", 5, 120);
+        await HelpMethods.PlaceOrder(db, 101, "–ø—Ä–æ–¥–∞—Ç—å", "ZZZ", 5, 130);
 
         var service = new PriceSuggestionService(db);
 
@@ -217,9 +217,9 @@ public class PriceSuggestionServiceTests
         await HelpMethods.RegisterTrader(db, 101);
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
-        await HelpMethods.PlaceOrder(db, 101, "ÍÛÔËÚ¸", "ZZZ", 5, 50);
-        await HelpMethods.PlaceOrder(db, 101, "ÍÛÔËÚ¸", "ZZZ", 5, 50);
-        await HelpMethods.PlaceOrder(db, 101, "ÔÓ‰‡Ú¸", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 101, "–∫—É–ø–∏—Ç—å", "ZZZ", 5, 50);
+        await HelpMethods.PlaceOrder(db, 101, "–∫—É–ø–∏—Ç—å", "ZZZ", 5, 50);
+        await HelpMethods.PlaceOrder(db, 101, "–ø—Ä–æ–¥–∞—Ç—å", "ZZZ", 5, 100);
 
         var service = new PriceSuggestionService(db);
 
@@ -238,9 +238,9 @@ public class PriceSuggestionServiceTests
         await HelpMethods.RegisterTrader(db, 101);
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
-        await HelpMethods.PlaceOrder(db, 101, "ÍÛÔËÚ¸", "ZZZ", 5, 100);
-        await HelpMethods.PlaceOrder(db, 101, "ÔÓ‰‡Ú¸", "ZZZ", 5, 120);
-        await HelpMethods.PlaceOrder(db, 101, "ÔÓ‰‡Ú¸", "ZZZ", 5, 120);
+        await HelpMethods.PlaceOrder(db, 101, "–∫—É–ø–∏—Ç—å", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 101, "–ø—Ä–æ–¥–∞—Ç—å", "ZZZ", 5, 120);
+        await HelpMethods.PlaceOrder(db, 101, "–ø—Ä–æ–¥–∞—Ç—å", "ZZZ", 5, 120);
 
         var service = new PriceSuggestionService(db);
 
@@ -248,5 +248,114 @@ public class PriceSuggestionServiceTests
 
         var uniquePrices = result.Select(dto => dto.Price).Distinct().Count();
         Assert.Equal(result.Count, uniquePrices);
+    }
+
+    [Fact]
+    public async Task GetBuyPriceSuggestionsAsync_LowBalance_FiltersExpensiveSuggestions()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
+        await HelpMethods.PlaceOrder(db, 101, "–∫—É–ø–∏—Ç—å", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 101, "–∫—É–ø–∏—Ç—å", "ZZZ", 5, 200);
+        await HelpMethods.PlaceOrder(db, 101, "–ø—Ä–æ–¥–∞—Ç—å", "ZZZ", 5, 300);
+
+        var service = new PriceSuggestionService(db);
+
+        var result = await service.GetBuyPriceSuggestionsAsync(101, "ZZZ", 5);
+
+        var maxPrice = Math.Floor(1000m / 5);
+        Assert.All(result, dto => Assert.True(dto.Price <= maxPrice));
+    }
+
+    [Fact]
+    public async Task GetBuyPriceSuggestionsAsync_SingleLongOrder_GreatPriceEqualsCurrentPrice()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.GiveMoney(db, 101, 10000);
+        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
+        await HelpMethods.PlaceOrder(db, 101, "–∫—É–ø–∏—Ç—å", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 101, "–ø—Ä–æ–¥–∞—Ç—å", "ZZZ", 5, 150);
+
+        var service = new PriceSuggestionService(db);
+
+        var result = await service.GetBuyPriceSuggestionsAsync(101, "ZZZ", 5);
+
+        Assert.NotEmpty(result);
+        Assert.All(result, dto => Assert.True(dto.Price > 0));
+    }
+
+    [Fact]
+    public async Task GetSellPriceSuggestionsAsync_SingleShortOrder_GreatPriceEqualsMarketPrice()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
+        await HelpMethods.PlaceOrder(db, 101, "–∫—É–ø–∏—Ç—å", "ZZZ", 5, 80);
+        await HelpMethods.PlaceOrder(db, 101, "–ø—Ä–æ–¥–∞—Ç—å", "ZZZ", 5, 120);
+
+        var service = new PriceSuggestionService(db);
+
+        var result = await service.GetSellPriceSuggestionsAsync("ZZZ");
+
+        Assert.NotEmpty(result);
+        Assert.All(result, dto => Assert.True(dto.Price > 0));
+    }
+
+    [Fact]
+    public async Task GetBuyPriceSuggestionsAsync_MultipleBuyOrders_AveragePriceCalculated()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.GiveMoney(db, 101, 100000);
+        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
+        await HelpMethods.PlaceOrder(db, 101, "–∫—É–ø–∏—Ç—å", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 101, "–∫—É–ø–∏—Ç—å", "ZZZ", 5, 200);
+        await HelpMethods.PlaceOrder(db, 101, "–∫—É–ø–∏—Ç—å", "ZZZ", 5, 300);
+        await HelpMethods.PlaceOrder(db, 101, "–ø—Ä–æ–¥–∞—Ç—å", "ZZZ", 5, 400);
+
+        var service = new PriceSuggestionService(db);
+
+        var result = await service.GetBuyPriceSuggestionsAsync(101, "ZZZ", 5);
+
+        var goodPrice = result.FirstOrDefault(dto => dto.Label == "–û–ø—Ç–∏–º–∞–ª—å–Ω–∞—è —Ü–µ–Ω–∞");
+        Assert.NotNull(goodPrice);
+        Assert.Equal(200m, goodPrice.Price);
+    }
+
+    [Fact]
+    public async Task GetSellPriceSuggestionsAsync_MultipleShortOrders_AveragePriceCalculated()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
+        await HelpMethods.PlaceOrder(db, 101, "–∫—É–ø–∏—Ç—å", "ZZZ", 5, 50);
+        await HelpMethods.PlaceOrder(db, 101, "–ø—Ä–æ–¥–∞—Ç—å", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 101, "–ø—Ä–æ–¥–∞—Ç—å", "ZZZ", 5, 200);
+        await HelpMethods.PlaceOrder(db, 101, "–ø—Ä–æ–¥–∞—Ç—å", "ZZZ", 5, 300);
+
+        var service = new PriceSuggestionService(db);
+
+        var result = await service.GetSellPriceSuggestionsAsync("ZZZ");
+
+        var goodPrice = result.FirstOrDefault(dto => dto.Label == "–û–ø—Ç–∏–º–∞–ª—å–Ω–∞—è —Ü–µ–Ω–∞");
+        Assert.NotNull(goodPrice);
+        Assert.Equal(200m, goodPrice.Price);
     }
 }
