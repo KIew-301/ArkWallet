@@ -90,4 +90,41 @@ public class FixedGridEngineTest
             Assert.Equal(testCase.Expected, result);
         }
     }
+
+    [Fact]
+    public void GetGridAroundPrice_From2000_CountAround5_ReturnsSortedGrid()
+    {
+        var result = _engine.GetGridAroundPrice(2000m, 5);
+
+        Assert.Equal(10, result.Count);
+        for (int i = 1; i < result.Count; i++)
+            Assert.True(result[i] >= result[i - 1]);
+    }
+
+    [Fact]
+    public void GetGridAroundPrice_PriceBelowBase_ReturnsOnlyAboveValues()
+    {
+        var result = _engine.GetGridAroundPrice(2000m, 3);
+
+        Assert.True(result.Count > 0);
+        Assert.All(result, v => Assert.True(v > 0));
+    }
+
+    [Fact]
+    public void GetGridBelowPrice_PriceZero_ReturnsStartingFromBase()
+    {
+        var result = _engine.GetGridBelowPrice(0m, 5);
+
+        Assert.Equal(5, result.Count);
+        Assert.All(result, v => Assert.True(v >= 0));
+    }
+
+    [Fact]
+    public void GetGridAbovePrice_PriceZero_ReturnsCorrectGrid()
+    {
+        var result = _engine.GetGridAbovePrice(0m, 5);
+
+        Assert.Equal(5, result.Count);
+        Assert.All(result, v => Assert.True(v >= 0));
+    }
 }

@@ -21,6 +21,10 @@ ENV ASPNETCORE_URLS=http://+:5000
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV DOTNET_EnableDiagnostics=0
 
+RUN useradd -r -s /bin/false appuser
+RUN chown -R appuser:appuser /app
+USER appuser
+
 EXPOSE 5000
 
 ENTRYPOINT ["dotnet", "ArkWallet.dll"]

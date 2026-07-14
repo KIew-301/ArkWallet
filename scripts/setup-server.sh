@@ -6,7 +6,7 @@ echo "=== ArkWallet Server Setup ==="
 # 1. Install Docker
 if ! command -v docker &> /dev/null; then
   echo "[1/5] Installing Docker..."
-  curl -fsSL https://get.docker.com | sh
+  curl -fsSL --proto '=https' https://get.docker.com | sh
   systemctl enable docker
   systemctl start docker
 else
