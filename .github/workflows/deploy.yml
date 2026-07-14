@@ -60,7 +60,13 @@ jobs:
             # Clean up old images
             docker image prune -f
 
+            # Reload nginx (if configured)
+            nginx -t 2>/dev/null && systemctl reload nginx || true
+
+            # Renew SSL cert if needed
+            certbot renew --quiet 2>/dev/null || true
+
             echo "=== Deploy complete ==="
-            echo "App: http://${{ secrets.SERVER_HOST }}:5000"
-            echo "Swagger: http://${{ secrets.SERVER_HOST }}:5000/swagger"
-            echo "RabbitMQ: http://${{ secrets.SERVER_HOST }}:15672"
+            echo "App: https://arkwallet.ru"
+            echo "Swagger: https://arkwallet.ru/swagger"
+            echo "RabbitMQ: https://arkwallet.ru:15672 (or http://${{ secrets.SERVER_HOST }}:15672)"
