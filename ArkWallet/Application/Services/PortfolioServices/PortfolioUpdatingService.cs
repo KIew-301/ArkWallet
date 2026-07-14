@@ -3,42 +3,46 @@ using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Domain.Entities;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Application.Services.PortfolioServices;
 using static Result;
 
-internal class PortfolioUpdatingService(ArkWalletDbContext dbContext) : IPortfolioUpdatingService
+internal class PortfolioUpdatingService(ArkWalletDbContext dbContext, ILogger<PortfolioUpdatingService> logger) : IPortfolioUpdatingService
 {
     public async Task<Result> CreateOrUpdatePortfolioAsync(long traderId, string symbol, int quantity)
     {
-        if (quantity <= 0)
-            return Fail("Для обновление портфеля необходим минимум один токен");
-
-        var item = await dbContext.PortfolioItems.FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
-        var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(t => t.Symbol == symbol);
-
-        if (token == null)
-            return Fail("Токена не существует");
-
-        if (item == null)
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            item = PortfolioItem.Create(traderId, symbol, quantity, token.CurrentPrice);
-            await dbContext.PortfolioItems.AddAsync(item);
-        }
-        else
-        {
-            var diff = item.Quantity - quantity;
-            if (diff < 0)
-                item.BuyTokens(-diff, token.CurrentPrice);
-            else if (diff > 0)
+            if (quantity <= 0)
+                return Fail("Для обновление портфеля необходим минимум один токен");
+
+            var item = await dbContext.PortfolioItems.FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
+            var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(t => t.Symbol == symbol);
+
+            if (token == null)
+                return Fail("Токена не существует");
+
+            if (item == null)
             {
-                item.ReserveTokens(diff, token.CurrentPrice);
-                item.SellTokens(diff, token.CurrentPrice);
+                item = PortfolioItem.Create(traderId, symbol, quantity, token.CurrentPrice);
+                await dbContext.PortfolioItems.AddAsync(item);
             }
-        }
+            else
+            {
+                var diff = item.Quantity - quantity;
+                if (diff < 0)
+                    item.BuyTokens(-diff, token.CurrentPrice);
+                else if (diff > 0)
+                {
+                    item.ReserveTokens(diff, token.CurrentPrice);
+                    item.SellTokens(diff, token.CurrentPrice);
+                }
+            }
 
-        await dbContext.SaveChangesAsync();
+            await dbContext.SaveChangesAsync();
 
-        return Ok();
+            return Ok();
+        }, logger, nameof(PortfolioUpdatingService));
     }
 }

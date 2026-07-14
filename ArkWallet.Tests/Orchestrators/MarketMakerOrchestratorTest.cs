@@ -609,7 +609,7 @@ public class MarketMakerOrchestratorTest
         var result = await orchestrator.EnsureBotsRegisteredAsync();
 
         Assert.False(result.IsSuccess);
-        Assert.Contains("Внутренняя ошибка сервера", result.Message);
+        Assert.Contains("db connection lost", result.Message);
     }
 
     [Fact]
@@ -640,7 +640,7 @@ public class MarketMakerOrchestratorTest
         var result = await orchestrator.EnsureTraderBalancesAsync();
 
         Assert.False(result.IsSuccess);
-        Assert.Contains("Внутренняя ошибка сервера", result.Message);
+        Assert.Contains("portfolio error", result.Message);
     }
 
     [Fact]
@@ -676,7 +676,7 @@ public class MarketMakerOrchestratorTest
         var result = await orchestrator.UpdateAllBotsGridAsync();
 
         Assert.False(result.IsSuccess);
-        Assert.Contains("Внутренняя ошибка сервера", result.Message);
+        Assert.Contains("order error", result.Message);
     }
 
     [Fact]
@@ -712,6 +712,6 @@ public class MarketMakerOrchestratorTest
         var result = await orchestrator.ProcessBotsAsync();
 
         Assert.False(result.IsSuccess);
-        Assert.Contains("Внутренняя ошибка сервера", result.Message);
+        Assert.Contains("process error", result.Message);
     }
 }

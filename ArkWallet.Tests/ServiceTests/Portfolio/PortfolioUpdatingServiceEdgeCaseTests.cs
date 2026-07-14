@@ -16,7 +16,7 @@ public class PortfolioUpdatingServiceEdgeCaseTests
         await HelpMethods.RegisterTrader(db, 101);
         await HelpMethods.CreateToken(db, "ZZZ");
 
-        var service = new PortfolioUpdatingService(db);
+        var service = new PortfolioUpdatingService(db, NullLogger<PortfolioUpdatingService>.Instance);
 
         var result = await service.CreateOrUpdatePortfolioAsync(101, "ZZZ", 0);
 
@@ -33,7 +33,7 @@ public class PortfolioUpdatingServiceEdgeCaseTests
         await HelpMethods.RegisterTrader(db, 101);
         await HelpMethods.CreateToken(db, "ZZZ");
 
-        var service = new PortfolioUpdatingService(db);
+        var service = new PortfolioUpdatingService(db, NullLogger<PortfolioUpdatingService>.Instance);
 
         var result = await service.CreateOrUpdatePortfolioAsync(101, "ZZZ", -5);
 

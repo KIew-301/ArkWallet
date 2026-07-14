@@ -1,21 +1,22 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.CharacterTokenServices;
+using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Application.Services.CharacterTokenServices;
 
-internal class CandleAggregatorService : ICandleAggregatorService
+internal class CandleAggregatorService(ILogger<CandleAggregatorService> logger) : ICandleAggregatorService
 {
     private static readonly DateTime Epoch = DateTime.UnixEpoch;
 
-    public Task<Result<List<PriceCandleInfo>>> AggregateAsync(List<PriceCandleInfo> candles, int timeframeMinutes)
+    public async Task<Result<List<PriceCandleInfo>>> AggregateAsync(List<PriceCandleInfo> candles, int timeframeMinutes)
     {
-        try
+        return await ServiceErrorHandler.ExecuteAsync<List<PriceCandleInfo>>(async () =>
         {
             if (candles is null || candles.Count == 0)
-                return Task.FromResult(Result<List<PriceCandleInfo>>.Ok(new List<PriceCandleInfo>()));
+                return Result<List<PriceCandleInfo>>.Ok(new List<PriceCandleInfo>());
 
             if (timeframeMinutes <= 0)
-                return Task.FromResult(Result<List<PriceCandleInfo>>.Fail("Таймфрейм должен быть больше 0"));
+                return Result<List<PriceCandleInfo>>.Fail("Таймфрейм должен быть больше 0");
 
             var grouped = candles
                 .GroupBy(c => GetGroupKey(c.DateTime, timeframeMinutes))
@@ -23,12 +24,8 @@ internal class CandleAggregatorService : ICandleAggregatorService
                 .Select(g => AggregateGroup(g))
                 .ToList();
 
-            return Task.FromResult(Result<List<PriceCandleInfo>>.Ok(grouped));
-        }
-        catch (Exception ex)
-        {
-            return Task.FromResult(Result<List<PriceCandleInfo>>.Fail($"Ошибка агрегации свечей: {ex.Message}"));
-        }
+            return Result<List<PriceCandleInfo>>.Ok(grouped);
+        }, logger, nameof(CandleAggregatorService));
     }
 
     private static DateTime GetGroupKey(DateTime timestamp, int timeframeMinutes)

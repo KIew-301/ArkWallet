@@ -2,27 +2,31 @@
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Application.Services.TraderServices;
 using static ArkWallet.Application.Common.Result;
 
-internal class TraderBalanceUpdatingService(ArkWalletDbContext dbContext) : ITraderBalanceUpdatingService
+internal class TraderBalanceUpdatingService(ArkWalletDbContext dbContext, ILogger<TraderBalanceUpdatingService> logger) : ITraderBalanceUpdatingService
 {
     public async Task<Result> AddToBalanceAsync(long traderId, decimal amount)
     {
-        if (amount <= 0)
-            return Fail("Сумма должна составлять больше 0");
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
+        {
+            if (amount <= 0)
+                return Fail("Сумма должна составлять больше 0");
 
-        var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
+            var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
 
-        if (trader == null)
-            return Fail("Трейдера не существует");
+            if (trader == null)
+                return Fail("Трейдера не существует");
 
-        trader.AddToBalance(amount);
+            trader.AddToBalance(amount);
 
-        dbContext.Traders.Update(trader);
-        await dbContext.SaveChangesAsync();
+            dbContext.Traders.Update(trader);
+            await dbContext.SaveChangesAsync();
 
-        return Ok();
+            return Ok();
+        }, logger, nameof(TraderBalanceUpdatingService));
     }
 }
