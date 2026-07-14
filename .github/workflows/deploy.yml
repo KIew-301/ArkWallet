@@ -1,0 +1,55 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          script: |
+            set -e
+
+            APP_DIR="/opt/arkwallet"
+            REPO_URL="https://github.com/KIew-301/ArkWallet.git"
+
+            # Clone or pull
+            if [ -d "$APP_DIR" ]; then
+              cd $APP_DIR
+              git fetch origin
+              git reset --hard origin/main
+            else
+              git clone $REPO_URL $APP_DIR
+              cd $APP_DIR
+            fi
+
+            # Copy server .env if not exists
+            if [ ! -f ".env" ]; then
+              cp .env.server .env
+              echo "[!] Created .env from template - please fill in secrets!"
+            fi
+
+            # Build and restart
+            docker compose build --no-cache
+            docker compose up -d --remove-orphans
+
+            # Clean up old images
+            docker image prune -f
+
+            echo "=== Deploy complete ==="
+            echo "App: http://${{ secrets.SERVER_HOST }}:5000"
+            echo "Swagger: http://${{ secrets.SERVER_HOST }}:5000/swagger"
+            echo "RabbitMQ: http://${{ secrets.SERVER_HOST }}:15672"
