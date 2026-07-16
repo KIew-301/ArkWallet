@@ -1,6 +1,7 @@
 ﻿using ArkWallet.Infrastructure.Wizard;
 using ArkWallet.Presentation.Telegram;
 using Microsoft.OpenApi.Writers;
+using Microsoft.Extensions.Configuration;
 using System.Diagnostics.CodeAnalysis;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
@@ -12,16 +13,22 @@ using Telegram.Bot.Types.ReplyMarkups;
 namespace ArkWallet.Telegram
 {
     [ExcludeFromCodeCoverage(Justification = "Telegram-бот: точка входа Telegram API, зависит от внешнего клиента и polling. Тестируется интеграционно.")]
-    internal partial class TelegramBot(IServiceProvider serviceProvider)
+    internal partial class TelegramBot(IServiceProvider serviceProvider, IConfiguration configuration)
     {
         // Интерфейс для взаимодействия с ботом
         ITelegramBotClient botClient = null!;
 
         public async Task Start()
         {
-            ConfigurationService configurationService = new();
+            var configurationService = new ConfigurationService(configuration);
             await LoadConfiguration(configurationService);
-            string token = await configurationService.GetToken();
+            string? token = await configurationService.GetToken();
+
+            if (string.IsNullOrEmpty(token))
+            {
+                Console.WriteLine("Telegram bot token is not configured. Bot will not start.");
+                return;
+            }
 
             _ = LaunchBot(token);
         }
@@ -48,10 +55,15 @@ namespace ArkWallet.Telegram
 
             await SetCommandList(CommandListType.SimpleMode);
 
-            Console.WriteLine($"Start listening");
-            Console.ReadLine();
+            Console.WriteLine("Telegram bot is listening...");
 
-            cts.Cancel();
+            try
+            {
+                await Task.Delay(Timeout.Infinite, cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+            }
         }
 
         async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)

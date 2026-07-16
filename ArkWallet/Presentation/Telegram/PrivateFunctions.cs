@@ -3,97 +3,39 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Presentation.Telegram
 {
-    [ExcludeFromCodeCoverage(Justification = "Инфраструктурный сервис конфигурации, зависит от User Secrets. Тестируется интеграционно.")]
+    [ExcludeFromCodeCoverage(Justification = "Инфраструктурный сервис конфигурации, зависит от IConfiguration. Тестируется интеграционно.")]
     internal class ConfigurationService
     {
+        private readonly IConfiguration _configuration;
         static readonly string telegramBotName = "Main";
 
-        public async Task<string> GetToken()
+        public ConfigurationService(IConfiguration configuration)
         {
-            try
-            {
-                var configuration = new ConfigurationBuilder()
-                    .AddUserSecrets<Program>()
-                    .Build();
-
-                string? token = configuration[$"Telegram:BotToken:{telegramBotName}"];
-
-                if (string.IsNullOrEmpty(token))
-                    throw new Exception($"TError");
-
-                return token;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Ошибка загрузки конфигурации: {ex.Message}");
-                return null;
-            }
+            _configuration = configuration;
         }
 
-        public async Task<long> GetPAId()
+        public Task<string?> GetToken()
         {
-            try
-            {
-                var configuration = new ConfigurationBuilder()
-                    .AddUserSecrets<Program>()
-                    .Build();
-
-                long adminChatId = long.Parse(configuration[$"Telegram:AdminId:Main"]);
-
-                if (adminChatId == 0)
-                    throw new Exception($"AError");
-
-                return adminChatId;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Ошибка загрузки конфигурации: {ex.Message}");
-                return -1;
-            }
+            string? token = _configuration[$"Telegram:BotToken:{telegramBotName}"];
+            return Task.FromResult(token);
         }
 
-        public async Task<long> GetSAId()
+        public Task<long> GetPAId()
         {
-            try
-            {
-                var configuration = new ConfigurationBuilder()
-                    .AddUserSecrets<Program>()
-                    .Build();
-
-                long adminChatId = long.Parse(configuration[$"Telegram:AdminId:Addition"]);
-
-                if (adminChatId == 0)
-                    throw new Exception($"AError");
-
-                return adminChatId;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Ошибка загрузки конфигурации: {ex.Message}");
-                return -1;
-            }
+            var value = _configuration["Telegram:AdminId:Main"];
+            return Task.FromResult(long.TryParse(value, out var id) ? id : -1);
         }
 
-        public async Task<long> GetTAId()
+        public Task<long> GetSAId()
         {
-            try
-            {
-                var configuration = new ConfigurationBuilder()
-                    .AddUserSecrets<Program>()
-                    .Build();
+            var value = _configuration["Telegram:AdminId:Addition"];
+            return Task.FromResult(long.TryParse(value, out var id) ? id : -1);
+        }
 
-                long adminChatId = long.Parse(configuration[$"Telegram:AdminId:AdditionThird"]);
-
-                if (adminChatId == 0)
-                    throw new Exception($"AError");
-
-                return adminChatId;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Ошибка загрузки конфигурации: {ex.Message}");
-                return -1;
-            }
+        public Task<long> GetTAId()
+        {
+            var value = _configuration["Telegram:AdminId:AdditionThird"];
+            return Task.FromResult(long.TryParse(value, out var id) ? id : -1);
         }
     }
 }

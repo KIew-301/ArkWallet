@@ -36,9 +36,8 @@ jobs:
               cd $APP_DIR
             fi
 
-            # Create .env from GitHub Secrets if not exists
-            if [ ! -f "$APP_DIR/.env" ]; then
-              cat > "$APP_DIR/.env" << 'ENVEOF'
+            # Always update .env from GitHub Secrets
+            cat > "$APP_DIR/.env" << 'ENVEOF'
             POSTGRES_DB=arkwallet
             POSTGRES_USER=arkwallet
             POSTGRES_PASSWORD=arkwallet_secure_pass_2024
@@ -50,8 +49,7 @@ jobs:
             RABBITMQ_USER=arkwallet
             RABBITMQ_PASSWORD=rabbit_secure_pass_2024
             ENVEOF
-              echo "[!] Created .env from GitHub Secrets"
-            fi
+            echo "[!] Updated .env from GitHub Secrets"
 
             # Build and restart
             docker compose build --no-cache
