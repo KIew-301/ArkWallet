@@ -161,17 +161,16 @@ namespace ArkWallet.Infrastructure.Wizard
         {
             var trader = await _dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == session.Id);
             var portfolioQueryResult = await _portfolioQueryService.GetTraderTokensAsync(session.Id);
-            string result = "";
 
             if (trader == null)
-                return StepResult.Ok("Данные профиля не найдены.");
+                return StepResult.Ok("completed", "Данные профиля не найдены.");
 
             if (!portfolioQueryResult.TryGetData(out var portfolioInfo))
-                return StepResult.Ok("Данные профиля не найдены.");
+                return StepResult.Ok("completed", "Данные профиля не найдены.");
 
             string Indent(int count) => new(' ', count);
 
-            result += $"{trader.Username}!\n" +
+            var result = $"{trader.Username}!\n" +
                 $"{Indent(3)}Баланс: {trader.Balance:F2}\n" +
                 $"{Indent(3)}Портфель:\n";
 

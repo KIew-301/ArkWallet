@@ -40,24 +40,23 @@ namespace ArkWallet.Presentation.Wizard
             if (direction == "купить")
             {
                 var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == session.Id);
-                var balance = trader.Balance;
+                var balance = trader?.Balance ?? 0m;
 
                 return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
-                       $"💰 Текущая цена: {token.CurrentPrice:F2}\n" +
+                       $"💰 Текущая цена: {token?.CurrentPrice ?? 0m:F2}\n" +
                        $"💳 Общий баланс: {balance:F2}\n";
             }
             else
             {
                 var portfolioQueryResult = await portfolioQueryService.GetTokenBalanceAsync(session.Id, symbol);
 
-
                 if (portfolioQueryResult.TryGetData(out var data))
                     return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
-                           $"💰 Текущая цена: {token.CurrentPrice:F2}\n" +
+                           $"💰 Текущая цена: {token?.CurrentPrice ?? 0m:F2}\n" +
                            $"📦 Всего в портфеле: {data.Quantity} шт\n";
                 else
                     return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
-                       $"💰 Текущая цена: {token.CurrentPrice:F2}\n" +
+                       $"💰 Текущая цена: {token?.CurrentPrice ?? 0m:F2}\n" +
                        $"📦 Всего в портфеле: 0 шт\n";
             }
         }
@@ -68,7 +67,7 @@ namespace ArkWallet.Presentation.Wizard
 
             var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(t => t.Symbol == symbol);
             return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
-                   $"📊 Текущая цена: {token.CurrentPrice:F2}";
+                   $"📊 Текущая цена: {token?.CurrentPrice ?? 0m:F2}";
         }
     }
 }
