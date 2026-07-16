@@ -20,6 +20,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
+          timeout: 30m
           script: |
             set -e
 
@@ -52,7 +53,7 @@ jobs:
             echo "[!] Updated .env from GitHub Secrets"
 
             # Build and restart
-            docker compose build --no-cache
+            docker compose build
             docker compose up -d --remove-orphans
 
             # Clean up old images
