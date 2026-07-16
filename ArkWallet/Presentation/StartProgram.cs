@@ -237,6 +237,7 @@ class Program
         services.AddScoped<ITaskDispatcher, RabbitMQTaskDispatcher>();
 
         // Wizard
+        services.AddSingleton<UserSessionStore>();
         services.AddScoped<WizardConfiguration>();
         services.AddScoped<WizardEngine>();
 

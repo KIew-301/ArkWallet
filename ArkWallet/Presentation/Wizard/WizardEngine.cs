@@ -14,7 +14,7 @@ namespace ArkWallet.Infrastructure.Wizard
     internal partial class WizardEngine
     {
         private readonly WizardConfiguration _config;
-        private readonly Dictionary<long, UserSession> _sessions = new();
+        private readonly UserSessionStore _sessionStore;
 
         // TRADER SERVICES
         private readonly ITraderRegistrationService _traderRegistrationService;
@@ -49,7 +49,8 @@ namespace ArkWallet.Infrastructure.Wizard
             ITokenCreationService tokenCreationServices,
             IQuestionDecorator questionDecorator,
             IButtonDecorator buttonDecorator,
-            WizardConfiguration config
+            WizardConfiguration config,
+            UserSessionStore sessionStore
             )
         {
             _dbContext = dbContext;
@@ -64,6 +65,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _questionDecorator = questionDecorator;
             _buttonDecorator = buttonDecorator;
             _config = config;
+            _sessionStore = sessionStore;
 
             ConfigureHandlers();
             ConfigureAdditionHandlers();
@@ -92,7 +94,7 @@ namespace ArkWallet.Infrastructure.Wizard
             }
 
             // Если активная сессия
-            if (_sessions.ContainsKey(userId))
+            if (_sessionStore.Sessions.ContainsKey(userId))
             {
                 return await ContinueCommand(userId, input);
             }
@@ -114,7 +116,7 @@ namespace ArkWallet.Infrastructure.Wizard
 
             if (!currentStep.OneStep)
             {
-                _sessions[userId] = session;
+                _sessionStore.Sessions[userId] = session;
 
                 var nextStep = commandSteps.First(s => s.Name == session.CurrentStep);
 
@@ -133,7 +135,7 @@ namespace ArkWallet.Infrastructure.Wizard
 
         private async Task<(string?, List<QuickButton>?)> ContinueCommand(long userId, string input)
         {
-            var session = _sessions[userId];
+            var session = _sessionStore.Sessions[userId];
             var commandSteps = _config.Commands[session.CurrentCommand];
             var currentStep = commandSteps.First(s => s.Name == session.CurrentStep);
 
@@ -149,7 +151,7 @@ namespace ArkWallet.Infrastructure.Wizard
             // Успех - переходим к следующему шагу
             if (result.NextStep == "completed")
             {
-                _sessions.Remove(userId);
+                _sessionStore.Sessions.TryRemove(userId, out _);
                 return (result.Message ?? "Готово!", null);
             }
 
