@@ -39,6 +39,7 @@ namespace ArkWallet.Telegram
                         new("/cancelorder", "Отменить ордер."),
                         new("/cancelallorders", "Отменить все активные ордера."),
                         new("/getprofile", "Получить данные профиля."),
+                        new("/gettokeninfo", "Получить информацию о токене."),
                     };
                     break;
 

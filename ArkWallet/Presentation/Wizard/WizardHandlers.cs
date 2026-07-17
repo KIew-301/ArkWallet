@@ -184,5 +184,38 @@ namespace ArkWallet.Infrastructure.Wizard
 
             return StepResult.Ok("completed", result);
         }
+
+        public async Task<StepResult> HandleSelectTokenInfo(UserSession session, string input)
+        {
+            var tokenResult = await _tokenQueryService.GetTokenInfoAsync(input.ToUpper());
+
+            if (!tokenResult.TryGetData(out _))
+                return StepResult.Error("Токен не найден. Проверьте символ и попробуйте снова.");
+
+            session.Data.Add("token_symbol", input.ToUpper());
+            return StepResult.Ok("show_info");
+        }
+
+        public async Task<StepResult> HandleShowTokenInfo(UserSession session, string input)
+        {
+            var symbol = session.Data["token_symbol"]?.ToString();
+
+            if (string.IsNullOrEmpty(symbol))
+                return StepResult.Ok("completed", "Токен не выбран.");
+
+            var tokenResult = await _tokenQueryService.GetTokenInfoAsync(symbol);
+
+            if (!tokenResult.TryGetData(out var tokenData))
+                return StepResult.Ok("completed", "Токен не найден.");
+
+            string Indent(int count) => new(' ', count);
+
+            var result = $"📊 Информация о токене\n" +
+                $"{Indent(3)}Символ: {tokenData.Symbol}\n" +
+                $"{Indent(3)}Название: {tokenData.Name}\n" +
+                $"{Indent(3)}Цена: {tokenData.CurrentPrice:F2}\n";
+
+            return StepResult.Ok("completed", result);
+        }
     }
 }
