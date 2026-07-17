@@ -1,4 +1,5 @@
 ﻿using ArkWallet.Application.Contracts.SuggestionServices;
+using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,25 +11,20 @@ namespace ArkWallet.Application.Services.SuggestionServices
         {
             var trader = await dbContext.Traders
                 .FirstOrDefaultAsync(t => t.TelegramId == traderId);
-            var lastLongOrders = await dbContext.TradeOrders
-                .FromSql($@"
-                    SELECT * FROM TradeOrders
-                    WHERE Type = 0 AND CharacterTokenId = {symbol}
-                    ORDER BY Price DESC
-                    LIMIT 10
-                ")
+            var lastLongOrders = (await dbContext.TradeOrders
+                .Where(o => o.Type == OrderType.Buy && o.CharacterTokenId == symbol)
                 .AsNoTracking()
-                .ToArrayAsync();
+                .ToArrayAsync())
+                .OrderByDescending(o => o.Price)
+                .Take(10)
+                .ToArray();
 
-            var lastShortOrder = await dbContext.TradeOrders
-                .FromSql($@"
-                    SELECT * FROM TradeOrders
-                    WHERE Type = 1 AND CharacterTokenId = {symbol}
-                    ORDER BY Price ASC
-                    LIMIT 1
-                ")
+            var lastShortOrder = (await dbContext.TradeOrders
+                .Where(o => o.Type == OrderType.Sell && o.CharacterTokenId == symbol)
                 .AsNoTracking()
-                .FirstOrDefaultAsync();
+                .ToArrayAsync())
+                .OrderBy(o => o.Price)
+                .FirstOrDefault();
 
             if (trader == null || lastLongOrders == null || lastLongOrders.Length == 0 || lastShortOrder == null)
                 return [];
@@ -80,25 +76,20 @@ namespace ArkWallet.Application.Services.SuggestionServices
 
         public async Task<List<PriceSuggestionDto>> GetSellPriceSuggestionsAsync(string symbol)
         {
-            var lastShortOrders = await dbContext.TradeOrders
-                .FromSql($@"
-                    SELECT * FROM TradeOrders
-                    WHERE Type = 1 AND CharacterTokenId = {symbol}
-                    ORDER BY Price ASC
-                    LIMIT 10
-                ")
+            var lastShortOrders = (await dbContext.TradeOrders
+                .Where(o => o.Type == OrderType.Sell && o.CharacterTokenId == symbol)
                 .AsNoTracking()
-                .ToArrayAsync();
+                .ToArrayAsync())
+                .OrderBy(o => o.Price)
+                .Take(10)
+                .ToArray();
 
-            var lastLongOrder = await dbContext.TradeOrders
-                .FromSql($@"
-                    SELECT * FROM TradeOrders
-                    WHERE Type = 0 AND CharacterTokenId = {symbol}
-                    ORDER BY Price ASC
-                    LIMIT 1
-                ")
+            var lastLongOrder = (await dbContext.TradeOrders
+                .Where(o => o.Type == OrderType.Buy && o.CharacterTokenId == symbol)
                 .AsNoTracking()
-                .FirstOrDefaultAsync();
+                .ToArrayAsync())
+                .OrderBy(o => o.Price)
+                .FirstOrDefault();
 
             if (lastShortOrders == null || lastShortOrders.Length == 0 || lastLongOrder == null)
                 return [];
