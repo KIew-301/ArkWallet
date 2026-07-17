@@ -53,10 +53,9 @@ jobs:
             ENVEOF
             echo "[!] Updated .env from GitHub Secrets"
 
-            # Build and restart
-            docker compose build
-            docker compose down --remove-orphans
-            docker compose up -d
+            # Build and restart app only (postgres/rabbitmq keep running)
+            docker compose build app
+            docker compose up -d --force-recreate app
 
             # Clean up old images
             docker image prune -f
