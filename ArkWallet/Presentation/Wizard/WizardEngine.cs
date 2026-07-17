@@ -6,6 +6,7 @@ using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Entities.Configurations;
 using ArkWallet.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Infrastructure.Wizard
@@ -104,6 +105,15 @@ namespace ArkWallet.Infrastructure.Wizard
 
         private async Task<(string?, List<QuickButton>?)> StartCommand(long userId, string command)
         {
+            if (command is "/cancelorder" or "/cancelallorders")
+            {
+                var hasActiveOrders = await _dbContext.TradeOrders
+                    .AnyAsync(o => o.TraderTelegramId == userId && o.Status == OrderStatus.Active);
+
+                if (!hasActiveOrders)
+                    return ("Нет активных ордеров для отмены.", null);
+            }
+
             var session = new UserSession
             {
                 Id = userId,
