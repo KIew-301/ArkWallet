@@ -38,6 +38,17 @@ namespace ArkWallet.Entities.Configurations
             ];
 
             Commands["/adminaddbalancetouser"] = steps;
+
+            steps =
+            [
+                new()
+                {
+                    Name = "set_options",
+                    Question = "json",
+                }
+            ];
+
+            Commands["/adminupdatetokenmedia"] = steps;
         }
     }
 }

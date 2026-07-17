@@ -30,6 +30,7 @@ namespace ArkWallet.Infrastructure.Wizard
         private readonly IPortfolioUpdatingService _portfolioUpdatingService;
         private readonly ITokenCreationService _tokenCreationServices;
         private readonly ITokenQueryService _tokenQueryService;
+        private readonly ITokenMediaUpdateService _tokenMediaUpdateService;
 
         // DECORATOR SERVICES
         private readonly IQuestionDecorator _questionDecorator;
@@ -46,6 +47,7 @@ namespace ArkWallet.Infrastructure.Wizard
             IPortfolioUpdatingService portfolioUpdatingService,
             ITokenCreationService tokenCreationServices,
             ITokenQueryService tokenQueryService,
+            ITokenMediaUpdateService tokenMediaUpdateService,
             IQuestionDecorator questionDecorator,
             IButtonDecorator buttonDecorator,
             WizardConfiguration config,
@@ -62,6 +64,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _portfolioUpdatingService = portfolioUpdatingService;
             _tokenCreationServices = tokenCreationServices;
             _tokenQueryService = tokenQueryService;
+            _tokenMediaUpdateService = tokenMediaUpdateService;
             _questionDecorator = questionDecorator;
             _buttonDecorator = buttonDecorator;
             _config = config;
