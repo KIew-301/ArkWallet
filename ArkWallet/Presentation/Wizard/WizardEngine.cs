@@ -5,7 +5,6 @@ using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Entities.Configurations;
-using ArkWallet.Infrastructure.Data;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Infrastructure.Wizard
@@ -19,6 +18,7 @@ namespace ArkWallet.Infrastructure.Wizard
         // TRADER SERVICES
         private readonly ITraderRegistrationService _traderRegistrationService;
         private readonly ITraderBalanceUpdatingService _traderBalanceUpdatingService;
+        private readonly ITraderQueryService _traderQueryService;
 
         // ORDER SERVICES
         private readonly IOrderValidationService _orderValidationService;
@@ -34,13 +34,10 @@ namespace ArkWallet.Infrastructure.Wizard
         private readonly IQuestionDecorator _questionDecorator;
         private readonly IButtonDecorator _buttonDecorator;
 
-        // DB CONTEXT
-        private readonly ArkWalletDbContext _dbContext;
-
         public WizardEngine(
-            ArkWalletDbContext dbContext,
             ITraderRegistrationService traderRegistrationService,
             ITraderBalanceUpdatingService traderBalanceUpdatingService,
+            ITraderQueryService traderQueryService,
             IOrderValidationService orderValidationService,
             IOrderCreationService orderCreationService,
             IOrderCancellationService cancelOrderService,
@@ -52,9 +49,9 @@ namespace ArkWallet.Infrastructure.Wizard
             WizardConfiguration config
             )
         {
-            _dbContext = dbContext;
             _traderRegistrationService = traderRegistrationService;
             _traderBalanceUpdatingService = traderBalanceUpdatingService;
+            _traderQueryService = traderQueryService;
             _orderValidationService = orderValidationService;
             _orderCreationService = orderCreationService;
             _cancelOrderService = cancelOrderService;
@@ -102,6 +99,13 @@ namespace ArkWallet.Infrastructure.Wizard
 
         private async Task<(string?, List<QuickButton>?)> StartCommand(long userId, string command)
         {
+            if (command is "/cancelorder" or "/cancelallorders")
+            {
+                var hasActiveOrders = await _cancelOrderService.HasActiveOrdersAsync(userId);
+                if (!hasActiveOrders)
+                    return ("Нет активных ордеров для отмены.", null);
+            }
+
             var session = new UserSession
             {
                 Id = userId,

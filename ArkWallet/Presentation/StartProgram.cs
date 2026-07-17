@@ -269,6 +269,7 @@ class Program
         // TraderServices
         services.AddScoped<ITraderBalanceUpdatingService, TraderBalanceUpdatingService>();
         services.AddScoped<ITraderRegistrationService, TraderRegistrationService>();
+        services.AddScoped<ITraderQueryService, TraderQueryService>();
         services.AddScoped<IBalanceSnapshotService, BalanceSnapshotService>();
         services.AddScoped<IBalanceChangesCalculationService, BalanceChangesCalculationService>();
         services.AddScoped<IBalanceSavingService, BalanceSavingService>();

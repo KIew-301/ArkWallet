@@ -36,4 +36,17 @@ internal class TokenQueryService(
             return Ok(result);
         }, logger, nameof(TokenQueryService));
     }
+
+    public async Task<Result<TokenInfo>> GetTokenInfoAsync(string symbol)
+    {
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
+        {
+            var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(t => t.Symbol == symbol);
+
+            if (token == null)
+                return Result<TokenInfo>.Fail("Токен не найден");
+
+            return Result<TokenInfo>.Ok(TokenInfo.FromEntity(token));
+        }, logger, nameof(TokenQueryService));
+    }
 }

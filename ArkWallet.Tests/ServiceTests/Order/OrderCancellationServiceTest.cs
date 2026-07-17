@@ -147,7 +147,7 @@ public class OrderCancellationServiceTest
         var orders = await HelpMethods.GetTraderOrders(db, 101);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("Нет активных одеров для отмены", result.Message);
+        Assert.Equal("Нет активных ордеров для отмены", result.Message);
     }
 
     [Fact]

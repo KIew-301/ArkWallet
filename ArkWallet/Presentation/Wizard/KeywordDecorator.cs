@@ -1,16 +1,15 @@
 ﻿using ArkWallet.Application.Contracts.Decorators;
 using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Application.Contracts.SuggestionServices;
+using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Domain.ValueObjects;
-using ArkWallet.Infrastructure.Data;
 using Microsoft.CodeAnalysis;
-using Microsoft.EntityFrameworkCore;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Presentation.Wizard
 {
     [ExcludeFromCodeCoverage(Justification = "UI-декоратор: форматирование кнопок для Telegram-интерфейса. Не содержит бизнес-логики.")]
-    internal class ButtonDecorator(ArkWalletDbContext dbContext, IPriceSuggestionService priceSuggestionService, IPortfolioQueryService portfolioQueryService) : IButtonDecorator
+    internal class ButtonDecorator(IOrderQueryService orderQueryService, IPriceSuggestionService priceSuggestionService, IPortfolioQueryService portfolioQueryService) : IButtonDecorator
     {
         public async Task<List<QuickButton>> DecorateButtonsAsync(string stepName, List<QuickButton> baseKeyword, UserSession session)
         {
@@ -81,19 +80,19 @@ namespace ArkWallet.Presentation.Wizard
         private async Task<List<QuickButton>> DecorateSelectOrderToCancel(List<QuickButton> baseKeyword, UserSession session)
         {
             baseKeyword = [];
-            var orders = await dbContext.TradeOrders
-                .Where(o => o.TraderTelegramId == session.Id && o.Status == OrderStatus.Active)
-                .ToArrayAsync();
+            var result = await orderQueryService.GetTraderOrdersAsync(
+                session.Id,
+                includeActive: true,
+                includeFilled: false,
+                includeCancelled: false);
+
+            if (!result.TryGetData(out var orders))
+                return baseKeyword;
 
             foreach (var order in orders)
             {
-                string answer = $"" +
-                    $"{(order.Type == OrderType.Buy ? "купит" : "продать")} " +
-                    $"{order.CharacterTokenId} " +
-                    $"{order.Quantity} шт. " +
-                    $"по {order.Price:F2}";
-
-                baseKeyword.Add(new() { Text = answer, Value = order.Id });
+                string answer = $"{(order.Direction == "Buy" ? "купит" : "продать")} {order.Symbol} {order.TotalQuantity} шт. по {order.Price:F2}";
+                baseKeyword.Add(new() { Text = answer, Value = order.OrderId });
             }
 
             return baseKeyword;
