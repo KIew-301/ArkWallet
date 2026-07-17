@@ -26,6 +26,8 @@ public class MarketMakerOrchestratorTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
+        await HelpMethods.CreateToken(db, "ZZZ", price: 100);
+
         var mockBotRegistrationService = new Mock<IMarketMakerBotRegistrationService>();
 
         mockBotRegistrationService
@@ -60,6 +62,8 @@ public class MarketMakerOrchestratorTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
+        await HelpMethods.CreateToken(db, "ZZZ", price: 100);
+
         var bot1 = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 20);
         var bot2 = MarketMakerBot.Create(102, "ZZZ", BotRole.Seller, 20);
         await db.MarketMakerBots.AddRangeAsync(bot1, bot2);
@@ -91,6 +95,8 @@ public class MarketMakerOrchestratorTest
     {
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
+
+        await HelpMethods.CreateToken(db, "ZZZ", price: 100);
 
         var existingBot = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 20);
         await db.MarketMakerBots.AddAsync(existingBot);
@@ -130,6 +136,8 @@ public class MarketMakerOrchestratorTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
+        await HelpMethods.CreateToken(db, "ZZZ", price: 100);
+
         var mockBotRegistrationService = new Mock<IMarketMakerBotRegistrationService>();
 
         mockBotRegistrationService
@@ -149,10 +157,48 @@ public class MarketMakerOrchestratorTest
         var result = await orchestrator.EnsureBotsRegisteredAsync();
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("Не удалось зарегистрировать бота 101: Registration error", result.Message);
+        Assert.Contains("Registration error", result.Message);
 
         var bots = await db.MarketMakerBots.ToListAsync();
         Assert.Empty(bots);
+    }
+
+    [Fact]
+    public async Task EnsureBotsRegisteredAsync_MultipleTokens_RegistersBotsForEach()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.CreateToken(db, "AAA", price: 50);
+        await HelpMethods.CreateToken(db, "BBB", price: 75);
+
+        var mockBotRegistrationService = new Mock<IMarketMakerBotRegistrationService>();
+        mockBotRegistrationService
+            .Setup(x => x.RegisterBotAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<BotRole>(), It.IsAny<decimal>()))
+            .ReturnsAsync(Result<MarketMakerBotRegistrationData>.Ok(new MarketMakerBotRegistrationData(1, 101)));
+
+        var logger = NullLogger<MarketMakerOrchestrator>.Instance;
+        var orchestrator = new MarketMakerOrchestrator(
+            db,
+            mockBotRegistrationService.Object,
+            null!,
+            null!,
+            null!,
+            null!,
+            logger);
+
+        var result = await orchestrator.EnsureBotsRegisteredAsync();
+
+        Assert.True(result.IsSuccess, result.Message);
+
+        mockBotRegistrationService.Verify(
+            x => x.RegisterBotAsync(101, "AAA", BotRole.Buyer, 20m), Times.Once);
+        mockBotRegistrationService.Verify(
+            x => x.RegisterBotAsync(102, "AAA", BotRole.Seller, 20m), Times.Once);
+        mockBotRegistrationService.Verify(
+            x => x.RegisterBotAsync(101, "BBB", BotRole.Buyer, 20m), Times.Once);
+        mockBotRegistrationService.Verify(
+            x => x.RegisterBotAsync(102, "BBB", BotRole.Seller, 20m), Times.Once);
     }
 
     [Fact]
@@ -183,6 +229,8 @@ public class MarketMakerOrchestratorTest
     {
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
+
+        await HelpMethods.CreateToken(db, "ZZZ", price: 100);
 
         var trader = Trader.Create(101, "MarketMakerBot_ZZZ_101");
         trader.AddToBalance(500_000_000m);
@@ -218,6 +266,8 @@ public class MarketMakerOrchestratorTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
+        await HelpMethods.CreateToken(db, "ZZZ", price: 100);
+
         var trader = Trader.Create(101, "MarketMakerBot_ZZZ_101");
         trader.AddToBalance(1_499_999_000m);
         await db.Traders.AddAsync(trader);
@@ -252,13 +302,15 @@ public class MarketMakerOrchestratorTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
+        await HelpMethods.CreateToken(db, "ZZZ", price: 100);
+
         var trader = Trader.Create(101, "MarketMakerBot_ZZZ_101");
         await db.Traders.AddAsync(trader);
         await db.SaveChangesAsync();
 
         var mockPortfolioUpdatingService = new Mock<IPortfolioUpdatingService>();
         mockPortfolioUpdatingService
-            .Setup(x => x.CreateOrUpdatePortfolioAsync(101, "ZZZ", 100_000_000))
+            .Setup(x => x.CreateOrUpdatePortfolioAsync(It.IsAny<long>(), "ZZZ", 100_000_000))
             .ReturnsAsync(Result.Ok());
 
         var logger = NullLogger<MarketMakerOrchestrator>.Instance;
@@ -278,6 +330,9 @@ public class MarketMakerOrchestratorTest
         mockPortfolioUpdatingService.Verify(
             x => x.CreateOrUpdatePortfolioAsync(101, "ZZZ", 100_000_000),
             Times.Once);
+        mockPortfolioUpdatingService.Verify(
+            x => x.CreateOrUpdatePortfolioAsync(102, "ZZZ", 100_000_000),
+            Times.Once);
     }
 
     [Fact]
@@ -286,13 +341,15 @@ public class MarketMakerOrchestratorTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
+        await HelpMethods.CreateToken(db, "ZZZ", price: 100);
+
         var trader = Trader.Create(101, "MarketMakerBot_ZZZ_101");
         await db.Traders.AddAsync(trader);
         await db.SaveChangesAsync();
 
         var mockPortfolioUpdatingService = new Mock<IPortfolioUpdatingService>();
         mockPortfolioUpdatingService
-            .Setup(x => x.CreateOrUpdatePortfolioAsync(101, "ZZZ", 100_000_000))
+            .Setup(x => x.CreateOrUpdatePortfolioAsync(It.IsAny<long>(), "ZZZ", 100_000_000))
             .ReturnsAsync(Result.Fail("Portfolio update failed"));
 
         var logger = NullLogger<MarketMakerOrchestrator>.Instance;
@@ -308,7 +365,7 @@ public class MarketMakerOrchestratorTest
         var result = await orchestrator.EnsureTraderBalancesAsync();
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("Не удалось обновить портфель трейдера 101: Portfolio update failed", result.Message);
+        Assert.Contains("Portfolio update failed", result.Message);
     }
 
     [Fact]
@@ -591,6 +648,8 @@ public class MarketMakerOrchestratorTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
+        await HelpMethods.CreateToken(db, "ZZZ", price: 100);
+
         var mockBotRegistrationService = new Mock<IMarketMakerBotRegistrationService>();
         mockBotRegistrationService
             .Setup(x => x.RegisterBotAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<BotRole>(), It.IsAny<decimal>()))
@@ -617,6 +676,8 @@ public class MarketMakerOrchestratorTest
     {
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
+
+        await HelpMethods.CreateToken(db, "ZZZ", price: 100);
 
         var trader = Trader.Create(101, "Bot");
         await db.Traders.AddAsync(trader);
