@@ -178,4 +178,47 @@ public class OrderCancellationServiceTest
         Assert.False(result.IsSuccess);
         Assert.Equal("“рейдер не найден", result.Message);
     }
+
+
+    [Fact]
+    public async Task CancelAllOrders_CancelBuyOrders_RestoresBalance()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+
+        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 3, 100);
+        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 2, 200);
+        var result = await HelpMethods.CancelAllOrders(db, 101);
+
+        var trader = await HelpMethods.GetTrader(db, 101);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1000, trader.Balance);
+    }
+
+    [Fact]
+    public async Task CancelAllOrders_CancelSellOrders_RestoresTokens()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
+
+        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 3, 100);
+        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 2, 200);
+        var result = await HelpMethods.CancelAllOrders(db, 101);
+
+        var trader = await HelpMethods.GetTrader(db, 101);
+        var portfolio = await HelpMethods.GetPortfolio(db, 101);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1000, trader.Balance);
+        Assert.Equal(10, portfolio.Quantity);
+    }
+
 }
