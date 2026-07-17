@@ -104,6 +104,22 @@ namespace ArkWallet.Entities.Configurations
             };
 
             Commands["/getprofile"] = steps;
+
+            steps = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "select_token",
+                    Question = "Какой токен вы хотите посмотреть?",
+                },
+                new()
+                {
+                    Name = "show_info",
+                    OneStep = true
+                },
+            };
+
+            Commands["/gettokeninfo"] = steps;
         }
     }
 }

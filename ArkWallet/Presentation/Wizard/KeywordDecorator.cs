@@ -27,6 +27,11 @@ namespace ArkWallet.Presentation.Wizard
                     "select_order_to_cancel" => await DecorateSelectOrderToCancel(baseKeyword, session),
                     _ => baseKeyword
                 },
+                "/gettokeninfo" => stepName switch
+                {
+                    "select_token" => await DecorateTokenQuestion(baseKeyword, session),
+                    _ => baseKeyword
+                },
                 _ => baseKeyword
             };
         }

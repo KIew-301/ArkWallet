@@ -29,6 +29,7 @@ namespace ArkWallet.Infrastructure.Wizard
         private readonly IPortfolioQueryService _portfolioQueryService;
         private readonly IPortfolioUpdatingService _portfolioUpdatingService;
         private readonly ITokenCreationService _tokenCreationServices;
+        private readonly ITokenQueryService _tokenQueryService;
 
         // DECORATOR SERVICES
         private readonly IQuestionDecorator _questionDecorator;
@@ -44,6 +45,7 @@ namespace ArkWallet.Infrastructure.Wizard
             IPortfolioQueryService portfolioQueryService,
             IPortfolioUpdatingService portfolioUpdatingService,
             ITokenCreationService tokenCreationServices,
+            ITokenQueryService tokenQueryService,
             IQuestionDecorator questionDecorator,
             IButtonDecorator buttonDecorator,
             WizardConfiguration config,
@@ -59,6 +61,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _portfolioQueryService = portfolioQueryService;
             _portfolioUpdatingService = portfolioUpdatingService;
             _tokenCreationServices = tokenCreationServices;
+            _tokenQueryService = tokenQueryService;
             _questionDecorator = questionDecorator;
             _buttonDecorator = buttonDecorator;
             _config = config;
@@ -80,6 +83,8 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/cancelorder"][1].Handler = HandleConfirmCancellation;
             _config.Commands["/cancelallorders"][0].Handler = HandleConfirmCancellationAllOrders;
             _config.Commands["/getprofile"][0].Handler = HandleGetProfile;
+            _config.Commands["/gettokeninfo"][0].Handler = HandleSelectTokenInfo;
+            _config.Commands["/gettokeninfo"][1].Handler = HandleShowTokenInfo;
         }
 
         public async Task<(string? message, List<QuickButton>?)> ProcessInput(long userId, string input)
