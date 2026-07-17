@@ -21,6 +21,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           timeout: 30m
+          command_timeout: 30m
           script: |
             set -e
 
@@ -54,7 +55,8 @@ jobs:
 
             # Build and restart
             docker compose build
-            docker compose up -d --remove-orphans
+            docker compose down --remove-orphans
+            docker compose up -d
 
             # Clean up old images
             docker image prune -f
