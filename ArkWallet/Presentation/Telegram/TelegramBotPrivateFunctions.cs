@@ -35,11 +35,11 @@ namespace ArkWallet.Telegram
                     commands = new List<BotCommand>()
                     {
                         new("/start", "Зарегистрироваться."),
-                        new("/placeorder", "Открыть ордер."),
-                        new("/cancelorder", "Отменить ордер."),
-                        new("/cancelallorders", "Отменить все активные ордера."),
-                        new("/getprofile", "Получить данные профиля."),
-                        new("/gettokeninfo", "Получить информацию о токене."),
+                        new("/place-order", "Открыть ордер."),
+                        new("/cancel-order", "Отменить ордер."),
+                        new("/cancel-all-orders", "Отменить все активные ордера."),
+                        new("/get-profile", "Получить данные профиля."),
+                        new("/get-token-info", "Получить информацию о токене."),
                     };
                     break;
 

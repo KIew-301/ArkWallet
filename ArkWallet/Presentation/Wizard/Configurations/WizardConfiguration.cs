@@ -57,7 +57,7 @@ namespace ArkWallet.Entities.Configurations
                 }
             ];
 
-            Commands["/placeorder"] = steps;
+            Commands["/place-order"] = steps;
 
             steps = new List<WizardStep>
             {
@@ -77,7 +77,7 @@ namespace ArkWallet.Entities.Configurations
                 }
             };
 
-            Commands["/cancelorder"] = steps;
+            Commands["/cancel-order"] = steps;
 
             steps = new List<WizardStep>
             {
@@ -92,7 +92,7 @@ namespace ArkWallet.Entities.Configurations
                 }
             };
 
-            Commands["/cancelallorders"] = steps;
+            Commands["/cancel-all-orders"] = steps;
 
             steps = new List<WizardStep>
             {
@@ -103,7 +103,7 @@ namespace ArkWallet.Entities.Configurations
                 },
             };
 
-            Commands["/getprofile"] = steps;
+            Commands["/get-profile"] = steps;
 
             steps = new List<WizardStep>
             {
@@ -119,7 +119,7 @@ namespace ArkWallet.Entities.Configurations
                 },
             };
 
-            Commands["/gettokeninfo"] = steps;
+            Commands["/get-token-info"] = steps;
         }
     }
 }

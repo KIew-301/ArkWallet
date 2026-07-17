@@ -75,16 +75,16 @@ namespace ArkWallet.Infrastructure.Wizard
         {
             // Регистрация комманд
             _config.Commands["/start"][0].Handler = HandleSetName;
-            _config.Commands["/placeorder"][0].Handler = HandleSetDirection;
-            _config.Commands["/placeorder"][1].Handler = HandleSetToken;
-            _config.Commands["/placeorder"][2].Handler = HandleSetTokenQuantity;
-            _config.Commands["/placeorder"][3].Handler = HandleSetTokenPrice;
-            _config.Commands["/cancelorder"][0].Handler = HandleSelectOrderToCancel;
-            _config.Commands["/cancelorder"][1].Handler = HandleConfirmCancellation;
-            _config.Commands["/cancelallorders"][0].Handler = HandleConfirmCancellationAllOrders;
-            _config.Commands["/getprofile"][0].Handler = HandleGetProfile;
-            _config.Commands["/gettokeninfo"][0].Handler = HandleSelectTokenInfo;
-            _config.Commands["/gettokeninfo"][1].Handler = HandleShowTokenInfo;
+            _config.Commands["/place-order"][0].Handler = HandleSetDirection;
+            _config.Commands["/place-order"][1].Handler = HandleSetToken;
+            _config.Commands["/place-order"][2].Handler = HandleSetTokenQuantity;
+            _config.Commands["/place-order"][3].Handler = HandleSetTokenPrice;
+            _config.Commands["/cancel-order"][0].Handler = HandleSelectOrderToCancel;
+            _config.Commands["/cancel-order"][1].Handler = HandleConfirmCancellation;
+            _config.Commands["/cancel-all-orders"][0].Handler = HandleConfirmCancellationAllOrders;
+            _config.Commands["/get-profile"][0].Handler = HandleGetProfile;
+            _config.Commands["/get-token-info"][0].Handler = HandleSelectTokenInfo;
+            _config.Commands["/get-token-info"][1].Handler = HandleShowTokenInfo;
         }
 
         public async Task<(string? message, List<QuickButton>?)> ProcessInput(long userId, string input)
@@ -106,7 +106,7 @@ namespace ArkWallet.Infrastructure.Wizard
 
         private async Task<(string?, List<QuickButton>?)> StartCommand(long userId, string command)
         {
-            if (command is "/cancelorder" or "/cancelallorders")
+            if (command is "/cancel-order" or "/cancel-all-orders")
             {
                 var hasActiveOrders = await _cancelOrderService.HasActiveOrdersAsync(userId);
                 if (!hasActiveOrders)
