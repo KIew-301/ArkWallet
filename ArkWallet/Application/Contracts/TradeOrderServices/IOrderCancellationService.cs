@@ -42,4 +42,11 @@ public interface IOrderCancellationService
     /// </para>
     /// </remarks>
     Task<Result> CancelAllOrderAsync(long traderId);
+
+    /// <summary>
+    /// Проверяет, есть ли у трейдера активные ордера
+    /// </summary>
+    /// <param name="traderId">Telegram ID трейдера</param>
+    /// <returns>true — если есть активные ордера, false — если нет</returns>
+    Task<bool> HasActiveOrdersAsync(long traderId);
 }

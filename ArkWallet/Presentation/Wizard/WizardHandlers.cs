@@ -1,7 +1,6 @@
 ﻿using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Domain.ValueObjects;
 using Microsoft.CodeAnalysis;
-using Microsoft.EntityFrameworkCore;
 
 namespace ArkWallet.Infrastructure.Wizard
 {
@@ -159,19 +158,19 @@ namespace ArkWallet.Infrastructure.Wizard
 
         public async Task<StepResult> HandleGetProfile(UserSession session, string input)
         {
-            var trader = await _dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == session.Id);
+            var profileResult = await _traderQueryService.GetTraderProfileAsync(session.Id);
             var portfolioQueryResult = await _portfolioQueryService.GetTraderTokensAsync(session.Id);
 
-            if (trader == null)
-                return StepResult.Ok("completed", "Данные профиля не найдены.");
+            if (!profileResult.TryGetData(out var profile))
+                return StepResult.Ok("completed", profileResult.Message ?? "Данные профиля не найдены.");
 
             if (!portfolioQueryResult.TryGetData(out var portfolioInfo))
                 return StepResult.Ok("completed", "Данные профиля не найдены.");
 
             string Indent(int count) => new(' ', count);
 
-            var result = $"{trader.Username}!\n" +
-                $"{Indent(3)}Баланс: {trader.Balance:F2}\n" +
+            var result = $"{profile.Username}!\n" +
+                $"{Indent(3)}Баланс: {profile.Balance:F2}\n" +
                 $"{Indent(3)}Портфель:\n";
 
             if (portfolioInfo == null || portfolioInfo.Length <= 0)

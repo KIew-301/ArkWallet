@@ -1,14 +1,14 @@
-﻿using ArkWallet.Application.Contracts.Decorators;
+﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Application.Contracts.Decorators;
 using ArkWallet.Application.Contracts.PortfolioServices;
+using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Domain.ValueObjects;
-using ArkWallet.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Presentation.Wizard
 {
     [ExcludeFromCodeCoverage(Justification = "UI-декоратор: форматирование текста вопросов для Telegram-интерфейса. Не содержит бизнес-логики.")]
-    internal class QuestionDecorator(ArkWalletDbContext dbContext, IPortfolioQueryService portfolioQueryService) : IQuestionDecorator
+    internal class QuestionDecorator(ITokenQueryService tokenQueryService, ITraderQueryService traderQueryService, IPortfolioQueryService portfolioQueryService) : IQuestionDecorator
     {
         public async Task<string> DecorateQuestionAsync(string stepName, string baseQuestion, UserSession session)
         {
@@ -35,15 +35,16 @@ namespace ArkWallet.Presentation.Wizard
         {
             var symbol = session.Data["set_token"]?.ToString();
             var direction = session.Data["set_direction"]?.ToString()?.ToLower();
-            var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(t => t.Symbol == symbol);
+            var tokenResult = await tokenQueryService.GetTokenInfoAsync(symbol);
+            var currentPrice = tokenResult.TryGetData(out var tokenData) ? tokenData.CurrentPrice : 0m;
 
             if (direction == "купить")
             {
-                var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == session.Id);
-                var balance = trader?.Balance ?? 0m;
+                var profileResult = await traderQueryService.GetTraderProfileAsync(session.Id);
+                var balance = profileResult.TryGetData(out var profile) ? profile.Balance : 0m;
 
                 return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
-                       $"💰 Текущая цена: {token?.CurrentPrice ?? 0m:F2}\n" +
+                       $"💰 Текущая цена: {currentPrice:F2}\n" +
                        $"💳 Общий баланс: {balance:F2}\n";
             }
             else
@@ -52,11 +53,11 @@ namespace ArkWallet.Presentation.Wizard
 
                 if (portfolioQueryResult.TryGetData(out var data))
                     return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
-                           $"💰 Текущая цена: {token?.CurrentPrice ?? 0m:F2}\n" +
+                           $"💰 Текущая цена: {currentPrice:F2}\n" +
                            $"📦 Всего в портфеле: {data.Quantity} шт\n";
                 else
                     return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
-                       $"💰 Текущая цена: {token?.CurrentPrice ?? 0m:F2}\n" +
+                       $"💰 Текущая цена: {currentPrice:F2}\n" +
                        $"📦 Всего в портфеле: 0 шт\n";
             }
         }
@@ -65,9 +66,11 @@ namespace ArkWallet.Presentation.Wizard
         {
             var symbol = session.Data["set_token"]?.ToString();
 
-            var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(t => t.Symbol == symbol);
+            var tokenResult = await tokenQueryService.GetTokenInfoAsync(symbol);
+            var currentPrice = tokenResult.TryGetData(out var tokenData) ? tokenData.CurrentPrice : 0m;
+
             return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
-                   $"📊 Текущая цена: {token?.CurrentPrice ?? 0m:F2}";
+                   $"📊 Текущая цена: {currentPrice:F2}";
         }
     }
 }
