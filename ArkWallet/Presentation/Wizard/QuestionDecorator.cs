@@ -23,12 +23,13 @@ namespace ArkWallet.Presentation.Wizard
 
         private async Task<string> DecorateTokenQuestion(string baseQuestion, UserSession session)
         {
-            var portfolioQueryResult = await portfolioQueryService.GetTraderTokensAsync(session.Id);
+            var tokensResult = await tokenQueryService.GetAllActiveTokensAsync();
 
-            if (!portfolioQueryResult.TryGetData(out var portfolioItems))
-                return $"{baseQuestion}\n\n💎 У вас есть: 0\n";
-            else
-                return $"{baseQuestion}\n\n💎 У вас есть: {string.Join(" ", portfolioItems.Select(t => t.TokenInfo?.Symbol ?? "???"))}\n";
+            if (!tokensResult.TryGetData(out var tokens) || tokens.Count == 0)
+                return $"{baseQuestion}\n\n💎 Токенов на бирже нет\n";
+
+            var symbols = string.Join(" ", tokens.Select(t => t.TokenInfo.Symbol));
+            return $"{baseQuestion}\n\n💎 Доступные токены: {symbols}\n";
         }
 
         private async Task<string> DecorateQuantityQuestion(string baseQuestion, UserSession session)

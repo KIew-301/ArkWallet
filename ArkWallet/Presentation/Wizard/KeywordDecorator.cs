@@ -1,4 +1,5 @@
-﻿using ArkWallet.Application.Contracts.Decorators;
+﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Application.Contracts.Decorators;
 using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Application.Contracts.SuggestionServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;
@@ -9,7 +10,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace ArkWallet.Presentation.Wizard
 {
     [ExcludeFromCodeCoverage(Justification = "UI-декоратор: форматирование кнопок для Telegram-интерфейса. Не содержит бизнес-логики.")]
-    internal class ButtonDecorator(IOrderQueryService orderQueryService, IPriceSuggestionService priceSuggestionService, IPortfolioQueryService portfolioQueryService) : IButtonDecorator
+    internal class ButtonDecorator(IOrderQueryService orderQueryService, IPriceSuggestionService priceSuggestionService, IPortfolioQueryService portfolioQueryService, ITokenQueryService tokenQueryService) : IButtonDecorator
     {
         public async Task<List<QuickButton>> DecorateButtonsAsync(string stepName, List<QuickButton> baseKeyword, UserSession session)
         {
@@ -33,14 +34,13 @@ namespace ArkWallet.Presentation.Wizard
         private async Task<List<QuickButton>> DecorateTokenQuestion(List<QuickButton> baseKeyword, UserSession session)
         {
             baseKeyword = [];
-            var portfolioQueryResult = await portfolioQueryService.GetTraderTokensAsync(session.Id);
+            var tokensResult = await tokenQueryService.GetAllActiveTokensAsync();
 
-            if (!portfolioQueryResult.TryGetData(out var portfolioItems))
+            if (!tokensResult.TryGetData(out var tokens))
                 return baseKeyword;
 
-            foreach (var token in portfolioItems)
-                if (token.TokenInfo is not null)
-                    baseKeyword.Add(new() { Text = token.TokenInfo.Symbol, Value = token.TokenInfo.Symbol });
+            foreach (var token in tokens)
+                baseKeyword.Add(new() { Text = token.TokenInfo.Symbol, Value = token.TokenInfo.Symbol });
 
             return baseKeyword;
         }
