@@ -358,4 +358,123 @@ public class PriceSuggestionServiceTests
         Assert.NotNull(goodPrice);
         Assert.Equal(200m, goodPrice.Price);
     }
+
+    [Fact]
+    public async Task GetSellPriceSuggestionsAsync_UsesBestBid_NotCheapestBuy()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.GiveMoney(db, 101, 100000);
+        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
+        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 50);
+        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 150);
+        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 200);
+        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 5, 300);
+
+        var service = new PriceSuggestionService(db);
+
+        var result = await service.GetSellPriceSuggestionsAsync("ZZZ");
+
+        var truePrice = result.FirstOrDefault(dto => dto.Label == "Истинная цена");
+        Assert.NotNull(truePrice);
+        Assert.Equal(200m, truePrice.Price);
+    }
+
+    [Fact]
+    public async Task GetSellPriceSuggestionsAsync_CancelledOrdersExcluded()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.GiveMoney(db, 101, 100000);
+        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
+        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 50);
+        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 5, 200);
+        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 5, 300);
+
+        var orders = db.TradeOrders.ToList();
+        var expensiveBuy = orders.First(o => o.Type == Domain.ValueObjects.OrderType.Buy && o.Price == 50);
+        expensiveBuy.Status = Domain.ValueObjects.OrderStatus.Cancelled;
+        var cheapSell = orders.First(o => o.Type == Domain.ValueObjects.OrderType.Sell && o.Price == 200);
+        cheapSell.Status = Domain.ValueObjects.OrderStatus.Filled;
+        await db.SaveChangesAsync();
+
+        var service = new PriceSuggestionService(db);
+
+        var result = await service.GetSellPriceSuggestionsAsync("ZZZ");
+
+        var truePrice = result.FirstOrDefault(dto => dto.Label == "Истинная цена");
+        Assert.NotNull(truePrice);
+        Assert.Equal(100m, truePrice.Price);
+
+        var marketPrice = result.FirstOrDefault(dto => dto.Label == "Рыночная цена");
+        Assert.NotNull(marketPrice);
+        Assert.Equal(300m, marketPrice.Price);
+    }
+
+    [Fact]
+    public async Task GetSellPriceSuggestionsAsync_GreatPriceIsMostExpensiveSell()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.GiveMoney(db, 101, 100000);
+        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
+        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 50);
+        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 5, 200);
+        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 5, 300);
+        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 5, 400);
+        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 5, 500);
+        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 5, 600);
+        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 5, 700);
+        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 5, 800);
+        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 5, 900);
+        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 5, 1000);
+        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 5, 1100);
+
+        var service = new PriceSuggestionService(db);
+
+        var result = await service.GetSellPriceSuggestionsAsync("ZZZ");
+
+        var greatPrice = result.FirstOrDefault(dto => dto.Label == "Завышенная цена");
+        Assert.NotNull(greatPrice);
+        Assert.Equal(1100m, greatPrice.Price);
+    }
+
+    [Fact]
+    public async Task GetBuyPriceSuggestionsAsync_CancelledOrdersExcluded()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.GiveMoney(db, 101, 100000);
+        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
+        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 200);
+        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 5, 300);
+
+        var orders = db.TradeOrders.ToList();
+        var cheapBuy = orders.First(o => o.Type == Domain.ValueObjects.OrderType.Buy && o.Price == 100);
+        cheapBuy.Status = Domain.ValueObjects.OrderStatus.Cancelled;
+        await db.SaveChangesAsync();
+
+        var service = new PriceSuggestionService(db);
+
+        var result = await service.GetBuyPriceSuggestionsAsync(101, "ZZZ", 5);
+
+        var truePrice = result.FirstOrDefault(dto => dto.Label == "Истинная цена");
+        Assert.NotNull(truePrice);
+        Assert.Equal(200m, truePrice.Price);
+    }
 }
