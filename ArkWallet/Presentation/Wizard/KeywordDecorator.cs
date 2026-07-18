@@ -16,18 +16,23 @@ namespace ArkWallet.Presentation.Wizard
         {
             return session.CurrentCommand switch
             {
-                "/place-order" => stepName switch
+                "/place_order" => stepName switch
                 {
                     "set_token" => await DecorateTokenQuestion(baseKeyword, session),
                     "set_price" => await DecoratePriceQuestion(baseKeyword, session),
                     _ => baseKeyword
                 },
-                "/cancel-order" => stepName switch
+                "/cancel_order" => stepName switch
                 {
                     "select_order_to_cancel" => await DecorateSelectOrderToCancel(baseKeyword, session),
                     _ => baseKeyword
                 },
-                "/get-token-info" => stepName switch
+                "/get_token_info" => stepName switch
+                {
+                    "select_token" => await DecorateTokenQuestion(baseKeyword, session),
+                    _ => baseKeyword
+                },
+                "/get_price_history" => stepName switch
                 {
                     "select_token" => await DecorateTokenQuestion(baseKeyword, session),
                     _ => baseKeyword
