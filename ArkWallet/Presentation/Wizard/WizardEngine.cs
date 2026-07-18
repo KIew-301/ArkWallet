@@ -125,6 +125,13 @@ namespace ArkWallet.Infrastructure.Wizard
                     return ("Нет активных ордеров для отмены.", null);
             }
 
+            if (command == "/start")
+            {
+                var isRegistered = await _traderRegistrationService.CheckTraderAlreadyRegistered(userId);
+                if (isRegistered)
+                    return ("Вы уже зарегистрированы! Используйте /get_profile для просмотра профиля.", null);
+            }
+
             var session = new UserSession
             {
                 Id = userId,
