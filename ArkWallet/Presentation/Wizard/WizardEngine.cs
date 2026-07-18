@@ -1,5 +1,6 @@
 ﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Contracts.Decorators;
+using ArkWallet.Application.Contracts.Orchestrators;
 using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TraderServices;
@@ -30,6 +31,10 @@ namespace ArkWallet.Infrastructure.Wizard
         private readonly IPortfolioUpdatingService _portfolioUpdatingService;
         private readonly ITokenCreationService _tokenCreationServices;
         private readonly ITokenQueryService _tokenQueryService;
+        private readonly ITokenMediaUpdateService _tokenMediaUpdateService;
+
+        // ORCHESTRATORS
+        private readonly ICandleOrchestrator _candleOrchestrator;
 
         // DECORATOR SERVICES
         private readonly IQuestionDecorator _questionDecorator;
@@ -46,6 +51,8 @@ namespace ArkWallet.Infrastructure.Wizard
             IPortfolioUpdatingService portfolioUpdatingService,
             ITokenCreationService tokenCreationServices,
             ITokenQueryService tokenQueryService,
+            ITokenMediaUpdateService tokenMediaUpdateService,
+            ICandleOrchestrator candleOrchestrator,
             IQuestionDecorator questionDecorator,
             IButtonDecorator buttonDecorator,
             WizardConfiguration config
@@ -61,6 +68,8 @@ namespace ArkWallet.Infrastructure.Wizard
             _portfolioUpdatingService = portfolioUpdatingService;
             _tokenCreationServices = tokenCreationServices;
             _tokenQueryService = tokenQueryService;
+            _tokenMediaUpdateService = tokenMediaUpdateService;
+            _candleOrchestrator = candleOrchestrator;
             _questionDecorator = questionDecorator;
             _buttonDecorator = buttonDecorator;
             _config = config;
@@ -73,16 +82,19 @@ namespace ArkWallet.Infrastructure.Wizard
         {
             // Регистрация комманд
             _config.Commands["/start"][0].Handler = HandleSetName;
-            _config.Commands["/place-order"][0].Handler = HandleSetDirection;
-            _config.Commands["/place-order"][1].Handler = HandleSetToken;
-            _config.Commands["/place-order"][2].Handler = HandleSetTokenQuantity;
-            _config.Commands["/place-order"][3].Handler = HandleSetTokenPrice;
-            _config.Commands["/cancel-order"][0].Handler = HandleSelectOrderToCancel;
-            _config.Commands["/cancel-order"][1].Handler = HandleConfirmCancellation;
-            _config.Commands["/cancel-all-orders"][0].Handler = HandleConfirmCancellationAllOrders;
-            _config.Commands["/get-profile"][0].Handler = HandleGetProfile;
-            _config.Commands["/get-token-info"][0].Handler = HandleSelectTokenInfo;
-            _config.Commands["/get-token-info"][1].Handler = HandleShowTokenInfo;
+            _config.Commands["/place_order"][0].Handler = HandleSetDirection;
+            _config.Commands["/place_order"][1].Handler = HandleSetToken;
+            _config.Commands["/place_order"][2].Handler = HandleSetTokenQuantity;
+            _config.Commands["/place_order"][3].Handler = HandleSetTokenPrice;
+            _config.Commands["/cancel_order"][0].Handler = HandleSelectOrderToCancel;
+            _config.Commands["/cancel_order"][1].Handler = HandleConfirmCancellation;
+            _config.Commands["/cancel_all_orders"][0].Handler = HandleConfirmCancellationAllOrders;
+            _config.Commands["/get_profile"][0].Handler = HandleGetProfile;
+            _config.Commands["/get_token_info"][0].Handler = HandleSelectTokenInfo;
+            _config.Commands["/get_token_info"][1].Handler = HandleShowTokenInfo;
+            _config.Commands["/get_price_history"][0].Handler = HandleSelectTokenForHistory;
+            _config.Commands["/get_price_history"][1].Handler = HandleSetTimeframe;
+            _config.Commands["/get_price_history"][2].Handler = HandleSetLimit;
         }
 
         public async Task<(string? message, List<QuickButton>?)> ProcessInput(long userId, string input)
@@ -104,7 +116,7 @@ namespace ArkWallet.Infrastructure.Wizard
 
         private async Task<(string?, List<QuickButton>?)> StartCommand(long userId, string command)
         {
-            if (command is "/cancel-order" or "/cancel-all-orders")
+            if (command is "/cancel_order" or "/cancel_all_orders")
             {
                 var hasActiveOrders = await _cancelOrderService.HasActiveOrdersAsync(userId);
                 if (!hasActiveOrders)

@@ -57,7 +57,7 @@ namespace ArkWallet.Entities.Configurations
                 }
             ];
 
-            Commands["/place-order"] = steps;
+            Commands["/place_order"] = steps;
 
             steps = new List<WizardStep>
             {
@@ -77,7 +77,7 @@ namespace ArkWallet.Entities.Configurations
                 }
             };
 
-            Commands["/cancel-order"] = steps;
+            Commands["/cancel_order"] = steps;
 
             steps = new List<WizardStep>
             {
@@ -92,7 +92,7 @@ namespace ArkWallet.Entities.Configurations
                 }
             };
 
-            Commands["/cancel-all-orders"] = steps;
+            Commands["/cancel_all_orders"] = steps;
 
             steps = new List<WizardStep>
             {
@@ -103,7 +103,7 @@ namespace ArkWallet.Entities.Configurations
                 },
             };
 
-            Commands["/get-profile"] = steps;
+            Commands["/get_profile"] = steps;
 
             steps = new List<WizardStep>
             {
@@ -119,7 +119,43 @@ namespace ArkWallet.Entities.Configurations
                 },
             };
 
-            Commands["/get-token-info"] = steps;
+            Commands["/get_token_info"] = steps;
+
+            steps = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "select_token",
+                    Question = "Какой токен вы хотите посмотреть?",
+                },
+                new()
+                {
+                    Name = "set_timeframe",
+                    Question = "Какой шаг свечи (в минутах)?",
+                    Buttons =
+                    [
+                        new() {Text = "5 мин", Value = "5"},
+                        new() {Text = "15 мин", Value = "15"},
+                        new() {Text = "1 час", Value = "60"},
+                        new() {Text = "4 часа", Value = "240"},
+                        new() {Text = "1 день", Value = "1440"}
+                    ]
+                },
+                new()
+                {
+                    Name = "set_limit",
+                    Question = "Сколько записей показать?",
+                    Buttons =
+                    [
+                        new() {Text = "10", Value = "10"},
+                        new() {Text = "25", Value = "25"},
+                        new() {Text = "50", Value = "50"},
+                        new() {Text = "100", Value = "100"}
+                    ]
+                },
+            };
+
+            Commands["/get_price_history"] = steps;
         }
     }
 }

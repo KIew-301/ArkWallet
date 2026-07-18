@@ -217,5 +217,54 @@ namespace ArkWallet.Infrastructure.Wizard
 
             return StepResult.Ok("completed", result);
         }
+
+        public async Task<StepResult> HandleSelectTokenForHistory(UserSession session, string input)
+        {
+            var tokenResult = await _tokenQueryService.GetTokenInfoAsync(input.ToUpper());
+
+            if (!tokenResult.TryGetData(out _))
+                return StepResult.Error("Токен не найден. Проверьте символ и попробуйте снова.");
+
+            session.Data.Add("token_symbol", input.ToUpper());
+            return StepResult.Ok("set_timeframe");
+        }
+
+        public async Task<StepResult> HandleSetTimeframe(UserSession session, string input)
+        {
+            if (!int.TryParse(input, out var timeframe) || timeframe <= 0)
+                return StepResult.Error("Необходимо ввести положительное целое число (шаг свечи в минутах).");
+
+            session.Data.Add("timeframe_minutes", timeframe);
+            return StepResult.Ok("set_limit");
+        }
+
+        public async Task<StepResult> HandleSetLimit(UserSession session, string input)
+        {
+            if (!int.TryParse(input, out var limit) || limit <= 0)
+                return StepResult.Error("Необходимо ввести положительное целое число.");
+
+            var symbol = session.Data["token_symbol"]?.ToString();
+            var timeframe = (int)session.Data["timeframe_minutes"];
+
+            if (string.IsNullOrEmpty(symbol))
+                return StepResult.Ok("completed", "Токен не выбран.");
+
+            var endDateTime = DateTime.UtcNow;
+            var startDateTime = endDateTime.AddMinutes(-timeframe * limit);
+
+            var candlesResult = await _candleOrchestrator.GetAggregatedCandlesAsync(
+                symbol, startDateTime, endDateTime, timeframe);
+
+            if (!candlesResult.TryGetData(out var candles) || candles.Count == 0)
+                return StepResult.Ok("completed", $"Нет данных по свечам токена {symbol} за указанный период.");
+
+            var lines = candles.Select(c =>
+                $"{c.DateTime:dd-MM-yyyy HH:mm} - {c.ClosePrice:F2}");
+
+            var message = $"📈 История цен {symbol} (шаг {timeframe} мин, {candles.Count} записей):\n\n"
+                + string.Join("\n", lines);
+
+            return StepResult.Ok("completed", message);
+        }
     }
 }
