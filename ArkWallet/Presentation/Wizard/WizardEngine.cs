@@ -185,6 +185,13 @@ namespace ArkWallet.Infrastructure.Wizard
             session.CurrentStep = result.NextStep;
             var nextStep = commandSteps.First(s => s.Name == result.NextStep);
 
+            if (nextStep.OneStep)
+            {
+                _sessionStore.Sessions.TryRemove(userId, out _);
+                var oneStepResult = await nextStep.Handler(session, input);
+                return (oneStepResult.Message ?? "Готово!", null);
+            }
+
             var question = await _questionDecorator.DecorateQuestionAsync(nextStep.Name, nextStep.Question, session);
             var buttons = await _buttonDecorator.DecorateButtonsAsync(nextStep.Name, nextStep.Buttons, session);
 
