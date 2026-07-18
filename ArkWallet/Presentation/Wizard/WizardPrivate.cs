@@ -8,9 +8,10 @@ namespace ArkWallet.Infrastructure.Wizard
     {
         private void ConfigureAdditionHandlers()
         {
-            _config.Commands["/admincreatetoken"][0].Handler = AdminHandleTokenCreate;
-            _config.Commands["/adminsettokentouser"][0].Handler = AdminHandleSetTokenToUser;
-            _config.Commands["/adminaddbalancetouser"][0].Handler = AdminHandleAddBalanceToUser;
+            _config.Commands["/admin_create_token"][0].Handler = AdminHandleTokenCreate;
+            _config.Commands["/admin_set_token_to_user"][0].Handler = AdminHandleSetTokenToUser;
+            _config.Commands["/admin_add_balance_to_user"][0].Handler = AdminHandleAddBalanceToUser;
+            _config.Commands["/admin_update_token_media"][0].Handler = AdminHandleUpdateTokenMedia;
         }
 
         private async Task<StepResult> AdminHandleTokenCreate(UserSession session, string input)
@@ -68,6 +69,30 @@ namespace ArkWallet.Infrastructure.Wizard
 
                 if (result.IsSuccess)
                     return StepResult.Ok("completed", "Balance update successful");
+                else
+                    return StepResult.Error(result.Message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.StackTrace);
+                return StepResult.Error($"Error: {ex.Message}");
+            }
+        }
+
+        private async Task<StepResult> AdminHandleUpdateTokenMedia(UserSession session, string input)
+        {
+            try
+            {
+                var tradeData = JsonConvert.DeserializeObject<Dictionary<string, object>>(input);
+
+                string symbol = tradeData["symbol"].ToString()!;
+                string iconUrl = tradeData["iconUrl"].ToString()!;
+                string imageUrl = tradeData["imageUrl"].ToString()!;
+
+                var result = await _tokenMediaUpdateService.UpdateTokenMediaAsync(symbol, iconUrl, imageUrl);
+
+                if (result.IsSuccess)
+                    return StepResult.Ok("completed", "Token media updated successfully");
                 else
                     return StepResult.Error(result.Message);
             }

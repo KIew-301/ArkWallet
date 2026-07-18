@@ -15,7 +15,7 @@ namespace ArkWallet.Entities.Configurations
                 }
             };
 
-            Commands["/admincreatetoken"] = steps;
+            Commands["/admin_create_token"] = steps;
 
             steps =
             [
@@ -26,7 +26,7 @@ namespace ArkWallet.Entities.Configurations
                 }
             ];
 
-            Commands["/adminsettokentouser"] = steps;
+            Commands["/admin_set_token_to_user"] = steps;
 
             steps =
             [
@@ -37,7 +37,18 @@ namespace ArkWallet.Entities.Configurations
                 }
             ];
 
-            Commands["/adminaddbalancetouser"] = steps;
+            Commands["/admin_add_balance_to_user"] = steps;
+
+            steps =
+            [
+                new()
+                {
+                    Name = "set_options",
+                    Question = "json",
+                }
+            ];
+
+            Commands["/admin_update_token_media"] = steps;
         }
     }
 }

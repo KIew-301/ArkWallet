@@ -245,6 +245,7 @@ class Program
         services.AddScoped<ITokenPriceCandleUpdateService, TokenPriceCandleUpdateService>();
         services.AddScoped<ICandleAggregatorService, CandleAggregatorService>();
         services.AddScoped<ITokenQueryService, TokenQueryService>();
+        services.AddScoped<ITokenMediaUpdateService, TokenMediaUpdateService>();
         services.AddScoped<ITokenPriceChangesCalculationService, TokenPriceChangeCalculationService>();
         services.AddScoped<ITokenPriceCandleQueryService, TokenPriceCandleQueryService>();
         services.AddScoped<ICandleOrchestrator, CandleOrchestrator>();
