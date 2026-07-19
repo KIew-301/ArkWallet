@@ -22,6 +22,7 @@
         public bool Success { get; set; }
         public string? Message { get; set; }
         public string? NextStep { get; set; }
+        public List<QuickButton>? Buttons { get; set; }
 
         public static StepResult Ok(string nextStep, string? message = null) => new() { Success = true, NextStep = nextStep, Message = message };
         public static StepResult Error(string message) => new() { Success = false, Message = message };

@@ -265,6 +265,7 @@ class Program
         services.AddScoped<IOrderCreationService, OrderCreationService>();
         services.AddScoped<IOrderValidationService, OrderValidationService>();
         services.AddScoped<IOrderQueryService, OrderQueryService>();
+        services.AddScoped<IOrderBookService, OrderBookService>();
 
         // TraderServices
         services.AddScoped<ITraderBalanceUpdatingService, TraderBalanceUpdatingService>();

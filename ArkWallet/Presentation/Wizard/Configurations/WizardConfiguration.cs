@@ -156,6 +156,41 @@ namespace ArkWallet.Entities.Configurations
             };
 
             Commands["/get_price_history"] = steps;
+
+            steps = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "select_token",
+                    Question = "Какой токен вы хотите посмотреть в стакане?",
+                },
+                new()
+                {
+                    Name = "set_buy_count",
+                    Question = "Сколько ордеров на покупку показать?",
+                    Buttons =
+                    [
+                        new() {Text = "5", Value = "5"},
+                        new() {Text = "10", Value = "10"},
+                        new() {Text = "25", Value = "25"},
+                        new() {Text = "50", Value = "50"}
+                    ]
+                },
+                new()
+                {
+                    Name = "set_sell_count",
+                    Question = "Сколько ордеров на продажу показать?",
+                    Buttons =
+                    [
+                        new() {Text = "5", Value = "5"},
+                        new() {Text = "10", Value = "10"},
+                        new() {Text = "25", Value = "25"},
+                        new() {Text = "50", Value = "50"}
+                    ]
+                },
+            };
+
+            Commands["/get_order_book"] = steps;
         }
     }
 }

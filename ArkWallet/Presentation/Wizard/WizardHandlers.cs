@@ -266,5 +266,143 @@ namespace ArkWallet.Infrastructure.Wizard
 
             return StepResult.Ok("completed", message);
         }
+
+        public async Task<StepResult> HandleSelectTokenForOrderBook(UserSession session, string input)
+        {
+            var tokenResult = await _tokenQueryService.GetTokenInfoAsync(input.ToUpper());
+
+            if (!tokenResult.TryGetData(out _))
+                return StepResult.Error("Токен не найден. Проверьте символ и попробуйте снова.");
+
+            session.Data.Add("token_symbol", input.ToUpper());
+            return StepResult.Ok("set_buy_count");
+        }
+
+        public async Task<StepResult> HandleSetBuyCount(UserSession session, string input)
+        {
+            if (!int.TryParse(input, out var count) || count <= 0)
+                return StepResult.Error("Необходимо ввести положительное целое число.");
+
+            session.Data.Add("buy_count", count);
+            return StepResult.Ok("set_sell_count");
+        }
+
+        public async Task<StepResult> HandleSetSellCount(UserSession session, string input)
+        {
+            if (!int.TryParse(input, out var sellCount) || sellCount <= 0)
+                return StepResult.Error("Необходимо ввести положительное целое число.");
+
+            var symbol = session.Data["token_symbol"]?.ToString();
+            var buyCount = (int)session.Data["buy_count"];
+
+            if (string.IsNullOrEmpty(symbol))
+                return StepResult.Ok("completed", "Токен не выбран.");
+
+            var bookResult = await _orderBookService.GetOrderBookAsync(symbol, buyCount, sellCount);
+
+            if (!bookResult.TryGetData(out var book))
+                return StepResult.Ok("completed", $"Ошибка получения стакана: {bookResult.Message}");
+
+            var message = FormatOrderBookMessage(book);
+            var refreshButton = new List<QuickButton>
+            {
+                new() { Text = "🔄 Обновить", Value = $"/get_order_book {symbol} {buyCount} {sellCount}" }
+            };
+
+            var result = StepResult.Ok("completed", message);
+            result.Buttons = refreshButton;
+            return result;
+        }
+
+        private async Task<(string?, List<QuickButton>?)> HandleQuickOrderBook(string symbolStr, string buyCountStr, string sellCountStr)
+        {
+            var symbol = symbolStr.ToUpper();
+
+            if (!int.TryParse(buyCountStr, out var buyCount) || buyCount <= 0)
+                return ("Необходимо ввести положительное целое число для количества покупок.", null);
+
+            if (!int.TryParse(sellCountStr, out var sellCount) || sellCount <= 0)
+                return ("Необходимо ввести положительное целое число для количества продаж.", null);
+
+            var bookResult = await _orderBookService.GetOrderBookAsync(symbol, buyCount, sellCount);
+
+            if (!bookResult.TryGetData(out var book))
+                return ($"Ошибка получения стакана: {bookResult.Message}", null);
+
+            var message = FormatOrderBookMessage(book);
+            var refreshButton = new List<QuickButton>
+            {
+                new() { Text = "🔄 Обновить", Value = $"/get_order_book {symbol} {buyCount} {sellCount}" }
+            };
+
+            return (message, refreshButton);
+        }
+
+        private static string FormatOrderBookMessage(OrderBookResult book)
+        {
+            var lines = new List<string>();
+
+            lines.Add($"Стакан ордеров {book.Symbol}");
+            lines.Add("");
+
+            if (book.Bids.Count == 0 && book.Asks.Count == 0)
+            {
+                lines.Add("Стакан пуст.");
+                return string.Join("\n", lines);
+            }
+
+            var allPrices = book.Asks.Select(a => a.Price)
+                .Concat(book.Bids.Select(b => b.Price));
+
+            var maxIntLen = allPrices.Max(p => (int)Math.Floor(p)).ToString().Length;
+            var maxDecPlaces = allPrices
+                .Select(p => p.ToString("G").Contains('.') ? p.ToString("G").Split('.')[1].Length : 0)
+                .Max();
+            maxDecPlaces = Math.Max(maxDecPlaces, 2);
+            var priceWidth = maxIntLen + 1 + maxDecPlaces;
+            var priceFmt = new string('0', maxIntLen) + "." + new string('0', maxDecPlaces);
+
+            var numWidth = 2;
+            var qtyWidth = 2;
+            var rowLen = numWidth + 1 + priceWidth + 3 + qtyWidth + 2;
+
+            if (book.Asks.Count > 0)
+            {
+                lines.Add("🔺 ПРОДАЖА (ASK)");
+                var reversed = book.Asks.AsEnumerable().Reverse().ToList();
+                for (int i = 0; i < reversed.Count; i++)
+                {
+                    var a = reversed[i];
+                    var num = (reversed.Count - i).ToString().PadLeft(numWidth);
+                    var price = a.Price.ToString(priceFmt).PadLeft(priceWidth);
+                    var qty = a.Quantity.ToString().PadLeft(qtyWidth);
+                    lines.Add($"  {num}     {price}  × {qty}");
+                }
+            }
+
+            lines.Add(new string('─', rowLen));
+
+            if (book.Bids.Count > 0)
+            {
+                for (int i = 0; i < book.Bids.Count; i++)
+                {
+                    var b = book.Bids[i];
+                    var num = (i + 1).ToString().PadLeft(numWidth);
+                    var price = b.Price.ToString(priceFmt).PadLeft(priceWidth);
+                    var qty = b.Quantity.ToString().PadLeft(qtyWidth);
+                    lines.Add($"  {num}     {price}  × {qty}");
+                }
+                lines.Add("🔻 ПОКУПКА (BID)");
+            }
+
+            lines.Add("");
+            lines.Add("ℹ️ КАК ЧИТАТЬ:");
+            lines.Add("[номер] [цена] × [количество]");
+            lines.Add("— кто, по какой цене, сколько");
+            lines.Add("   хочет купить или продать");
+            lines.Add("      прямо сейчас");
+
+            return string.Join("\n", lines);
+        }
     }
 }
