@@ -25,6 +25,7 @@ namespace ArkWallet.Infrastructure.Wizard
         private readonly IOrderValidationService _orderValidationService;
         private readonly IOrderCreationService _orderCreationService;
         private readonly IOrderCancellationService _cancelOrderService;
+        private readonly IOrderBookService _orderBookService;
 
         // PORTFOLIO & TOKEN SERVICES
         private readonly IPortfolioQueryService _portfolioQueryService;
@@ -47,6 +48,7 @@ namespace ArkWallet.Infrastructure.Wizard
             IOrderValidationService orderValidationService,
             IOrderCreationService orderCreationService,
             IOrderCancellationService cancelOrderService,
+            IOrderBookService orderBookService,
             IPortfolioQueryService portfolioQueryService,
             IPortfolioUpdatingService portfolioUpdatingService,
             ITokenCreationService tokenCreationServices,
@@ -65,6 +67,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _orderValidationService = orderValidationService;
             _orderCreationService = orderCreationService;
             _cancelOrderService = cancelOrderService;
+            _orderBookService = orderBookService;
             _portfolioQueryService = portfolioQueryService;
             _portfolioUpdatingService = portfolioUpdatingService;
             _tokenCreationServices = tokenCreationServices;
@@ -97,17 +100,27 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/get_price_history"][0].Handler = HandleSelectTokenForHistory;
             _config.Commands["/get_price_history"][1].Handler = HandleSetTimeframe;
             _config.Commands["/get_price_history"][2].Handler = HandleSetLimit;
+            _config.Commands["/get_order_book"][0].Handler = HandleSelectTokenForOrderBook;
+            _config.Commands["/get_order_book"][1].Handler = HandleSetBuyCount;
+            _config.Commands["/get_order_book"][2].Handler = HandleSetSellCount;
         }
 
         public async Task<(string? message, List<QuickButton>?)> ProcessInput(long userId, string input)
         {
-            // Если это команда
+            if (input.StartsWith("/get_order_book "))
+            {
+                var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length == 4)
+                {
+                    return await HandleQuickOrderBook(parts[1], parts[2], parts[3]);
+                }
+            }
+
             if (_config.Commands.ContainsKey(input))
             {
                 return await StartCommand(userId, input);
             }
 
-            // Если активная сессия
             if (_sessionStore.Sessions.ContainsKey(userId))
             {
                 return await ContinueCommand(userId, input);
@@ -180,7 +193,7 @@ namespace ArkWallet.Infrastructure.Wizard
             if (result.NextStep == "completed")
             {
                 _sessionStore.Sessions.TryRemove(userId, out _);
-                return (result.Message ?? "Готово!", null);
+                return (result.Message ?? "Готово!", result.Buttons);
             }
 
             // Обновляем шаг и возвращаем следующий вопрос
