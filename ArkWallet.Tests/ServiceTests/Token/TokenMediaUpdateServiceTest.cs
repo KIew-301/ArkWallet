@@ -6,65 +6,24 @@ namespace ArkWallet.Tests.ServiceTests.Token;
 
 public class TokenMediaUpdateServiceTest
 {
-    [Fact]
-    public async Task UpdateTokenMediaAsync_EmptySymbol_ReturnsFail()
+    [Theory]
+    [InlineData("", "icon.png", "image.png", false, false)]
+    [InlineData("ZZZ", "", "image.png", true, false)]
+    [InlineData("ZZZ", "icon.png", "", true, false)]
+    [InlineData("NONEXISTENT", "icon.png", "image.png", false, false)]
+    public async Task UpdateTokenMediaAsync_InvalidInput_ReturnsFail(string symbol, string iconUrl, string imageUrl, bool createToken, bool expectSuccess)
     {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-
+        await using var db = await DbTest.CreateInitializedDbContextAsync();
+        if (createToken) await HelpMethods.CreateToken(db, symbol);
         var service = new TokenMediaUpdateService(db, NullLogger<TokenMediaUpdateService>.Instance);
-
-        var result = await service.UpdateTokenMediaAsync("", "icon.png", "image.png");
-
-        Assert.False(result.IsSuccess);
-    }
-
-    [Fact]
-    public async Task UpdateTokenMediaAsync_EmptyIconUrl_ReturnsFail()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-        await HelpMethods.CreateToken(db, "ZZZ");
-
-        var service = new TokenMediaUpdateService(db, NullLogger<TokenMediaUpdateService>.Instance);
-
-        var result = await service.UpdateTokenMediaAsync("ZZZ", "", "image.png");
-
-        Assert.False(result.IsSuccess);
-    }
-
-    [Fact]
-    public async Task UpdateTokenMediaAsync_EmptyImageUrl_ReturnsFail()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-        await HelpMethods.CreateToken(db, "ZZZ");
-
-        var service = new TokenMediaUpdateService(db, NullLogger<TokenMediaUpdateService>.Instance);
-
-        var result = await service.UpdateTokenMediaAsync("ZZZ", "icon.png", "");
-
-        Assert.False(result.IsSuccess);
-    }
-
-    [Fact]
-    public async Task UpdateTokenMediaAsync_TokenNotFound_ReturnsFail()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-
-        var service = new TokenMediaUpdateService(db, NullLogger<TokenMediaUpdateService>.Instance);
-
-        var result = await service.UpdateTokenMediaAsync("NONEXISTENT", "icon.png", "image.png");
-
-        Assert.False(result.IsSuccess);
+        var result = await service.UpdateTokenMediaAsync(symbol, iconUrl, imageUrl);
+        Assert.Equal(expectSuccess, result.IsSuccess);
     }
 
     [Fact]
     public async Task UpdateTokenMediaAsync_ValidData_ReturnsSuccess()
     {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
+        await using var db = await DbTest.CreateInitializedDbContextAsync();
         await HelpMethods.CreateToken(db, "ZZZ");
 
         var service = new TokenMediaUpdateService(db, NullLogger<TokenMediaUpdateService>.Instance);

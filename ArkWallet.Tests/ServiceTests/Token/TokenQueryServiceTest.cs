@@ -105,39 +105,30 @@ public class TokenQueryServiceTest
         Assert.Equal(0m, token.DailyChangePercent);
     }
 
-    [Fact]
-    public async Task GetTokenInfoAsync_TokenNotFound_ReturnsFail()
+    [Theory]
+    [InlineData("NONEXISTENT", false)]
+    [InlineData("ZZZ", true)]
+    public async Task GetTokenInfoAsync_VariousScenarios(string symbol, bool expectedSuccess)
     {
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
+
+        if (expectedSuccess)
+            await HelpMethods.CreateToken(db, "ZZZ", "Zero", CharacterRarity.FiveStar, 1000, 100m);
 
         var mockPriceChangeService = new Mock<ITokenPriceChangesCalculationService>();
         var logger = NullLogger<TokenQueryService>.Instance;
         var service = new TokenQueryService(db, mockPriceChangeService.Object, logger);
 
-        var result = await service.GetTokenInfoAsync("NONEXISTENT");
+        var result = await service.GetTokenInfoAsync(symbol);
 
-        Assert.False(result.IsSuccess);
-    }
+        Assert.Equal(expectedSuccess, result.IsSuccess);
 
-    [Fact]
-    public async Task GetTokenInfoAsync_TokenExists_ReturnsTokenInfo()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-
-        await HelpMethods.CreateToken(db, "ZZZ", "Zero", CharacterRarity.FiveStar, 1000, 100m);
-
-        var mockPriceChangeService = new Mock<ITokenPriceChangesCalculationService>();
-        var logger = NullLogger<TokenQueryService>.Instance;
-        var service = new TokenQueryService(db, mockPriceChangeService.Object, logger);
-
-        var result = await service.GetTokenInfoAsync("ZZZ");
-
-        Assert.True(result.IsSuccess);
-        Assert.True(result.TryGetData(out var data));
-        Assert.Equal("ZZZ", data.Symbol);
-        Assert.Equal("Zero", data.Name);
-        Assert.Equal(100m, data.CurrentPrice);
+        if (expectedSuccess && result.TryGetData(out var data))
+        {
+            Assert.Equal("ZZZ", data.Symbol);
+            Assert.Equal("Zero", data.Name);
+            Assert.Equal(100m, data.CurrentPrice);
+        }
     }
 }

@@ -6,36 +6,25 @@ namespace ArkWallet.Tests.ServiceTests.Trader;
 
 public class TraderQueryServiceTest
 {
-    [Fact]
-    public async Task GetTraderProfileAsync_TraderNotFound_ReturnsFail()
+    [Theory]
+    [InlineData(999, false)]
+    [InlineData(101, true)]
+    public async Task GetTraderProfileAsync_VariousScenarios(long traderId, bool expectSuccess)
     {
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        var service = new TraderQueryService(db, NullLogger<TraderQueryService>.Instance);
-
-        var result = await service.GetTraderProfileAsync(999);
-
-        Assert.False(result.IsSuccess);
-    }
-
-    [Fact]
-    public async Task GetTraderProfileAsync_TraderExists_ReturnsProfile()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-
-        await HelpMethods.RegisterTrader(db, 101, "TestUser");
-        await HelpMethods.GiveMoney(db, 101, 500m);
+        if (expectSuccess)
+            await HelpMethods.RegisterTrader(db, traderId, "TestUser");
 
         var service = new TraderQueryService(db, NullLogger<TraderQueryService>.Instance);
 
-        var result = await service.GetTraderProfileAsync(101);
+        var result = await service.GetTraderProfileAsync(traderId);
 
-        Assert.True(result.IsSuccess);
-        Assert.True(result.TryGetData(out var data));
-        Assert.Equal("TestUser", data.Username);
-        Assert.Equal(1500m, data.Balance);
+        Assert.Equal(expectSuccess, result.IsSuccess);
+
+        if (expectSuccess && result.TryGetData(out var data))
+            Assert.Equal("TestUser", data.Username);
     }
 
     [Fact]

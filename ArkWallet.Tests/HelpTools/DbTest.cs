@@ -17,5 +17,12 @@ namespace ArkWallet.Tests.HelpTools
 
             return new ArkWalletDbContext(options);
         }
+
+        internal static async Task<ArkWalletDbContext> CreateInitializedDbContextAsync()
+        {
+            var db = CreateDbContext();
+            await db.Database.EnsureCreatedAsync();
+            return db;
+        }
     }
 }
