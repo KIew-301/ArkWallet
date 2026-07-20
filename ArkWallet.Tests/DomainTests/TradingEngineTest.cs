@@ -1,4 +1,4 @@
-using ArkWallet.Domain.Entities;
+﻿using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.Engines;
 using ArkWallet.Domain.Exceptions;
 using ArkWallet.Domain.ValueObjects;

@@ -1,4 +1,4 @@
-using ArkWallet.Application.Common;
+﻿using ArkWallet.Application.Common;
 
 namespace ArkWallet.Application.Contracts.CharacterTokenServices;
 

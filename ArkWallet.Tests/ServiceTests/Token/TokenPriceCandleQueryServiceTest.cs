@@ -1,4 +1,4 @@
-using ArkWallet.Application.Common;
+п»їusing ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Services.CharacterTokenServices;
 using ArkWallet.Domain.Entities;
@@ -131,7 +131,7 @@ public class TokenPriceCandleQueryServiceTest
         var result = await service.GetPriceCandlesAsync("ZZZ", start, end);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("Дата начала должна быть меньше даты окончания", result.Message);
+        Assert.Equal("Р”Р°С‚Р° РЅР°С‡Р°Р»Р° РґРѕР»Р¶РЅР° Р±С‹С‚СЊ РјРµРЅСЊС€Рµ РґР°С‚С‹ РѕРєРѕРЅС‡Р°РЅРёСЏ", result.Message);
     }
 
     [Fact]
@@ -149,6 +149,6 @@ public class TokenPriceCandleQueryServiceTest
         var result = await service.GetPriceCandlesAsync("", start, end);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("Символ токена не может быть пустым", result.Message);
+        Assert.Equal("РЎРёРјРІРѕР» С‚РѕРєРµРЅР° РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ РїСѓСЃС‚С‹Рј", result.Message);
     }
 }

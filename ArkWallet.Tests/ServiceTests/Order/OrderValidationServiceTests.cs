@@ -1,4 +1,4 @@
-using ArkWallet.Application.Services.TradeOrderServices;
+п»їusing ArkWallet.Application.Services.TradeOrderServices;
 using ArkWallet.Tests.HelpTools;
 
 namespace ArkWallet.Tests.ServiceTests.Order;
@@ -6,10 +6,10 @@ namespace ArkWallet.Tests.ServiceTests.Order;
 public class OrderValidationServiceTests
 {
     [Theory]
-    [InlineData("купить", true)]
-    [InlineData("продать", true)]
-    [InlineData("КУПИТЬ", false)]
-    [InlineData("покупать", false)]
+    [InlineData("РєСѓРїРёС‚СЊ", true)]
+    [InlineData("РїСЂРѕРґР°С‚СЊ", true)]
+    [InlineData("РљРЈРџРРўР¬", false)]
+    [InlineData("РїРѕРєСѓРїР°С‚СЊ", false)]
     [InlineData("", false)]
     [InlineData(null, false)]
     public void ValidateDirection_ShouldReturnExpectedResult(string direction, bool expected)
@@ -59,7 +59,7 @@ public class OrderValidationServiceTests
 
         var service = new OrderValidationService(db);
 
-        var result = await service.ValidateTokenAsync(101, "ZZZ", "купить");
+        var result = await service.ValidateTokenAsync(101, "ZZZ", "РєСѓРїРёС‚СЊ");
 
         Assert.True(result.IsValid);
     }
@@ -75,7 +75,7 @@ public class OrderValidationServiceTests
 
         var service = new OrderValidationService(db);
 
-        var result = await service.ValidateTokenAsync(101, "ZZZ", "продать");
+        var result = await service.ValidateTokenAsync(101, "ZZZ", "РїСЂРѕРґР°С‚СЊ");
 
         Assert.True(result.IsValid);
     }
@@ -90,10 +90,10 @@ public class OrderValidationServiceTests
 
         var service = new OrderValidationService(db);
 
-        var result = await service.ValidateTokenAsync(101, "ZZZ", "продать");
+        var result = await service.ValidateTokenAsync(101, "ZZZ", "РїСЂРѕРґР°С‚СЊ");
 
         Assert.False(result.IsValid);
-        Assert.Contains("не обладает", result.Message);
+        Assert.Contains("РЅРµ РѕР±Р»Р°РґР°РµС‚", result.Message);
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public class OrderValidationServiceTests
         db.Database.EnsureCreated();
         await HelpMethods.RegisterTrader(db, 101);
         await HelpMethods.CreateToken(db, "ZZZ");
-        var orderResult = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        var orderResult = await HelpMethods.PlaceOrder(db, 101, "РєСѓРїРёС‚СЊ", "ZZZ", 5, 100);
 
         var service = new OrderValidationService(db);
 
@@ -125,7 +125,7 @@ public class OrderValidationServiceTests
         var result = await service.ValidateOrderCancellationAsync(101, "non-existent-id");
 
         Assert.False(result.IsValid);
-        Assert.Contains("не существует", result.Message);
+        Assert.Contains("РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚", result.Message);
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public class OrderValidationServiceTests
         db.Database.EnsureCreated();
         await HelpMethods.RegisterTrader(db, 101);
         await HelpMethods.CreateToken(db, "ZZZ");
-        var orderResult = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        var orderResult = await HelpMethods.PlaceOrder(db, 101, "РєСѓРїРёС‚СЊ", "ZZZ", 5, 100);
 
         await HelpMethods.CancelOrder(db, 101, orderResult);
 
@@ -145,7 +145,7 @@ public class OrderValidationServiceTests
         var result = await service.ValidateOrderCancellationAsync(101, data.Order.Id);
 
         Assert.False(result.IsValid);
-        Assert.Contains("Нельзя отменить неактивный ордер", result.Message);
+        Assert.Contains("РќРµР»СЊР·СЏ РѕС‚РјРµРЅРёС‚СЊ РЅРµР°РєС‚РёРІРЅС‹Р№ РѕСЂРґРµСЂ", result.Message);
     }
 
     [Fact]
@@ -156,7 +156,7 @@ public class OrderValidationServiceTests
         await HelpMethods.RegisterTrader(db, 101);
         await HelpMethods.RegisterTrader(db, 102);
         await HelpMethods.CreateToken(db, "ZZZ");
-        var orderResult = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        var orderResult = await HelpMethods.PlaceOrder(db, 101, "РєСѓРїРёС‚СЊ", "ZZZ", 5, 100);
 
         var service = new OrderValidationService(db);
 
@@ -164,7 +164,7 @@ public class OrderValidationServiceTests
         var result = await service.ValidateOrderCancellationAsync(102, data.Order.Id);
 
         Assert.False(result.IsValid);
-        Assert.Contains("не своей", result.Message);
+        Assert.Contains("РЅРµ СЃРІРѕРµР№", result.Message);
     }
 
     [Fact]
@@ -177,7 +177,7 @@ public class OrderValidationServiceTests
 
         var service = new OrderValidationService(db);
 
-        var result = await service.ValidateOrderCreationAsync(101, "ZZZ", "купить", 5, 100);
+        var result = await service.ValidateOrderCreationAsync(101, "ZZZ", "РєСѓРїРёС‚СЊ", 5, 100);
 
         Assert.True(result.IsValid);
     }
@@ -192,10 +192,10 @@ public class OrderValidationServiceTests
 
         var service = new OrderValidationService(db);
 
-        var result = await service.ValidateOrderCreationAsync(101, "ZZZ", "купить", 15, 100);
+        var result = await service.ValidateOrderCreationAsync(101, "ZZZ", "РєСѓРїРёС‚СЊ", 15, 100);
 
         Assert.False(result.IsValid);
-        Assert.Contains("Не хватает средств", result.Message);
+        Assert.Contains("РќРµ С…РІР°С‚Р°РµС‚ СЃСЂРµРґСЃС‚РІ", result.Message);
     }
 
     [Fact]
@@ -209,7 +209,7 @@ public class OrderValidationServiceTests
 
         var service = new OrderValidationService(db);
 
-        var result = await service.ValidateOrderCreationAsync(101, "ZZZ", "продать", 5, 100);
+        var result = await service.ValidateOrderCreationAsync(101, "ZZZ", "РїСЂРѕРґР°С‚СЊ", 5, 100);
 
         Assert.True(result.IsValid);
     }
@@ -225,9 +225,9 @@ public class OrderValidationServiceTests
 
         var service = new OrderValidationService(db);
 
-        var result = await service.ValidateOrderCreationAsync(101, "ZZZ", "продать", 5, 100);
+        var result = await service.ValidateOrderCreationAsync(101, "ZZZ", "РїСЂРѕРґР°С‚СЊ", 5, 100);
 
         Assert.False(result.IsValid);
-        Assert.Contains("Не хватает токенов", result.Message);
+        Assert.Contains("РќРµ С…РІР°С‚Р°РµС‚ С‚РѕРєРµРЅРѕРІ", result.Message);
     }
 }
