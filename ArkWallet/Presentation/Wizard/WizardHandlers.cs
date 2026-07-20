@@ -168,33 +168,23 @@ namespace ArkWallet.Infrastructure.Wizard
             if (!portfolioQueryResult.TryGetData(out var portfolioInfo))
                 return StepResult.Ok("Данные профиля не найдены.");
 
-            string Indent(int count) => new(' ', count);
-
             var result = $"{profile.Username}!\n" +
-                $"{Indent(3)}Баланс: {profile.Balance:F2}\n" +
-                $"{Indent(3)}Портфель:\n";
+                $"{MakeIndent(3)}Баланс: {profile.Balance:F2}\n" +
+                $"{MakeIndent(3)}Портфель:\n";
 
             if (portfolioInfo == null || portfolioInfo.Length <= 0)
             {
-                result += $"{Indent(6)}Не владеет токенами".PadLeft(3);
+                result += $"{MakeIndent(6)}Не владеет токенами".PadLeft(3);
                 return StepResult.Ok("completed", result);
             }
 
-            result += string.Join("\n", portfolioInfo.Select(p => $"{Indent(6)}{p.TokenInfo?.Symbol ?? "???"} - {p.Quantity} шт."));
+            result += string.Join("\n", portfolioInfo.Select(p => $"{MakeIndent(6)}{p.TokenInfo?.Symbol ?? "???"} - {p.Quantity} шт."));
 
             return StepResult.Ok("completed", result);
         }
 
         public async Task<StepResult> HandleSelectTokenInfo(UserSession session, string input)
-        {
-            var tokenResult = await _tokenQueryService.GetTokenInfoAsync(input.ToUpper());
-
-            if (!tokenResult.TryGetData(out _))
-                return StepResult.Error("Токен не найден. Проверьте символ и попробуйте снова.");
-
-            session.Data.Add("token_symbol", input.ToUpper());
-            return StepResult.Ok("show_info");
-        }
+            => await ValidateAndStoreToken(session, input, "show_info");
 
         public async Task<StepResult> HandleShowTokenInfo(UserSession session, string input)
         {
@@ -208,35 +198,19 @@ namespace ArkWallet.Infrastructure.Wizard
             if (!tokenResult.TryGetData(out var tokenData))
                 return StepResult.Ok("completed", "Токен не найден.");
 
-            string Indent(int count) => new(' ', count);
-
             var result = $"📊 Информация о токене\n" +
-                $"{Indent(3)}Символ: {tokenData.Symbol}\n" +
-                $"{Indent(3)}Название: {tokenData.Name}\n" +
-                $"{Indent(3)}Цена: {tokenData.CurrentPrice:F2}\n";
+                $"{MakeIndent(3)}Символ: {tokenData.Symbol}\n" +
+                $"{MakeIndent(3)}Название: {tokenData.Name}\n" +
+                $"{MakeIndent(3)}Цена: {tokenData.CurrentPrice:F2}\n";
 
             return StepResult.Ok("completed", result);
         }
 
         public async Task<StepResult> HandleSelectTokenForHistory(UserSession session, string input)
-        {
-            var tokenResult = await _tokenQueryService.GetTokenInfoAsync(input.ToUpper());
-
-            if (!tokenResult.TryGetData(out _))
-                return StepResult.Error("Токен не найден. Проверьте символ и попробуйте снова.");
-
-            session.Data.Add("token_symbol", input.ToUpper());
-            return StepResult.Ok("set_timeframe");
-        }
+            => await ValidateAndStoreToken(session, input, "set_timeframe");
 
         public async Task<StepResult> HandleSetTimeframe(UserSession session, string input)
-        {
-            if (!int.TryParse(input, out var timeframe) || timeframe <= 0)
-                return StepResult.Error("Необходимо ввести положительное целое число (шаг свечи в минутах).");
-
-            session.Data.Add("timeframe_minutes", timeframe);
-            return StepResult.Ok("set_limit");
-        }
+            => ValidateAndStorePositiveInt(session, input, "timeframe_minutes", "set_limit");
 
         public async Task<StepResult> HandleSetLimit(UserSession session, string input)
         {
@@ -268,24 +242,10 @@ namespace ArkWallet.Infrastructure.Wizard
         }
 
         public async Task<StepResult> HandleSelectTokenForOrderBook(UserSession session, string input)
-        {
-            var tokenResult = await _tokenQueryService.GetTokenInfoAsync(input.ToUpper());
-
-            if (!tokenResult.TryGetData(out _))
-                return StepResult.Error("Токен не найден. Проверьте символ и попробуйте снова.");
-
-            session.Data.Add("token_symbol", input.ToUpper());
-            return StepResult.Ok("set_buy_count");
-        }
+            => await ValidateAndStoreToken(session, input, "set_buy_count");
 
         public async Task<StepResult> HandleSetBuyCount(UserSession session, string input)
-        {
-            if (!int.TryParse(input, out var count) || count <= 0)
-                return StepResult.Error("Необходимо ввести положительное целое число.");
-
-            session.Data.Add("buy_count", count);
-            return StepResult.Ok("set_sell_count");
-        }
+            => ValidateAndStorePositiveInt(session, input, "buy_count", "set_sell_count");
 
         public async Task<StepResult> HandleSetSellCount(UserSession session, string input)
         {
@@ -304,10 +264,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 return StepResult.Ok("completed", $"Ошибка получения стакана: {bookResult.Message}");
 
             var message = FormatOrderBookMessage(book);
-            var refreshButton = new List<QuickButton>
-            {
-                new() { Text = "🔄 Обновить", Value = $"/get_order_book {symbol} {buyCount} {sellCount}" }
-            };
+            var refreshButton = CreateOrderBookRefreshButtons(symbol, buyCount, sellCount);
 
             var result = StepResult.Ok("completed", message);
             result.Buttons = refreshButton;
@@ -330,12 +287,39 @@ namespace ArkWallet.Infrastructure.Wizard
                 return ($"Ошибка получения стакана: {bookResult.Message}", null);
 
             var message = FormatOrderBookMessage(book);
-            var refreshButton = new List<QuickButton>
+            var buttons = CreateOrderBookRefreshButtons(symbol, buyCount, sellCount);
+
+            return (message, buttons);
+        }
+
+        private static List<QuickButton> CreateOrderBookRefreshButtons(string symbol, int buyCount, int sellCount)
+        {
+            return new List<QuickButton>
             {
                 new() { Text = "🔄 Обновить", Value = $"/get_order_book {symbol} {buyCount} {sellCount}" }
             };
+        }
 
-            return (message, refreshButton);
+        private static string MakeIndent(int count) => new(' ', count);
+
+        private async Task<StepResult> ValidateAndStoreToken(UserSession session, string input, string nextStep)
+        {
+            var tokenResult = await _tokenQueryService.GetTokenInfoAsync(input.ToUpper());
+
+            if (!tokenResult.TryGetData(out _))
+                return StepResult.Error("Токен не найден. Проверьте символ и попробуйте снова.");
+
+            session.Data.Add("token_symbol", input.ToUpper());
+            return StepResult.Ok(nextStep);
+        }
+
+        private static StepResult ValidateAndStorePositiveInt(UserSession session, string input, string key, string nextStep)
+        {
+            if (!int.TryParse(input, out var value) || value <= 0)
+                return StepResult.Error("Необходимо ввести положительное целое число.");
+
+            session.Data.Add(key, value);
+            return StepResult.Ok(nextStep);
         }
 
         private static string FormatOrderBookMessage(OrderBookResult book)
