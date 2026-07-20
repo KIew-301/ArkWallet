@@ -168,29 +168,28 @@ namespace ArkWallet.Entities.Configurations
                 {
                     Name = "set_buy_count",
                     Question = "Сколько ордеров на покупку показать?",
-                    Buttons =
-                    [
-                        new() {Text = "5", Value = "5"},
-                        new() {Text = "10", Value = "10"},
-                        new() {Text = "25", Value = "25"},
-                        new() {Text = "50", Value = "50"}
-                    ]
+                    Buttons = CreateCountButtons()
                 },
                 new()
                 {
                     Name = "set_sell_count",
                     Question = "Сколько ордеров на продажу показать?",
-                    Buttons =
-                    [
-                        new() {Text = "5", Value = "5"},
-                        new() {Text = "10", Value = "10"},
-                        new() {Text = "25", Value = "25"},
-                        new() {Text = "50", Value = "50"}
-                    ]
+                    Buttons = CreateCountButtons()
                 },
             };
 
             Commands["/get_order_book"] = steps;
+        }
+
+        private static List<QuickButton> CreateCountButtons()
+        {
+            return new List<QuickButton>
+            {
+                new() {Text = "5", Value = "5"},
+                new() {Text = "10", Value = "10"},
+                new() {Text = "25", Value = "25"},
+                new() {Text = "50", Value = "50"}
+            };
         }
     }
 }
