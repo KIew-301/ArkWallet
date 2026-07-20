@@ -1,4 +1,4 @@
-using ArkWallet.Application.Services.SuggestionServices;
+﻿using ArkWallet.Application.Services.SuggestionServices;
 using ArkWallet.Tests.HelpTools;
 
 namespace ArkWallet.Tests.ServiceTests.Price;

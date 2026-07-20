@@ -1,4 +1,4 @@
-using ArkWallet.Application.Common;
+﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.MarketMaker;
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Application.Services.MarketMaker;

@@ -1,4 +1,4 @@
-using ArkWallet.Domain.ValueObjects;
+﻿using ArkWallet.Domain.ValueObjects;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 

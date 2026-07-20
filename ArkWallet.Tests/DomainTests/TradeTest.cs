@@ -1,4 +1,4 @@
-using ArkWallet.Domain.Entities;
+﻿using ArkWallet.Domain.Entities;
 
 namespace ArkWallet.Tests.DomainTests;
 

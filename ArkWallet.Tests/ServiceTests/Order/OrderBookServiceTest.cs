@@ -1,4 +1,4 @@
-using ArkWallet.Application.Services.TradeOrderServices;
+﻿using ArkWallet.Application.Services.TradeOrderServices;
 using ArkWallet.Tests.HelpTools;
 using Microsoft.Extensions.Logging.Abstractions;
 

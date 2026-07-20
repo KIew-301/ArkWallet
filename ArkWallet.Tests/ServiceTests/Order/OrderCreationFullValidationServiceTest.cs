@@ -1,4 +1,4 @@
-using ArkWallet.Application.Contracts.TradeOrderServices;
+﻿using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Services.TradeOrderServices;
 using ArkWallet.Tests.HelpTools;
 
