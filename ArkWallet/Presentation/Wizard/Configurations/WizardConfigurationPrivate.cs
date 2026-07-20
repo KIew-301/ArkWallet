@@ -6,49 +6,15 @@ namespace ArkWallet.Entities.Configurations
     {
         private void ConfigureRegistrationAdditionCommand()
         {
-            var steps = new List<WizardStep>
+            var jsonStep = new List<WizardStep>
             {
-                new()
-                {
-                    Name = "set_options",
-                    Question = "json",
-                }
+                new() { Name = "set_options", Question = "json" }
             };
 
-            Commands["/admin_create_token"] = steps;
-
-            steps =
-            [
-                new()
-                {
-                    Name = "set_options",
-                    Question = "json",
-                }
-            ];
-
-            Commands["/admin_set_token_to_user"] = steps;
-
-            steps =
-            [
-                new()
-                {
-                    Name = "set_options",
-                    Question = "json",
-                }
-            ];
-
-            Commands["/admin_add_balance_to_user"] = steps;
-
-            steps =
-            [
-                new()
-                {
-                    Name = "set_options",
-                    Question = "json",
-                }
-            ];
-
-            Commands["/admin_update_token_media"] = steps;
+            Commands["/admin_create_token"] = jsonStep;
+            Commands["/admin_set_token_to_user"] = jsonStep;
+            Commands["/admin_add_balance_to_user"] = jsonStep;
+            Commands["/admin_update_token_media"] = jsonStep;
         }
     }
 }
