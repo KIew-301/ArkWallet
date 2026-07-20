@@ -24,6 +24,7 @@ internal class MarketMakerOrchestrator(
     MarketMakerGridEngine marketMakerGridEngine,
     ILogger<MarketMakerOrchestrator> logger) : IMarketMakerOrchestrator
 {
+    private static readonly long[] TraderIds = [101L, 102L];
     public async Task<Result> EnsureBotsRegisteredAsync()
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
@@ -67,25 +68,7 @@ internal class MarketMakerOrchestrator(
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            var traderIds = new[] { 101L, 102L };
-
-            foreach (var traderId in traderIds)
-            {
-                var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
-                if (trader == null)
-                {
-                    logger.LogWarning("Trader {TraderId} not found", traderId);
-                    continue;
-                }
-
-                if (trader.Balance < 1_000_000_000m)
-                {
-                    trader.AddToBalance(1_000_000_000m - trader.Balance);
-                    trader.MarkDirty();
-                    await dbContext.SaveChangesAsync();
-                    logger.LogInformation("Trader {TraderId} balance replenished", traderId);
-                }
-            }
+            await EnsureTraderBalancesCoreAsync();
 
             var tokens = await dbContext.CharacterTokens
                 .Where(t => t.IsActive)
@@ -94,18 +77,11 @@ internal class MarketMakerOrchestrator(
 
             foreach (var symbol in tokens)
             {
-                foreach (var traderId in traderIds)
+                foreach (var traderId in TraderIds)
                 {
-                    var portfolioResult = await portfolioUpdatingService.CreateOrUpdatePortfolioAsync(
-                        traderId,
-                        symbol,
-                        100_000_000);
-
-                    if (!portfolioResult.IsSuccess)
-                    {
-                        logger.LogError("Failed to update portfolio for trader {TraderId} on {Symbol}: {Error}", traderId, symbol, portfolioResult.Message);
-                        return Result.Fail($"Не удалось обновить портфель трейдера {traderId} для {symbol}: {portfolioResult.Message}");
-                    }
+                    var result = await UpdateTraderPortfolioAsync(traderId, symbol);
+                    if (!result.IsSuccess)
+                        return result;
                 }
             }
 
@@ -176,6 +152,41 @@ internal class MarketMakerOrchestrator(
             await dbContext.SaveChangesAsync();
             return Result.Ok();
         }, logger, nameof(MarketMakerOrchestrator));
+    }
+
+    private async Task<Result> UpdateTraderPortfolioAsync(long traderId, string symbol)
+    {
+        var portfolioResult = await portfolioUpdatingService.CreateOrUpdatePortfolioAsync(
+            traderId, symbol, 100_000_000);
+
+        if (!portfolioResult.IsSuccess)
+        {
+            logger.LogError("Failed to update portfolio for trader {TraderId} on {Symbol}: {Error}", traderId, symbol, portfolioResult.Message);
+            return Result.Fail($"Не удалось обновить портфель трейдера {traderId} для {symbol}: {portfolioResult.Message}");
+        }
+
+        return Result.Ok();
+    }
+
+    private async Task EnsureTraderBalancesCoreAsync()
+    {
+        foreach (var traderId in TraderIds)
+        {
+            var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
+            if (trader == null)
+            {
+                logger.LogWarning("Trader {TraderId} not found", traderId);
+                continue;
+            }
+
+            if (trader.Balance < 1_000_000_000m)
+            {
+                trader.AddToBalance(1_000_000_000m - trader.Balance);
+                trader.MarkDirty();
+                await dbContext.SaveChangesAsync();
+                logger.LogInformation("Trader {TraderId} balance replenished", traderId);
+            }
+        }
     }
 
     private async Task<Result> UpdateBotGridAsync(MarketMakerBot bot)

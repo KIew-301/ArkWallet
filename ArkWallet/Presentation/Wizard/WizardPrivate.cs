@@ -7,6 +7,8 @@ namespace ArkWallet.Infrastructure.Wizard
 {
     partial class WizardEngine
     {
+        private const string TokenSymbolDataKey = "token_symbol";
+
         private void ConfigureAdditionHandlers()
         {
             _config.Commands["/admin_create_token"][0].Handler = AdminHandleTokenCreate;
@@ -36,10 +38,13 @@ namespace ArkWallet.Infrastructure.Wizard
             => await ExecuteAdminAction(async () =>
             {
                 var tradeData = JsonConvert.DeserializeObject<Dictionary<string, object>>(input);
+                if (tradeData == null)
+                    return Result.Fail("Invalid input data");
+
                 long traderId = Convert.ToInt64(tradeData["traderId"]);
-                string? symbol = tradeData["symbolId"].ToString();
+                string? symbol = tradeData["symbolId"]?.ToString();
                 int quantity = Convert.ToInt32(tradeData["quantity"]);
-                return await _portfolioUpdatingService.CreateOrUpdatePortfolioAsync(traderId, symbol, quantity);
+                return await _portfolioUpdatingService.CreateOrUpdatePortfolioAsync(traderId, symbol ?? string.Empty, quantity);
             }, "Portfolia update successful");
 
         private async Task<StepResult> AdminHandleAddBalanceToUser(UserSession session, string input)
@@ -55,13 +60,16 @@ namespace ArkWallet.Infrastructure.Wizard
             => await ExecuteAdminAction(async () =>
             {
                 var tradeData = JsonConvert.DeserializeObject<Dictionary<string, object>>(input);
-                string symbol = tradeData["symbol"].ToString()!;
-                string iconUrl = tradeData["iconUrl"].ToString()!;
-                string imageUrl = tradeData["imageUrl"].ToString()!;
+                if (tradeData == null)
+                    return Result.Fail("Invalid input data");
+
+                string symbol = tradeData["symbol"]?.ToString() ?? string.Empty;
+                string iconUrl = tradeData["iconUrl"]?.ToString() ?? string.Empty;
+                string imageUrl = tradeData["imageUrl"]?.ToString() ?? string.Empty;
                 return await _tokenMediaUpdateService.UpdateTokenMediaAsync(symbol, iconUrl, imageUrl);
             }, "Token media updated successfully");
 
-        private async Task<StepResult> ExecuteAdminAction(Func<Task<Result>> action, string successMessage)
+        private static async Task<StepResult> ExecuteAdminAction(Func<Task<Result>> action, string successMessage)
         {
             try
             {

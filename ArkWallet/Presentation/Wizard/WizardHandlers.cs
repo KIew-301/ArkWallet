@@ -168,7 +168,7 @@ namespace ArkWallet.Infrastructure.Wizard
             if (!portfolioQueryResult.TryGetData(out var portfolioInfo))
                 return StepResult.Ok("Данные профиля не найдены.");
 
-            var result = $"{profile.Username}!\n" +
+            result = $"{profile.Username}!\n" +
                 $"{MakeIndent(3)}Баланс: {profile.Balance:F2}\n" +
                 $"{MakeIndent(3)}Портфель:\n";
 
@@ -188,7 +188,7 @@ namespace ArkWallet.Infrastructure.Wizard
 
         public async Task<StepResult> HandleShowTokenInfo(UserSession session, string input)
         {
-            var symbol = session.Data["token_symbol"]?.ToString();
+            var symbol = session.Data[TokenSymbolDataKey]?.ToString();
 
             if (string.IsNullOrEmpty(symbol))
                 return StepResult.Ok("completed", "Токен не выбран.");
@@ -209,15 +209,15 @@ namespace ArkWallet.Infrastructure.Wizard
         public async Task<StepResult> HandleSelectTokenForHistory(UserSession session, string input)
             => await ValidateAndStoreToken(session, input, "set_timeframe");
 
-        public async Task<StepResult> HandleSetTimeframe(UserSession session, string input)
-            => ValidateAndStorePositiveInt(session, input, "timeframe_minutes", "set_limit");
+        public static Task<StepResult> HandleSetTimeframe(UserSession session, string input)
+            => Task.FromResult(ValidateAndStorePositiveInt(session, input, "timeframe_minutes", "set_limit"));
 
         public async Task<StepResult> HandleSetLimit(UserSession session, string input)
         {
             if (!int.TryParse(input, out var limit) || limit <= 0)
                 return StepResult.Error("Необходимо ввести положительное целое число.");
 
-            var symbol = session.Data["token_symbol"]?.ToString();
+            var symbol = session.Data[TokenSymbolDataKey]?.ToString();
             var timeframe = (int)session.Data["timeframe_minutes"];
 
             if (string.IsNullOrEmpty(symbol))
@@ -244,15 +244,15 @@ namespace ArkWallet.Infrastructure.Wizard
         public async Task<StepResult> HandleSelectTokenForOrderBook(UserSession session, string input)
             => await ValidateAndStoreToken(session, input, "set_buy_count");
 
-        public async Task<StepResult> HandleSetBuyCount(UserSession session, string input)
-            => ValidateAndStorePositiveInt(session, input, "buy_count", "set_sell_count");
+        public static Task<StepResult> HandleSetBuyCount(UserSession session, string input)
+            => Task.FromResult(ValidateAndStorePositiveInt(session, input, "buy_count", "set_sell_count"));
 
         public async Task<StepResult> HandleSetSellCount(UserSession session, string input)
         {
             if (!int.TryParse(input, out var sellCount) || sellCount <= 0)
                 return StepResult.Error("Необходимо ввести положительное целое число.");
 
-            var symbol = session.Data["token_symbol"]?.ToString();
+            var symbol = session.Data[TokenSymbolDataKey]?.ToString();
             var buyCount = (int)session.Data["buy_count"];
 
             if (string.IsNullOrEmpty(symbol))
@@ -309,7 +309,7 @@ namespace ArkWallet.Infrastructure.Wizard
             if (!tokenResult.TryGetData(out _))
                 return StepResult.Error("Токен не найден. Проверьте символ и попробуйте снова.");
 
-            session.Data.Add("token_symbol", input.ToUpper());
+            session.Data.Add(TokenSymbolDataKey, input.ToUpper());
             return StepResult.Ok(nextStep);
         }
 

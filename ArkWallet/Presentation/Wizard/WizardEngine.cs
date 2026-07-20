@@ -13,6 +13,8 @@ namespace ArkWallet.Infrastructure.Wizard
     [ExcludeFromCodeCoverage(Justification = "UI-оркестратор Telegram-бота, управляет сессиями пользователей. Зависит от внешнего Telegram API, тестируется интеграционно.")]
     internal partial class WizardEngine
     {
+        private const string PlaceOrderCommand = "/place_order";
+
         private readonly WizardConfiguration _config;
         private readonly Dictionary<long, UserSession> _sessions = new();
 
@@ -85,10 +87,10 @@ namespace ArkWallet.Infrastructure.Wizard
         {
             // Регистрация комманд
             _config.Commands["/start"][0].Handler = HandleSetName;
-            _config.Commands["/place_order"][0].Handler = HandleSetDirection;
-            _config.Commands["/place_order"][1].Handler = HandleSetToken;
-            _config.Commands["/place_order"][2].Handler = HandleSetTokenQuantity;
-            _config.Commands["/place_order"][3].Handler = HandleSetTokenPrice;
+            _config.Commands[PlaceOrderCommand][0].Handler = HandleSetDirection;
+            _config.Commands[PlaceOrderCommand][1].Handler = HandleSetToken;
+            _config.Commands[PlaceOrderCommand][2].Handler = HandleSetTokenQuantity;
+            _config.Commands[PlaceOrderCommand][3].Handler = HandleSetTokenPrice;
             _config.Commands["/cancel_order"][0].Handler = HandleSelectOrderToCancel;
             _config.Commands["/cancel_order"][1].Handler = HandleConfirmCancellation;
             _config.Commands["/cancel_all_orders"][0].Handler = HandleConfirmCancellationAllOrders;
@@ -119,9 +121,9 @@ namespace ArkWallet.Infrastructure.Wizard
                 return await StartCommand(userId, input);
             }
 
-            if (_sessions.ContainsKey(userId))
+            if (_sessions.TryGetValue(userId, out var session))
             {
-                return await ContinueCommand(userId, input);
+                return await ContinueCommand(userId, input, session);
             }
 
             return ("Неизвестная команда", null);
@@ -172,9 +174,8 @@ namespace ArkWallet.Infrastructure.Wizard
             }
         }
 
-        private async Task<(string?, List<QuickButton>?)> ContinueCommand(long userId, string input)
+        private async Task<(string?, List<QuickButton>?)> ContinueCommand(long userId, string input, UserSession session)
         {
-            var session = _sessions[userId];
             var commandSteps = _config.Commands[session.CurrentCommand];
             var currentStep = commandSteps.First(s => s.Name == session.CurrentStep);
 
@@ -201,6 +202,9 @@ namespace ArkWallet.Infrastructure.Wizard
             if (nextStep.OneStep)
             {
                 _sessions.Remove(userId);
+                if (nextStep.Handler == null)
+                    return ("Handler не найден", null);
+
                 var oneStepResult = await nextStep.Handler(session, input);
                 return (oneStepResult.Message ?? "Готово!", null);
             }

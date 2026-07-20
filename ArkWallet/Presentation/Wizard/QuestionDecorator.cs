@@ -16,12 +16,12 @@ namespace ArkWallet.Presentation.Wizard
             {
                 "set_quantity" => await DecorateQuantityQuestion(baseQuestion, session),
                 "set_price" => await DecoratePriceQuestion(baseQuestion, session),
-                "set_token" => await DecorateTokenQuestion(baseQuestion, session),
+                "set_token" => await DecorateTokenQuestion(baseQuestion),
                 _ => baseQuestion
             };
         }
 
-        private async Task<string> DecorateTokenQuestion(string baseQuestion, UserSession session)
+        private async Task<string> DecorateTokenQuestion(string baseQuestion)
         {
             var tokensResult = await tokenQueryService.GetAllActiveTokensAsync();
 
@@ -36,6 +36,9 @@ namespace ArkWallet.Presentation.Wizard
         {
             var symbol = session.Data["set_token"]?.ToString();
             var direction = session.Data["set_direction"]?.ToString()?.ToLower();
+            if (string.IsNullOrEmpty(symbol))
+                return baseQuestion;
+
             var tokenResult = await tokenQueryService.GetTokenInfoAsync(symbol);
             var currentPrice = tokenResult.TryGetData(out var tokenData) ? tokenData.CurrentPrice : 0m;
 
@@ -66,6 +69,8 @@ namespace ArkWallet.Presentation.Wizard
         private async Task<string> DecoratePriceQuestion(string baseQuestion, UserSession session)
         {
             var symbol = session.Data["set_token"]?.ToString();
+            if (string.IsNullOrEmpty(symbol))
+                return baseQuestion;
 
             var tokenResult = await tokenQueryService.GetTokenInfoAsync(symbol);
             var currentPrice = tokenResult.TryGetData(out var tokenData) ? tokenData.CurrentPrice : 0m;

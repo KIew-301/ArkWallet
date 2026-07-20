@@ -1,4 +1,5 @@
 ﻿using ArkWallet.Application.Contracts.SuggestionServices;
+using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,7 +23,7 @@ namespace ArkWallet.Application.Services.SuggestionServices
                 .AsNoTracking()
                 .FirstOrDefaultAsync());
 
-            if (trader == null || lastLongOrders == null || lastLongOrders.Length == 0 || lastShortOrder == null)
+            if (trader == null || lastLongOrders.Length == 0 || lastShortOrder == null)
                 return [];
 
             decimal bid = lastLongOrders[0].Price;
@@ -32,7 +33,7 @@ namespace ArkWallet.Application.Services.SuggestionServices
             decimal currentPrice = bid;
             decimal marketPrice = ask;
             decimal goodPrice = lastLongOrders.Average(o => o.Price);
-            decimal greatPrice = lastLongOrders.Last().Price;
+            decimal greatPrice = lastLongOrders[^1].Price;
 
             List<PriceSuggestionDto> preDto = [];
             List<PriceSuggestionDto> currectDto = [];
@@ -95,7 +96,7 @@ namespace ArkWallet.Application.Services.SuggestionServices
             decimal currentPrice = bid;
             decimal marketPrice = ask;
             decimal goodPrice = activeSells.Take(10).Average(o => o.Price);
-            decimal greatPrice = activeSells.Last().Price;
+            decimal greatPrice = activeSells[^1].Price;
 
             List<PriceSuggestionDto> dto = [];
 

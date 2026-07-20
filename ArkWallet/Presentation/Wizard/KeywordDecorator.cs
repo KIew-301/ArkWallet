@@ -1,16 +1,14 @@
 ﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Contracts.Decorators;
-using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Application.Contracts.SuggestionServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Domain.ValueObjects;
-using Microsoft.CodeAnalysis;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Presentation.Wizard
 {
     [ExcludeFromCodeCoverage(Justification = "UI-декоратор: форматирование кнопок для Telegram-интерфейса. Не содержит бизнес-логики.")]
-    internal class ButtonDecorator(IOrderQueryService orderQueryService, IPriceSuggestionService priceSuggestionService, IPortfolioQueryService portfolioQueryService, ITokenQueryService tokenQueryService) : IButtonDecorator
+    internal class ButtonDecorator(IOrderQueryService orderQueryService, IPriceSuggestionService priceSuggestionService, ITokenQueryService tokenQueryService) : IButtonDecorator
     {
         public async Task<List<QuickButton>> DecorateButtonsAsync(string stepName, List<QuickButton> baseKeyword, UserSession session)
         {
@@ -18,7 +16,7 @@ namespace ArkWallet.Presentation.Wizard
             {
                 "/place_order" => stepName switch
                 {
-                    "set_token" => await DecorateTokenQuestion(baseKeyword, session),
+                    "set_token" => await DecorateTokenQuestion(),
                     "set_price" => await DecoratePriceQuestion(baseKeyword, session),
                     _ => baseKeyword
                 },
@@ -29,35 +27,31 @@ namespace ArkWallet.Presentation.Wizard
                 },
                 "/get_token_info" => stepName switch
                 {
-                    "select_token" => await DecorateTokenQuestion(baseKeyword, session),
+                    "select_token" => await DecorateTokenQuestion(),
                     _ => baseKeyword
                 },
                 "/get_price_history" => stepName switch
                 {
-                    "select_token" => await DecorateTokenQuestion(baseKeyword, session),
+                    "select_token" => await DecorateTokenQuestion(),
                     _ => baseKeyword
                 },
                 "/get_order_book" => stepName switch
                 {
-                    "select_token" => await DecorateTokenQuestion(baseKeyword, session),
+                    "select_token" => await DecorateTokenQuestion(),
                     _ => baseKeyword
                 },
                 _ => baseKeyword
             };
         }
 
-        private async Task<List<QuickButton>> DecorateTokenQuestion(List<QuickButton> baseKeyword, UserSession session)
+        private async Task<List<QuickButton>> DecorateTokenQuestion()
         {
-            baseKeyword = [];
             var tokensResult = await tokenQueryService.GetAllActiveTokensAsync();
 
             if (!tokensResult.TryGetData(out var tokens))
-                return baseKeyword;
+                return [];
 
-            foreach (var token in tokens)
-                baseKeyword.Add(new() { Text = token.TokenInfo.Symbol, Value = token.TokenInfo.Symbol });
-
-            return baseKeyword;
+            return tokens.Select(token => new QuickButton { Text = token.TokenInfo.Symbol, Value = token.TokenInfo.Symbol }).ToList();
         }
 
         private async Task<List<QuickButton>> DecoratePriceQuestion(List<QuickButton> baseKeyword, UserSession session)

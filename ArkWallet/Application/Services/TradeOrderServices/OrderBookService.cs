@@ -1,5 +1,6 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.TradeOrderServices;
+using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -18,14 +19,9 @@ internal class OrderBookService(
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            if (string.IsNullOrWhiteSpace(symbol))
-                return Fail("Символ токена не может быть пустым");
-
-            if (buyOrdersCount <= 0)
-                return Fail("Количество ордеров на покупку должно быть больше 0");
-
-            if (sellOrdersCount <= 0)
-                return Fail("Количество ордеров на продажу должно быть больше 0");
+            var validationError = ValidateOrderBookParameters(symbol, buyOrdersCount, sellOrdersCount);
+            if (validationError != null)
+                return Fail(validationError);
 
             symbol = symbol.ToUpper();
 
@@ -41,19 +37,8 @@ internal class OrderBookService(
                 .Where(o => o.CharacterTokenId == symbol && o.Status == OrderStatus.Active)
                 .ToListAsync();
 
-            var bids = allOrders
-                .Where(o => o.Type == OrderType.Buy)
-                .OrderByDescending(o => o.Price)
-                .Take(buyOrdersCount)
-                .Select(o => new OrderBookEntry("Buy", o.Price, o.GetRemainingQuantity(), o.Price * o.GetRemainingQuantity()))
-                .ToList();
-
-            var asks = allOrders
-                .Where(o => o.Type == OrderType.Sell)
-                .OrderBy(o => o.Price)
-                .Take(sellOrdersCount)
-                .Select(o => new OrderBookEntry("Sell", o.Price, o.GetRemainingQuantity(), o.Price * o.GetRemainingQuantity()))
-                .ToList();
+            var bids = BuildOrderBookEntries(allOrders, OrderType.Buy, buyOrdersCount);
+            var asks = BuildOrderBookEntries(allOrders, OrderType.Sell, sellOrdersCount);
 
             var bestBid = bids.Count > 0 ? bids[0].Price : 0m;
             var bestAsk = asks.Count > 0 ? asks[0].Price : 0m;
@@ -68,5 +53,33 @@ internal class OrderBookService(
                 asks
             ));
         }, logger, nameof(OrderBookService));
+    }
+
+    private static string? ValidateOrderBookParameters(string symbol, int buyOrdersCount, int sellOrdersCount)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return "Символ токена не может быть пустым";
+
+        if (buyOrdersCount <= 0)
+            return "Количество ордеров на покупку должно быть больше 0";
+
+        if (sellOrdersCount <= 0)
+            return "Количество ордеров на продажу должно быть больше 0";
+
+        return null;
+    }
+
+    private static List<OrderBookEntry> BuildOrderBookEntries(
+        List<TradeOrder> orders, OrderType type, int count)
+    {
+        var direction = type == OrderType.Buy ? "Buy" : "Sell";
+        var query = type == OrderType.Buy
+            ? orders.Where(o => o.Type == OrderType.Buy).OrderByDescending(o => o.Price)
+            : orders.Where(o => o.Type == OrderType.Sell).OrderBy(o => o.Price);
+
+        return query
+            .Take(count)
+            .Select(o => new OrderBookEntry(direction, o.Price, o.GetRemainingQuantity(), o.Price * o.GetRemainingQuantity()))
+            .ToList();
     }
 }
