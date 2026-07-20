@@ -1,4 +1,6 @@
-﻿using ArkWallet.Tests.HelpTools;
+﻿using ArkWallet.Application.Services.TradeOrderServices;
+using ArkWallet.Tests.HelpTools;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ArkWallet.Tests.ServiceTests.Order;
 
@@ -221,4 +223,55 @@ public class OrderCancellationServiceTest
         Assert.Equal(10, portfolio.Quantity);
     }
 
+    [Fact]
+    public async Task HasActiveOrdersAsync_NoOrders_ReturnsFalse()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+
+        var service = new OrderCancellationService(db, NullLogger<OrderCancellationService>.Instance);
+
+        var result = await service.HasActiveOrdersAsync(101);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task HasActiveOrdersAsync_WithActiveOrders_ReturnsTrue()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+
+        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 3, 100);
+
+        var service = new OrderCancellationService(db, NullLogger<OrderCancellationService>.Instance);
+
+        var result = await service.HasActiveOrdersAsync(101);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public async Task HasActiveOrdersAsync_AllCancelled_ReturnsFalse()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+
+        var order = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 3, 100);
+        await HelpMethods.CancelOrder(db, 101, order);
+
+        var service = new OrderCancellationService(db, NullLogger<OrderCancellationService>.Instance);
+
+        var result = await service.HasActiveOrdersAsync(101);
+
+        Assert.False(result);
+    }
 }
