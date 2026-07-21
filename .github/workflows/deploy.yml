@@ -20,22 +20,27 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
-          command_timeout: 20m
+          command_timeout: 45m
           script: |
             set -e
 
             APP_DIR="/opt/arkwallet"
             REPO_URL="https://github.com/KIew-301/ArkWallet.git"
 
+            echo "=== Deploy started at $(date) ==="
+
             # Clone or pull
             if [ -d "$APP_DIR" ]; then
               cd $APP_DIR
+              echo "[1/5] Pulling latest code..."
               git fetch origin
               git reset --hard origin/main
             else
+              echo "[1/5] Cloning repository..."
               git clone $REPO_URL $APP_DIR
               cd $APP_DIR
             fi
+            echo "[1/5] Code updated at $(date)"
 
             # Create .env from GitHub Secrets if not exists
             if [ ! -f "$APP_DIR/.env" ]; then
@@ -54,11 +59,18 @@ jobs:
               echo "[!] Created .env from GitHub Secrets"
             fi
 
-            # Build and restart
+            # Build
+            echo "[2/5] Building Docker image at $(date)..."
             docker compose build
+            echo "[2/5] Build complete at $(date)"
+
+            # Restart
+            echo "[3/5] Restarting containers at $(date)..."
             docker compose up -d --remove-orphans
+            echo "[3/5] Containers restarted at $(date)"
 
             # Clean up old images
+            echo "[4/5] Pruning old images..."
             docker image prune -f
 
             # Reload nginx (if configured)
@@ -67,7 +79,7 @@ jobs:
             # Renew SSL cert if needed
             certbot renew --quiet 2>/dev/null || true
 
-            echo "=== Deploy complete ==="
+            echo "[5/5] === Deploy complete at $(date) ==="
             echo "App: https://arkwallet.ru"
             echo "Swagger: https://arkwallet.ru/swagger"
             echo "RabbitMQ: https://arkwallet.ru:15672 (or http://${{ secrets.SERVER_HOST }}:15672)"
