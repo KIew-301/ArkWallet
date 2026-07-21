@@ -29,7 +29,7 @@ internal class MarketMakerBotRegistrationService(
 
             var registrationResult = await traderRegistrationService.RegisterTraderAsync(telegramFakeId, $"MarketMakerBot_{symbol}", false);
 
-            if (!registrationResult.IsSuccess)
+            if (!registrationResult.IsSuccess && registrationResult.Message != "Пользователь уже существует")
                 return Fail($"Не удалось зарегистрировать трейдера: {registrationResult.Message}");
 
             var bot = MarketMakerBot.Create(telegramFakeId, symbol, botRole, initialPower);

@@ -1,4 +1,4 @@
-using ArkWallet.Application.Common;
+п»їusing ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.TradeServices;
 using ArkWallet.Application.Services.TradeServices;
 using ArkWallet.Domain.Entities;
@@ -41,8 +41,8 @@ public class TradeQueryServiceTest
         await HelpMethods.CreateToken(db, "ZZZ", "Zero");
         await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
 
-        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 5, 100);
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 102, "РїСЂРѕРґР°С‚СЊ", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 101, "РєСѓРїРёС‚СЊ", "ZZZ", 5, 100);
 
         var logger = NullLogger<TradeQueryService>.Instance;
         var service = new TradeQueryService(db, logger);
@@ -65,8 +65,8 @@ public class TradeQueryServiceTest
         await HelpMethods.CreateToken(db, "ZZZ", "Zero");
         await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
 
-        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 5, 100);
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 102, "РїСЂРѕРґР°С‚СЊ", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 101, "РєСѓРїРёС‚СЊ", "ZZZ", 5, 100);
 
         var logger = NullLogger<TradeQueryService>.Instance;
         var service = new TradeQueryService(db, logger);
@@ -92,8 +92,8 @@ public class TradeQueryServiceTest
         await HelpMethods.CreateToken(db, "ZZZ", "Zero");
         await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
 
-        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 5, 100);
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 102, "РїСЂРѕРґР°С‚СЊ", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 101, "РєСѓРїРёС‚СЊ", "ZZZ", 5, 100);
 
         var logger = NullLogger<TradeQueryService>.Instance;
         var service = new TradeQueryService(db, logger);
@@ -119,8 +119,8 @@ public class TradeQueryServiceTest
         await HelpMethods.CreateToken(db, "ZZZ", "Zero");
         await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
 
-        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 5, 100);
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 102, "РїСЂРѕРґР°С‚СЊ", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 101, "РєСѓРїРёС‚СЊ", "ZZZ", 5, 100);
 
         var logger = NullLogger<TradeQueryService>.Instance;
         var service = new TradeQueryService(db, logger);
@@ -148,8 +148,8 @@ public class TradeQueryServiceTest
         await HelpMethods.CreateToken(db, "ZZZ", "Zero", CharacterRarity.FourStar, 1000, 100m, true, "image.png", "icon.png");
         await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
 
-        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 5, 100);
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 102, "РїСЂРѕРґР°С‚СЊ", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 101, "РєСѓРїРёС‚СЊ", "ZZZ", 5, 100);
 
         var logger = NullLogger<TradeQueryService>.Instance;
         var service = new TradeQueryService(db, logger);

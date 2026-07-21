@@ -61,7 +61,6 @@ class Program
         var configuration = new ConfigurationBuilder()
             .AddJsonFile("appsettings.json", optional: true)
             .AddEnvironmentVariables()
-            .AddUserSecrets<Program>()
             .Build();
 
         builder.Configuration.AddConfiguration(configuration);
@@ -245,6 +244,7 @@ class Program
         services.AddScoped<ITokenPriceCandleUpdateService, TokenPriceCandleUpdateService>();
         services.AddScoped<ICandleAggregatorService, CandleAggregatorService>();
         services.AddScoped<ITokenQueryService, TokenQueryService>();
+        services.AddScoped<ITokenMediaUpdateService, TokenMediaUpdateService>();
         services.AddScoped<ITokenPriceChangesCalculationService, TokenPriceChangeCalculationService>();
         services.AddScoped<ITokenPriceCandleQueryService, TokenPriceCandleQueryService>();
         services.AddScoped<ICandleOrchestrator, CandleOrchestrator>();
@@ -265,10 +265,12 @@ class Program
         services.AddScoped<IOrderCreationService, OrderCreationService>();
         services.AddScoped<IOrderValidationService, OrderValidationService>();
         services.AddScoped<IOrderQueryService, OrderQueryService>();
+        services.AddScoped<IOrderBookService, OrderBookService>();
 
         // TraderServices
         services.AddScoped<ITraderBalanceUpdatingService, TraderBalanceUpdatingService>();
         services.AddScoped<ITraderRegistrationService, TraderRegistrationService>();
+        services.AddScoped<ITraderQueryService, TraderQueryService>();
         services.AddScoped<IBalanceSnapshotService, BalanceSnapshotService>();
         services.AddScoped<IBalanceChangesCalculationService, BalanceChangesCalculationService>();
         services.AddScoped<IBalanceSavingService, BalanceSavingService>();

@@ -1,4 +1,4 @@
-using ArkWallet.Application.Contracts.CharacterTokenServices;
+﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Services.CharacterTokenServices;
 using Microsoft.Extensions.Logging.Abstractions;
 

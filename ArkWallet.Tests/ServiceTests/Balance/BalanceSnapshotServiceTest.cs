@@ -1,4 +1,4 @@
-using ArkWallet.Application.Services.TraderServices;
+п»їusing ArkWallet.Application.Services.TraderServices;
 using ArkWallet.Tests.HelpTools;
 
 namespace ArkWallet.Tests.ServiceTests.Balance;
@@ -16,11 +16,11 @@ public class BalanceSnapshotServiceTest
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.AddPortfolio(db, 102, "ZZZ", 30);
 
-        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 5, 60);
-        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 5, 80);
-        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 5, 100);
-        await HelpMethods.PlaceOrder(db, 102, "купить", "ZZZ", 10, 50);
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 10, 90);
+        await HelpMethods.PlaceOrder(db, 102, "РїСЂРѕРґР°С‚СЊ", "ZZZ", 5, 60);
+        await HelpMethods.PlaceOrder(db, 102, "РїСЂРѕРґР°С‚СЊ", "ZZZ", 5, 80);
+        await HelpMethods.PlaceOrder(db, 102, "РїСЂРѕРґР°С‚СЊ", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 102, "РєСѓРїРёС‚СЊ", "ZZZ", 10, 50);
+        await HelpMethods.PlaceOrder(db, 101, "РєСѓРїРёС‚СЊ", "ZZZ", 10, 90);
 
         var resultSnapshot = await HelpMethods.TakeBalanceSnapshot(db, 102);
 
@@ -41,7 +41,7 @@ public class BalanceSnapshotServiceTest
         var resultSnapshot = await HelpMethods.TakeBalanceSnapshot(db, 101);
 
         Assert.False(resultSnapshot.IsSuccess);
-        Assert.Equal("Трейдер на найден", resultSnapshot.Message);
+        Assert.Equal("РўСЂРµР№РґРµСЂ РЅР° РЅР°Р№РґРµРЅ", resultSnapshot.Message);
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public class BalanceSnapshotServiceTest
         var balanceHistory = await HelpMethods.GetBalanceHistory(db, resultSnapshot.traderTelegramId);
 
         Assert.False(saveSnapshotResult.IsSuccess);
-        Assert.Equal($"Некорректная дата и время снимка (default)", saveSnapshotResult.Message);
+        Assert.Equal($"РќРµРєРѕСЂСЂРµРєС‚РЅР°СЏ РґР°С‚Р° Рё РІСЂРµРјСЏ СЃРЅРёРјРєР° (default)", saveSnapshotResult.Message);
     }
 
     [Fact]
@@ -112,9 +112,9 @@ public class BalanceSnapshotServiceTest
         await HelpMethods.AddPortfolio(db, 102, "ZZZ", 30);
         await HelpMethods.AddPortfolio(db, 101, "ZZZ", 30);
 
-        await HelpMethods.PlaceOrder(db, 102, "купить", "ZZZ", 5, 50);
-        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 5, 50);
-        await HelpMethods.PlaceOrder(db, 102, "купить", "ZZZ", 5, 50);
+        await HelpMethods.PlaceOrder(db, 102, "РєСѓРїРёС‚СЊ", "ZZZ", 5, 50);
+        await HelpMethods.PlaceOrder(db, 101, "РїСЂРѕРґР°С‚СЊ", "ZZZ", 5, 50);
+        await HelpMethods.PlaceOrder(db, 102, "РєСѓРїРёС‚СЊ", "ZZZ", 5, 50);
         await HelpMethods.CancelAllOrders(db, 102);
 
         var resultSnapshot = await HelpMethods.TakeBalanceSnapshot(db, 102);

@@ -1,4 +1,4 @@
-using ArkWallet.Application.Services.CharacterTokenServices;
+п»їusing ArkWallet.Application.Services.CharacterTokenServices;
 using ArkWallet.Tests.HelpTools;
 using Microsoft.Extensions.Logging.Abstractions;
 namespace ArkWallet.Tests.ServiceTests.Token;
@@ -42,7 +42,7 @@ public class TokenPriceCandleUpdateServiceTest
         var result = await tokenPriceCandleUpdateService.UpdateTokenPriceCandleAsync("ZZZ", 1000m);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("Токен не найден", result.Message);
+        Assert.Equal("РўРѕРєРµРЅ РЅРµ РЅР°Р№РґРµРЅ", result.Message);
     }
 
     [Fact]

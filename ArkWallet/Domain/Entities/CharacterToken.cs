@@ -66,6 +66,17 @@ namespace ArkWallet.Domain.Entities
             CurrentPrice = newPrice;
         }
 
+        public void UpdateMedia(string iconUrl, string imageUrl)
+        {
+            if (string.IsNullOrWhiteSpace(iconUrl))
+                throw new ArgumentException("Icon URL cannot be empty");
+            if (string.IsNullOrWhiteSpace(imageUrl))
+                throw new ArgumentException("Image URL cannot be empty");
+
+            IconUrl = iconUrl;
+            ImageUrl = imageUrl;
+        }
+
         public decimal CalculateMarketCap() => CurrentPrice * TotalSupply;
     }
 }

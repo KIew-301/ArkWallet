@@ -123,6 +123,14 @@ namespace ArkWallet.Telegram
                     }
                 }
             }
+            catch (ApiRequestException apiEx) when (apiEx.Message.Contains("message is not modified"))
+            {
+                await botClient.AnswerCallbackQuery(
+                    callbackQuery.Id,
+                    text: "Данные уже актуальны",
+                    cancellationToken: cancellationToken
+                );
+            }
             catch
             {
                 await botClient.EditMessageText(

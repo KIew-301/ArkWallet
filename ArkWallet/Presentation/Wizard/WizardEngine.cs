@@ -1,11 +1,11 @@
 ﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Contracts.Decorators;
+using ArkWallet.Application.Contracts.Orchestrators;
 using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Entities.Configurations;
-using ArkWallet.Infrastructure.Data;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Infrastructure.Wizard
@@ -13,54 +13,68 @@ namespace ArkWallet.Infrastructure.Wizard
     [ExcludeFromCodeCoverage(Justification = "UI-оркестратор Telegram-бота, управляет сессиями пользователей. Зависит от внешнего Telegram API, тестируется интеграционно.")]
     internal partial class WizardEngine
     {
+        private const string PlaceOrderCommand = "/place_order";
+
         private readonly WizardConfiguration _config;
         private readonly Dictionary<long, UserSession> _sessions = new();
 
         // TRADER SERVICES
         private readonly ITraderRegistrationService _traderRegistrationService;
         private readonly ITraderBalanceUpdatingService _traderBalanceUpdatingService;
+        private readonly ITraderQueryService _traderQueryService;
 
         // ORDER SERVICES
         private readonly IOrderValidationService _orderValidationService;
         private readonly IOrderCreationService _orderCreationService;
         private readonly IOrderCancellationService _cancelOrderService;
+        private readonly IOrderBookService _orderBookService;
 
         // PORTFOLIO & TOKEN SERVICES
         private readonly IPortfolioQueryService _portfolioQueryService;
         private readonly IPortfolioUpdatingService _portfolioUpdatingService;
         private readonly ITokenCreationService _tokenCreationServices;
+        private readonly ITokenQueryService _tokenQueryService;
+        private readonly ITokenMediaUpdateService _tokenMediaUpdateService;
+
+        // ORCHESTRATORS
+        private readonly ICandleOrchestrator _candleOrchestrator;
 
         // DECORATOR SERVICES
         private readonly IQuestionDecorator _questionDecorator;
         private readonly IButtonDecorator _buttonDecorator;
 
-        // DB CONTEXT
-        private readonly ArkWalletDbContext _dbContext;
-
         public WizardEngine(
-            ArkWalletDbContext dbContext,
             ITraderRegistrationService traderRegistrationService,
             ITraderBalanceUpdatingService traderBalanceUpdatingService,
+            ITraderQueryService traderQueryService,
             IOrderValidationService orderValidationService,
             IOrderCreationService orderCreationService,
             IOrderCancellationService cancelOrderService,
+            IOrderBookService orderBookService,
             IPortfolioQueryService portfolioQueryService,
             IPortfolioUpdatingService portfolioUpdatingService,
             ITokenCreationService tokenCreationServices,
+            ITokenQueryService tokenQueryService,
+            ITokenMediaUpdateService tokenMediaUpdateService,
+            ICandleOrchestrator candleOrchestrator,
             IQuestionDecorator questionDecorator,
             IButtonDecorator buttonDecorator,
             WizardConfiguration config
             )
         {
-            _dbContext = dbContext;
             _traderRegistrationService = traderRegistrationService;
             _traderBalanceUpdatingService = traderBalanceUpdatingService;
+            _traderQueryService = traderQueryService;
             _orderValidationService = orderValidationService;
             _orderCreationService = orderCreationService;
             _cancelOrderService = cancelOrderService;
+            _orderBookService = orderBookService;
             _portfolioQueryService = portfolioQueryService;
             _portfolioUpdatingService = portfolioUpdatingService;
             _tokenCreationServices = tokenCreationServices;
+            _tokenQueryService = tokenQueryService;
+            _tokenMediaUpdateService = tokenMediaUpdateService;
+            _candleOrchestrator = candleOrchestrator;
             _questionDecorator = questionDecorator;
             _buttonDecorator = buttonDecorator;
             _config = config;
@@ -73,28 +87,43 @@ namespace ArkWallet.Infrastructure.Wizard
         {
             // Регистрация комманд
             _config.Commands["/start"][0].Handler = HandleSetName;
-            _config.Commands["/placeorder"][0].Handler = HandleSetDirection;
-            _config.Commands["/placeorder"][1].Handler = HandleSetToken;
-            _config.Commands["/placeorder"][2].Handler = HandleSetTokenQuantity;
-            _config.Commands["/placeorder"][3].Handler = HandleSetTokenPrice;
-            _config.Commands["/cancelorder"][0].Handler = HandleSelectOrderToCancel;
-            _config.Commands["/cancelorder"][1].Handler = HandleConfirmCancellation;
-            _config.Commands["/cancelallorders"][0].Handler = HandleConfirmCancellationAllOrders;
-            _config.Commands["/getprofile"][0].Handler = HandleGetProfile;
+            _config.Commands[PlaceOrderCommand][0].Handler = HandleSetDirection;
+            _config.Commands[PlaceOrderCommand][1].Handler = HandleSetToken;
+            _config.Commands[PlaceOrderCommand][2].Handler = HandleSetTokenQuantity;
+            _config.Commands[PlaceOrderCommand][3].Handler = HandleSetTokenPrice;
+            _config.Commands["/cancel_order"][0].Handler = HandleSelectOrderToCancel;
+            _config.Commands["/cancel_order"][1].Handler = HandleConfirmCancellation;
+            _config.Commands["/cancel_all_orders"][0].Handler = HandleConfirmCancellationAllOrders;
+            _config.Commands["/get_profile"][0].Handler = HandleGetProfile;
+            _config.Commands["/get_token_info"][0].Handler = HandleSelectTokenInfo;
+            _config.Commands["/get_token_info"][1].Handler = HandleShowTokenInfo;
+            _config.Commands["/get_price_history"][0].Handler = HandleSelectTokenForHistory;
+            _config.Commands["/get_price_history"][1].Handler = HandleSetTimeframe;
+            _config.Commands["/get_price_history"][2].Handler = HandleSetLimit;
+            _config.Commands["/get_order_book"][0].Handler = HandleSelectTokenForOrderBook;
+            _config.Commands["/get_order_book"][1].Handler = HandleSetBuyCount;
+            _config.Commands["/get_order_book"][2].Handler = HandleSetSellCount;
         }
 
         public async Task<(string? message, List<QuickButton>?)> ProcessInput(long userId, string input)
         {
-            // Если это команда
+            if (input.StartsWith("/get_order_book "))
+            {
+                var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length == 4)
+                {
+                    return await HandleQuickOrderBook(parts[1], parts[2], parts[3]);
+                }
+            }
+
             if (_config.Commands.ContainsKey(input))
             {
                 return await StartCommand(userId, input);
             }
 
-            // Если активная сессия
-            if (_sessions.ContainsKey(userId))
+            if (_sessions.TryGetValue(userId, out var session))
             {
-                return await ContinueCommand(userId, input);
+                return await ContinueCommand(userId, input, session);
             }
 
             return ("Неизвестная команда", null);
@@ -102,6 +131,20 @@ namespace ArkWallet.Infrastructure.Wizard
 
         private async Task<(string?, List<QuickButton>?)> StartCommand(long userId, string command)
         {
+            if (command is "/cancel_order" or "/cancel_all_orders")
+            {
+                var hasActiveOrders = await _cancelOrderService.HasActiveOrdersAsync(userId);
+                if (!hasActiveOrders)
+                    return ("Нет активных ордеров для отмены.", null);
+            }
+
+            if (command == "/start")
+            {
+                var isRegistered = await _traderRegistrationService.CheckTraderAlreadyRegistered(userId);
+                if (isRegistered)
+                    return ("Вы уже зарегистрированы! Используйте /get_profile для просмотра профиля.", null);
+            }
+
             var session = new UserSession
             {
                 Id = userId,
@@ -131,9 +174,8 @@ namespace ArkWallet.Infrastructure.Wizard
             }
         }
 
-        private async Task<(string?, List<QuickButton>?)> ContinueCommand(long userId, string input)
+        private async Task<(string?, List<QuickButton>?)> ContinueCommand(long userId, string input, UserSession session)
         {
-            var session = _sessions[userId];
             var commandSteps = _config.Commands[session.CurrentCommand];
             var currentStep = commandSteps.First(s => s.Name == session.CurrentStep);
 
@@ -150,12 +192,22 @@ namespace ArkWallet.Infrastructure.Wizard
             if (result.NextStep == "completed")
             {
                 _sessions.Remove(userId);
-                return (result.Message ?? "Готово!", null);
+                return (result.Message ?? "Готово!", result.Buttons);
             }
 
             // Обновляем шаг и возвращаем следующий вопрос
             session.CurrentStep = result.NextStep;
             var nextStep = commandSteps.First(s => s.Name == result.NextStep);
+
+            if (nextStep.OneStep)
+            {
+                _sessions.Remove(userId);
+                if (nextStep.Handler == null)
+                    return ("Handler не найден", null);
+
+                var oneStepResult = await nextStep.Handler(session, input);
+                return (oneStepResult.Message ?? "Готово!", null);
+            }
 
             var question = await _questionDecorator.DecorateQuestionAsync(nextStep.Name, nextStep.Question, session);
             var buttons = await _buttonDecorator.DecorateButtonsAsync(nextStep.Name, nextStep.Buttons, session);

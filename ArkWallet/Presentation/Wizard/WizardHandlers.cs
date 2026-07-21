@@ -1,7 +1,6 @@
 ﻿using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Domain.ValueObjects;
 using Microsoft.CodeAnalysis;
-using Microsoft.EntityFrameworkCore;
 
 namespace ArkWallet.Infrastructure.Wizard
 {
@@ -159,31 +158,235 @@ namespace ArkWallet.Infrastructure.Wizard
 
         public async Task<StepResult> HandleGetProfile(UserSession session, string input)
         {
-            var trader = await _dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == session.Id);
+            var profileResult = await _traderQueryService.GetTraderProfileAsync(session.Id);
             var portfolioQueryResult = await _portfolioQueryService.GetTraderTokensAsync(session.Id);
             string result = "";
 
-            if (trader == null)
-                return StepResult.Ok("Данные профиля не найдены.");
+            if (!profileResult.TryGetData(out var profile))
+                return StepResult.Ok("completed", profileResult.Message ?? "Данные профиля не найдены.");
 
             if (!portfolioQueryResult.TryGetData(out var portfolioInfo))
                 return StepResult.Ok("Данные профиля не найдены.");
 
-            string Indent(int count) => new(' ', count);
-
-            result += $"{trader.Username}!\n" +
-                $"{Indent(3)}Баланс: {trader.Balance:F2}\n" +
-                $"{Indent(3)}Портфель:\n";
+            result = $"{profile.Username}!\n" +
+                $"{MakeIndent(3)}Баланс: {profile.Balance:F2}\n" +
+                $"{MakeIndent(3)}Портфель:\n";
 
             if (portfolioInfo == null || portfolioInfo.Length <= 0)
             {
-                result += $"{Indent(6)}Не владеет токенами".PadLeft(3);
+                result += $"{MakeIndent(6)}Не владеет токенами".PadLeft(3);
                 return StepResult.Ok("completed", result);
             }
 
-            result += string.Join("\n", portfolioInfo.Select(p => $"{Indent(6)}{p.TokenInfo?.Symbol ?? "???"} - {p.Quantity} шт."));
+            result += string.Join("\n", portfolioInfo.Select(p => $"{MakeIndent(6)}{p.TokenInfo?.Symbol ?? "???"} - {p.Quantity} шт."));
 
             return StepResult.Ok("completed", result);
+        }
+
+        public async Task<StepResult> HandleSelectTokenInfo(UserSession session, string input)
+            => await ValidateAndStoreToken(session, input, "show_info");
+
+        public async Task<StepResult> HandleShowTokenInfo(UserSession session, string input)
+        {
+            var symbol = session.Data[TokenSymbolDataKey]?.ToString();
+
+            if (string.IsNullOrEmpty(symbol))
+                return StepResult.Ok("completed", "Токен не выбран.");
+
+            var tokenResult = await _tokenQueryService.GetTokenInfoAsync(symbol);
+
+            if (!tokenResult.TryGetData(out var tokenData))
+                return StepResult.Ok("completed", "Токен не найден.");
+
+            var result = $"📊 Информация о токене\n" +
+                $"{MakeIndent(3)}Символ: {tokenData.Symbol}\n" +
+                $"{MakeIndent(3)}Название: {tokenData.Name}\n" +
+                $"{MakeIndent(3)}Цена: {tokenData.CurrentPrice:F2}\n";
+
+            return StepResult.Ok("completed", result);
+        }
+
+        public async Task<StepResult> HandleSelectTokenForHistory(UserSession session, string input)
+            => await ValidateAndStoreToken(session, input, "set_timeframe");
+
+        public static Task<StepResult> HandleSetTimeframe(UserSession session, string input)
+            => Task.FromResult(ValidateAndStorePositiveInt(session, input, "timeframe_minutes", "set_limit"));
+
+        public async Task<StepResult> HandleSetLimit(UserSession session, string input)
+        {
+            if (!int.TryParse(input, out var limit) || limit <= 0)
+                return StepResult.Error("Необходимо ввести положительное целое число.");
+
+            var symbol = session.Data[TokenSymbolDataKey]?.ToString();
+            var timeframe = (int)session.Data["timeframe_minutes"];
+
+            if (string.IsNullOrEmpty(symbol))
+                return StepResult.Ok("completed", "Токен не выбран.");
+
+            var endDateTime = DateTime.UtcNow;
+            var startDateTime = endDateTime.AddMinutes(-timeframe * limit);
+
+            var candlesResult = await _candleOrchestrator.GetAggregatedCandlesAsync(
+                symbol, startDateTime, endDateTime, timeframe);
+
+            if (!candlesResult.TryGetData(out var candles) || candles.Count == 0)
+                return StepResult.Ok("completed", $"Нет данных по свечам токена {symbol} за указанный период.");
+
+            var lines = candles.Select(c =>
+                $"{c.DateTime:dd-MM-yyyy HH:mm} - {c.ClosePrice:F2}");
+
+            var message = $"📈 История цен {symbol} (шаг {timeframe} мин, {candles.Count} записей):\n\n"
+                + string.Join("\n", lines);
+
+            return StepResult.Ok("completed", message);
+        }
+
+        public async Task<StepResult> HandleSelectTokenForOrderBook(UserSession session, string input)
+            => await ValidateAndStoreToken(session, input, "set_buy_count");
+
+        public static Task<StepResult> HandleSetBuyCount(UserSession session, string input)
+            => Task.FromResult(ValidateAndStorePositiveInt(session, input, "buy_count", "set_sell_count"));
+
+        public async Task<StepResult> HandleSetSellCount(UserSession session, string input)
+        {
+            if (!int.TryParse(input, out var sellCount) || sellCount <= 0)
+                return StepResult.Error("Необходимо ввести положительное целое число.");
+
+            var symbol = session.Data[TokenSymbolDataKey]?.ToString();
+            var buyCount = (int)session.Data["buy_count"];
+
+            if (string.IsNullOrEmpty(symbol))
+                return StepResult.Ok("completed", "Токен не выбран.");
+
+            var bookResult = await _orderBookService.GetOrderBookAsync(symbol, buyCount, sellCount);
+
+            if (!bookResult.TryGetData(out var book))
+                return StepResult.Ok("completed", $"Ошибка получения стакана: {bookResult.Message}");
+
+            var message = FormatOrderBookMessage(book);
+            var refreshButton = CreateOrderBookRefreshButtons(symbol, buyCount, sellCount);
+
+            var result = StepResult.Ok("completed", message);
+            result.Buttons = refreshButton;
+            return result;
+        }
+
+        private async Task<(string?, List<QuickButton>?)> HandleQuickOrderBook(string symbolStr, string buyCountStr, string sellCountStr)
+        {
+            var symbol = symbolStr.ToUpper();
+
+            if (!int.TryParse(buyCountStr, out var buyCount) || buyCount <= 0)
+                return ("Необходимо ввести положительное целое число для количества покупок.", null);
+
+            if (!int.TryParse(sellCountStr, out var sellCount) || sellCount <= 0)
+                return ("Необходимо ввести положительное целое число для количества продаж.", null);
+
+            var bookResult = await _orderBookService.GetOrderBookAsync(symbol, buyCount, sellCount);
+
+            if (!bookResult.TryGetData(out var book))
+                return ($"Ошибка получения стакана: {bookResult.Message}", null);
+
+            var message = FormatOrderBookMessage(book);
+            var buttons = CreateOrderBookRefreshButtons(symbol, buyCount, sellCount);
+
+            return (message, buttons);
+        }
+
+        private static List<QuickButton> CreateOrderBookRefreshButtons(string symbol, int buyCount, int sellCount)
+        {
+            return new List<QuickButton>
+            {
+                new() { Text = "🔄 Обновить", Value = $"/get_order_book {symbol} {buyCount} {sellCount}" }
+            };
+        }
+
+        private static string MakeIndent(int count) => new(' ', count);
+
+        private async Task<StepResult> ValidateAndStoreToken(UserSession session, string input, string nextStep)
+        {
+            var tokenResult = await _tokenQueryService.GetTokenInfoAsync(input.ToUpper());
+
+            if (!tokenResult.TryGetData(out _))
+                return StepResult.Error("Токен не найден. Проверьте символ и попробуйте снова.");
+
+            session.Data.Add(TokenSymbolDataKey, input.ToUpper());
+            return StepResult.Ok(nextStep);
+        }
+
+        private static StepResult ValidateAndStorePositiveInt(UserSession session, string input, string key, string nextStep)
+        {
+            if (!int.TryParse(input, out var value) || value <= 0)
+                return StepResult.Error("Необходимо ввести положительное целое число.");
+
+            session.Data.Add(key, value);
+            return StepResult.Ok(nextStep);
+        }
+
+        private static string FormatOrderBookMessage(OrderBookResult book)
+        {
+            var lines = new List<string>();
+
+            lines.Add($"Стакан ордеров {book.Symbol}");
+            lines.Add("");
+
+            if (book.Bids.Count == 0 && book.Asks.Count == 0)
+            {
+                lines.Add("Стакан пуст.");
+                return string.Join("\n", lines);
+            }
+
+            var allPrices = book.Asks.Select(a => a.Price)
+                .Concat(book.Bids.Select(b => b.Price));
+
+            var maxIntLen = allPrices.Max(p => (int)Math.Floor(p)).ToString().Length;
+            var maxDecPlaces = allPrices
+                .Select(p => p.ToString("G").Contains('.') ? p.ToString("G").Split('.')[1].Length : 0)
+                .Max();
+            maxDecPlaces = Math.Max(maxDecPlaces, 2);
+            var priceWidth = maxIntLen + 1 + maxDecPlaces;
+            var priceFmt = new string('0', maxIntLen) + "." + new string('0', maxDecPlaces);
+
+            var numWidth = 2;
+            var qtyWidth = 2;
+            var rowLen = numWidth + 1 + priceWidth + 3 + qtyWidth + 2;
+
+            if (book.Asks.Count > 0)
+            {
+                lines.Add("🔺 ПРОДАЖА (ASK)");
+                var reversed = book.Asks.AsEnumerable().Reverse().ToList();
+                for (int i = 0; i < reversed.Count; i++)
+                {
+                    var a = reversed[i];
+                    var num = (reversed.Count - i).ToString().PadLeft(numWidth);
+                    var price = a.Price.ToString(priceFmt).PadLeft(priceWidth);
+                    var qty = a.Quantity.ToString().PadLeft(qtyWidth);
+                    lines.Add($"  {num}     {price}  × {qty}");
+                }
+            }
+
+            lines.Add(new string('─', rowLen));
+
+            if (book.Bids.Count > 0)
+            {
+                for (int i = 0; i < book.Bids.Count; i++)
+                {
+                    var b = book.Bids[i];
+                    var num = (i + 1).ToString().PadLeft(numWidth);
+                    var price = b.Price.ToString(priceFmt).PadLeft(priceWidth);
+                    var qty = b.Quantity.ToString().PadLeft(qtyWidth);
+                    lines.Add($"  {num}     {price}  × {qty}");
+                }
+                lines.Add("🔻 ПОКУПКА (BID)");
+            }
+
+            lines.Add("");
+            lines.Add("ℹ️ КАК ЧИТАТЬ:");
+            lines.Add("[номер] [цена] × [количество]");
+            lines.Add("— кто, по какой цене, сколько");
+            lines.Add("   хочет купить или продать");
+            lines.Add("      прямо сейчас");
+
+            return string.Join("\n", lines);
         }
     }
 }

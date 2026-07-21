@@ -24,6 +24,13 @@ public interface ITokenQueryService
     /// </para>
     /// </remarks>
     Task<Result<List<TokenInfoWithPriceChange>>> GetAllActiveTokensAsync();
+
+    /// <summary>
+    /// Возвращает информацию о конкретном токене по символу
+    /// </summary>
+    /// <param name="symbol">Символ токена</param>
+    /// <returns>Информация о токене или ошибка, если токен не найден</returns>
+    Task<Result<TokenInfo>> GetTokenInfoAsync(string symbol);
 }
 
 

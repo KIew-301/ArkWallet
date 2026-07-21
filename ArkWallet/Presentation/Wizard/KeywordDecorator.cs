@@ -1,49 +1,57 @@
-﻿using ArkWallet.Application.Contracts.Decorators;
-using ArkWallet.Application.Contracts.PortfolioServices;
+﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Application.Contracts.Decorators;
 using ArkWallet.Application.Contracts.SuggestionServices;
+using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Domain.ValueObjects;
-using ArkWallet.Infrastructure.Data;
-using Microsoft.CodeAnalysis;
-using Microsoft.EntityFrameworkCore;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Presentation.Wizard
 {
     [ExcludeFromCodeCoverage(Justification = "UI-декоратор: форматирование кнопок для Telegram-интерфейса. Не содержит бизнес-логики.")]
-    internal class ButtonDecorator(ArkWalletDbContext dbContext, IPriceSuggestionService priceSuggestionService, IPortfolioQueryService portfolioQueryService) : IButtonDecorator
+    internal class ButtonDecorator(IOrderQueryService orderQueryService, IPriceSuggestionService priceSuggestionService, ITokenQueryService tokenQueryService) : IButtonDecorator
     {
         public async Task<List<QuickButton>> DecorateButtonsAsync(string stepName, List<QuickButton> baseKeyword, UserSession session)
         {
             return session.CurrentCommand switch
             {
-                "/placeorder" => stepName switch
+                "/place_order" => stepName switch
                 {
-                    "set_token" => await DecorateTokenQuestion(baseKeyword, session),
+                    "set_token" => await DecorateTokenQuestion(),
                     "set_price" => await DecoratePriceQuestion(baseKeyword, session),
                     _ => baseKeyword
                 },
-                "/cancelorder" => stepName switch
+                "/cancel_order" => stepName switch
                 {
                     "select_order_to_cancel" => await DecorateSelectOrderToCancel(baseKeyword, session),
+                    _ => baseKeyword
+                },
+                "/get_token_info" => stepName switch
+                {
+                    "select_token" => await DecorateTokenQuestion(),
+                    _ => baseKeyword
+                },
+                "/get_price_history" => stepName switch
+                {
+                    "select_token" => await DecorateTokenQuestion(),
+                    _ => baseKeyword
+                },
+                "/get_order_book" => stepName switch
+                {
+                    "select_token" => await DecorateTokenQuestion(),
                     _ => baseKeyword
                 },
                 _ => baseKeyword
             };
         }
 
-        private async Task<List<QuickButton>> DecorateTokenQuestion(List<QuickButton> baseKeyword, UserSession session)
+        private async Task<List<QuickButton>> DecorateTokenQuestion()
         {
-            baseKeyword = [];
-            var portfolioQueryResult = await portfolioQueryService.GetTraderTokensAsync(session.Id);
+            var tokensResult = await tokenQueryService.GetAllActiveTokensAsync();
 
-            if (!portfolioQueryResult.TryGetData(out var portfolioItems))
-                return baseKeyword;
+            if (!tokensResult.TryGetData(out var tokens))
+                return [];
 
-            foreach (var token in portfolioItems)
-                if (token.TokenInfo is not null)
-                    baseKeyword.Add(new() { Text = token.TokenInfo.Symbol, Value = token.TokenInfo.Symbol });
-
-            return baseKeyword;
+            return tokens.Select(token => new QuickButton { Text = token.TokenInfo.Symbol, Value = token.TokenInfo.Symbol }).ToList();
         }
 
         private async Task<List<QuickButton>> DecoratePriceQuestion(List<QuickButton> baseKeyword, UserSession session)
@@ -81,19 +89,19 @@ namespace ArkWallet.Presentation.Wizard
         private async Task<List<QuickButton>> DecorateSelectOrderToCancel(List<QuickButton> baseKeyword, UserSession session)
         {
             baseKeyword = [];
-            var orders = await dbContext.TradeOrders
-                .Where(o => o.TraderTelegramId == session.Id && o.Status == OrderStatus.Active)
-                .ToArrayAsync();
+            var result = await orderQueryService.GetTraderOrdersAsync(
+                session.Id,
+                includeActive: true,
+                includeFilled: false,
+                includeCancelled: false);
+
+            if (!result.TryGetData(out var orders))
+                return baseKeyword;
 
             foreach (var order in orders)
             {
-                string answer = $"" +
-                    $"{(order.Type == OrderType.Buy ? "купит" : "продать")} " +
-                    $"{order.CharacterTokenId} " +
-                    $"{order.Quantity} шт. " +
-                    $"по {order.Price:F2}";
-
-                baseKeyword.Add(new() { Text = answer, Value = order.Id });
+                string answer = $"{(order.Direction == "Buy" ? "купит" : "продать")} {order.Symbol} {order.TotalQuantity} шт. по {order.Price:F2}";
+                baseKeyword.Add(new() { Text = answer, Value = order.OrderId });
             }
 
             return baseKeyword;

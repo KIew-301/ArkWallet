@@ -1,5 +1,6 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.TradeOrderServices;
+using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -50,19 +51,50 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
+            var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
+
+            if (trader == null)
+                return Fail("Трейдер не найден");
+
             var orders = await dbContext.TradeOrders
                 .Where(o => o.TraderTelegramId == traderId && o.Status == OrderStatus.Active)
                 .ToArrayAsync();
 
-            if (orders == null || orders.Length == 0)
-                return Fail("Нет активных одеров для отмены");
+            if (orders.Length == 0)
+                return Fail("Нет активных ордеров для отмены");
 
             foreach (var order in orders)
-                order.Cancel(traderId);
+            {
+                await CancelAndRestoreOrderResources(order, traderId, trader);
+            }
 
+            dbContext.TradeOrders.UpdateRange(orders);
             await dbContext.SaveChangesAsync();
 
             return Ok();
         }, logger, nameof(OrderCancellationService));
+    }
+
+    public async Task<bool> HasActiveOrdersAsync(long traderId)
+    {
+        return await dbContext.TradeOrders
+            .AnyAsync(o => o.TraderTelegramId == traderId && o.Status == OrderStatus.Active);
+    }
+
+    private async Task CancelAndRestoreOrderResources(TradeOrder order, long traderId, Trader trader)
+    {
+        order.Cancel(traderId);
+
+        if (order.IsLong())
+        {
+            trader.AddToBalance(order.GetReservedBalance());
+        }
+        else
+        {
+            var portfolioItem = await dbContext.PortfolioItems
+                .FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == order.CharacterTokenId);
+            if (portfolioItem != null)
+                portfolioItem.ReturnTokens(order.GetRemainingQuantity());
+        }
     }
 }

@@ -1,4 +1,4 @@
-using ArkWallet.Application.Common;
+Ôªøusing ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Services.CharacterTokenServices;
 using ArkWallet.Domain.ValueObjects;
@@ -90,7 +90,7 @@ public class TokenQueryServiceTest
         var mockPriceChangeService = new Mock<ITokenPriceChangesCalculationService>();
         mockPriceChangeService
             .Setup(x => x.TakeTokenPriceChangesAsync("ZZZ", 1))
-            .ReturnsAsync(Result<TokenPriceChangesData>.Fail("ÕÂÚ ËÒÚÓËË ˆÂÌ˚€"));
+            .ReturnsAsync(Result<TokenPriceChangesData>.Fail("–ù–µ—Ç –∏—Å—Ç–æ—Ä–∏–∏ —Ü–µ–Ω—ã–´"));
 
         var logger = NullLogger<TokenQueryService>.Instance;
         var service = new TokenQueryService(db, mockPriceChangeService.Object, logger);
@@ -103,5 +103,32 @@ public class TokenQueryServiceTest
         var token = data.First();
         Assert.Equal(100m, token.TokenInfo.CurrentPrice);
         Assert.Equal(0m, token.DailyChangePercent);
+    }
+
+    [Theory]
+    [InlineData("NONEXISTENT", false)]
+    [InlineData("ZZZ", true)]
+    public async Task GetTokenInfoAsync_VariousScenarios(string symbol, bool expectedSuccess)
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        if (expectedSuccess)
+            await HelpMethods.CreateToken(db, "ZZZ", "Zero", CharacterRarity.FiveStar, 1000, 100m);
+
+        var mockPriceChangeService = new Mock<ITokenPriceChangesCalculationService>();
+        var logger = NullLogger<TokenQueryService>.Instance;
+        var service = new TokenQueryService(db, mockPriceChangeService.Object, logger);
+
+        var result = await service.GetTokenInfoAsync(symbol);
+
+        Assert.Equal(expectedSuccess, result.IsSuccess);
+
+        if (expectedSuccess && result.TryGetData(out var data))
+        {
+            Assert.Equal("ZZZ", data.Symbol);
+            Assert.Equal("Zero", data.Name);
+            Assert.Equal(100m, data.CurrentPrice);
+        }
     }
 }

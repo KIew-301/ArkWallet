@@ -1,4 +1,5 @@
-﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
+﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Domain.ValueObjects;
 using Newtonsoft.Json;
 
@@ -6,11 +7,14 @@ namespace ArkWallet.Infrastructure.Wizard
 {
     partial class WizardEngine
     {
+        private const string TokenSymbolDataKey = "token_symbol";
+
         private void ConfigureAdditionHandlers()
         {
-            _config.Commands["/admincreatetoken"][0].Handler = AdminHandleTokenCreate;
-            _config.Commands["/adminsettokentouser"][0].Handler = AdminHandleSetTokenToUser;
-            _config.Commands["/adminaddbalancetouser"][0].Handler = AdminHandleAddBalanceToUser;
+            _config.Commands["/admin_create_token"][0].Handler = AdminHandleTokenCreate;
+            _config.Commands["/admin_set_token_to_user"][0].Handler = AdminHandleSetTokenToUser;
+            _config.Commands["/admin_add_balance_to_user"][0].Handler = AdminHandleAddBalanceToUser;
+            _config.Commands["/admin_update_token_media"][0].Handler = AdminHandleUpdateTokenMedia;
         }
 
         private async Task<StepResult> AdminHandleTokenCreate(UserSession session, string input)
@@ -19,10 +23,9 @@ namespace ArkWallet.Infrastructure.Wizard
             {
                 var command = JsonConvert.DeserializeObject<CreateTokenCommand>(input);
                 var result = await _tokenCreationServices.CreateTokenAsync(command);
-                if (result.IsSuccess)
-                    return StepResult.Ok("completed", "Token create successful");
-                else
-                    return StepResult.Error(result.Message);
+                return result.IsSuccess
+                    ? StepResult.Ok("completed", "Token create successful")
+                    : StepResult.Error(result.Message);
             }
             catch (Exception ex)
             {
@@ -32,44 +35,48 @@ namespace ArkWallet.Infrastructure.Wizard
         }
 
         private async Task<StepResult> AdminHandleSetTokenToUser(UserSession session, string input)
-        {
-            try
+            => await ExecuteAdminAction(async () =>
             {
                 var tradeData = JsonConvert.DeserializeObject<Dictionary<string, object>>(input);
+                if (tradeData == null)
+                    return Result.Fail("Invalid input data");
 
                 long traderId = Convert.ToInt64(tradeData["traderId"]);
-                string? symbol = tradeData["symbolId"].ToString();
+                string? symbol = tradeData["symbolId"]?.ToString();
                 int quantity = Convert.ToInt32(tradeData["quantity"]);
-
-                var result = await _portfolioUpdatingService.CreateOrUpdatePortfolioAsync(traderId, symbol, quantity);
-
-                if (result.IsSuccess)
-                    return StepResult.Ok("completed", "Portfolia update successful");
-                else
-                    return StepResult.Error(result.Message);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.StackTrace);
-                return StepResult.Error($"Error: {ex.Message}");
-            }
-        }
+                return await _portfolioUpdatingService.CreateOrUpdatePortfolioAsync(traderId, symbol ?? string.Empty, quantity);
+            }, "Portfolia update successful");
 
         private async Task<StepResult> AdminHandleAddBalanceToUser(UserSession session, string input)
+            => await ExecuteAdminAction(async () =>
+            {
+                var tradeData = JsonConvert.DeserializeObject<Dictionary<string, object>>(input);
+                long traderId = Convert.ToInt64(tradeData["traderId"]);
+                int amount = Convert.ToInt32(tradeData["amount"]);
+                return await _traderBalanceUpdatingService.AddToBalanceAsync(traderId, amount);
+            }, "Balance update successful");
+
+        private async Task<StepResult> AdminHandleUpdateTokenMedia(UserSession session, string input)
+            => await ExecuteAdminAction(async () =>
+            {
+                var tradeData = JsonConvert.DeserializeObject<Dictionary<string, object>>(input);
+                if (tradeData == null)
+                    return Result.Fail("Invalid input data");
+
+                string symbol = tradeData["symbol"]?.ToString() ?? string.Empty;
+                string iconUrl = tradeData["iconUrl"]?.ToString() ?? string.Empty;
+                string imageUrl = tradeData["imageUrl"]?.ToString() ?? string.Empty;
+                return await _tokenMediaUpdateService.UpdateTokenMediaAsync(symbol, iconUrl, imageUrl);
+            }, "Token media updated successfully");
+
+        private static async Task<StepResult> ExecuteAdminAction(Func<Task<Result>> action, string successMessage)
         {
             try
             {
-                var tradeData = JsonConvert.DeserializeObject<Dictionary<string, object>>(input);
-
-                long traderId = Convert.ToInt64(tradeData["traderId"]);
-                int amount = Convert.ToInt32(tradeData["amount"]);
-
-                var result = await _traderBalanceUpdatingService.AddToBalanceAsync(traderId, amount);
-
-                if (result.IsSuccess)
-                    return StepResult.Ok("completed", "Balance update successful");
-                else
-                    return StepResult.Error(result.Message);
+                var result = await action();
+                return result.IsSuccess
+                    ? StepResult.Ok("completed", successMessage)
+                    : StepResult.Error(result.Message);
             }
             catch (Exception ex)
             {
