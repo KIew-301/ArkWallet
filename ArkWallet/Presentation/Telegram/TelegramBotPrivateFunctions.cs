@@ -11,11 +11,11 @@ namespace ArkWallet.Telegram
         long SAId;
         long TAId;
 
-        private async Task LoadConfiguration(ConfigurationService configurationService)
+        private void LoadConfiguration(ConfigurationService configurationService)
         {
-            PAId = await configurationService.GetPAId();
-            SAId = await configurationService.GetSAId();
-            TAId = await configurationService.GetTAId();
+            PAId = configurationService.GetPAId();
+            SAId = configurationService.GetSAId();
+            TAId = configurationService.GetTAId();
         }
 
         private enum CommandListType

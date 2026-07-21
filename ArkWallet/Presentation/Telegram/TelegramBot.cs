@@ -1,5 +1,6 @@
 ﻿using ArkWallet.Infrastructure.Wizard;
 using ArkWallet.Presentation.Telegram;
+using Microsoft.Extensions.Configuration;
 using Microsoft.OpenApi.Writers;
 using System.Diagnostics.CodeAnalysis;
 using Telegram.Bot;
@@ -19,9 +20,10 @@ namespace ArkWallet.Telegram
 
         public async Task Start()
         {
-            ConfigurationService configurationService = new();
-            await LoadConfiguration(configurationService);
-            string token = await configurationService.GetToken();
+            var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+            ConfigurationService configurationService = new(configuration);
+            LoadConfiguration(configurationService);
+            string token = configurationService.GetToken();
 
             _ = LaunchBot(token);
         }
@@ -49,9 +51,7 @@ namespace ArkWallet.Telegram
             await SetCommandList(CommandListType.SimpleMode);
 
             Console.WriteLine($"Start listening");
-            Console.ReadLine();
-
-            cts.Cancel();
+            await Task.Delay(Timeout.Infinite, cts.Token).ConfigureAwait(false);
         }
 
         async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
