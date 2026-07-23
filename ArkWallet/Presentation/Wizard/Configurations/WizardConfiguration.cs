@@ -179,6 +179,53 @@ namespace ArkWallet.Entities.Configurations
             };
 
             Commands["/get_order_book"] = steps;
+
+            steps = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "request",
+                    OneStep = true
+                },
+            };
+
+            Commands["/get_orders"] = steps;
+
+            steps = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_limit",
+                    Question = "Сколько последних сделок показать?",
+                    Buttons =
+                    [
+                        new() {Text = "5", Value = "5"},
+                        new() {Text = "10", Value = "10"},
+                        new() {Text = "25", Value = "25"},
+                        new() {Text = "50", Value = "50"}
+                    ]
+                },
+            };
+
+            Commands["/get_trades"] = steps;
+
+            steps = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_limit",
+                    Question = "Сколько трейдеров показать в рейтинге?",
+                    Buttons =
+                    [
+                        new() {Text = "5", Value = "5"},
+                        new() {Text = "10", Value = "10"},
+                        new() {Text = "15", Value = "15"},
+                        new() {Text = "20", Value = "20"}
+                    ]
+                },
+            };
+
+            Commands["/get_tops"] = steps;
         }
 
         private static List<QuickButton> CreateCountButtons()
