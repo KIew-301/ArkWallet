@@ -41,7 +41,7 @@ namespace ArkWallet.Application.Services.SuggestionServices
             if (portfolioItem == null || portfolioItem.Quantity <= 0)
                 return [];
 
-            var totalQuantity = (int)portfolioItem.Quantity;
+            var totalQuantity = portfolioItem.Quantity;
 
             var suggestions = Percentages
                 .Select(p => (int)Math.Floor(totalQuantity * p))

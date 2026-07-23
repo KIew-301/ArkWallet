@@ -108,12 +108,10 @@ internal class LeadersTopByBalanceQueryService(
 
             var positionResult = await GetTraderPositionAsync(traderId);
             decimal myBalance = 0m;
-            int myPosition = 1;
 
             if (positionResult.IsSuccess && positionResult.TryGetData(out var posData))
             {
                 myBalance = posData.TotalBalance;
-                myPosition = posData.Position;
             }
 
             var sorted = await GetAllTradersWithBalances();

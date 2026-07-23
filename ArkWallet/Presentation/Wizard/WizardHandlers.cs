@@ -7,6 +7,10 @@ namespace ArkWallet.Infrastructure.Wizard
 {
     partial class WizardEngine
     {
+        private static readonly string RefreshButtonText = "🔄 Обновить";
+        private static readonly string PositiveIntErrorMessage = "Необходимо ввести положительное целое число.";
+        private static readonly string YouMarker = "   ← Вы";
+
         private async Task<StepResult> HandleSetName(UserSession session, string input)
         {
             var result = await _traderRegistrationService.RegisterTraderAsync(session.Id, input);
@@ -175,14 +179,17 @@ namespace ArkWallet.Infrastructure.Wizard
 
             var portfolioQueryResult = await _portfolioQueryService.GetTraderTokensAsync(session.Id);
 
-            var result = $"👤 {profile.Username}\n\n" +
-                $"💰 Баланс: {profile.Balance:F2}{Descriptor.CurrencySymbol}\n" +
-                $"📊 Общий баланс: {totalBalance:F2}{Descriptor.CurrencySymbol}\n\n" +
-                $"📦 Портфель:\n";
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"👤 {profile.Username}");
+            sb.AppendLine();
+            sb.AppendLine($"💰 Баланс: {profile.Balance:F2}{Descriptor.CurrencySymbol}");
+            sb.AppendLine($"📊 Общий баланс: {totalBalance:F2}{Descriptor.CurrencySymbol}");
+            sb.AppendLine();
+            sb.AppendLine("📦 Портфель:");
 
             if (!portfolioQueryResult.TryGetData(out var portfolioInfo) || portfolioInfo == null || portfolioInfo.Length <= 0)
             {
-                result += "    Пусто";
+                sb.Append("    Пусто");
             }
             else
             {
@@ -194,23 +201,24 @@ namespace ArkWallet.Infrastructure.Wizard
                     var profit = currentValue - cost;
                     var profitEmoji = profit >= 0 ? "📈" : "📉";
 
-                    result += $"    {symbol}: {p.Quantity} шт. (куплено за {cost:F2}{Descriptor.CurrencySymbol})\n";
-                    result += $"    {profitEmoji} Если продать сейчас: {profit:+0.00;-0.00}{Descriptor.CurrencySymbol}\n";
+                    sb.AppendLine($"    {symbol}: {p.Quantity} шт. (куплено за {cost:F2}{Descriptor.CurrencySymbol})");
+                    sb.AppendLine($"    {profitEmoji} Если продать сейчас: {profit:+0.00;-0.00}{Descriptor.CurrencySymbol}");
                 }
             }
 
             var positionResult = await _leadersTopByBalanceQueryService.GetTraderPositionAsync(session.Id);
             if (positionResult.IsSuccess && positionResult.TryGetData(out var posData))
             {
-                result += $"\n🏆 Рейтинг по балансу: #{posData.Position} из {posData.TotalTraders}";
+                sb.AppendLine();
+                sb.Append($"🏆 Рейтинг по балансу: #{posData.Position} из {posData.TotalTraders}");
             }
 
             var buttons = new List<QuickButton>
             {
-                new() { Text = "🔄 Обновить", Value = "/get_profile" }
+                new() { Text = RefreshButtonText, Value = "/get_profile" }
             };
 
-            var stepResult = StepResult.Ok("completed", result);
+            var stepResult = StepResult.Ok("completed", sb.ToString());
             stepResult.Buttons = buttons;
             return stepResult;
         }
@@ -247,7 +255,7 @@ namespace ArkWallet.Infrastructure.Wizard
         public async Task<StepResult> HandleSetLimit(UserSession session, string input)
         {
             if (!int.TryParse(input, out var limit) || limit <= 0)
-                return StepResult.Error("Необходимо ввести положительное целое число.");
+                return StepResult.Error(PositiveIntErrorMessage);
 
             var symbol = session.Data[TokenSymbolDataKey]?.ToString();
             var timeframe = (int)session.Data["timeframe_minutes"];
@@ -282,7 +290,7 @@ namespace ArkWallet.Infrastructure.Wizard
         public async Task<StepResult> HandleSetSellCount(UserSession session, string input)
         {
             if (!int.TryParse(input, out var sellCount) || sellCount <= 0)
-                return StepResult.Error("Необходимо ввести положительное целое число.");
+                return StepResult.Error(PositiveIntErrorMessage);
 
             var symbol = session.Data[TokenSymbolDataKey]?.ToString();
             var buyCount = (int)session.Data["buy_count"];
@@ -328,7 +336,7 @@ namespace ArkWallet.Infrastructure.Wizard
         {
             return new List<QuickButton>
             {
-                new() { Text = "🔄 Обновить", Value = $"/get_order_book {symbol} {buyCount} {sellCount}" }
+                new() { Text = RefreshButtonText, Value = $"/get_order_book {symbol} {buyCount} {sellCount}" }
             };
         }
 
@@ -348,7 +356,7 @@ namespace ArkWallet.Infrastructure.Wizard
         private static StepResult ValidateAndStorePositiveInt(UserSession session, string input, string key, string nextStep)
         {
             if (!int.TryParse(input, out var value) || value <= 0)
-                return StepResult.Error("Необходимо ввести положительное целое число.");
+                return StepResult.Error(PositiveIntErrorMessage);
 
             session.Data.Add(key, value);
             return StepResult.Ok(nextStep);
@@ -449,7 +457,7 @@ namespace ArkWallet.Infrastructure.Wizard
             var message = string.Join("\n", lines);
             var buttons = new List<QuickButton>
             {
-                new() { Text = "🔄 Обновить", Value = "/get_orders" }
+                new() { Text = RefreshButtonText, Value = "/get_orders" }
             };
 
             var result = StepResult.Ok("completed", message);
@@ -460,7 +468,7 @@ namespace ArkWallet.Infrastructure.Wizard
         private async Task<StepResult> HandleSetTradesLimit(UserSession session, string input)
         {
             if (!int.TryParse(input, out var limit) || limit <= 0)
-                return StepResult.Error("Необходимо ввести положительное целое число.");
+                return StepResult.Error(PositiveIntErrorMessage);
 
             limit = Math.Clamp(limit, 1, 100);
 
@@ -482,57 +490,20 @@ namespace ArkWallet.Infrastructure.Wizard
         private async Task<StepResult> HandleSetTopsLimit(UserSession session, string input)
         {
             if (!int.TryParse(input, out var limit) || limit <= 0)
-                return StepResult.Error("Необходимо ввести положительное целое число.");
+                return StepResult.Error(PositiveIntErrorMessage);
 
             limit = Math.Clamp(limit, 1, 20);
 
-            var topResult = await _leadersTopByBalanceQueryService.GetTopAsync(limit);
+            var (message, error) = await BuildTopMessage(session.Id, limit);
+            if (error != null)
+                return StepResult.Ok("completed", error);
 
-            if (!topResult.IsSuccess || !topResult.TryGetData(out var top) || top.Count == 0)
-                return StepResult.Ok("completed", "Рейтинг пока пуст.");
-
-            var lines = new List<string>();
-            lines.Add($"🏆 Топ-{top.Count} трейдеров:");
-            lines.Add("");
-
-            foreach (var entry in top)
-            {
-                var medal = entry.Position switch
-                {
-                    1 => "🥇",
-                    2 => "🥈",
-                    3 => "🥉",
-                    _ => $"#{entry.Position}"
-                };
-
-                var isMe = entry.TraderId == session.Id;
-                var meMarker = isMe ? "   ← Вы" : "";
-
-                lines.Add($"{medal} {entry.Username} — {entry.TotalBalance:F2}{Descriptor.CurrencySymbol}{meMarker}");
-            }
-
-            var localResult = await _leadersTopByBalanceQueryService.GetLocalTopAsync(session.Id, 2, 2);
-            if (localResult.IsSuccess && localResult.TryGetData(out var local) && local.Count > 1)
-            {
-                lines.Add("");
-                lines.Add("📍 Ваше окружение:");
-                lines.Add("");
-                foreach (var entry in local)
-                {
-                    var isMe = entry.TraderId == session.Id;
-                    var marker = isMe ? "   ← Вы" : "";
-
-                    lines.Add($"  #{entry.Position} {entry.Username} — {entry.TotalBalance:F2}{Descriptor.CurrencySymbol}{marker}");
-                }
-            }
-
-            var message = string.Join("\n", lines);
             var buttons = new List<QuickButton>
             {
-                new() { Text = "🔄 Обновить", Value = $"/get_tops {limit}" }
+                new() { Text = RefreshButtonText, Value = $"/get_tops {limit}" }
             };
 
-            var result = StepResult.Ok("completed", message);
+            var result = StepResult.Ok("completed", message!);
             result.Buttons = buttons;
             return result;
         }
@@ -560,7 +531,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 var tokenChange = trade.Quantity;
 
                 var balanceEmoji = balanceChange >= 0 ? "💰" : "💸";
-                var tokenEmoji = tokenChange >= 0 ? "🪙" : "🪙";
+                var tokenEmoji = "🪙";
 
                 lines.Add($"{roleEmoji} {roleText} {symbol}");
                 lines.Add($"   Цена: {trade.ExecutionPrice:F2} | Кол-во: {trade.Quantity}");
@@ -576,14 +547,14 @@ namespace ArkWallet.Infrastructure.Wizard
         {
             return new List<QuickButton>
             {
-                new() { Text = "🔄 Обновить", Value = $"/get_trades {limit}" }
+                new() { Text = RefreshButtonText, Value = $"/get_trades {limit}" }
             };
         }
 
         private async Task<(string?, List<QuickButton>?)> HandleQuickTrades(long userId, string limitStr)
         {
             if (!int.TryParse(limitStr, out var limit) || limit <= 0)
-                return ("Необходимо ввести положительное целое число.", null);
+                return (PositiveIntErrorMessage, null);
 
             limit = Math.Clamp(limit, 1, 100);
 
@@ -601,56 +572,66 @@ namespace ArkWallet.Infrastructure.Wizard
         private async Task<(string?, List<QuickButton>?)> HandleQuickTops(long userId, string limitStr)
         {
             if (!int.TryParse(limitStr, out var limit) || limit <= 0)
-                return ("Необходимо ввести положительное целое число.", null);
+                return (PositiveIntErrorMessage, null);
 
             limit = Math.Clamp(limit, 1, 20);
 
-            var topResult = await _leadersTopByBalanceQueryService.GetTopAsync(limit);
-            if (!topResult.IsSuccess || !topResult.TryGetData(out var top) || top.Count == 0)
-                return ("Рейтинг пока пуст.", null);
+            var (message, error) = await BuildTopMessage(userId, limit);
+            if (error != null)
+                return (error, null);
 
-            var lines = new List<string>();
-            lines.Add($"🏆 Топ-{top.Count}:");
-            lines.Add("");
-
-            foreach (var entry in top)
-            {
-                var medal = entry.Position switch
-                {
-                    1 => "🥇",
-                    2 => "🥈",
-                    3 => "🥉",
-                    _ => $"#{entry.Position}"
-                };
-
-                var isMe = entry.TraderId == userId;
-                var meMarker = isMe ? "   ← Вы" : "";
-
-                lines.Add($"{medal} {entry.Username} — {entry.TotalBalance:F2}{Descriptor.CurrencySymbol}{meMarker}");
-            }
-
-            var localResult = await _leadersTopByBalanceQueryService.GetLocalTopAsync(userId, 2, 2);
-            if (localResult.IsSuccess && localResult.TryGetData(out var local) && local.Count > 1)
-            {
-                lines.Add("");
-                lines.Add("📍 Ваше окружение:");
-                lines.Add("");
-                foreach (var entry in local)
-                {
-                    var isMe = entry.TraderId == userId;
-                    var marker = isMe ? "   ← Вы" : "";
-
-                    lines.Add($"  #{entry.Position} {entry.Username} — {entry.TotalBalance:F2}{Descriptor.CurrencySymbol}{marker}");
-                }
-            }
-
-            var message = string.Join("\n", lines);
             var buttons = new List<QuickButton>
             {
-                new() { Text = "🔄 Обновить", Value = $"/get_tops {limit}" }
+                new() { Text = RefreshButtonText, Value = $"/get_tops {limit}" }
             };
 
             return (message, buttons);
         }
+
+        private async Task<(string? Message, string? Error)> BuildTopMessage(long userId, int limit)
+        {
+            var topResult = await _leadersTopByBalanceQueryService.GetTopAsync(limit);
+            if (!topResult.IsSuccess || !topResult.TryGetData(out var top) || top.Count == 0)
+                return (null, "Рейтинг пока пуст.");
+
+            var lines = new List<string>();
+            lines.Add($"🏆 Топ-{top.Count} трейдеров:");
+            lines.Add("");
+
+            foreach (var entry in top)
+            {
+                var medal = GetMedal(entry.Position);
+                var meMarker = entry.TraderId == userId ? YouMarker : "";
+                lines.Add($"{medal} {entry.Username} — {entry.TotalBalance:F2}{Descriptor.CurrencySymbol}{meMarker}");
+            }
+
+            await AppendLocalTop(lines, userId);
+
+            return (string.Join("\n", lines), null);
+        }
+
+        private async Task AppendLocalTop(List<string> lines, long userId)
+        {
+            var localResult = await _leadersTopByBalanceQueryService.GetLocalTopAsync(userId, 2, 2);
+            if (!localResult.IsSuccess || !localResult.TryGetData(out var local) || local.Count <= 1)
+                return;
+
+            lines.Add("");
+            lines.Add("📍 Ваше окружение:");
+            lines.Add("");
+            foreach (var entry in local)
+            {
+                var marker = entry.TraderId == userId ? YouMarker : "";
+                lines.Add($"  #{entry.Position} {entry.Username} — {entry.TotalBalance:F2}{Descriptor.CurrencySymbol}{marker}");
+            }
+        }
+
+        private static string GetMedal(int position) => position switch
+        {
+            1 => "🥇",
+            2 => "🥈",
+            3 => "🥉",
+            _ => $"#{position}"
+        };
     }
 }

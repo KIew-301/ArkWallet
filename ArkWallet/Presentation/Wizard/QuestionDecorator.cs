@@ -10,21 +10,24 @@ namespace ArkWallet.Presentation.Wizard
     [ExcludeFromCodeCoverage(Justification = "UI-декоратор: форматирование текста вопросов для Telegram-интерфейса. Не содержит бизнес-логики.")]
     internal class QuestionDecorator(ITokenQueryService tokenQueryService, ITraderQueryService traderQueryService, IPortfolioQueryService portfolioQueryService) : IQuestionDecorator
     {
+        private const string Buy = "купить";
+        private const string Sell = "продать";
+        private const string DefaultAction = "выбрать";
+
         public async Task<string> DecorateQuestionAsync(string stepName, string baseQuestion, UserSession session)
         {
             return stepName switch
             {
-                "set_quantity" => await DecorateQuantityQuestion(baseQuestion, session),
-                "set_price" => await DecoratePriceQuestion(baseQuestion, session),
-                "set_token" => await DecorateTokenQuestion(baseQuestion, session),
+                "set_quantity" => await DecorateQuantityQuestion(session),
+                "set_price" => await DecoratePriceQuestion(session),
+                "set_token" => await DecorateTokenQuestion(session),
                 _ => baseQuestion
             };
         }
 
-        private async Task<string> DecorateTokenQuestion(string baseQuestion, UserSession session)
+        private async Task<string> DecorateTokenQuestion(UserSession session)
         {
-            var direction = session.Data["set_direction"]?.ToString()?.ToLower();
-            var actionWord = direction == "купить" ? "купить" : direction == "продать" ? "продать" : "выбрать";
+            var actionWord = GetActionWord(session, DefaultAction);
 
             var tokensResult = await tokenQueryService.GetAllActiveTokensAsync();
 
@@ -35,19 +38,19 @@ namespace ArkWallet.Presentation.Wizard
             return $"Какой токен вы хотите {actionWord}? (выберите или напишите)\n\n💎 Доступные токены: {symbols}\n";
         }
 
-        private async Task<string> DecorateQuantityQuestion(string baseQuestion, UserSession session)
+        private async Task<string> DecorateQuantityQuestion(UserSession session)
         {
             var symbol = session.Data["set_token"]?.ToString();
             var direction = session.Data["set_direction"]?.ToString()?.ToLower();
             if (string.IsNullOrEmpty(symbol))
-                return baseQuestion;
+                return "Выберите токен.";
 
-            var actionWord = direction == "купить" ? "купить" : direction == "продать" ? "продать" : "выбрать";
+            var actionWord = GetActionWord(session, DefaultAction);
 
             var tokenResult = await tokenQueryService.GetTokenInfoAsync(symbol);
             var currentPrice = tokenResult.TryGetData(out var tokenData) ? tokenData.CurrentPrice : 0m;
 
-            if (direction == "купить")
+            if (direction == Buy)
             {
                 var profileResult = await traderQueryService.GetTraderProfileAsync(session.Id);
                 var balance = profileResult.TryGetData(out var profile) ? profile.Balance : 0m;
@@ -71,20 +74,29 @@ namespace ArkWallet.Presentation.Wizard
             }
         }
 
-        private async Task<string> DecoratePriceQuestion(string baseQuestion, UserSession session)
+        private async Task<string> DecoratePriceQuestion(UserSession session)
         {
             var symbol = session.Data["set_token"]?.ToString();
-            var direction = session.Data["set_direction"]?.ToString()?.ToLower();
             if (string.IsNullOrEmpty(symbol))
-                return baseQuestion;
+                return "Выберите токен.";
 
-            var actionWord = direction == "купить" ? "купить" : direction == "продать" ? "продать" : "исполнить";
+            var actionWord = GetActionWord(session, "исполнить");
 
             var tokenResult = await tokenQueryService.GetTokenInfoAsync(symbol);
             var currentPrice = tokenResult.TryGetData(out var tokenData) ? tokenData.CurrentPrice : 0m;
 
             return $"По какой цене вы хотите {actionWord}? (выберите или напишите свою)\n\n💎 Токен: {symbol}\n" +
                    $"📊 Текущая цена: {currentPrice:F2}{Descriptor.CurrencySymbol}";
+        }
+
+        private static string GetActionWord(UserSession session, string defaultValue)
+        {
+            var direction = session.Data["set_direction"]?.ToString()?.ToLower();
+            if (direction == Buy)
+                return Buy;
+            if (direction == Sell)
+                return Sell;
+            return defaultValue;
         }
     }
 }
