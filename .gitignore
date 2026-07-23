@@ -278,6 +278,9 @@ ORDER.md
 CONTEXT.md
 .env.server
 
+# Debug scripts
+check_logs*.py
+
 # Business Intelligence projects
 *.rdl.data
 *.bim.layout

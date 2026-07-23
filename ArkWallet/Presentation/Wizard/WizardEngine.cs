@@ -16,7 +16,7 @@ namespace ArkWallet.Infrastructure.Wizard
         private const string PlaceOrderCommand = "/place_order";
 
         private readonly WizardConfiguration _config;
-        private readonly Dictionary<long, UserSession> _sessions = new();
+        private readonly IUserSessionStore _sessionStore;
 
         // TRADER SERVICES
         private readonly ITraderRegistrationService _traderRegistrationService;
@@ -44,6 +44,7 @@ namespace ArkWallet.Infrastructure.Wizard
         private readonly IButtonDecorator _buttonDecorator;
 
         public WizardEngine(
+            IUserSessionStore sessionStore,
             ITraderRegistrationService traderRegistrationService,
             ITraderBalanceUpdatingService traderBalanceUpdatingService,
             ITraderQueryService traderQueryService,
@@ -62,6 +63,7 @@ namespace ArkWallet.Infrastructure.Wizard
             WizardConfiguration config
             )
         {
+            _sessionStore = sessionStore;
             _traderRegistrationService = traderRegistrationService;
             _traderBalanceUpdatingService = traderBalanceUpdatingService;
             _traderQueryService = traderQueryService;
@@ -121,7 +123,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 return await StartCommand(userId, input);
             }
 
-            if (_sessions.TryGetValue(userId, out var session))
+            if (_sessionStore.TryGet(userId, out var session) && session != null)
             {
                 return await ContinueCommand(userId, input, session);
             }
@@ -157,7 +159,7 @@ namespace ArkWallet.Infrastructure.Wizard
 
             if (!currentStep.OneStep)
             {
-                _sessions[userId] = session;
+                _sessionStore.Set(userId, session);
 
                 var nextStep = commandSteps.First(s => s.Name == session.CurrentStep);
 
@@ -191,7 +193,7 @@ namespace ArkWallet.Infrastructure.Wizard
             // Успех - переходим к следующему шагу
             if (result.NextStep == "completed")
             {
-                _sessions.Remove(userId);
+                _sessionStore.Remove(userId);
                 return (result.Message ?? "Готово!", result.Buttons);
             }
 
@@ -201,7 +203,7 @@ namespace ArkWallet.Infrastructure.Wizard
 
             if (nextStep.OneStep)
             {
-                _sessions.Remove(userId);
+                _sessionStore.Remove(userId);
                 if (nextStep.Handler == null)
                     return ("Handler не найден", null);
 
