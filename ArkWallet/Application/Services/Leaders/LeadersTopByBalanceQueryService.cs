@@ -18,8 +18,6 @@ internal class LeadersTopByBalanceQueryService(
     private const long BotIdMin = 100;
     private const long BotIdMax = 1000;
 
-    private static bool IsBot(long telegramId) => telegramId >= BotIdMin && telegramId <= BotIdMax;
-
     public async Task<Result<List<LeaderEntry>>> GetTopAsync(int count)
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
@@ -27,10 +25,13 @@ internal class LeadersTopByBalanceQueryService(
             count = Math.Clamp(count, 1, MaxLeaderboardSize);
 
             var traders = await dbContext.Traders
-                .Where(t => !IsBot(t.TelegramId))
+                .Where(t => t.TelegramId < BotIdMin || t.TelegramId > BotIdMax)
+                .ToListAsync();
+
+            traders = traders
                 .OrderByDescending(t => t.Balance)
                 .Take(count)
-                .ToListAsync();
+                .ToList();
 
             var entries = new List<LeaderEntry>();
             var position = 1;
@@ -64,12 +65,13 @@ internal class LeadersTopByBalanceQueryService(
                 ? snapshot.totalBalance
                 : 0m;
 
-            var allTraderIds = await dbContext.Traders
-                .Where(t => !IsBot(t.TelegramId))
+            var allTraderIds = (await dbContext.Traders
+                .Where(t => t.TelegramId < BotIdMin || t.TelegramId > BotIdMax)
+                .ToListAsync())
                 .OrderByDescending(t => t.Balance)
                 .Take(MaxLeaderboardSize)
                 .Select(t => t.TelegramId)
-                .ToListAsync();
+                .ToList();
 
             if (!allTraderIds.Contains(traderId))
             {
@@ -121,12 +123,13 @@ internal class LeadersTopByBalanceQueryService(
                 myPosition = posData.Position;
             }
 
-            var allTraderIds = await dbContext.Traders
-                .Where(t => !IsBot(t.TelegramId))
+            var allTraderIds = (await dbContext.Traders
+                .Where(t => t.TelegramId < BotIdMin || t.TelegramId > BotIdMax)
+                .ToListAsync())
                 .OrderByDescending(t => t.Balance)
                 .Take(MaxLeaderboardSize)
                 .Select(t => new { t.TelegramId, t.Username })
-                .ToListAsync();
+                .ToList();
 
             var entries = new List<(long TelegramId, string Username, decimal TotalBalance)>();
 

@@ -175,12 +175,9 @@ namespace ArkWallet.Infrastructure.Wizard
             var portfolioQueryResult = await _portfolioQueryService.GetTraderTokensAsync(session.Id);
 
             var result = $"👤 {profile.Username}\n\n" +
-                $"💰 Баланс: {profile.Balance:F2}\n" +
-                $"📊 Общий баланс: {totalBalance:F2}\n\n" +
+                $"💰 Баланс: {profile.Balance:F2}{Descriptor.CurrencySymbol}\n" +
+                $"📊 Общий баланс: {totalBalance:F2}{Descriptor.CurrencySymbol}\n\n" +
                 $"📦 Портфель:\n";
-
-            decimal totalPortfolioValue = 0m;
-            decimal totalPortfolioCost = 0m;
 
             if (!portfolioQueryResult.TryGetData(out var portfolioInfo) || portfolioInfo == null || portfolioInfo.Length <= 0)
             {
@@ -191,25 +188,20 @@ namespace ArkWallet.Infrastructure.Wizard
                 foreach (var p in portfolioInfo)
                 {
                     var symbol = p.TokenInfo?.Symbol ?? "???";
-                    var currentValue = p.BalanceInToken;
                     var cost = p.Quantity * p.AverageBuyPrice;
-                    var profitPercent = p.ProfitPercent;
-                    var profitEmoji = profitPercent >= 0 ? "📈" : "📉";
-                    result += $"    {symbol}: {p.Quantity} шт. (купил за {cost:F2}, сейчас {currentValue:F2}) {profitEmoji} {profitPercent:+0.00;-0.00}%\n";
+                    var currentValue = p.BalanceInToken;
+                    var profit = currentValue - cost;
+                    var profitEmoji = profit >= 0 ? "📈" : "📉";
 
-                    totalPortfolioValue += currentValue;
-                    totalPortfolioCost += cost;
+                    result += $"    {symbol}: {p.Quantity} шт. (купил за {cost:F2}{Descriptor.CurrencySymbol})\n";
+                    result += $"    {profitEmoji} Если продать сейчас: {profit:+0.00;-0.00}{Descriptor.CurrencySymbol}\n";
                 }
-
-                var estimatedProfit = totalPortfolioValue - totalPortfolioCost;
-                var estimatedEmoji = estimatedProfit >= 0 ? "📈" : "📉";
-                result += $"\n    {estimatedEmoji} Если продать всё: {estimatedProfit:+0.00;-0.00}₽";
             }
 
             var positionResult = await _leadersTopByBalanceQueryService.GetTraderPositionAsync(session.Id);
             if (positionResult.IsSuccess && positionResult.TryGetData(out var posData))
             {
-                result += $"\n\n🏆 Позиция в рейтинге: #{posData.Position} из {posData.TotalTraders}";
+                result += $"\n🏆 Позиция в рейтинге: #{posData.Position} из {posData.TotalTraders}";
             }
 
             var buttons = new List<QuickButton>
@@ -514,7 +506,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 var isMe = entry.TraderId == session.Id;
                 var meMarker = isMe ? " ← Вы" : "";
 
-                lines.Add($"{medal} {entry.Username} — {entry.TotalBalance:F2}₽{meMarker}");
+                lines.Add($"{medal} {entry.Username} — {entry.TotalBalance:F2}{Descriptor.CurrencySymbol}{meMarker}");
             }
 
             var localResult = await _leadersTopByBalanceQueryService.GetLocalTopAsync(session.Id, 2, 2);
@@ -525,7 +517,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 {
                     var isMe = entry.TraderId == session.Id;
                     var marker = isMe ? " 👈 Вы" : "";
-                    lines.Add($"   #{entry.Position} {entry.Username} — {entry.TotalBalance:F2}₽{marker}");
+                    lines.Add($"   #{entry.Position} {entry.Username} — {entry.TotalBalance:F2}{Descriptor.CurrencySymbol}{marker}");
                 }
             }
 
@@ -559,7 +551,7 @@ namespace ArkWallet.Infrastructure.Wizard
 
                 lines.Add($"{roleEmoji} {roleText} {symbol}");
                 lines.Add($"   Цена: {trade.ExecutionPrice:F2} | Кол-во: {trade.Quantity}");
-                lines.Add($"   {balanceEmoji} Баланс: {balanceChange:+0.00;-0.00}₽ | {tokenEmoji} Токены: {(isBuyer ? "+" : "-")}{tokenChange} шт.");
+                lines.Add($"   {balanceEmoji} Баланс: {balanceChange:+0.00;-0.00}{Descriptor.CurrencySymbol} | {tokenEmoji} Токены: {(isBuyer ? "+" : "-")}{tokenChange} шт.");
                 lines.Add($"   📅 {trade.TradeDateTime:dd.MM.yyyy HH:mm}");
                 lines.Add("");
             }

@@ -30,7 +30,7 @@ namespace ArkWallet.Domain.Entities
 
         public string GetDescription()
         {
-            return $"{Quantity} {CharacterTokenId} по {Price}₽";
+            return $"{Quantity} {CharacterTokenId} по {Price}{ValueObjects.Descriptor.CurrencySymbol}";
         }
     }
 }
