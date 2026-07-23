@@ -237,7 +237,7 @@ public class LeadersTopByBalanceQueryServiceTest : IDisposable
     }
 
     [Fact]
-    public async Task GetTopAsync_SnapshotFallback_UsesTraderBalance()
+    public async Task GetTopAsync_SnapshotFailure_ReturnsFail()
     {
         await HelpMethods.RegisterTrader(_db, 1001, "Alice");
 
@@ -247,10 +247,8 @@ public class LeadersTopByBalanceQueryServiceTest : IDisposable
 
         var result = await _service.GetTopAsync(10);
 
-        Assert.True(result.IsSuccess);
-        Assert.True(result.TryGetData(out var data));
-        Assert.Single(data);
-        Assert.Equal(1000m, data[0].TotalBalance);
+        Assert.False(result.IsSuccess);
+        Assert.Contains("не удалось", result.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

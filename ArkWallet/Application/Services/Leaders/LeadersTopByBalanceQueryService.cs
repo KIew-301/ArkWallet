@@ -40,15 +40,14 @@ internal class LeadersTopByBalanceQueryService(
             {
                 var snapshotResult = await balanceSnapshotService.TakeTotalTraderBalanceSnapshot(trader.TelegramId);
 
-                decimal totalBalance = snapshotResult.IsSuccess && snapshotResult.TryGetData(out var snapshot)
-                    ? snapshot.totalBalance
-                    : trader.Balance;
+                if (!snapshotResult.IsSuccess || !snapshotResult.TryGetData(out var snapshot))
+                    return Fail($"Не удалось рассчитать баланс трейдера {trader.Username ?? trader.TelegramId.ToString()}");
 
                 entries.Add(new LeaderEntry(
                     position++,
                     trader.TelegramId,
                     trader.Username ?? "Аноним",
-                    totalBalance));
+                    snapshot.totalBalance));
             }
 
             return Ok(entries);
@@ -61,9 +60,10 @@ internal class LeadersTopByBalanceQueryService(
         {
             var snapshotResult = await balanceSnapshotService.TakeTotalTraderBalanceSnapshot(traderId);
 
-            decimal totalBalance = snapshotResult.IsSuccess && snapshotResult.TryGetData(out var snapshot)
-                ? snapshot.totalBalance
-                : 0m;
+            if (!snapshotResult.IsSuccess || !snapshotResult.TryGetData(out var snapshotData))
+                return Result<LeaderPosition>.Fail("Не удалось рассчитать баланс трейдера");
+
+            decimal totalBalance = snapshotData.totalBalance;
 
             var allTraderIds = (await dbContext.Traders
                 .Where(t => t.TelegramId < BotIdMin || t.TelegramId > BotIdMax)
@@ -90,7 +90,9 @@ internal class LeadersTopByBalanceQueryService(
                 else
                 {
                     var snap = await balanceSnapshotService.TakeTotalTraderBalanceSnapshot(id);
-                    traderTotal = snap.IsSuccess && snap.TryGetData(out var s) ? s.totalBalance : 0m;
+                    if (!snap.IsSuccess || !snap.TryGetData(out var s))
+                        return Result<LeaderPosition>.Fail($"Не удалось рассчитать баланс трейдера {id}");
+                    traderTotal = s.totalBalance;
                 }
 
                 entries.Add((id, traderTotal));
@@ -143,7 +145,9 @@ internal class LeadersTopByBalanceQueryService(
                 else
                 {
                     var snap = await balanceSnapshotService.TakeTotalTraderBalanceSnapshot(trader.TelegramId);
-                    traderTotal = snap.IsSuccess && snap.TryGetData(out var s) ? s.totalBalance : 0m;
+                    if (!snap.IsSuccess || !snap.TryGetData(out var s))
+                        return Fail($"Не удалось рассчитать баланс трейдера {trader.Username ?? trader.TelegramId.ToString()}");
+                    traderTotal = s.totalBalance;
                 }
 
                 entries.Add((trader.TelegramId, trader.Username ?? "Аноним", traderTotal));
