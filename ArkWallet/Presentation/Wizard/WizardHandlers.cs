@@ -232,7 +232,7 @@ namespace ArkWallet.Infrastructure.Wizard
             var result = $"📊 Информация о токене\n" +
                 $"{MakeIndent(3)}Символ: {tokenData.Symbol}\n" +
                 $"{MakeIndent(3)}Название: {tokenData.Name}\n" +
-                $"{MakeIndent(3)}Цена: {tokenData.CurrentPrice:F2}\n";
+                $"{MakeIndent(3)}Цена: {tokenData.CurrentPrice:F2}{Descriptor.CurrencySymbol}\n";
 
             return StepResult.Ok("completed", result);
         }
@@ -264,7 +264,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 return StepResult.Ok("completed", $"Нет данных по свечам токена {symbol} за указанный период.");
 
             var lines = candles.Select(c =>
-                $"{c.DateTime:dd-MM-yyyy HH:mm} - {c.ClosePrice:F2}");
+                $"{c.DateTime:dd-MM-yyyy HH:mm} - {c.ClosePrice:F2}{Descriptor.CurrencySymbol}");
 
             var message = $"📈 История цен {symbol} (шаг {timeframe} мин, {candles.Count} записей):\n\n"
                 + string.Join("\n", lines);
@@ -391,7 +391,7 @@ namespace ArkWallet.Infrastructure.Wizard
                     var num = (reversed.Count - i).ToString().PadLeft(numWidth);
                     var price = a.Price.ToString(priceFmt).PadLeft(priceWidth);
                     var qty = a.Quantity.ToString().PadLeft(qtyWidth);
-                    lines.Add($"  {num}     {price}  × {qty}");
+                    lines.Add($"  {num}     {price}{Descriptor.CurrencySymbol}  × {qty}");
                 }
             }
 
@@ -405,7 +405,7 @@ namespace ArkWallet.Infrastructure.Wizard
                     var num = (i + 1).ToString().PadLeft(numWidth);
                     var price = b.Price.ToString(priceFmt).PadLeft(priceWidth);
                     var qty = b.Quantity.ToString().PadLeft(qtyWidth);
-                    lines.Add($"  {num}     {price}  × {qty}");
+                    lines.Add($"  {num}     {price}{Descriptor.CurrencySymbol}  × {qty}");
                 }
                 lines.Add("🔻 ПОКУПКА (BID)");
             }
@@ -439,7 +439,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 var progressBar = CreateProgressBar(progress);
 
                 lines.Add($"{directionEmoji} {directionText} {order.Symbol}");
-                lines.Add($"   Цена: {order.Price:F2} | Кол-во: {order.TotalQuantity}");
+                lines.Add($"   Цена: {order.Price:F2}{Descriptor.CurrencySymbol} | Кол-во: {order.TotalQuantity}");
                 lines.Add($"   Исполнено: {order.FilledQuantity}/{order.TotalQuantity} ({progress:F0}%)");
                 lines.Add($"   {progressBar}");
                 lines.Add("");
@@ -492,6 +492,7 @@ namespace ArkWallet.Infrastructure.Wizard
 
             var lines = new List<string>();
             lines.Add($"🏆 Топ-{top.Count} трейдеров:");
+            lines.Add("");
 
             foreach (var entry in top)
             {
@@ -504,9 +505,8 @@ namespace ArkWallet.Infrastructure.Wizard
                 };
 
                 var isMe = entry.TraderId == session.Id;
-                var meMarker = isMe ? " ← Вы" : "";
+                var meMarker = isMe ? "   ← Вы" : "";
 
-                lines.Add("");
                 lines.Add($"{medal} {entry.Username} — {entry.TotalBalance:F2}{Descriptor.CurrencySymbol}{meMarker}");
             }
 
@@ -515,13 +515,13 @@ namespace ArkWallet.Infrastructure.Wizard
             {
                 lines.Add("");
                 lines.Add("📍 Ваше окружение:");
+                lines.Add("");
                 foreach (var entry in local)
                 {
                     var isMe = entry.TraderId == session.Id;
-                    var marker = isMe ? " ← Вы" : "";
+                    var marker = isMe ? "   ← Вы" : "";
 
-                    lines.Add("");
-                    lines.Add($"   #{entry.Position} {entry.Username} — {entry.TotalBalance:F2}{Descriptor.CurrencySymbol}{marker}");
+                    lines.Add($"  #{entry.Position} {entry.Username} — {entry.TotalBalance:F2}{Descriptor.CurrencySymbol}{marker}");
                 }
             }
 
@@ -609,7 +609,8 @@ namespace ArkWallet.Infrastructure.Wizard
                 return ("Рейтинг пока пуст.", null);
 
             var lines = new List<string>();
-            lines.Add($"🏆 Топ-{top.Count} трейдеров:");
+            lines.Add($"🏆 Топ-{top.Count}:");
+            lines.Add("");
 
             foreach (var entry in top)
             {
@@ -622,9 +623,8 @@ namespace ArkWallet.Infrastructure.Wizard
                 };
 
                 var isMe = entry.TraderId == userId;
-                var meMarker = isMe ? " ← Вы" : "";
+                var meMarker = isMe ? "   ← Вы" : "";
 
-                lines.Add("");
                 lines.Add($"{medal} {entry.Username} — {entry.TotalBalance:F2}{Descriptor.CurrencySymbol}{meMarker}");
             }
 
@@ -633,13 +633,13 @@ namespace ArkWallet.Infrastructure.Wizard
             {
                 lines.Add("");
                 lines.Add("📍 Ваше окружение:");
+                lines.Add("");
                 foreach (var entry in local)
                 {
                     var isMe = entry.TraderId == userId;
-                    var marker = isMe ? " ← Вы" : "";
+                    var marker = isMe ? "   ← Вы" : "";
 
-                    lines.Add("");
-                    lines.Add($"   #{entry.Position} {entry.Username} — {entry.TotalBalance:F2}{Descriptor.CurrencySymbol}{marker}");
+                    lines.Add($"  #{entry.Position} {entry.Username} — {entry.TotalBalance:F2}{Descriptor.CurrencySymbol}{marker}");
                 }
             }
 

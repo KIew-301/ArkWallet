@@ -48,8 +48,8 @@ namespace ArkWallet.Presentation.Wizard
                 var balance = profileResult.TryGetData(out var profile) ? profile.Balance : 0m;
 
                 return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
-                       $"💰 Текущая цена: {currentPrice:F2}\n" +
-                       $"💳 Общий баланс: {balance:F2}\n";
+                       $"💰 Текущая цена: {currentPrice:F2}{Descriptor.CurrencySymbol}\n" +
+                       $"💳 Общий баланс: {balance:F2}{Descriptor.CurrencySymbol}\n";
             }
             else
             {
@@ -57,11 +57,11 @@ namespace ArkWallet.Presentation.Wizard
 
                 if (portfolioQueryResult.TryGetData(out var data))
                     return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
-                           $"💰 Текущая цена: {currentPrice:F2}\n" +
+                           $"💰 Текущая цена: {currentPrice:F2}{Descriptor.CurrencySymbol}\n" +
                            $"📦 Всего в портфеле: {data.Quantity} шт\n";
                 else
                     return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
-                       $"💰 Текущая цена: {currentPrice:F2}\n" +
+                       $"💰 Текущая цена: {currentPrice:F2}{Descriptor.CurrencySymbol}\n" +
                        $"📦 Всего в портфеле: 0 шт\n";
             }
         }
@@ -76,7 +76,7 @@ namespace ArkWallet.Presentation.Wizard
             var currentPrice = tokenResult.TryGetData(out var tokenData) ? tokenData.CurrentPrice : 0m;
 
             return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
-                   $"📊 Текущая цена: {currentPrice:F2}";
+                   $"📊 Текущая цена: {currentPrice:F2}{Descriptor.CurrencySymbol}";
         }
     }
 }
