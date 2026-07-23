@@ -157,9 +157,12 @@ namespace ArkWallet.Infrastructure.Wizard
 
             var result = await _cancelOrderService.CancelAllOrderAsync(session.Id);
 
-            return result.IsSuccess
-                ? StepResult.Ok("completed", result.Message)
-                : StepResult.Error(result.Message);
+            if (!result.IsSuccess)
+                return StepResult.Error(result.Message);
+
+            return result.TryGetData(out var count)
+                ? StepResult.Ok("completed", $"Всего успешно отменено {count} ордеров")
+                : StepResult.Ok("completed", "Все активные ордера успешно отменены");
         }
 
         public async Task<StepResult> HandleGetProfile(UserSession session, string input)

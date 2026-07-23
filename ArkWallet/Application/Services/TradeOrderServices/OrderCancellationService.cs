@@ -47,21 +47,21 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
         }, logger, nameof(OrderCancellationService));
     }
 
-    public async Task<Result> CancelAllOrderAsync(long traderId)
+    public async Task<Result<int>> CancelAllOrderAsync(long traderId)
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
 
             if (trader == null)
-                return Fail("Трейдер не найден");
+                return Result<int>.Fail("Трейдер не найден");
 
             var orders = await dbContext.TradeOrders
                 .Where(o => o.TraderTelegramId == traderId && o.Status == OrderStatus.Active)
                 .ToArrayAsync();
 
             if (orders.Length == 0)
-                return Fail("Нет активных ордеров для отмены");
+                return Result<int>.Fail("Нет активных ордеров для отмены");
 
             foreach (var order in orders)
             {
@@ -71,7 +71,7 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
             dbContext.TradeOrders.UpdateRange(orders);
             await dbContext.SaveChangesAsync();
 
-            return Ok();
+            return Result<int>.Ok(orders.Length);
         }, logger, nameof(OrderCancellationService));
     }
 
