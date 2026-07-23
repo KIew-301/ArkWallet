@@ -16,20 +16,23 @@ namespace ArkWallet.Presentation.Wizard
             {
                 "set_quantity" => await DecorateQuantityQuestion(baseQuestion, session),
                 "set_price" => await DecoratePriceQuestion(baseQuestion, session),
-                "set_token" => await DecorateTokenQuestion(baseQuestion),
+                "set_token" => await DecorateTokenQuestion(baseQuestion, session),
                 _ => baseQuestion
             };
         }
 
-        private async Task<string> DecorateTokenQuestion(string baseQuestion)
+        private async Task<string> DecorateTokenQuestion(string baseQuestion, UserSession session)
         {
+            var direction = session.Data["set_direction"]?.ToString()?.ToLower();
+            var actionWord = direction == "купить" ? "купить" : direction == "продать" ? "продать" : "выбрать";
+
             var tokensResult = await tokenQueryService.GetAllActiveTokensAsync();
 
             if (!tokensResult.TryGetData(out var tokens) || tokens.Count == 0)
-                return $"{baseQuestion}\n\n💎 Токенов на бирже нет\n";
+                return $"Какой токен вы хотите {actionWord}? (выберите или напишите)\n\n💎 Токенов на бирже нет\n";
 
             var symbols = string.Join(" ", tokens.Select(t => t.TokenInfo.Symbol));
-            return $"{baseQuestion}\n\n💎 Доступные токены: {symbols}\n";
+            return $"Какой токен вы хотите {actionWord}? (выберите или напишите)\n\n💎 Доступные токены: {symbols}\n";
         }
 
         private async Task<string> DecorateQuantityQuestion(string baseQuestion, UserSession session)
@@ -39,6 +42,8 @@ namespace ArkWallet.Presentation.Wizard
             if (string.IsNullOrEmpty(symbol))
                 return baseQuestion;
 
+            var actionWord = direction == "купить" ? "купить" : direction == "продать" ? "продать" : "выбрать";
+
             var tokenResult = await tokenQueryService.GetTokenInfoAsync(symbol);
             var currentPrice = tokenResult.TryGetData(out var tokenData) ? tokenData.CurrentPrice : 0m;
 
@@ -47,7 +52,7 @@ namespace ArkWallet.Presentation.Wizard
                 var profileResult = await traderQueryService.GetTraderProfileAsync(session.Id);
                 var balance = profileResult.TryGetData(out var profile) ? profile.Balance : 0m;
 
-                return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
+                return $"Сколько вы хотите {actionWord}? (выберите или напишите)\n\n💎 Токен: {symbol}\n" +
                        $"💰 Текущая цена: {currentPrice:F2}{Descriptor.CurrencySymbol}\n" +
                        $"💳 Общий баланс: {balance:F2}{Descriptor.CurrencySymbol}\n";
             }
@@ -56,11 +61,11 @@ namespace ArkWallet.Presentation.Wizard
                 var portfolioQueryResult = await portfolioQueryService.GetTokenBalanceAsync(session.Id, symbol);
 
                 if (portfolioQueryResult.TryGetData(out var data))
-                    return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
+                    return $"Сколько вы хотите {actionWord}? (выберите или напишите)\n\n💎 Токен: {symbol}\n" +
                            $"💰 Текущая цена: {currentPrice:F2}{Descriptor.CurrencySymbol}\n" +
                            $"📦 Всего в портфеле: {data.Quantity} шт\n";
                 else
-                    return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
+                    return $"Сколько вы хотите {actionWord}? (выберите или напишите)\n\n💎 Токен: {symbol}\n" +
                        $"💰 Текущая цена: {currentPrice:F2}{Descriptor.CurrencySymbol}\n" +
                        $"📦 Всего в портфеле: 0 шт\n";
             }
