@@ -44,7 +44,7 @@ public class LeadersTopByBalanceQueryServiceTest : IDisposable
     }
 
     [Fact]
-    public async Task GetTopAsync_ReturnsTradersSortedByBalance()
+    public async Task GetTopAsync_ReturnsTradersSortedByTotalBalance()
     {
         await HelpMethods.RegisterTrader(_db, 1001, "Alice");
         await HelpMethods.RegisterTrader(_db, 1002, "Bob");
@@ -54,13 +54,21 @@ public class LeadersTopByBalanceQueryServiceTest : IDisposable
         await HelpMethods.GiveMoney(_db, 1002, 1500);
         await HelpMethods.GiveMoney(_db, 1003, 3000);
 
+        var snapshotBalances = new Dictionary<long, decimal>
+        {
+            { 1001, 5000m },
+            { 1002, 2000m },
+            { 1003, 8000m }
+        };
+
         _mockSnapshotService
             .Setup(s => s.TakeTotalTraderBalanceSnapshot(It.IsAny<long>()))
             .ReturnsAsync((long id) =>
             {
                 var trader = _db.Traders.First(t => t.TelegramId == id);
+                var totalBalance = snapshotBalances.GetValueOrDefault(id, trader.Balance);
                 return Result<BalanceSnapshotData>.Ok(
-                    new BalanceSnapshotData(id, trader.Balance, trader.Balance, 0, 0, 0, DateTime.UtcNow));
+                    new BalanceSnapshotData(id, totalBalance, trader.Balance, 0, 0, 0, DateTime.UtcNow));
             });
 
         var result = await _service.GetTopAsync(3);
@@ -69,8 +77,11 @@ public class LeadersTopByBalanceQueryServiceTest : IDisposable
         Assert.True(result.TryGetData(out var data));
         Assert.Equal(3, data.Count);
         Assert.Equal(1003, data[0].TraderId);
-        Assert.Equal(1002, data[1].TraderId);
-        Assert.Equal(1001, data[2].TraderId);
+        Assert.Equal(8000m, data[0].TotalBalance);
+        Assert.Equal(1001, data[1].TraderId);
+        Assert.Equal(5000m, data[1].TotalBalance);
+        Assert.Equal(1002, data[2].TraderId);
+        Assert.Equal(2000m, data[2].TotalBalance);
     }
 
     [Fact]
@@ -92,7 +103,7 @@ public class LeadersTopByBalanceQueryServiceTest : IDisposable
 
         var result = await _service.GetTopAsync(10);
 
-        Assert.True(result.IsSuccess);
+        Assert.True(result.IsSuccess, $"Failed: {result.Message}");
         Assert.True(result.TryGetData(out var data));
         Assert.Equal(2, data.Count);
         Assert.All(data, e => Assert.True(e.TraderId > 1000));
@@ -115,7 +126,7 @@ public class LeadersTopByBalanceQueryServiceTest : IDisposable
 
         var result = await _service.GetTopAsync(50);
 
-        Assert.True(result.IsSuccess);
+        Assert.True(result.IsSuccess, $"Failed: {result.Message}");
         Assert.True(result.TryGetData(out var data));
         Assert.Equal(2, data.Count);
     }
@@ -137,7 +148,7 @@ public class LeadersTopByBalanceQueryServiceTest : IDisposable
 
         var result = await _service.GetTopAsync(10);
 
-        Assert.True(result.IsSuccess);
+        Assert.True(result.IsSuccess, $"Failed: {result.Message}");
         Assert.True(result.TryGetData(out var data));
         Assert.Equal(1, data[0].Position);
         Assert.Equal(2, data[1].Position);
@@ -154,16 +165,17 @@ public class LeadersTopByBalanceQueryServiceTest : IDisposable
             .Setup(s => s.TakeTotalTraderBalanceSnapshot(It.IsAny<long>()))
             .ReturnsAsync((long id) =>
             {
-                var trader = _db.Traders.First(t => t.TelegramId == id);
+                var balances = new Dictionary<long, decimal> { { 1001, 3000m }, { 1002, 5000m }, { 1003, 1000m } };
+                var balance = balances.GetValueOrDefault(id, 0m);
                 return Result<BalanceSnapshotData>.Ok(
-                    new BalanceSnapshotData(id, trader.Balance, trader.Balance, 0, 0, 0, DateTime.UtcNow));
+                    new BalanceSnapshotData(id, balance, balance, 0, 0, 0, DateTime.UtcNow));
             });
 
         var result = await _service.GetTraderPositionAsync(1002);
 
-        Assert.True(result.IsSuccess);
+        Assert.True(result.IsSuccess, $"Failed: {result.Message}");
         Assert.True(result.TryGetData(out var data));
-        Assert.Equal(2, data.Position);
+        Assert.Equal(1, data.Position);
         Assert.Equal(3, data.TotalTraders);
     }
 
@@ -178,16 +190,17 @@ public class LeadersTopByBalanceQueryServiceTest : IDisposable
             .Setup(s => s.TakeTotalTraderBalanceSnapshot(It.IsAny<long>()))
             .ReturnsAsync((long id) =>
             {
-                var trader = _db.Traders.First(t => t.TelegramId == id);
+                var balances = new Dictionary<long, decimal> { { 1001, 3000m }, { 1002, 5000m } };
+                var balance = balances.GetValueOrDefault(id, 0m);
                 return Result<BalanceSnapshotData>.Ok(
-                    new BalanceSnapshotData(id, trader.Balance, trader.Balance, 0, 0, 0, DateTime.UtcNow));
+                    new BalanceSnapshotData(id, balance, balance, 0, 0, 0, DateTime.UtcNow));
             });
 
         var result = await _service.GetTraderPositionAsync(1002);
 
-        Assert.True(result.IsSuccess);
+        Assert.True(result.IsSuccess, $"Failed: {result.Message}");
         Assert.True(result.TryGetData(out var data));
-        Assert.Equal(2, data.Position);
+        Assert.Equal(1, data.Position);
         Assert.Equal(2, data.TotalTraders);
     }
 
@@ -201,14 +214,14 @@ public class LeadersTopByBalanceQueryServiceTest : IDisposable
             .Setup(s => s.TakeTotalTraderBalanceSnapshot(It.IsAny<long>()))
             .ReturnsAsync((long id) =>
             {
-                var trader = _db.Traders.First(t => t.TelegramId == id);
+                var balance = id * 10m;
                 return Result<BalanceSnapshotData>.Ok(
-                    new BalanceSnapshotData(id, trader.Balance, trader.Balance, 0, 0, 0, DateTime.UtcNow));
+                    new BalanceSnapshotData(id, balance, balance, 0, 0, 0, DateTime.UtcNow));
             });
 
         var result = await _service.GetLocalTopAsync(1005, 2, 2);
 
-        Assert.True(result.IsSuccess);
+        Assert.True(result.IsSuccess, $"Failed: {result.Message}");
         Assert.True(result.TryGetData(out var data));
         Assert.True(data.Count <= 5);
         Assert.Contains(data, e => e.TraderId == 1005);
@@ -224,14 +237,19 @@ public class LeadersTopByBalanceQueryServiceTest : IDisposable
             .Setup(s => s.TakeTotalTraderBalanceSnapshot(It.IsAny<long>()))
             .ReturnsAsync((long id) =>
             {
-                var trader = _db.Traders.First(t => t.TelegramId == id);
+                var balances = new Dictionary<long, decimal>
+                {
+                    { 1001, 1000m }, { 1002, 2000m }, { 1003, 3000m },
+                    { 1004, 4000m }, { 1005, 5000m }
+                };
+                var balance = balances.GetValueOrDefault(id, 0m);
                 return Result<BalanceSnapshotData>.Ok(
-                    new BalanceSnapshotData(id, trader.Balance, trader.Balance, 0, 0, 0, DateTime.UtcNow));
+                    new BalanceSnapshotData(id, balance, balance, 0, 0, 0, DateTime.UtcNow));
             });
 
         var result = await _service.GetLocalTopAsync(1005, 2, 2);
 
-        Assert.True(result.IsSuccess);
+        Assert.True(result.IsSuccess, $"Failed: {result.Message}");
         Assert.True(result.TryGetData(out var data));
         Assert.Contains(data, e => e.TraderId == 1005);
     }
@@ -260,14 +278,13 @@ public class LeadersTopByBalanceQueryServiceTest : IDisposable
             .Setup(s => s.TakeTotalTraderBalanceSnapshot(It.IsAny<long>()))
             .ReturnsAsync((long id) =>
             {
-                var trader = _db.Traders.First(t => t.TelegramId == id);
                 return Result<BalanceSnapshotData>.Ok(
-                    new BalanceSnapshotData(id, trader.Balance, trader.Balance, 0, 0, 0, DateTime.UtcNow));
+                    new BalanceSnapshotData(id, 1000m, 1000m, 0, 0, 0, DateTime.UtcNow));
             });
 
         var result = await _service.GetTopAsync(1000);
 
-        Assert.True(result.IsSuccess);
+        Assert.True(result.IsSuccess, $"Failed: {result.Message}");
         Assert.True(result.TryGetData(out var data));
         Assert.Single(data);
     }

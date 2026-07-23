@@ -72,8 +72,7 @@ namespace ArkWallet.Telegram
             }
             catch (Exception ex)
             {
-                await SendMessageToAdmin($"{ex.Message}\n{ex.StackTrace}");
-                Console.WriteLine($"{ex.Message}\n{ex.StackTrace}");
+                Console.WriteLine($"Unhandled error: {ex.Message}");
             }
         }
 
@@ -139,8 +138,6 @@ namespace ArkWallet.Telegram
                             text: "Ошибка в системе.",
                             cancellationToken: cancellationToken
                         );
-
-                throw;
             }
         }
 
@@ -188,8 +185,6 @@ namespace ArkWallet.Telegram
                     text: "Ошибка в системе.",
                     cancellationToken: cancellationToken
                 );
-
-                throw;
             }
         }
 
