@@ -155,6 +155,15 @@ namespace ArkWallet.Infrastructure.Wizard
                     }
                 }
 
+                if (input.StartsWith("/get_tops "))
+                {
+                    var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                    {
+                        return await HandleQuickTops(userId, parts[1]);
+                    }
+                }
+
                 if (_config.Commands.ContainsKey(input))
                 {
                     return await StartCommand(userId, input);

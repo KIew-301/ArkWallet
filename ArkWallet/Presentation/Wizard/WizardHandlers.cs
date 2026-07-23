@@ -491,7 +491,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 return StepResult.Ok("completed", "Рейтинг пока пуст.");
 
             var lines = new List<string>();
-            lines.Add($"🏆 Топ-{top.Count} трейдеров:\n");
+            lines.Add($"🏆 Топ-{top.Count} трейдеров:");
 
             foreach (var entry in top)
             {
@@ -506,22 +506,34 @@ namespace ArkWallet.Infrastructure.Wizard
                 var isMe = entry.TraderId == session.Id;
                 var meMarker = isMe ? " ← Вы" : "";
 
+                lines.Add("");
                 lines.Add($"{medal} {entry.Username} — {entry.TotalBalance:F2}{Descriptor.CurrencySymbol}{meMarker}");
             }
 
             var localResult = await _leadersTopByBalanceQueryService.GetLocalTopAsync(session.Id, 2, 2);
             if (localResult.IsSuccess && localResult.TryGetData(out var local) && local.Count > 1)
             {
-                lines.Add("\n📍 Ваше окружение:");
+                lines.Add("");
+                lines.Add("📍 Ваше окружение:");
                 foreach (var entry in local)
                 {
                     var isMe = entry.TraderId == session.Id;
-                    var marker = isMe ? " 👈 Вы" : "";
+                    var marker = isMe ? " ← Вы" : "";
+
+                    lines.Add("");
                     lines.Add($"   #{entry.Position} {entry.Username} — {entry.TotalBalance:F2}{Descriptor.CurrencySymbol}{marker}");
                 }
             }
 
-            return StepResult.Ok("completed", string.Join("\n", lines));
+            var message = string.Join("\n", lines);
+            var buttons = new List<QuickButton>
+            {
+                new() { Text = "🔄 Обновить", Value = $"/get_tops {limit}" }
+            };
+
+            var result = StepResult.Ok("completed", message);
+            result.Buttons = buttons;
+            return result;
         }
 
         private static string CreateProgressBar(decimal percent)
@@ -581,6 +593,61 @@ namespace ArkWallet.Infrastructure.Wizard
             var limitedTrades = trades.Take(limit).ToList();
             var message = FormatTradesMessage(limitedTrades);
             var buttons = CreateTradesRefreshButtons(limit);
+
+            return (message, buttons);
+        }
+
+        private async Task<(string?, List<QuickButton>?)> HandleQuickTops(long userId, string limitStr)
+        {
+            if (!int.TryParse(limitStr, out var limit) || limit <= 0)
+                return ("Необходимо ввести положительное целое число.", null);
+
+            limit = Math.Clamp(limit, 1, 20);
+
+            var topResult = await _leadersTopByBalanceQueryService.GetTopAsync(limit);
+            if (!topResult.IsSuccess || !topResult.TryGetData(out var top) || top.Count == 0)
+                return ("Рейтинг пока пуст.", null);
+
+            var lines = new List<string>();
+            lines.Add($"🏆 Топ-{top.Count} трейдеров:");
+
+            foreach (var entry in top)
+            {
+                var medal = entry.Position switch
+                {
+                    1 => "🥇",
+                    2 => "🥈",
+                    3 => "🥉",
+                    _ => $"#{entry.Position}"
+                };
+
+                var isMe = entry.TraderId == userId;
+                var meMarker = isMe ? " ← Вы" : "";
+
+                lines.Add("");
+                lines.Add($"{medal} {entry.Username} — {entry.TotalBalance:F2}{Descriptor.CurrencySymbol}{meMarker}");
+            }
+
+            var localResult = await _leadersTopByBalanceQueryService.GetLocalTopAsync(userId, 2, 2);
+            if (localResult.IsSuccess && localResult.TryGetData(out var local) && local.Count > 1)
+            {
+                lines.Add("");
+                lines.Add("📍 Ваше окружение:");
+                foreach (var entry in local)
+                {
+                    var isMe = entry.TraderId == userId;
+                    var marker = isMe ? " ← Вы" : "";
+
+                    lines.Add("");
+                    lines.Add($"   #{entry.Position} {entry.Username} — {entry.TotalBalance:F2}{Descriptor.CurrencySymbol}{marker}");
+                }
+            }
+
+            var message = string.Join("\n", lines);
+            var buttons = new List<QuickButton>
+            {
+                new() { Text = "🔄 Обновить", Value = $"/get_tops {limit}" }
+            };
 
             return (message, buttons);
         }
