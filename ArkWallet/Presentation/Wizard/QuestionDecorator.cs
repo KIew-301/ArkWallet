@@ -74,13 +74,16 @@ namespace ArkWallet.Presentation.Wizard
         private async Task<string> DecoratePriceQuestion(string baseQuestion, UserSession session)
         {
             var symbol = session.Data["set_token"]?.ToString();
+            var direction = session.Data["set_direction"]?.ToString()?.ToLower();
             if (string.IsNullOrEmpty(symbol))
                 return baseQuestion;
+
+            var actionWord = direction == "купить" ? "купить" : direction == "продать" ? "продать" : "исполнить";
 
             var tokenResult = await tokenQueryService.GetTokenInfoAsync(symbol);
             var currentPrice = tokenResult.TryGetData(out var tokenData) ? tokenData.CurrentPrice : 0m;
 
-            return $"{baseQuestion}\n\n💎 Токен: {symbol}\n" +
+            return $"По какой цене вы хотите {actionWord}? (выберите или напишите свою)\n\n💎 Токен: {symbol}\n" +
                    $"📊 Текущая цена: {currentPrice:F2}{Descriptor.CurrencySymbol}";
         }
     }

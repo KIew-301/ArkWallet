@@ -41,7 +41,7 @@ public class NotificationEventTest
 
         Assert.Single(result);
         Assert.Equal(101, result[0].Id);
-        Assert.Contains("Ордер", result[0].Message);
+        Assert.Contains("продали", result[0].Message);
     }
 
     [Fact]

@@ -105,11 +105,17 @@ namespace ArkWallet.Infrastructure.Wizard
             if (!result.TryGetData(out var data))
                 return StepResult.Error(result.Message);
 
-            var orderDescription = data.Order.GetDesctiption();
+            var order = data.Order;
+            var isBuy = order.Direction == Domain.ValueObjects.OrderType.Buy;
 
-            var message = data.IsFilled
-                ? $"Ордер {orderDescription} успешно выставлен и уже исполнен."
-                : $"Ордер {orderDescription} успешно выставлен.";
+            var message = isBuy
+                ? $"Ожидаем, когда вам продадут {order.Quantity} шт. токенов {order.Symbol} по {order.Price:F2}{Descriptor.CurrencySymbol}"
+                : $"Ожидаем, когда у вас купят {order.Quantity} шт. токенов {order.Symbol} по {order.Price:F2}{Descriptor.CurrencySymbol}";
+
+            if (data.IsFilled)
+                message = isBuy
+                    ? $"Вам продали {order.Quantity} шт. токенов {order.Symbol} по {order.AverageExecutePrice:F2}{Descriptor.CurrencySymbol}"
+                    : $"У вас купили {order.Quantity} шт. токенов {order.Symbol} по {order.AverageExecutePrice:F2}{Descriptor.CurrencySymbol}";
 
             return StepResult.Ok("completed", message);
         }
@@ -193,7 +199,7 @@ namespace ArkWallet.Infrastructure.Wizard
                     var profit = currentValue - cost;
                     var profitEmoji = profit >= 0 ? "📈" : "📉";
 
-                    result += $"    {symbol}: {p.Quantity} шт. (купил за {cost:F2}{Descriptor.CurrencySymbol})\n";
+                    result += $"    {symbol}: {p.Quantity} шт. (куплено за {cost:F2}{Descriptor.CurrencySymbol})\n";
                     result += $"    {profitEmoji} Если продать сейчас: {profit:+0.00;-0.00}{Descriptor.CurrencySymbol}\n";
                 }
             }
@@ -201,7 +207,7 @@ namespace ArkWallet.Infrastructure.Wizard
             var positionResult = await _leadersTopByBalanceQueryService.GetTraderPositionAsync(session.Id);
             if (positionResult.IsSuccess && positionResult.TryGetData(out var posData))
             {
-                result += $"\n🏆 Позиция в рейтинге: #{posData.Position} из {posData.TotalTraders}";
+                result += $"\n🏆 Рейтинг по балансу: #{posData.Position} из {posData.TotalTraders}";
             }
 
             var buttons = new List<QuickButton>

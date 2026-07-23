@@ -1,6 +1,7 @@
 ﻿using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
 
+
 namespace ArkWallet.Application.Dtos
 {
     internal record NotificationEvent
@@ -24,11 +25,10 @@ namespace ArkWallet.Application.Dtos
                 {
                     var traderId = order.TraderTelegramId;
                     var notifyOn = notificationOn[traderId];
-                    var orderDto = OrderDto.FromEntity(order);
-                    var message = $"💸 Ордер {orderDto.GetDesctiption()} успешно исполнен";
-
-                    if (order.AverageExecutePrice > 0)
-                        message += $"\n💰 Средняя цена исполнения: {order.AverageExecutePrice:F2}";
+                    var isBuy = order.Type == OrderType.Buy;
+                    var message = isBuy
+                        ? $"💸 Вам продали {order.Quantity} шт. токенов {order.CharacterTokenId} по {order.AverageExecutePrice:F2}{Descriptor.CurrencySymbol}"
+                        : $"💸 У вас купили {order.Quantity} шт. токенов {order.CharacterTokenId} по {order.AverageExecutePrice:F2}{Descriptor.CurrencySymbol}";
 
                     if (notifyOn && order.Status == OrderStatus.Filled)
                         list.Add(new(traderId, message));
