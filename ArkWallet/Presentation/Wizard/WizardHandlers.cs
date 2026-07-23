@@ -1,4 +1,5 @@
 ﻿using ArkWallet.Application.Contracts.TradeOrderServices;
+using ArkWallet.Application.Contracts.TradeServices;
 using ArkWallet.Domain.ValueObjects;
 using Microsoft.CodeAnalysis;
 
@@ -165,36 +166,21 @@ namespace ArkWallet.Infrastructure.Wizard
 
             var snapshotResult = await _balanceSnapshotService.TakeTotalTraderBalanceSnapshot(session.Id);
             decimal totalBalance = profile.Balance;
-            decimal availableBalance = profile.Balance;
 
             if (snapshotResult.IsSuccess && snapshotResult.TryGetData(out var snapshot))
             {
                 totalBalance = snapshot.totalBalance;
-                availableBalance = snapshot.mainBalance;
             }
-
-            var ordersResult = await _orderQueryService.GetTraderOrdersAsync(
-                session.Id, includeActive: true, includeFilled: false, includeCancelled: false);
-
-            decimal reservedBalance = 0m;
-            if (ordersResult.IsSuccess && ordersResult.TryGetData(out var activeOrders))
-            {
-                foreach (var order in activeOrders.Where(o => o.Direction == "Buy"))
-                {
-                    var remaining = order.TotalQuantity - order.FilledQuantity;
-                    reservedBalance += remaining * order.Price;
-                }
-            }
-
-            availableBalance = profile.Balance - reservedBalance;
 
             var portfolioQueryResult = await _portfolioQueryService.GetTraderTokensAsync(session.Id);
 
             var result = $"👤 {profile.Username}\n\n" +
-                $"💰 Баланс: {totalBalance:F2}\n" +
-                $"💵 Доступно: {availableBalance:F2}\n" +
-                $"🔒 Зарезервировано: {reservedBalance:F2}\n\n" +
+                $"💰 Баланс: {profile.Balance:F2}\n" +
+                $"📊 Общий баланс: {totalBalance:F2}\n\n" +
                 $"📦 Портфель:\n";
+
+            decimal totalPortfolioValue = 0m;
+            decimal totalPortfolioCost = 0m;
 
             if (!portfolioQueryResult.TryGetData(out var portfolioInfo) || portfolioInfo == null || portfolioInfo.Length <= 0)
             {
@@ -206,15 +192,24 @@ namespace ArkWallet.Infrastructure.Wizard
                 {
                     var symbol = p.TokenInfo?.Symbol ?? "???";
                     var currentValue = p.BalanceInToken;
-                    var profitEmoji = p.ProfitPercent >= 0 ? "📈" : "📉";
-                    result += $"    {symbol}: {p.Quantity} шт. (текущая: {currentValue:F2}) {profitEmoji} {p.ProfitPercent:+0.00;-0.00}%\n";
+                    var cost = p.Quantity * p.AverageBuyPrice;
+                    var profitPercent = p.ProfitPercent;
+                    var profitEmoji = profitPercent >= 0 ? "📈" : "📉";
+                    result += $"    {symbol}: {p.Quantity} шт. (купил за {cost:F2}, сейчас {currentValue:F2}) {profitEmoji} {profitPercent:+0.00;-0.00}%\n";
+
+                    totalPortfolioValue += currentValue;
+                    totalPortfolioCost += cost;
                 }
+
+                var estimatedProfit = totalPortfolioValue - totalPortfolioCost;
+                var estimatedEmoji = estimatedProfit >= 0 ? "📈" : "📉";
+                result += $"\n    {estimatedEmoji} Если продать всё: {estimatedProfit:+0.00;-0.00}₽";
             }
 
             var positionResult = await _leadersTopByBalanceQueryService.GetTraderPositionAsync(session.Id);
             if (positionResult.IsSuccess && positionResult.TryGetData(out var posData))
             {
-                result += $"\n🏆 Позиция в рейтинге: #{posData.Position} из {posData.TotalTraders}";
+                result += $"\n\n🏆 Позиция в рейтинге: #{posData.Position} из {posData.TotalTraders}";
             }
 
             var buttons = new List<QuickButton>
@@ -483,23 +478,12 @@ namespace ArkWallet.Infrastructure.Wizard
 
             var limitedTrades = trades.Take(limit).ToList();
 
-            var lines = new List<string>();
-            lines.Add($"📊 Последние {limitedTrades.Count} сделок:\n");
+            var message = FormatTradesMessage(limitedTrades);
+            var buttons = CreateTradesRefreshButtons(limit);
 
-            foreach (var trade in limitedTrades)
-            {
-                var roleEmoji = trade.TraderRole == "Buy" ? "🟢" : "🔴";
-                var roleText = trade.TraderRole == "Buy" ? "Купил" : "Продал";
-                var symbol = trade.TokenInfo?.Symbol ?? "???";
-                var profitEmoji = trade.Profit >= 0 ? "📈" : "📉";
-
-                lines.Add($"{roleEmoji} {roleText} {symbol}");
-                lines.Add($"   Цена: {trade.ExecutionPrice:F2} | Кол-во: {trade.Quantity}");
-                lines.Add($"   {profitEmoji} {trade.Profit:+0.00;-0.00}₽ | {trade.TradeDateTime:dd.MM.yyyy HH:mm}");
-                lines.Add("");
-            }
-
-            return StepResult.Ok("completed", string.Join("\n", lines));
+            var result = StepResult.Ok("completed", message);
+            result.Buttons = buttons;
+            return result;
         }
 
         private async Task<StepResult> HandleSetTopsLimit(UserSession session, string input)
@@ -553,6 +537,60 @@ namespace ArkWallet.Infrastructure.Wizard
             var filled = (int)(percent / 10);
             var empty = 10 - filled;
             return "[" + new string('█', filled) + new string('░', empty) + $"] {percent:F0}%";
+        }
+
+        private static string FormatTradesMessage(List<TradeInfo> trades)
+        {
+            var lines = new List<string>();
+            lines.Add($"📊 Последние {trades.Count} сделок:\n");
+
+            foreach (var trade in trades)
+            {
+                var isBuyer = trade.TraderRole == "Buyer";
+                var roleEmoji = isBuyer ? "🟢" : "🔴";
+                var roleText = isBuyer ? "Купил" : "Продал";
+                var symbol = trade.TokenInfo?.Symbol ?? "???";
+
+                var balanceChange = trade.Profit;
+                var tokenChange = trade.Quantity;
+
+                var balanceEmoji = balanceChange >= 0 ? "💰" : "💸";
+                var tokenEmoji = tokenChange >= 0 ? "🪙" : "🪙";
+
+                lines.Add($"{roleEmoji} {roleText} {symbol}");
+                lines.Add($"   Цена: {trade.ExecutionPrice:F2} | Кол-во: {trade.Quantity}");
+                lines.Add($"   {balanceEmoji} Баланс: {balanceChange:+0.00;-0.00}₽ | {tokenEmoji} Токены: {(isBuyer ? "+" : "-")}{tokenChange} шт.");
+                lines.Add($"   📅 {trade.TradeDateTime:dd.MM.yyyy HH:mm}");
+                lines.Add("");
+            }
+
+            return string.Join("\n", lines);
+        }
+
+        private static List<QuickButton> CreateTradesRefreshButtons(int limit)
+        {
+            return new List<QuickButton>
+            {
+                new() { Text = "🔄 Обновить", Value = $"/get_trades {limit}" }
+            };
+        }
+
+        private async Task<(string?, List<QuickButton>?)> HandleQuickTrades(long userId, string limitStr)
+        {
+            if (!int.TryParse(limitStr, out var limit) || limit <= 0)
+                return ("Необходимо ввести положительное целое число.", null);
+
+            limit = Math.Clamp(limit, 1, 100);
+
+            var tradesResult = await _tradeQueryService.GetTraderTradesAsync(userId, withTokenInfo: true);
+            if (!tradesResult.IsSuccess || !tradesResult.TryGetData(out var trades) || trades.Count == 0)
+                return ("У вас пока нет сделок.", null);
+
+            var limitedTrades = trades.Take(limit).ToList();
+            var message = FormatTradesMessage(limitedTrades);
+            var buttons = CreateTradesRefreshButtons(limit);
+
+            return (message, buttons);
         }
     }
 }

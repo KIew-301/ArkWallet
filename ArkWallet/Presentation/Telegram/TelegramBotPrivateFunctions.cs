@@ -42,6 +42,9 @@ namespace ArkWallet.Telegram
                         new("/get_token_info", "Получить информацию о токене."),
                         new("/get_price_history", "Получить историю цен токена."),
                         new("/get_order_book", "Получить стакан ордеров токена."),
+                        new("/get_orders", "Мои активные ордера."),
+                        new("/get_trades", "Мои последние сделки."),
+                        new("/get_tops", "Рейтинг трейдеров."),
                     };
                     break;
 

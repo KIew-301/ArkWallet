@@ -139,6 +139,15 @@ namespace ArkWallet.Infrastructure.Wizard
                 }
             }
 
+            if (input.StartsWith("/get_trades "))
+            {
+                var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length == 2)
+                {
+                    return await HandleQuickTrades(userId, parts[1]);
+                }
+            }
+
             if (_config.Commands.ContainsKey(input))
             {
                 return await StartCommand(userId, input);

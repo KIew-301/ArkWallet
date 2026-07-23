@@ -15,6 +15,10 @@ internal class LeadersTopByBalanceQueryService(
     ILogger<LeadersTopByBalanceQueryService> logger) : ILeadersTopByBalanceQueryService
 {
     private const int MaxLeaderboardSize = 100;
+    private const long BotIdMin = 100;
+    private const long BotIdMax = 1000;
+
+    private static bool IsBot(long telegramId) => telegramId >= BotIdMin && telegramId <= BotIdMax;
 
     public async Task<Result<List<LeaderEntry>>> GetTopAsync(int count)
     {
@@ -23,6 +27,7 @@ internal class LeadersTopByBalanceQueryService(
             count = Math.Clamp(count, 1, MaxLeaderboardSize);
 
             var traders = await dbContext.Traders
+                .Where(t => !IsBot(t.TelegramId))
                 .OrderByDescending(t => t.Balance)
                 .Take(count)
                 .ToListAsync();
@@ -60,6 +65,7 @@ internal class LeadersTopByBalanceQueryService(
                 : 0m;
 
             var allTraderIds = await dbContext.Traders
+                .Where(t => !IsBot(t.TelegramId))
                 .OrderByDescending(t => t.Balance)
                 .Take(MaxLeaderboardSize)
                 .Select(t => t.TelegramId)
@@ -116,6 +122,7 @@ internal class LeadersTopByBalanceQueryService(
             }
 
             var allTraderIds = await dbContext.Traders
+                .Where(t => !IsBot(t.TelegramId))
                 .OrderByDescending(t => t.Balance)
                 .Take(MaxLeaderboardSize)
                 .Select(t => new { t.TelegramId, t.Username })
