@@ -1,5 +1,6 @@
 ﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Contracts.Decorators;
+using ArkWallet.Application.Contracts.Leaders;
 using ArkWallet.Application.Contracts.MarketMaker;
 using ArkWallet.Application.Contracts.Orchestrators;
 using ArkWallet.Application.Contracts.Other;
@@ -9,6 +10,7 @@ using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Application.Contracts.TradeServices;
 using ArkWallet.Application.Services.CharacterTokenServices;
+using ArkWallet.Application.Services.Leaders;
 using ArkWallet.Application.Services.MarketMaker;
 using ArkWallet.Application.Services.Orchestrators;
 using ArkWallet.Application.Services.Other;
@@ -286,6 +288,9 @@ class Program
 
         // Trade Services
         services.AddScoped<ITradeQueryService, TradeQueryService>();
+
+        // Leaders
+        services.AddScoped<ILeadersTopByBalanceQueryService, LeadersTopByBalanceQueryService>();
 
         // Other
         services.AddScoped<ITraderAuthService, TraderAuthService>();

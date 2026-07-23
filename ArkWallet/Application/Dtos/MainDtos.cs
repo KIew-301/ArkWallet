@@ -23,7 +23,8 @@ namespace ArkWallet.Application.Dtos
         int Quantity,
         decimal Price,
         OrderStatus Status,
-        DateTime CreatedAt
+        DateTime CreatedAt,
+        decimal AverageExecutePrice = 0m
     )
     {
         internal static OrderDto FromEntity(TradeOrder order)
@@ -39,7 +40,8 @@ namespace ArkWallet.Application.Dtos
                 order.Quantity,
                 order.Price,
                 order.Status,
-                order.CreatedAt
+                order.CreatedAt,
+                order.AverageExecutePrice
                 );
         }
 

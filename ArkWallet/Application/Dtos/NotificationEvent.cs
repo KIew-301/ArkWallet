@@ -24,8 +24,11 @@ namespace ArkWallet.Application.Dtos
                 {
                     var traderId = order.TraderTelegramId;
                     var notifyOn = notificationOn[traderId];
-                    var message = $"💸 Ордер {OrderDto.FromEntity(order).GetDesctiption()} успешно исполнен";
+                    var orderDto = OrderDto.FromEntity(order);
+                    var message = $"💸 Ордер {orderDto.GetDesctiption()} успешно исполнен";
 
+                    if (order.AverageExecutePrice > 0)
+                        message += $"\n💰 Средняя цена исполнения: {order.AverageExecutePrice:F2}";
 
                     if (notifyOn && order.Status == OrderStatus.Filled)
                         list.Add(new(traderId, message));

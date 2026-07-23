@@ -1,8 +1,10 @@
 ﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Contracts.Decorators;
+using ArkWallet.Application.Contracts.Leaders;
 using ArkWallet.Application.Contracts.Orchestrators;
 using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;
+using ArkWallet.Application.Contracts.TradeServices;
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Entities.Configurations;
@@ -28,6 +30,7 @@ namespace ArkWallet.Infrastructure.Wizard
         private readonly IOrderCreationService _orderCreationService;
         private readonly IOrderCancellationService _cancelOrderService;
         private readonly IOrderBookService _orderBookService;
+        private readonly IOrderQueryService _orderQueryService;
 
         // PORTFOLIO & TOKEN SERVICES
         private readonly IPortfolioQueryService _portfolioQueryService;
@@ -35,6 +38,13 @@ namespace ArkWallet.Infrastructure.Wizard
         private readonly ITokenCreationService _tokenCreationServices;
         private readonly ITokenQueryService _tokenQueryService;
         private readonly ITokenMediaUpdateService _tokenMediaUpdateService;
+
+        // TRADE SERVICES
+        private readonly ITradeQueryService _tradeQueryService;
+
+        // LEADERS
+        private readonly ILeadersTopByBalanceQueryService _leadersTopByBalanceQueryService;
+        private readonly IBalanceSnapshotService _balanceSnapshotService;
 
         // ORCHESTRATORS
         private readonly ICandleOrchestrator _candleOrchestrator;
@@ -52,11 +62,15 @@ namespace ArkWallet.Infrastructure.Wizard
             IOrderCreationService orderCreationService,
             IOrderCancellationService cancelOrderService,
             IOrderBookService orderBookService,
+            IOrderQueryService orderQueryService,
             IPortfolioQueryService portfolioQueryService,
             IPortfolioUpdatingService portfolioUpdatingService,
             ITokenCreationService tokenCreationServices,
             ITokenQueryService tokenQueryService,
             ITokenMediaUpdateService tokenMediaUpdateService,
+            ITradeQueryService tradeQueryService,
+            ILeadersTopByBalanceQueryService leadersTopByBalanceQueryService,
+            IBalanceSnapshotService balanceSnapshotService,
             ICandleOrchestrator candleOrchestrator,
             IQuestionDecorator questionDecorator,
             IButtonDecorator buttonDecorator,
@@ -71,11 +85,15 @@ namespace ArkWallet.Infrastructure.Wizard
             _orderCreationService = orderCreationService;
             _cancelOrderService = cancelOrderService;
             _orderBookService = orderBookService;
+            _orderQueryService = orderQueryService;
             _portfolioQueryService = portfolioQueryService;
             _portfolioUpdatingService = portfolioUpdatingService;
             _tokenCreationServices = tokenCreationServices;
             _tokenQueryService = tokenQueryService;
             _tokenMediaUpdateService = tokenMediaUpdateService;
+            _tradeQueryService = tradeQueryService;
+            _leadersTopByBalanceQueryService = leadersTopByBalanceQueryService;
+            _balanceSnapshotService = balanceSnapshotService;
             _candleOrchestrator = candleOrchestrator;
             _questionDecorator = questionDecorator;
             _buttonDecorator = buttonDecorator;
@@ -105,6 +123,9 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/get_order_book"][0].Handler = HandleSelectTokenForOrderBook;
             _config.Commands["/get_order_book"][1].Handler = HandleSetBuyCount;
             _config.Commands["/get_order_book"][2].Handler = HandleSetSellCount;
+            _config.Commands["/get_orders"][0].Handler = HandleGetOrders;
+            _config.Commands["/get_trades"][0].Handler = HandleSetTradesLimit;
+            _config.Commands["/get_tops"][0].Handler = HandleSetTopsLimit;
         }
 
         public async Task<(string? message, List<QuickButton>?)> ProcessInput(long userId, string input)
