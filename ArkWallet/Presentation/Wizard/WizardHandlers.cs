@@ -159,28 +159,33 @@ namespace ArkWallet.Infrastructure.Wizard
         public async Task<StepResult> HandleGetProfile(UserSession session, string input)
         {
             var profileResult = await _traderQueryService.GetTraderProfileAsync(session.Id);
-            var portfolioQueryResult = await _portfolioQueryService.GetTraderTokensAsync(session.Id);
-            string result = "";
 
             if (!profileResult.TryGetData(out var profile))
                 return StepResult.Ok("completed", profileResult.Message ?? "Данные профиля не найдены.");
 
-            if (!portfolioQueryResult.TryGetData(out var portfolioInfo))
-                return StepResult.Ok("Данные профиля не найдены.");
+            var portfolioQueryResult = await _portfolioQueryService.GetTraderTokensAsync(session.Id);
 
-            result = $"{profile.Username}!\n" +
+            var result = $"{profile.Username}!\n" +
                 $"{MakeIndent(3)}Баланс: {profile.Balance:F2}\n" +
                 $"{MakeIndent(3)}Портфель:\n";
 
-            if (portfolioInfo == null || portfolioInfo.Length <= 0)
+            if (!portfolioQueryResult.TryGetData(out var portfolioInfo) || portfolioInfo == null || portfolioInfo.Length <= 0)
             {
-                result += $"{MakeIndent(6)}Не владеет токенами".PadLeft(3);
-                return StepResult.Ok("completed", result);
+                result += $"{MakeIndent(6)}Не владеет токенами";
+            }
+            else
+            {
+                result += string.Join("\n", portfolioInfo.Select(p => $"{MakeIndent(6)}{p.TokenInfo?.Symbol ?? "???"} - {p.Quantity} шт."));
             }
 
-            result += string.Join("\n", portfolioInfo.Select(p => $"{MakeIndent(6)}{p.TokenInfo?.Symbol ?? "???"} - {p.Quantity} шт."));
+            var buttons = new List<QuickButton>
+            {
+                new() { Text = "🔄 Обновить", Value = "/get_profile" }
+            };
 
-            return StepResult.Ok("completed", result);
+            var stepResult = StepResult.Ok("completed", result);
+            stepResult.Buttons = buttons;
+            return stepResult;
         }
 
         public async Task<StepResult> HandleSelectTokenInfo(UserSession session, string input)

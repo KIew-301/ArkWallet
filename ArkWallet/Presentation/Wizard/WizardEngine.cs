@@ -172,7 +172,7 @@ namespace ArkWallet.Infrastructure.Wizard
             else
             {
                 var result = await currentStep.Handler(session, command);
-                return (result.Message ?? "Готово!", null);
+                return (result.Message ?? "Готово!", result.Buttons);
             }
         }
 
