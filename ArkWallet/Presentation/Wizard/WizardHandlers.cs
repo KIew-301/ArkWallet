@@ -109,13 +109,8 @@ namespace ArkWallet.Infrastructure.Wizard
             var isBuy = order.Direction == Domain.ValueObjects.OrderType.Buy;
 
             var message = isBuy
-                ? $"Ожидаем, когда вам продадут {order.Quantity} шт. токенов {order.Symbol} по {order.Price:F2}{Descriptor.CurrencySymbol}"
-                : $"Ожидаем, когда у вас купят {order.Quantity} шт. токенов {order.Symbol} по {order.Price:F2}{Descriptor.CurrencySymbol}";
-
-            if (data.IsFilled)
-                message = isBuy
-                    ? $"Вам продали {order.Quantity} шт. токенов {order.Symbol} по {order.AverageExecutePrice:F2}{Descriptor.CurrencySymbol}"
-                    : $"У вас купили {order.Quantity} шт. токенов {order.Symbol} по {order.AverageExecutePrice:F2}{Descriptor.CurrencySymbol}";
+                ? $"⏳ Ожидаем, когда вам продадут {order.Quantity} шт. токенов {order.Symbol} по {order.Price:F2}{Descriptor.CurrencySymbol}"
+                : $"⏳ Ожидаем, когда у вас купят {order.Quantity} шт. токенов {order.Symbol} по {order.Price:F2}{Descriptor.CurrencySymbol}";
 
             return StepResult.Ok("completed", message);
         }
