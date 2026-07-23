@@ -17,8 +17,10 @@ using ArkWallet.Application.Services.SuggestionServices;
 using ArkWallet.Application.Services.TradeOrderServices;
 using ArkWallet.Application.Services.TraderServices;
 using ArkWallet.Application.Services.TradeServices;
+using ArkWallet.Application.Services.Wizard;
 using ArkWallet.Application.Workers;
 using ArkWallet.Domain.Engines;
+using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Entities.Configurations;
 using ArkWallet.Infrastructure;
 using ArkWallet.Infrastructure.Data;
@@ -236,6 +238,7 @@ class Program
         services.AddScoped<ITaskDispatcher, RabbitMQTaskDispatcher>();
 
         // Wizard
+        services.AddSingleton<IUserSessionStore, UserSessionStore>();
         services.AddScoped<WizardConfiguration>();
         services.AddScoped<WizardEngine>();
 

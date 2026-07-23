@@ -36,4 +36,11 @@
         public Dictionary<string, object> Data { get; set; } = [];
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
+
+    public interface IUserSessionStore
+    {
+        bool TryGet(long userId, out UserSession? session);
+        void Set(long userId, UserSession session);
+        bool Remove(long userId);
+    }
 }
