@@ -146,7 +146,7 @@ namespace ArkWallet.Infrastructure.Wizard
             var result = await _cancelOrderService.CancelOrderAsync(session.Id, orderId);
 
             return result.IsSuccess
-                ? StepResult.Ok("completed", result.Message)
+                ? StepResult.Ok("completed", "Ордер успешно отменён")
                 : StepResult.Error(result.Message);
         }
 
@@ -161,7 +161,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 return StepResult.Error(result.Message);
 
             return result.TryGetData(out var count)
-                ? StepResult.Ok("completed", $"Всего успешно отменено {count} ордеров")
+                ? StepResult.Ok("completed", $"Всего успешно отменено ордеров: {count}")
                 : StepResult.Ok("completed", "Все активные ордера успешно отменены");
         }
 
