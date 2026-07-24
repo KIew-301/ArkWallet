@@ -41,7 +41,7 @@ public interface IOrderCancellationService
     /// Зарезервированные средства возвращаются трейдеру.
     /// </para>
     /// </remarks>
-    Task<Result> CancelAllOrderAsync(long traderId);
+    Task<Result<int>> CancelAllOrderAsync(long traderId);
 
     /// <summary>
     /// Проверяет, есть ли у трейдера активные ордера

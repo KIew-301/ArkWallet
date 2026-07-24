@@ -15,6 +15,30 @@ internal class LeadersTopByBalanceQueryService(
     ILogger<LeadersTopByBalanceQueryService> logger) : ILeadersTopByBalanceQueryService
 {
     private const int MaxLeaderboardSize = 100;
+    private const long BotIdMin = 100;
+    private const long BotIdMax = 1000;
+
+    private async Task<List<(long TelegramId, string Username, decimal TotalBalance)>> GetAllTradersWithBalances()
+    {
+        var traders = await dbContext.Traders
+            .Where(t => t.TelegramId < BotIdMin || t.TelegramId > BotIdMax)
+            .ToListAsync();
+
+        var entries = new List<(long TelegramId, string Username, decimal TotalBalance)>();
+
+        foreach (var trader in traders)
+        {
+            var snap = await balanceSnapshotService.TakeTotalTraderBalanceSnapshot(trader.TelegramId);
+            if (!snap.IsSuccess || !snap.TryGetData(out var s))
+                return null!;
+
+            entries.Add((trader.TelegramId, trader.Username ?? "Аноним", s.totalBalance));
+        }
+
+        return entries
+            .OrderByDescending(e => e.TotalBalance)
+            .ToList();
+    }
 
     public async Task<Result<List<LeaderEntry>>> GetTopAsync(int count)
     {
@@ -22,28 +46,14 @@ internal class LeadersTopByBalanceQueryService(
         {
             count = Math.Clamp(count, 1, MaxLeaderboardSize);
 
-            var traders = await dbContext.Traders
-                .OrderByDescending(t => t.Balance)
+            var sorted = await GetAllTradersWithBalances();
+            if (sorted == null)
+                return Fail("Не удалось рассчитать баланс одного из трейдеров");
+
+            var entries = sorted
                 .Take(count)
-                .ToListAsync();
-
-            var entries = new List<LeaderEntry>();
-            var position = 1;
-
-            foreach (var trader in traders)
-            {
-                var snapshotResult = await balanceSnapshotService.TakeTotalTraderBalanceSnapshot(trader.TelegramId);
-
-                decimal totalBalance = snapshotResult.IsSuccess && snapshotResult.TryGetData(out var snapshot)
-                    ? snapshot.totalBalance
-                    : trader.Balance;
-
-                entries.Add(new LeaderEntry(
-                    position++,
-                    trader.TelegramId,
-                    trader.Username ?? "Аноним",
-                    totalBalance));
-            }
+                .Select((e, i) => new LeaderEntry(i + 1, e.TelegramId, e.Username, e.TotalBalance))
+                .ToList();
 
             return Ok(entries);
         }, logger, nameof(LeadersTopByBalanceQueryService));
@@ -55,46 +65,37 @@ internal class LeadersTopByBalanceQueryService(
         {
             var snapshotResult = await balanceSnapshotService.TakeTotalTraderBalanceSnapshot(traderId);
 
-            decimal totalBalance = snapshotResult.IsSuccess && snapshotResult.TryGetData(out var snapshot)
-                ? snapshot.totalBalance
-                : 0m;
+            if (!snapshotResult.IsSuccess || !snapshotResult.TryGetData(out var snapshotData))
+                return Result<LeaderPosition>.Fail("Не удалось рассчитать баланс трейдера");
 
-            var allTraderIds = await dbContext.Traders
-                .OrderByDescending(t => t.Balance)
-                .Take(MaxLeaderboardSize)
-                .Select(t => t.TelegramId)
-                .ToListAsync();
+            decimal totalBalance = snapshotData.totalBalance;
 
-            if (!allTraderIds.Contains(traderId))
-            {
-                allTraderIds.Add(traderId);
-            }
+            var sorted = await GetAllTradersWithBalances();
+            if (sorted == null)
+                return Result<LeaderPosition>.Fail("Не удалось рассчитать баланс одного из трейдеров");
+
+            var traderIds = sorted.Select(e => e.TelegramId).ToList();
+            if (!traderIds.Contains(traderId))
+                traderIds.Add(traderId);
 
             var entries = new List<(long TelegramId, decimal TotalBalance)>();
-
-            foreach (var id in allTraderIds)
+            foreach (var id in traderIds)
             {
-                decimal traderTotal;
                 if (id == traderId)
                 {
-                    traderTotal = totalBalance;
+                    entries.Add((id, totalBalance));
                 }
                 else
                 {
-                    var snap = await balanceSnapshotService.TakeTotalTraderBalanceSnapshot(id);
-                    traderTotal = snap.IsSuccess && snap.TryGetData(out var s) ? s.totalBalance : 0m;
+                    var found = sorted.FirstOrDefault(e => e.TelegramId == id);
+                    entries.Add((id, found.TotalBalance));
                 }
-
-                entries.Add((id, traderTotal));
             }
 
-            var sorted = entries
-                .OrderByDescending(e => e.TotalBalance)
-                .ToList();
+            var ranked = entries.OrderByDescending(e => e.TotalBalance).ToList();
+            var position = ranked.FindIndex(e => e.TelegramId == traderId) + 1;
 
-            var position = sorted.FindIndex(e => e.TelegramId == traderId) + 1;
-
-            return Result<LeaderPosition>.Ok(new LeaderPosition(position, sorted.Count, totalBalance));
+            return Result<LeaderPosition>.Ok(new LeaderPosition(position, ranked.Count, totalBalance));
         }, logger, nameof(LeadersTopByBalanceQueryService));
     }
 
@@ -107,62 +108,41 @@ internal class LeadersTopByBalanceQueryService(
 
             var positionResult = await GetTraderPositionAsync(traderId);
             decimal myBalance = 0m;
-            int myPosition = 1;
 
             if (positionResult.IsSuccess && positionResult.TryGetData(out var posData))
             {
                 myBalance = posData.TotalBalance;
-                myPosition = posData.Position;
             }
 
-            var allTraderIds = await dbContext.Traders
-                .OrderByDescending(t => t.Balance)
-                .Take(MaxLeaderboardSize)
-                .Select(t => new { t.TelegramId, t.Username })
-                .ToListAsync();
+            var sorted = await GetAllTradersWithBalances();
+            if (sorted == null)
+                return Fail("Не удалось рассчитать баланс одного из трейдеров");
 
-            var entries = new List<(long TelegramId, string Username, decimal TotalBalance)>();
-
-            foreach (var trader in allTraderIds)
-            {
-                decimal traderTotal;
-                if (trader.TelegramId == traderId)
-                {
-                    traderTotal = myBalance;
-                }
-                else
-                {
-                    var snap = await balanceSnapshotService.TakeTotalTraderBalanceSnapshot(trader.TelegramId);
-                    traderTotal = snap.IsSuccess && snap.TryGetData(out var s) ? s.totalBalance : 0m;
-                }
-
-                entries.Add((trader.TelegramId, trader.Username ?? "Аноним", traderTotal));
-            }
+            var entries = sorted
+                .Select(e => (e.TelegramId, e.Username, e.TotalBalance))
+                .ToList();
 
             if (entries.All(e => e.TelegramId != traderId))
             {
                 entries.Add((traderId, "Аноним", myBalance));
             }
 
-            var sorted = entries
-                .OrderByDescending(e => e.TotalBalance)
-                .ToList();
-
-            var traderIndex = sorted.FindIndex(e => e.TelegramId == traderId);
+            var ranked = entries.OrderByDescending(e => e.TotalBalance).ToList();
+            var traderIndex = ranked.FindIndex(e => e.TelegramId == traderId);
             if (traderIndex < 0)
                 return Fail("Трейдер не найден в рейтинге");
 
             var startIdx = Math.Max(0, traderIndex - aboveCount);
-            var endIdx = Math.Min(sorted.Count - 1, traderIndex + belowCount);
+            var endIdx = Math.Min(ranked.Count - 1, traderIndex + belowCount);
 
             var result = new List<LeaderEntry>();
             for (int i = startIdx; i <= endIdx; i++)
             {
                 result.Add(new LeaderEntry(
                     i + 1,
-                    sorted[i].TelegramId,
-                    sorted[i].Username,
-                    sorted[i].TotalBalance));
+                    ranked[i].TelegramId,
+                    ranked[i].Username,
+                    ranked[i].TotalBalance));
             }
 
             return Ok(result);

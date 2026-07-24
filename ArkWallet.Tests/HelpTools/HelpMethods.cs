@@ -132,7 +132,7 @@ internal class HelpMethods
         return await service.CancelOrderAsync(traderId, data.Order.Id);
     }
 
-    public static async Task<Result> CancelAllOrders(ArkWalletDbContext db, long traderId)
+    public static async Task<Result<int>> CancelAllOrders(ArkWalletDbContext db, long traderId)
     {
         var service = new OrderCancellationService(db, NullLogger<OrderCancellationService>.Instance);
         return await service.CancelAllOrderAsync(traderId);

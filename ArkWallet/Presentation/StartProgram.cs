@@ -264,6 +264,7 @@ class Program
 
         // SuggestionServices
         services.AddScoped<IPriceSuggestionService, PriceSuggestionService>();
+        services.AddScoped<IQuantitySuggestionService, QuantitySuggestionService>();
 
         // TradeOrderServices
         services.AddScoped<IOrderCancellationService, OrderCancellationService>();

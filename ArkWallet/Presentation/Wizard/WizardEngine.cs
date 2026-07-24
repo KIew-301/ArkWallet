@@ -8,6 +8,7 @@ using ArkWallet.Application.Contracts.TradeServices;
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Entities.Configurations;
+using Microsoft.Extensions.Logging;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Infrastructure.Wizard
@@ -16,9 +17,11 @@ namespace ArkWallet.Infrastructure.Wizard
     internal partial class WizardEngine
     {
         private const string PlaceOrderCommand = "/place_order";
+        private const string ServerErrorMessage = "Ошибка на стороне сервера";
 
         private readonly WizardConfiguration _config;
         private readonly IUserSessionStore _sessionStore;
+        private readonly ILogger<WizardEngine> _logger;
 
         // TRADER SERVICES
         private readonly ITraderRegistrationService _traderRegistrationService;
@@ -55,6 +58,7 @@ namespace ArkWallet.Infrastructure.Wizard
 
         public WizardEngine(
             IUserSessionStore sessionStore,
+            ILogger<WizardEngine> logger,
             ITraderRegistrationService traderRegistrationService,
             ITraderBalanceUpdatingService traderBalanceUpdatingService,
             ITraderQueryService traderQueryService,
@@ -78,6 +82,7 @@ namespace ArkWallet.Infrastructure.Wizard
             )
         {
             _sessionStore = sessionStore;
+            _logger = logger;
             _traderRegistrationService = traderRegistrationService;
             _traderBalanceUpdatingService = traderBalanceUpdatingService;
             _traderQueryService = traderQueryService;
@@ -130,26 +135,52 @@ namespace ArkWallet.Infrastructure.Wizard
 
         public async Task<(string? message, List<QuickButton>?)> ProcessInput(long userId, string input)
         {
-            if (input.StartsWith("/get_order_book "))
+            try
             {
-                var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length == 4)
+                if (input.StartsWith("/get_order_book "))
                 {
-                    return await HandleQuickOrderBook(parts[1], parts[2], parts[3]);
+                    var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 4)
+                    {
+                        return await HandleQuickOrderBook(parts[1], parts[2], parts[3]);
+                    }
                 }
-            }
 
-            if (_config.Commands.ContainsKey(input))
+                if (input.StartsWith("/get_trades "))
+                {
+                    var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                    {
+                        return await HandleQuickTrades(userId, parts[1]);
+                    }
+                }
+
+                if (input.StartsWith("/get_tops "))
+                {
+                    var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                    {
+                        return await HandleQuickTops(userId, parts[1]);
+                    }
+                }
+
+                if (_config.Commands.ContainsKey(input))
+                {
+                    return await StartCommand(userId, input);
+                }
+
+                if (_sessionStore.TryGet(userId, out var session) && session != null)
+                {
+                    return await ContinueCommand(userId, input, session);
+                }
+
+                return ("Неизвестная команда", null);
+            }
+            catch (Exception ex)
             {
-                return await StartCommand(userId, input);
+                _logger.LogError(ex, "Wizard ProcessInput failed for user {UserId}, input: {Input}", userId, input);
+                return (ServerErrorMessage, null);
             }
-
-            if (_sessionStore.TryGet(userId, out var session) && session != null)
-            {
-                return await ContinueCommand(userId, input, session);
-            }
-
-            return ("Неизвестная команда", null);
         }
 
         private async Task<(string?, List<QuickButton>?)> StartCommand(long userId, string command)
@@ -193,6 +224,14 @@ namespace ArkWallet.Infrastructure.Wizard
             else
             {
                 var result = await currentStep.Handler(session, command);
+
+                if (!result.Success)
+                {
+                    _logger.LogWarning("Wizard OneStep handler error for user {UserId}, command {Command}: {Error}",
+                        userId, command, result.Message);
+                    return (ServerErrorMessage, null);
+                }
+
                 return (result.Message ?? "Готово!", result.Buttons);
             }
         }
@@ -207,8 +246,9 @@ namespace ArkWallet.Infrastructure.Wizard
 
             if (!result.Success)
             {
-                // Ошибка - остаемся на текущем шаге
-                return (result.Message, currentStep.Buttons);
+                _logger.LogWarning("Wizard step error for user {UserId}, command {Command}, step {Step}: {Error}",
+                    userId, session.CurrentCommand, session.CurrentStep, result.Message);
+                return (ServerErrorMessage, currentStep.Buttons);
             }
 
             // Успех - переходим к следующему шагу
@@ -226,10 +266,21 @@ namespace ArkWallet.Infrastructure.Wizard
             {
                 _sessionStore.Remove(userId);
                 if (nextStep.Handler == null)
-                    return ("Handler не найден", null);
+                {
+                    _logger.LogError("Handler not found for step {Step} in command {Command}", result.NextStep, session.CurrentCommand);
+                    return (ServerErrorMessage, null);
+                }
 
                 var oneStepResult = await nextStep.Handler(session, input);
-                return (oneStepResult.Message ?? "Готово!", null);
+
+                if (!oneStepResult.Success)
+                {
+                    _logger.LogWarning("Wizard OneStep handler error for user {UserId}, command {Command}, step {Step}: {Error}",
+                        userId, session.CurrentCommand, result.NextStep, oneStepResult.Message);
+                    return (ServerErrorMessage, null);
+                }
+
+                return (oneStepResult.Message ?? "Готово!", oneStepResult.Buttons);
             }
 
             var question = await _questionDecorator.DecorateQuestionAsync(nextStep.Name, nextStep.Question, session);

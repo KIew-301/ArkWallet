@@ -29,7 +29,7 @@ internal class PortfolioQueryService(ArkWalletDbContext dbContext, ILogger<Portf
             if (items.Count == 0)
                 return Result<PortfolioItemInfo[]>.Ok([]);
 
-            return Result<PortfolioItemInfo[]>.Ok([.. items.Select(PortfolioItemInfo.FromEntity)]);
+            return Result<PortfolioItemInfo[]>.Ok([.. items.Where(i => i.Quantity > 0).Select(PortfolioItemInfo.FromEntity)]);
         }, logger, nameof(PortfolioQueryService));
     }
 }

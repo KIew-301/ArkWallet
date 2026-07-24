@@ -8,7 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace ArkWallet.Presentation.Wizard
 {
     [ExcludeFromCodeCoverage(Justification = "UI-декоратор: форматирование кнопок для Telegram-интерфейса. Не содержит бизнес-логики.")]
-    internal class ButtonDecorator(IOrderQueryService orderQueryService, IPriceSuggestionService priceSuggestionService, ITokenQueryService tokenQueryService) : IButtonDecorator
+    internal class ButtonDecorator(IOrderQueryService orderQueryService, IPriceSuggestionService priceSuggestionService, IQuantitySuggestionService quantitySuggestionService, ITokenQueryService tokenQueryService) : IButtonDecorator
     {
         public async Task<List<QuickButton>> DecorateButtonsAsync(string stepName, List<QuickButton> baseKeyword, UserSession session)
         {
@@ -17,6 +17,7 @@ namespace ArkWallet.Presentation.Wizard
                 "/place_order" => stepName switch
                 {
                     "set_token" => await DecorateTokenQuestion(),
+                    "set_quantity" => await DecorateQuantityQuestion(session),
                     "set_price" => await DecoratePriceQuestion(baseKeyword, session),
                     _ => baseKeyword
                 },
@@ -54,6 +55,28 @@ namespace ArkWallet.Presentation.Wizard
             return tokens.Select(token => new QuickButton { Text = token.TokenInfo.Symbol, Value = token.TokenInfo.Symbol }).ToList();
         }
 
+        private async Task<List<QuickButton>> DecorateQuantityQuestion(UserSession session)
+        {
+            var direction = session.Data["set_direction"]?.ToString()?.ToLower();
+            var symbol = session.Data["set_token"]?.ToString()?.ToUpper();
+
+            if (string.IsNullOrEmpty(direction) || string.IsNullOrEmpty(symbol))
+                return [];
+
+            List<QuantitySuggestionDto> suggestions;
+
+            if (direction == "купить")
+                suggestions = await quantitySuggestionService.GetBuyQuantitySuggestionsAsync(session.Id, symbol);
+            else
+                suggestions = await quantitySuggestionService.GetSellQuantitySuggestionsAsync(session.Id, symbol);
+
+            return suggestions.Select(s => new QuickButton
+            {
+                Text = $"{s.Quantity} шт.",
+                Value = s.Quantity.ToString()
+            }).ToList();
+        }
+
         private async Task<List<QuickButton>> DecoratePriceQuestion(List<QuickButton> baseKeyword, UserSession session)
         {
             baseKeyword = [];
@@ -69,7 +92,7 @@ namespace ArkWallet.Presentation.Wizard
 
                 foreach (var item in priceList)
                 {
-                    baseKeyword.Add(new() { Text = item.Price.ToString("F2"), Value = item.Price.ToString("F2") });
+                    baseKeyword.Add(new() { Text = $"{item.Price:F2}{Descriptor.CurrencySymbol}", Value = item.Price.ToString("F2") });
                 }
             }
             else
@@ -79,7 +102,7 @@ namespace ArkWallet.Presentation.Wizard
 
                 foreach (var item in priceList)
                 {
-                    baseKeyword.Add(new() { Text = item.Price.ToString("F2"), Value = item.Price.ToString("F2") });
+                    baseKeyword.Add(new() { Text = $"{item.Price:F2}{Descriptor.CurrencySymbol}", Value = item.Price.ToString("F2") });
                 }
             }
 
@@ -100,7 +123,7 @@ namespace ArkWallet.Presentation.Wizard
 
             foreach (var order in orders)
             {
-                string answer = $"{(order.Direction == "Buy" ? "купит" : "продать")} {order.Symbol} {order.TotalQuantity} шт. по {order.Price:F2}";
+                string answer = $"{(order.Direction == "Buy" ? "купит" : "продать")} {order.Symbol} {order.TotalQuantity} шт. по {order.Price:F2}{Descriptor.CurrencySymbol}";
                 baseKeyword.Add(new() { Text = answer, Value = order.OrderId });
             }
 
