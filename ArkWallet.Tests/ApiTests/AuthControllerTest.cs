@@ -6,6 +6,7 @@ using ArkWallet.Presentation.API;
 using ArkWallet.Presentation.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace ArkWallet.Tests.ApiTests;
@@ -89,9 +90,12 @@ public class AuthControllerTest
             .Setup(x => x.GenerateToken(It.IsAny<long>()))
             .Returns("token");
 
+        var mockLogger = new Mock<ILogger<AuthController>>();
+
         var authController = new AuthController(
             mockTraderRegistrationService.Object, config,
-            mockTokenService.Object, mockTraderAuthService.Object);
+            mockTokenService.Object, mockTraderAuthService.Object,
+            mockLogger.Object);
 
         return authController;
     }

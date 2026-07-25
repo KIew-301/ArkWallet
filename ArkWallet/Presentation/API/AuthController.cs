@@ -16,7 +16,8 @@ namespace ArkWallet.Presentation.API;
 public class AuthController(
     ITraderRegistrationService traderRegistrationService,
     IConfiguration configuration, ITokenService tokenService,
-    ITraderAuthService traderAuthService) : ControllerBase
+    ITraderAuthService traderAuthService,
+    ILogger<AuthController> logger) : ControllerBase
 {
     /// <summary>
     /// Вход в систему через Telegram WebApp InitData
@@ -36,7 +37,12 @@ public class AuthController(
 
         var authResult = traderAuthService.AuthenticateUser(request.InitData, botToken);
         if (!authResult.TryGetData(out var data))
+        {
+            logger.LogWarning("Auth failed: {Reason}", authResult.Message);
             return Unauthorized();
+        }
+
+        logger.LogInformation("Auth success for user {UserId} ({FirstName})", data.User.Id, data.User.FirstName);
 
         var isRegistered = await traderRegistrationService.CheckTraderAlreadyRegistered(data.User.Id);
 
@@ -45,7 +51,12 @@ public class AuthController(
             var registrationResult = await traderRegistrationService
                 .RegisterTraderAsync(data.User.Id, data.User.FirstName);
             if (!registrationResult.IsSuccess)
+            {
+                logger.LogWarning("Registration failed for user {UserId} ({FirstName}): {Reason}", data.User.Id, data.User.FirstName, registrationResult.Message);
                 return BadRequest(registrationResult.Message);
+            }
+
+            logger.LogInformation("Auto-registered new user {UserId} ({FirstName})", data.User.Id, data.User.FirstName);
         }
 
         var token = tokenService.GenerateToken(data.User.Id);
