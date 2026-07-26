@@ -62,6 +62,12 @@ namespace ArkWallet.Infrastructure.Wizard
         private readonly ITokenService _tokenService;
         private readonly long _primaryAdminId;
 
+        // STATS
+        private readonly ITradingVolumeService _tradingVolumeService;
+
+        // BROADCAST
+        private readonly IMessageSender _messageSender;
+
         // DECORATOR SERVICES
         private readonly IQuestionDecorator _questionDecorator;
         private readonly IButtonDecorator _buttonDecorator;
@@ -88,6 +94,8 @@ namespace ArkWallet.Infrastructure.Wizard
             ICandleOrchestrator candleOrchestrator,
             IMarketMakerBotQueryService botQueryService,
             ITokenService tokenService,
+            ITradingVolumeService tradingVolumeService,
+            IMessageSender messageSender,
             IConfiguration configuration,
             IQuestionDecorator questionDecorator,
             IButtonDecorator buttonDecorator,
@@ -115,6 +123,8 @@ namespace ArkWallet.Infrastructure.Wizard
             _candleOrchestrator = candleOrchestrator;
             _botQueryService = botQueryService;
             _tokenService = tokenService;
+            _tradingVolumeService = tradingVolumeService;
+            _messageSender = messageSender;
             _primaryAdminId = long.Parse(configuration["Telegram:AdminId:Main"] ?? "0");
             _questionDecorator = questionDecorator;
             _buttonDecorator = buttonDecorator;
@@ -149,7 +159,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/get_tops"][0].Handler = HandleSetTopsLimit;
         }
 
-        public async Task<(string? message, List<QuickButton>?)> ProcessInput(long userId, string input)
+        public async Task<WizardResult> ProcessInput(long userId, string input)
         {
             try
             {
@@ -199,29 +209,29 @@ namespace ArkWallet.Infrastructure.Wizard
                     return await ContinueCommand(userId, input, session);
                 }
 
-                return ("Неизвестная команда", null);
+                return new WizardResult { Message = "Неизвестная команда" };
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Wizard ProcessInput failed for user {UserId}, input: {Input}", userId, input);
-                return (ServerErrorMessage, null);
+                return new WizardResult { Message = ServerErrorMessage };
             }
         }
 
-        private async Task<(string?, List<QuickButton>?)> StartCommand(long userId, string command)
+        private async Task<WizardResult> StartCommand(long userId, string command)
         {
             if (command is "/cancel_order" or "/cancel_all_orders")
             {
                 var hasActiveOrders = await _cancelOrderService.HasActiveOrdersAsync(userId);
                 if (!hasActiveOrders)
-                    return ("Нет активных ордеров для отмены.", null);
+                    return new WizardResult { Message = "Нет активных ордеров для отмены." };
             }
 
             if (command == "/start")
             {
                 var isRegistered = await _traderRegistrationService.CheckTraderAlreadyRegistered(userId);
                 if (isRegistered)
-                    return ("Вы уже зарегистрированы! Используйте /get_profile для просмотра профиля.", null);
+                    return new WizardResult { Message = "Вы уже зарегистрированы! Используйте /get_profile для просмотра профиля." };
             }
 
             var session = new UserSession
@@ -243,8 +253,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 var question = await _questionDecorator.DecorateQuestionAsync(nextStep.Name, nextStep.Question, session);
                 var buttons = await _buttonDecorator.DecorateButtonsAsync(nextStep.Name, nextStep.Buttons, session);
 
-                var step = _config.Commands[command].First();
-                return (question, buttons);
+                return new WizardResult { Message = question, Buttons = buttons };
             }
             else
             {
@@ -254,36 +263,33 @@ namespace ArkWallet.Infrastructure.Wizard
                 {
                     _logger.LogWarning("Wizard OneStep handler error for user {UserId}, command {Command}: {Error}",
                         userId, command, result.Message);
-                    return (ServerErrorMessage, null);
+                    return new WizardResult { Message = ServerErrorMessage };
                 }
 
-                return (result.Message ?? "Готово!", result.Buttons);
+                return new WizardResult { Message = result.Message ?? "Готово!", Buttons = result.Buttons, SentFilePath = result.SentFilePath };
             }
         }
 
-        private async Task<(string?, List<QuickButton>?)> ContinueCommand(long userId, string input, UserSession session)
+        private async Task<WizardResult> ContinueCommand(long userId, string input, UserSession session)
         {
             var commandSteps = _config.Commands[session.CurrentCommand];
             var currentStep = commandSteps.First(s => s.Name == session.CurrentStep);
 
-            // Выполняем handler
             var result = await currentStep.Handler(session, input);
 
             if (!result.Success)
             {
                 _logger.LogWarning("Wizard step error for user {UserId}, command {Command}, step {Step}: {Error}",
                     userId, session.CurrentCommand, session.CurrentStep, result.Message);
-                return (ServerErrorMessage, currentStep.Buttons);
+                return new WizardResult { Message = ServerErrorMessage, Buttons = currentStep.Buttons };
             }
 
-            // Успех - переходим к следующему шагу
             if (result.NextStep == "completed")
             {
                 _sessionStore.Remove(userId);
-                return (result.Message ?? "Готово!", result.Buttons);
+                return new WizardResult { Message = result.Message ?? "Готово!", Buttons = result.Buttons, SentFilePath = result.SentFilePath };
             }
 
-            // Обновляем шаг и возвращаем следующий вопрос
             session.CurrentStep = result.NextStep;
             var nextStep = commandSteps.First(s => s.Name == result.NextStep);
 
@@ -293,7 +299,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 if (nextStep.Handler == null)
                 {
                     _logger.LogError("Handler not found for step {Step} in command {Command}", result.NextStep, session.CurrentCommand);
-                    return (ServerErrorMessage, null);
+                    return new WizardResult { Message = ServerErrorMessage };
                 }
 
                 var oneStepResult = await nextStep.Handler(session, input);
@@ -302,16 +308,16 @@ namespace ArkWallet.Infrastructure.Wizard
                 {
                     _logger.LogWarning("Wizard OneStep handler error for user {UserId}, command {Command}, step {Step}: {Error}",
                         userId, session.CurrentCommand, result.NextStep, oneStepResult.Message);
-                    return (ServerErrorMessage, null);
+                    return new WizardResult { Message = ServerErrorMessage };
                 }
 
-                return (oneStepResult.Message ?? "Готово!", oneStepResult.Buttons);
+                return new WizardResult { Message = oneStepResult.Message ?? "Готово!", Buttons = oneStepResult.Buttons, SentFilePath = oneStepResult.SentFilePath };
             }
 
             var question = await _questionDecorator.DecorateQuestionAsync(nextStep.Name, nextStep.Question, session);
             var buttons = await _buttonDecorator.DecorateButtonsAsync(nextStep.Name, nextStep.Buttons, session);
 
-            return (question, buttons);
+            return new WizardResult { Message = question, Buttons = buttons };
         }
     }
 }

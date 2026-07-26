@@ -314,25 +314,25 @@ namespace ArkWallet.Infrastructure.Wizard
             return result;
         }
 
-        private async Task<(string?, List<QuickButton>?)> HandleQuickOrderBook(string symbolStr, string buyCountStr, string sellCountStr)
+        private async Task<WizardResult> HandleQuickOrderBook(string symbolStr, string buyCountStr, string sellCountStr)
         {
             var symbol = symbolStr.ToUpper();
 
             if (!int.TryParse(buyCountStr, out var buyCount) || buyCount <= 0)
-                return ("Необходимо ввести положительное целое число для количества покупок.", null);
+                return new WizardResult { Message = "Необходимо ввести положительное целое число для количества покупок." };
 
             if (!int.TryParse(sellCountStr, out var sellCount) || sellCount <= 0)
-                return ("Необходимо ввести положительное целое число для количества продаж.", null);
+                return new WizardResult { Message = "Необходимо ввести положительное целое число для количества продаж." };
 
             var bookResult = await _orderBookService.GetOrderBookAsync(symbol, buyCount, sellCount);
 
             if (!bookResult.TryGetData(out var book))
-                return ($"Ошибка получения стакана: {bookResult.Message}", null);
+                return new WizardResult { Message = $"Ошибка получения стакана: {bookResult.Message}" };
 
             var message = FormatOrderBookMessage(book);
             var buttons = CreateOrderBookRefreshButtons(symbol, buyCount, sellCount);
 
-            return (message, buttons);
+            return new WizardResult { Message = message, Buttons = buttons };
         }
 
         private static List<QuickButton> CreateOrderBookRefreshButtons(string symbol, int buyCount, int sellCount)
@@ -554,41 +554,41 @@ namespace ArkWallet.Infrastructure.Wizard
             };
         }
 
-        private async Task<(string?, List<QuickButton>?)> HandleQuickTrades(long userId, string limitStr)
+        private async Task<WizardResult> HandleQuickTrades(long userId, string limitStr)
         {
             if (!int.TryParse(limitStr, out var limit) || limit <= 0)
-                return (PositiveIntErrorMessage, null);
+                return new WizardResult { Message = PositiveIntErrorMessage };
 
             limit = Math.Clamp(limit, 1, 100);
 
             var tradesResult = await _tradeQueryService.GetTraderTradesAsync(userId, withTokenInfo: true);
             if (!tradesResult.IsSuccess || !tradesResult.TryGetData(out var trades) || trades.Count == 0)
-                return ("У вас пока нет сделок.", null);
+                return new WizardResult { Message = "У вас пока нет сделок." };
 
             var limitedTrades = trades.Take(limit).ToList();
             var message = FormatTradesMessage(limitedTrades);
             var buttons = CreateTradesRefreshButtons(limit);
 
-            return (message, buttons);
+            return new WizardResult { Message = message, Buttons = buttons };
         }
 
-        private async Task<(string?, List<QuickButton>?)> HandleQuickTops(long userId, string limitStr)
+        private async Task<WizardResult> HandleQuickTops(long userId, string limitStr)
         {
             if (!int.TryParse(limitStr, out var limit) || limit <= 0)
-                return (PositiveIntErrorMessage, null);
+                return new WizardResult { Message = PositiveIntErrorMessage };
 
             limit = Math.Clamp(limit, 1, 20);
 
             var (message, error) = await BuildTopMessage(userId, limit);
             if (error != null)
-                return (error, null);
+                return new WizardResult { Message = error };
 
             var buttons = new List<QuickButton>
             {
                 new() { Text = RefreshButtonText, Value = $"/get_tops {limit}" }
             };
 
-            return (message, buttons);
+            return new WizardResult { Message = message, Buttons = buttons };
         }
 
         private async Task<(string? Message, string? Error)> BuildTopMessage(long userId, int limit)

@@ -75,6 +75,16 @@ namespace ArkWallet.Entities.Configurations
                 new() { Name = "request", OneStep = true }
             };
 
+            Commands["/admin_help_trader"] = new List<WizardStep>
+            {
+                new() { Name = "request", OneStep = true }
+            };
+
+            Commands["/admin_help_other"] = new List<WizardStep>
+            {
+                new() { Name = "request", OneStep = true }
+            };
+
             Commands["/admin_bots_activity"] = new List<WizardStep>
             {
                 new() { Name = "select_token", Question = "Select token symbol to view bots:" },
@@ -116,6 +126,86 @@ namespace ArkWallet.Entities.Configurations
                         "  \"telegramId\": 123456789\n" +
                         "}"
                 }
+            };
+
+            Commands["/admin_get_trader_profile"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send JSON to get trader profile:\n\n" +
+                        "{\n" +
+                        "  \"telegramId\": 123456789\n" +
+                        "}"
+                }
+            };
+
+            Commands["/admin_get_trader_orders"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send JSON to get trader orders (all filters optional):\n\n" +
+                        "{\n" +
+                        "  \"telegramId\": 123456789,\n" +
+                        "  \"status\": \"Active|Filled|Cancelled|All\",\n" +
+                        "  \"direction\": \"Buy|Sell|All\"\n" +
+                        "}"
+                }
+            };
+
+            Commands["/admin_get_trader_trades"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send JSON to get trader trades (all filters optional):\n\n" +
+                        "{\n" +
+                        "  \"telegramId\": 123456789,\n" +
+                        "  \"direction\": \"Buy|Sell|All\"\n" +
+                        "}"
+                }
+            };
+
+            Commands["/admin_get_trader_portfolio"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send JSON to get trader portfolio (symbol optional):\n\n" +
+                        "{\n" +
+                        "  \"telegramId\": 123456789,\n" +
+                        "  \"symbol\": \"ARK_001\"  // optional, omit for all\n" +
+                        "}"
+                }
+            };
+
+            Commands["/admin_broadcast"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_message",
+                    Question = "Enter the broadcast message to send to all traders:"
+                },
+                new()
+                {
+                    Name = "confirm",
+                    Question = "Confirm broadcast? Reply 'confirm' to send or 'cancel' to abort.",
+                    Buttons = new List<QuickButton>
+                    {
+                        new() { Text = "Confirm", Value = "confirm" },
+                        new() { Text = "Cancel", Value = "cancel" }
+                    }
+                }
+            };
+
+            Commands["/admin_stats"] = new List<WizardStep>
+            {
+                new() { Name = "set_period", OneStep = true }
             };
         }
     }

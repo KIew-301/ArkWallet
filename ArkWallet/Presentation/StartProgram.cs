@@ -234,6 +234,7 @@ class Program
 
         // Telegram Bot
         services.AddSingleton<TelegramBot>();
+        services.AddSingleton<IMessageSender>(sp => sp.GetRequiredService<TelegramBot>());
 
         // RabbitMQ
         services.AddSingleton<RabbitMQService>();
@@ -297,5 +298,6 @@ class Program
         // Other
         services.AddScoped<ITraderAuthService, TraderAuthService>();
         services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<ITradingVolumeService, TradingVolumeService>();
     }
 }
