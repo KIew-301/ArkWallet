@@ -9,13 +9,62 @@ namespace ArkWallet.Infrastructure.Wizard
     {
         private const string TokenSymbolDataKey = "token_symbol";
 
+        private const string AdminHelpText =
+            "Admin commands help:\n\n" +
+            "1) /admin_create_token\n" +
+            "   Creates a new token.\n" +
+            "   JSON fields:\n" +
+            "     Symbol (string) — token symbol, e.g. \"ARK_001\"\n" +
+            "     Name (string) — token name\n" +
+            "     Rarity (int) — rarity: 1=1star..6=6star\n" +
+            "     StartPrice (decimal) — initial price > 0\n" +
+            "     TotalSupply (int) — total supply > 0\n" +
+            "     IsActive (bool) — active flag\n" +
+            "     ImageUrl (string) — token image URL\n" +
+            "     IconUrl (string) — token icon URL\n\n" +
+            "2) /admin_set_token_to_user\n" +
+            "   Gives tokens to a trader.\n" +
+            "   JSON fields:\n" +
+            "     traderId (long) — Telegram user ID\n" +
+            "     symbolId (string) — token symbol\n" +
+            "     quantity (int) — token amount\n\n" +
+            "3) /admin_add_balance_to_user\n" +
+            "   Adds balance to a trader.\n" +
+            "   JSON fields:\n" +
+            "     traderId (long) — Telegram user ID\n" +
+            "     amount (int) — amount to add\n\n" +
+            "4) /admin_update_token_media\n" +
+            "   Updates token image/icon.\n" +
+            "   JSON fields:\n" +
+            "     symbol (string) — token symbol\n" +
+            "     iconUrl (string) — new icon URL\n" +
+            "     imageUrl (string) — new image URL\n\n" +
+            "5) /admin_bots_activity\n" +
+            "   Shows market maker bots data.\n" +
+            "   First step: select token symbol.\n" +
+            "   Returns JSON list of bots.\n\n" +
+            "6) /admin_bots_reconstruction\n" +
+            "   Updates bot parameters.\n" +
+            "   JSON fields (null = keep current):\n" +
+            "     botId (int) — bot ID (required)\n" +
+            "     basePower (decimal|null) — new base power\n" +
+            "     role (string|null) — \"Buyer\" or \"Seller\"\n" +
+            "     isActive (bool|null) — active flag";
+
         private void ConfigureAdditionHandlers()
         {
             _config.Commands["/admin_create_token"][0].Handler = AdminHandleTokenCreate;
             _config.Commands["/admin_set_token_to_user"][0].Handler = AdminHandleSetTokenToUser;
             _config.Commands["/admin_add_balance_to_user"][0].Handler = AdminHandleAddBalanceToUser;
             _config.Commands["/admin_update_token_media"][0].Handler = AdminHandleUpdateTokenMedia;
+            _config.Commands["/admin_help"][0].Handler = AdminHandleHelp;
+            _config.Commands["/admin_bots_activity"][0].Handler = AdminHandleBotsActivitySelectSymbol;
+            _config.Commands["/admin_bots_activity"][1].Handler = AdminHandleBotsActivityShow;
+            _config.Commands["/admin_bots_reconstruction"][0].Handler = AdminHandleBotsReconstruction;
         }
+
+        private Task<StepResult> AdminHandleHelp(UserSession session, string input)
+            => Task.FromResult(StepResult.Ok("completed", AdminHelpText));
 
         private async Task<StepResult> AdminHandleTokenCreate(UserSession session, string input)
         {
