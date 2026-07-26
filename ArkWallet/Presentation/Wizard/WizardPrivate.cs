@@ -21,7 +21,18 @@ namespace ArkWallet.Infrastructure.Wizard
         {
             try
             {
-                var command = JsonConvert.DeserializeObject<CreateTokenCommand>(input);
+                var rawData = JsonConvert.DeserializeObject<Dictionary<string, object>>(input,
+                    new JsonSerializerSettings { FloatParseHandling = FloatParseHandling.Decimal });
+                if (rawData == null)
+                    return StepResult.Error("Invalid JSON input");
+
+                var normalized = NormalizeKeysToPascalCase(rawData);
+                var normalizedJson = JsonConvert.SerializeObject(normalized);
+                var command = JsonConvert.DeserializeObject<CreateTokenCommand>(normalizedJson);
+
+                if (command == null)
+                    return StepResult.Error("Failed to parse token creation data");
+
                 var result = await _tokenCreationServices.CreateTokenAsync(command);
                 return result.IsSuccess
                     ? StepResult.Ok("completed", "Token create successful")
@@ -32,6 +43,17 @@ namespace ArkWallet.Infrastructure.Wizard
                 Console.WriteLine(ex.StackTrace);
                 return StepResult.Error($"Error: {ex.Message}");
             }
+        }
+
+        private static Dictionary<string, object> NormalizeKeysToPascalCase(Dictionary<string, object> data)
+        {
+            var result = new Dictionary<string, object>(StringComparer.Ordinal);
+            foreach (var kvp in data)
+            {
+                var pascalKey = char.ToUpperInvariant(kvp.Key[0]) + kvp.Key[1..];
+                result[pascalKey] = kvp.Value;
+            }
+            return result;
         }
 
         private async Task<StepResult> AdminHandleSetTokenToUser(UserSession session, string input)
