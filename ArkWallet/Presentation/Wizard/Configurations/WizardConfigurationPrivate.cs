@@ -80,6 +80,11 @@ namespace ArkWallet.Entities.Configurations
                 new() { Name = "request", OneStep = true }
             };
 
+            Commands["/admin_help_token"] = new List<WizardStep>
+            {
+                new() { Name = "request", OneStep = true }
+            };
+
             Commands["/admin_help_other"] = new List<WizardStep>
             {
                 new() { Name = "request", OneStep = true }

@@ -15,8 +15,13 @@ namespace ArkWallet.Infrastructure.Wizard
         private const string TokenSymbolDataKey = "token_symbol";
 
         private const string AdminHelpText =
-            "Admin commands help:\n\n" +
-            "--- Trader Data ---\n" +
+            "Admin commands:\n\n" +
+            "/admin_help_trader — Trader commands\n" +
+            "/admin_help_token — Token commands\n" +
+            "/admin_help_other — Other commands";
+
+        private const string AdminHelpTraderText =
+            "Trader commands:\n\n" +
             "1) /admin_get_trader_profile\n" +
             "   Get trader profile as TXT file.\n" +
             "   JSON: { \"telegramId\": 123456789 }\n\n" +
@@ -33,85 +38,39 @@ namespace ArkWallet.Infrastructure.Wizard
             "   Get trader portfolio as TXT file.\n" +
             "   JSON: { \"telegramId\": 123456789, \"symbol\": \"ARK_001\" }\n" +
             "   symbol: optional, omit for all tokens\n\n" +
-            "--- Token Management ---\n" +
-            "5) /admin_create_token\n" +
-            "   Creates a new token.\n" +
-            "   JSON: { \"symbol\": \"ARK_001\", \"name\": \"Ark Knight\", \"rarity\": 3,\n" +
-            "           \"startPrice\": 100.50, \"totalSupply\": 1000, \"isActive\": true,\n" +
-            "           \"imageUrl\": \"...\", \"iconUrl\": \"...\" }\n\n" +
-            "6) /admin_set_token_to_user\n" +
+            "5) /admin_set_token_to_user\n" +
             "   Gives tokens to a trader.\n" +
             "   JSON: { \"traderId\": 12345, \"symbolId\": \"ARK_001\", \"quantity\": 100 }\n\n" +
-            "7) /admin_add_balance_to_user\n" +
+            "6) /admin_add_balance_to_user\n" +
             "   Adds balance to a trader.\n" +
             "   JSON: { \"traderId\": 12345, \"amount\": 500 }\n\n" +
-            "8) /admin_update_token_media\n" +
-            "   Updates token image/icon.\n" +
-            "   JSON: { \"symbol\": \"ARK_001\", \"iconUrl\": \"...\", \"imageUrl\": \"...\" }\n\n" +
-            "--- Market Maker ---\n" +
-            "9) /admin_bots_activity\n" +
-            "   Shows market maker bots data.\n" +
-            "   Select token symbol, returns bot list.\n\n" +
-            "10) /admin_bots_reconstruction\n" +
-            "    Updates bot parameters.\n" +
-            "    JSON array: [{ \"botId\": 1, \"basePower\": 30, \"role\": \"Buyer\", \"isActive\": true }]\n" +
-            "    null = keep current value\n\n" +
-            "--- System ---\n" +
-            "11) /admin_generate_auth_token\n" +
-            "    Generates JWT auth token for a user (Admin_Main only).\n" +
-            "    JSON: { \"telegramId\": 123456789 }\n\n" +
-            "12) /admin_broadcast\n" +
-            "    Send a message to all registered traders.\n\n" +
-            "13) /admin_stats\n" +
-            "    Show system statistics with volume data.";
+            "7) /admin_generate_auth_token\n" +
+            "   Generates JWT auth token for a user (Admin_Main only).\n" +
+            "   JSON: { \"telegramId\": 123456789 }";
 
-        private const string AdminHelpTraderText =
-            "Admin Trader Data Commands:\n\n" +
-            "1) /admin_get_trader_profile\n" +
-            "   Get trader profile as TXT file.\n" +
-            "   JSON: { \"telegramId\": 123456789 }\n\n" +
-            "2) /admin_get_trader_orders\n" +
-            "   Get trader orders as TXT file.\n" +
-            "   JSON: { \"telegramId\": 123456789, \"status\": \"Active\", \"direction\": \"Buy\" }\n" +
-            "   status: Active|Filled|Cancelled|All (default: All)\n" +
-            "   direction: Buy|Sell|All (default: All)\n\n" +
-            "3) /admin_get_trader_trades\n" +
-            "   Get trader trades as TXT file.\n" +
-            "   JSON: { \"telegramId\": 123456789, \"direction\": \"Buy\" }\n" +
-            "   direction: Buy|Sell|All (default: All)\n\n" +
-            "4) /admin_get_trader_portfolio\n" +
-            "   Get trader portfolio as TXT file.\n" +
-            "   JSON: { \"telegramId\": 123456789, \"symbol\": \"ARK_001\" }\n" +
-            "   symbol: optional, omit for all tokens";
-
-        private const string AdminHelpOtherText =
-            "Admin Other Commands:\n\n" +
+        private const string AdminHelpTokenText =
+            "Token commands:\n\n" +
             "1) /admin_create_token\n" +
             "   Creates a new token.\n" +
             "   JSON: { \"symbol\": \"ARK_001\", \"name\": \"Ark Knight\", \"rarity\": 3,\n" +
             "           \"startPrice\": 100.50, \"totalSupply\": 1000, \"isActive\": true,\n" +
             "           \"imageUrl\": \"...\", \"iconUrl\": \"...\" }\n\n" +
-            "2) /admin_set_token_to_user\n" +
-            "   Gives tokens to a trader.\n" +
-            "   JSON: { \"traderId\": 12345, \"symbolId\": \"ARK_001\", \"quantity\": 100 }\n\n" +
-            "3) /admin_add_balance_to_user\n" +
-            "   Adds balance to a trader.\n" +
-            "   JSON: { \"traderId\": 12345, \"amount\": 500 }\n\n" +
-            "4) /admin_update_token_media\n" +
+            "2) /admin_update_token_media\n" +
             "   Updates token image/icon.\n" +
             "   JSON: { \"symbol\": \"ARK_001\", \"iconUrl\": \"...\", \"imageUrl\": \"...\" }\n\n" +
-            "5) /admin_bots_activity\n" +
+            "3) /admin_bots_activity\n" +
             "   Shows market maker bots data.\n" +
             "   Select token symbol, returns bot list.\n\n" +
-            "6) /admin_bots_reconstruction\n" +
+            "4) /admin_bots_reconstruction\n" +
             "   Updates bot parameters.\n" +
-            "   JSON array: [{ \"botId\": 1, \"basePower\": 30, \"role\": \"Buyer\", \"isActive\": true }]\n\n" +
-            "7) /admin_generate_auth_token\n" +
-            "   Generates JWT auth token for a user (Admin_Main only).\n" +
-            "   JSON: { \"telegramId\": 123456789 }\n\n" +
-            "8) /admin_broadcast\n" +
+            "   JSON array: [{ \"botId\": 1, \"basePower\": 30, \"role\": \"Buyer\", \"isActive\": true }]\n" +
+            "   null = keep current value";
+
+        private const string AdminHelpOtherText =
+            "Other commands:\n\n" +
+            "1) /admin_broadcast\n" +
             "   Send a message to all registered traders.\n\n" +
-            "9) /admin_stats\n" +
+            "2) /admin_stats\n" +
             "   Show system statistics with volume data.";
 
         private void ConfigureAdditionHandlers()
@@ -122,6 +81,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/admin_update_token_media"][0].Handler = AdminHandleUpdateTokenMedia;
             _config.Commands["/admin_help"][0].Handler = AdminHandleHelp;
             _config.Commands["/admin_help_trader"][0].Handler = AdminHandleHelpTrader;
+            _config.Commands["/admin_help_token"][0].Handler = AdminHandleHelpToken;
             _config.Commands["/admin_help_other"][0].Handler = AdminHandleHelpOther;
             _config.Commands["/admin_bots_activity"][0].Handler = AdminHandleBotsActivitySelectSymbol;
             _config.Commands["/admin_bots_activity"][1].Handler = AdminHandleBotsActivityShow;
@@ -141,6 +101,9 @@ namespace ArkWallet.Infrastructure.Wizard
 
         private Task<StepResult> AdminHandleHelpTrader(UserSession session, string input)
             => Task.FromResult(StepResult.Ok("completed", AdminHelpTraderText));
+
+        private Task<StepResult> AdminHandleHelpToken(UserSession session, string input)
+            => Task.FromResult(StepResult.Ok("completed", AdminHelpTokenText));
 
         private Task<StepResult> AdminHandleHelpOther(UserSession session, string input)
             => Task.FromResult(StepResult.Ok("completed", AdminHelpOtherText));
