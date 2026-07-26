@@ -104,6 +104,19 @@ namespace ArkWallet.Entities.Configurations
                         "]"
                 }
             };
+
+            Commands["/admin_generate_auth_token"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send JSON to generate auth token for a user (Admin_Main only):\n\n" +
+                        "{\n" +
+                        "  \"telegramId\": 123456789\n" +
+                        "}"
+                }
+            };
         }
     }
 }

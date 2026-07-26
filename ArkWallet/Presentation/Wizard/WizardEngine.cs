@@ -3,12 +3,14 @@ using ArkWallet.Application.Contracts.Decorators;
 using ArkWallet.Application.Contracts.Leaders;
 using ArkWallet.Application.Contracts.MarketMaker;
 using ArkWallet.Application.Contracts.Orchestrators;
+using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TradeServices;
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Entities.Configurations;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics.CodeAnalysis;
 
@@ -56,6 +58,10 @@ namespace ArkWallet.Infrastructure.Wizard
         // MARKET MAKER
         private readonly IMarketMakerBotQueryService _botQueryService;
 
+        // AUTH
+        private readonly ITokenService _tokenService;
+        private readonly long _primaryAdminId;
+
         // DECORATOR SERVICES
         private readonly IQuestionDecorator _questionDecorator;
         private readonly IButtonDecorator _buttonDecorator;
@@ -81,6 +87,8 @@ namespace ArkWallet.Infrastructure.Wizard
             IBalanceSnapshotService balanceSnapshotService,
             ICandleOrchestrator candleOrchestrator,
             IMarketMakerBotQueryService botQueryService,
+            ITokenService tokenService,
+            IConfiguration configuration,
             IQuestionDecorator questionDecorator,
             IButtonDecorator buttonDecorator,
             WizardConfiguration config
@@ -106,6 +114,8 @@ namespace ArkWallet.Infrastructure.Wizard
             _balanceSnapshotService = balanceSnapshotService;
             _candleOrchestrator = candleOrchestrator;
             _botQueryService = botQueryService;
+            _tokenService = tokenService;
+            _primaryAdminId = long.Parse(configuration["Telegram:AdminId:Main"] ?? "0");
             _questionDecorator = questionDecorator;
             _buttonDecorator = buttonDecorator;
             _config = config;

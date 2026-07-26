@@ -49,7 +49,12 @@ namespace ArkWallet.Infrastructure.Wizard
             "     botId (int) — bot ID (required)\n" +
             "     basePower (decimal|null) — new base power\n" +
             "     role (string|null) — \"Buyer\" or \"Seller\"\n" +
-            "     isActive (bool|null) — active flag";
+            "     isActive (bool|null) — active flag\n\n" +
+            "7) /admin_generate_auth_token\n" +
+            "   Generates JWT auth token for a user.\n" +
+            "   Admin_Main only.\n" +
+            "   JSON fields:\n" +
+            "     telegramId (long) — Telegram user ID";
 
         private void ConfigureAdditionHandlers()
         {
@@ -61,6 +66,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/admin_bots_activity"][0].Handler = AdminHandleBotsActivitySelectSymbol;
             _config.Commands["/admin_bots_activity"][1].Handler = AdminHandleBotsActivityShow;
             _config.Commands["/admin_bots_reconstruction"][0].Handler = AdminHandleBotsReconstruction;
+            _config.Commands["/admin_generate_auth_token"][0].Handler = AdminHandleGenerateAuthToken;
         }
 
         private Task<StepResult> AdminHandleHelp(UserSession session, string input)
@@ -270,6 +276,46 @@ namespace ArkWallet.Infrastructure.Wizard
             };
 
             return (sb.ToString(), buttons);
+        }
+
+        private async Task<StepResult> AdminHandleGenerateAuthToken(UserSession session, string input)
+        {
+            if (session.Id != _primaryAdminId)
+                return StepResult.Error("This command is available to Admin_Main only.");
+
+            try
+            {
+                var tradeData = JsonConvert.DeserializeObject<Dictionary<string, object>>(input);
+                if (tradeData == null || !tradeData.ContainsKey("telegramId"))
+                    return StepResult.Error("Field \"telegramId\" is required.");
+
+                long targetTelegramId = Convert.ToInt64(tradeData["telegramId"]);
+
+                if (targetTelegramId <= 0)
+                    return StepResult.Error("telegramId must be a positive number.");
+
+                var isRegistered = await _traderRegistrationService.CheckTraderAlreadyRegistered(targetTelegramId);
+                if (!isRegistered)
+                {
+                    var regResult = await _traderRegistrationService.RegisterTraderAsync(targetTelegramId, $"User_{targetTelegramId}");
+                    if (!regResult.IsSuccess)
+                        return StepResult.Error($"Failed to register user: {regResult.Message}");
+                }
+
+                var token = _tokenService.GenerateToken(targetTelegramId);
+
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine($"Auth token for user {targetTelegramId}:");
+                sb.AppendLine();
+                sb.AppendLine(token);
+
+                return StepResult.Ok("completed", sb.ToString());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.StackTrace);
+                return StepResult.Error($"Error: {ex.Message}");
+            }
         }
     }
 }
