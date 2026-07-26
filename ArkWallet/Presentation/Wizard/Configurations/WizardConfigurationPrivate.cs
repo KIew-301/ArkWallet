@@ -6,37 +6,104 @@ namespace ArkWallet.Entities.Configurations
     {
         private void ConfigureRegistrationAdditionCommand()
         {
-            var jsonStep = new List<WizardStep>
+            Commands["/admin_create_token"] = new List<WizardStep>
             {
-                new() { Name = "set_options", Question = "json" }
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send JSON to create a token:\n\n" +
+                        "{\n" +
+                        "  \"symbol\": \"ARK_001\",\n" +
+                        "  \"name\": \"Ark Knight\",\n" +
+                        "  \"rarity\": 3,\n" +
+                        "  \"startPrice\": 100.50,\n" +
+                        "  \"totalSupply\": 1000,\n" +
+                        "  \"isActive\": true,\n" +
+                        "  \"imageUrl\": \"https://example.com/image.png\",\n" +
+                        "  \"iconUrl\": \"https://example.com/icon.png\"\n" +
+                        "}"
+                }
             };
 
-            Commands["/admin_create_token"] = jsonStep;
-            Commands["/admin_set_token_to_user"] = jsonStep;
-            Commands["/admin_add_balance_to_user"] = jsonStep;
-            Commands["/admin_update_token_media"] = jsonStep;
+            Commands["/admin_set_token_to_user"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send JSON to give tokens to a trader:\n\n" +
+                        "{\n" +
+                        "  \"traderId\": 12345,\n" +
+                        "  \"symbolId\": \"ARK_001\",\n" +
+                        "  \"quantity\": 100\n" +
+                        "}"
+                }
+            };
 
-            var helpStep = new List<WizardStep>
+            Commands["/admin_add_balance_to_user"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send JSON to add balance to a trader:\n\n" +
+                        "{\n" +
+                        "  \"traderId\": 12345,\n" +
+                        "  \"amount\": 500\n" +
+                        "}"
+                }
+            };
+
+            Commands["/admin_update_token_media"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send JSON to update token image/icon:\n\n" +
+                        "{\n" +
+                        "  \"symbol\": \"ARK_001\",\n" +
+                        "  \"iconUrl\": \"https://example.com/icon.png\",\n" +
+                        "  \"imageUrl\": \"https://example.com/image.png\"\n" +
+                        "}"
+                }
+            };
+
+            Commands["/admin_help"] = new List<WizardStep>
             {
                 new() { Name = "request", OneStep = true }
             };
 
-            Commands["/admin_help"] = helpStep;
-
-            var botsActivitySteps = new List<WizardStep>
+            Commands["/admin_bots_activity"] = new List<WizardStep>
             {
                 new() { Name = "select_token", Question = "Select token symbol to view bots:" },
                 new() { Name = "show_bots", OneStep = true }
             };
 
-            Commands["/admin_bots_activity"] = botsActivitySteps;
-
-            var botsReconstructionStep = new List<WizardStep>
+            Commands["/admin_bots_reconstruction"] = new List<WizardStep>
             {
-                new() { Name = "set_options", Question = "json" }
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send JSON array to update bots (null = keep current):\n\n" +
+                        "[\n" +
+                        "  {\n" +
+                        "    \"botId\": 1,\n" +
+                        "    \"basePower\": 30,\n" +
+                        "    \"role\": \"Buyer\",\n" +
+                        "    \"isActive\": true\n" +
+                        "  },\n" +
+                        "  {\n" +
+                        "    \"botId\": 2,\n" +
+                        "    \"basePower\": null,\n" +
+                        "    \"role\": null,\n" +
+                        "    \"isActive\": false\n" +
+                        "  }\n" +
+                        "]"
+                }
             };
-
-            Commands["/admin_bots_reconstruction"] = botsReconstructionStep;
         }
     }
 }
