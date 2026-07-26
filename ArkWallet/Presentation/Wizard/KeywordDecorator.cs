@@ -41,6 +41,11 @@ namespace ArkWallet.Presentation.Wizard
                     "select_token" => await DecorateTokenQuestion(),
                     _ => baseKeyword
                 },
+                "/admin_bots_activity" => stepName switch
+                {
+                    "select_token" => await DecorateTokenQuestion(),
+                    _ => baseKeyword
+                },
                 _ => baseKeyword
             };
         }

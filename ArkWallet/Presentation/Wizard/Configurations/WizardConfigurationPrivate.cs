@@ -22,6 +22,21 @@ namespace ArkWallet.Entities.Configurations
             };
 
             Commands["/admin_help"] = helpStep;
+
+            var botsActivitySteps = new List<WizardStep>
+            {
+                new() { Name = "select_token", Question = "Select token symbol to view bots:" },
+                new() { Name = "show_bots", OneStep = true }
+            };
+
+            Commands["/admin_bots_activity"] = botsActivitySteps;
+
+            var botsReconstructionStep = new List<WizardStep>
+            {
+                new() { Name = "set_options", Question = "json" }
+            };
+
+            Commands["/admin_bots_reconstruction"] = botsReconstructionStep;
         }
     }
 }

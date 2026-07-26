@@ -1,6 +1,7 @@
 ﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Contracts.Decorators;
 using ArkWallet.Application.Contracts.Leaders;
+using ArkWallet.Application.Contracts.MarketMaker;
 using ArkWallet.Application.Contracts.Orchestrators;
 using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;
@@ -52,6 +53,9 @@ namespace ArkWallet.Infrastructure.Wizard
         // ORCHESTRATORS
         private readonly ICandleOrchestrator _candleOrchestrator;
 
+        // MARKET MAKER
+        private readonly IMarketMakerBotQueryService _botQueryService;
+
         // DECORATOR SERVICES
         private readonly IQuestionDecorator _questionDecorator;
         private readonly IButtonDecorator _buttonDecorator;
@@ -76,6 +80,7 @@ namespace ArkWallet.Infrastructure.Wizard
             ILeadersTopByBalanceQueryService leadersTopByBalanceQueryService,
             IBalanceSnapshotService balanceSnapshotService,
             ICandleOrchestrator candleOrchestrator,
+            IMarketMakerBotQueryService botQueryService,
             IQuestionDecorator questionDecorator,
             IButtonDecorator buttonDecorator,
             WizardConfiguration config
@@ -100,6 +105,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _leadersTopByBalanceQueryService = leadersTopByBalanceQueryService;
             _balanceSnapshotService = balanceSnapshotService;
             _candleOrchestrator = candleOrchestrator;
+            _botQueryService = botQueryService;
             _questionDecorator = questionDecorator;
             _buttonDecorator = buttonDecorator;
             _config = config;
@@ -161,6 +167,15 @@ namespace ArkWallet.Infrastructure.Wizard
                     if (parts.Length == 2)
                     {
                         return await HandleQuickTops(userId, parts[1]);
+                    }
+                }
+
+                if (input.StartsWith("/admin_bots_activity "))
+                {
+                    var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                    {
+                        return await HandleQuickAdminBotsActivity(parts[1]);
                     }
                 }
 

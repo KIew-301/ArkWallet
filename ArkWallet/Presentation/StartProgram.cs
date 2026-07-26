@@ -284,6 +284,7 @@ class Program
 
         // MarketMaker
         services.AddScoped<IMarketMakerBotRegistrationService, MarketMakerBotRegistrationService>();
+        services.AddScoped<IMarketMakerBotQueryService, MarketMakerBotQueryService>();
         services.AddScoped<IMarketMakerOrchestrator, MarketMakerOrchestrator>();
         services.AddScoped<IMarketMakerOrderService, MarketMakerOrderService>();
 

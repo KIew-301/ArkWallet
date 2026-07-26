@@ -155,5 +155,121 @@ namespace ArkWallet.Infrastructure.Wizard
                 return StepResult.Error($"Error: {ex.Message}");
             }
         }
+
+        private async Task<StepResult> AdminHandleBotsActivitySelectSymbol(UserSession session, string input)
+            => await ValidateAndStoreToken(session, input, "show_bots");
+
+        private async Task<StepResult> AdminHandleBotsActivityShow(UserSession session, string input)
+        {
+            var symbol = session.Data[TokenSymbolDataKey]?.ToString();
+            if (string.IsNullOrEmpty(symbol))
+                return StepResult.Ok("completed", "Token not selected.");
+
+            var botsResult = await _botQueryService.GetBotsBySymbolAsync(symbol);
+            if (!botsResult.TryGetData(out var bots) || bots.Count == 0)
+                return StepResult.Ok("completed", $"No bots found for {symbol}.");
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"Bots for {symbol} (count: {bots.Count}):\n");
+
+            foreach (var bot in bots)
+            {
+                sb.AppendLine($"Bot #{bot.Id}:");
+                sb.AppendLine($"  Symbol: {bot.Symbol}");
+                sb.AppendLine($"  TraderId: {bot.TraderId}");
+                sb.AppendLine($"  BasePower: {bot.BasePower}");
+                sb.AppendLine($"  Role: {bot.Role}");
+                sb.AppendLine($"  NextPowerChange: {bot.NextPowerChange:yyyy-MM-dd HH:mm:ss} UTC");
+                sb.AppendLine($"  NextRebalance: {bot.NextRebalance:yyyy-MM-dd HH:mm:ss} UTC");
+                sb.AppendLine($"  IsActive: {bot.IsActive}");
+                sb.AppendLine($"  CreatedAt: {bot.CreatedAt:yyyy-MM-dd HH:mm:ss} UTC");
+                sb.AppendLine();
+            }
+
+            var refreshButton = new List<QuickButton>
+            {
+                new() { Text = "Refresh", Value = $"/admin_bots_activity {symbol}" }
+            };
+
+            var stepResult = StepResult.Ok("completed", sb.ToString());
+            stepResult.Buttons = refreshButton;
+            return stepResult;
+        }
+
+        private async Task<StepResult> AdminHandleBotsReconstruction(UserSession session, string input)
+        {
+            try
+            {
+                var rawData = JsonConvert.DeserializeObject<Dictionary<string, object>[]>(input);
+                if (rawData == null || rawData.Length == 0)
+                    return StepResult.Error("Expected JSON array with at least one bot entry.");
+
+                var messages = new List<string>();
+
+                foreach (var entry in rawData)
+                {
+                    if (!entry.TryGetValue("botId", out var botIdObj))
+                    {
+                        messages.Add("Skipped entry: botId is required");
+                        continue;
+                    }
+
+                    long botId = Convert.ToInt64(botIdObj);
+                    decimal? basePower = entry.TryGetValue("basePower", out var bpObj) && bpObj != null
+                        ? Convert.ToDecimal(bpObj)
+                        : null;
+                    string? role = entry.TryGetValue("role", out var roleObj) && roleObj != null
+                        ? roleObj.ToString()
+                        : null;
+                    bool? isActive = entry.TryGetValue("isActive", out var activeObj) && activeObj != null
+                        ? Convert.ToBoolean(activeObj)
+                        : null;
+
+                    var updateResult = await _botQueryService.UpdateBotAsync(botId, basePower, role, isActive);
+                    messages.Add(updateResult.IsSuccess
+                        ? $"Bot #{botId} updated"
+                        : $"Bot #{botId}: {updateResult.Message}");
+                }
+
+                return StepResult.Ok("completed", string.Join("\n", messages));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.StackTrace);
+                return StepResult.Error($"Error: {ex.Message}");
+            }
+        }
+
+        private async Task<(string?, List<QuickButton>?)> HandleQuickAdminBotsActivity(string symbolStr)
+        {
+            var symbol = symbolStr.ToUpper();
+            var botsResult = await _botQueryService.GetBotsBySymbolAsync(symbol);
+            if (!botsResult.TryGetData(out var bots) || bots.Count == 0)
+                return ($"No bots found for {symbol}.", null);
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"Bots for {symbol} (count: {bots.Count}):\n");
+
+            foreach (var bot in bots)
+            {
+                sb.AppendLine($"Bot #{bot.Id}:");
+                sb.AppendLine($"  Symbol: {bot.Symbol}");
+                sb.AppendLine($"  TraderId: {bot.TraderId}");
+                sb.AppendLine($"  BasePower: {bot.BasePower}");
+                sb.AppendLine($"  Role: {bot.Role}");
+                sb.AppendLine($"  NextPowerChange: {bot.NextPowerChange:yyyy-MM-dd HH:mm:ss} UTC");
+                sb.AppendLine($"  NextRebalance: {bot.NextRebalance:yyyy-MM-dd HH:mm:ss} UTC");
+                sb.AppendLine($"  IsActive: {bot.IsActive}");
+                sb.AppendLine($"  CreatedAt: {bot.CreatedAt:yyyy-MM-dd HH:mm:ss} UTC");
+                sb.AppendLine();
+            }
+
+            var buttons = new List<QuickButton>
+            {
+                new() { Text = "Refresh", Value = $"/admin_bots_activity {symbol}" }
+            };
+
+            return (sb.ToString(), buttons);
+        }
     }
 }
