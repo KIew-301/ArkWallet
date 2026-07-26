@@ -25,7 +25,7 @@ internal class TradingVolumeService(
                 query = query.Where(t => t.BuyerId < BotIdMin || t.BuyerId > BotIdMax)
                              .Where(t => t.SellerId < BotIdMin || t.SellerId > BotIdMax);
 
-            var volume = await query.SumAsync(t => t.Quantity * t.Price);
+            var volume = await query.SumAsync(t => (decimal)t.Quantity * t.Price);
             return Result<decimal>.Ok(volume);
         }, logger, nameof(TradingVolumeService));
     }
@@ -41,7 +41,7 @@ internal class TradingVolumeService(
                 query = query.Where(t => t.BuyerId < BotIdMin || t.BuyerId > BotIdMax)
                              .Where(t => t.SellerId < BotIdMin || t.SellerId > BotIdMax);
 
-            var volume = await query.SumAsync(t => t.Quantity * t.Price);
+            var volume = await query.SumAsync(t => (decimal)t.Quantity * t.Price);
             return Result<decimal>.Ok(volume);
         }, logger, nameof(TradingVolumeService));
     }
@@ -57,13 +57,15 @@ internal class TradingVolumeService(
                 query = query.Where(t => t.BuyerId < BotIdMin || t.BuyerId > BotIdMax)
                              .Where(t => t.SellerId < BotIdMin || t.SellerId > BotIdMax);
 
-            var volumes = await query
-                .GroupBy(t => t.CharacterTokenId)
-                .Select(g => new { Symbol = g.Key, Volume = g.Sum(t => t.Quantity * t.Price) })
-                .OrderByDescending(x => x.Volume)
-                .ToListAsync();
+            var trades = await query.Select(t => new { t.CharacterTokenId, t.Quantity, t.Price }).ToListAsync();
 
-            return Result<List<(string, decimal)>>.Ok(volumes.Select(v => (v.Symbol, v.Volume)).ToList());
+            var volumes = trades
+                .GroupBy(t => t.CharacterTokenId)
+                .Select(g => (Symbol: g.Key, Volume: g.Sum(t => (decimal)t.Quantity * t.Price)))
+                .OrderByDescending(x => x.Volume)
+                .ToList();
+
+            return Result<List<(string, decimal)>>.Ok(volumes);
         }, logger, nameof(TradingVolumeService));
     }
 
