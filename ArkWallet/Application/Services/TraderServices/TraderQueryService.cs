@@ -21,4 +21,22 @@ internal class TraderQueryService(ArkWalletDbContext dbContext, ILogger<TraderQu
             return Result<TraderProfileInfo>.Ok(new TraderProfileInfo(trader.Username ?? "Unknown", trader.Balance));
         }, logger, nameof(TraderQueryService));
     }
+
+    public async Task<Result<List<long>>> GetAllTraderIdsAsync()
+    {
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
+        {
+            var ids = await dbContext.Traders.Select(t => t.TelegramId).ToListAsync();
+            return Result<List<long>>.Ok(ids);
+        }, logger, nameof(TraderQueryService));
+    }
+
+    public async Task<Result<int>> GetTraderCountAsync()
+    {
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
+        {
+            var count = await dbContext.Traders.CountAsync();
+            return Result<int>.Ok(count);
+        }, logger, nameof(TraderQueryService));
+    }
 }

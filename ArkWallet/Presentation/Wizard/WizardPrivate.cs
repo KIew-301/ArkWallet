@@ -611,7 +611,7 @@ namespace ArkWallet.Infrastructure.Wizard
 
             try
             {
-                var tradersResult = await _traderRegistrationService.GetAllTraderIdsAsync();
+                var tradersResult = await _traderQueryService.GetAllTraderIdsAsync();
                 if (!tradersResult.TryGetData(out var traderIds) || traderIds.Count == 0)
                     return StepResult.Error("No traders found.");
 
@@ -646,7 +646,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 if (int.TryParse(input, out var parsed))
                     periodDays = parsed;
 
-                var traderCountResult = await _traderRegistrationService.GetTraderCountAsync();
+                var traderCountResult = await _traderQueryService.GetTraderCountAsync();
                 var totalVolumeResult = await _tradingVolumeService.GetTotalVolumeAsync(periodDays, includeBots: false);
                 var volumePerTokenResult = await _tradingVolumeService.GetVolumePerTokenAsync(periodDays, includeBots: false);
 

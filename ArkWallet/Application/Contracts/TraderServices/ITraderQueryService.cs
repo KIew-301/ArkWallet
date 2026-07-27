@@ -13,6 +13,10 @@ public interface ITraderQueryService
     /// <param name="traderTelegramId">Telegram ID трейдера</param>
     /// <returns>Данные профиля трейдера или null, если трейдер не найден</returns>
     Task<Result<TraderProfileInfo>> GetTraderProfileAsync(long traderTelegramId);
+
+    Task<Result<List<long>>> GetAllTraderIdsAsync();
+
+    Task<Result<int>> GetTraderCountAsync();
 }
 
 /// <summary>

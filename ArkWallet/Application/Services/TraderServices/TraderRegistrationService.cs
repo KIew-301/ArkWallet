@@ -46,22 +46,4 @@ internal class TraderRegistrationService(ArkWalletDbContext dbContext, ILogger<T
         else
             return true;
     }
-
-    public async Task<Result<List<long>>> GetAllTraderIdsAsync()
-    {
-        return await ServiceErrorHandler.ExecuteAsync(async () =>
-        {
-            var ids = await dbContext.Traders.Select(t => t.TelegramId).ToListAsync();
-            return Result<List<long>>.Ok(ids);
-        }, logger, nameof(TraderRegistrationService));
-    }
-
-    public async Task<Result<int>> GetTraderCountAsync()
-    {
-        return await ServiceErrorHandler.ExecuteAsync(async () =>
-        {
-            var count = await dbContext.Traders.CountAsync();
-            return Result<int>.Ok(count);
-        }, logger, nameof(TraderRegistrationService));
-    }
 }

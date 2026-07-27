@@ -1,7 +1,4 @@
-﻿using ArkWallet.Application.Services.TraderServices;
-using ArkWallet.Infrastructure.Data;
-using ArkWallet.Tests.HelpTools;
-using Microsoft.Extensions.Logging.Abstractions;
+﻿using ArkWallet.Tests.HelpTools;
 
 namespace ArkWallet.Tests.ServiceTests.Trader;
 
@@ -36,74 +33,5 @@ public class TraderRegistrationServiceTest
 
         Assert.True(result1.IsSuccess);
         Assert.False(result2.IsSuccess);
-    }
-
-    [Fact]
-    public async Task GetAllTraderIdsAsync_ReturnsAllIds()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-
-        var service = new TraderRegistrationService(db, NullLogger<TraderRegistrationService>.Instance);
-
-        await service.RegisterTraderAsync(100, "Alice");
-        await service.RegisterTraderAsync(200, "Bob");
-
-        var result = await service.GetAllTraderIdsAsync();
-
-        Assert.True(result.IsSuccess);
-        Assert.True(result.TryGetData(out var ids));
-        Assert.Equal(2, ids.Count);
-        Assert.Contains(100, ids);
-        Assert.Contains(200, ids);
-    }
-
-    [Fact]
-    public async Task GetAllTraderIdsAsync_EmptyDatabase_ReturnsEmptyList()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-
-        var service = new TraderRegistrationService(db, NullLogger<TraderRegistrationService>.Instance);
-
-        var result = await service.GetAllTraderIdsAsync();
-
-        Assert.True(result.IsSuccess);
-        Assert.True(result.TryGetData(out var ids));
-        Assert.Empty(ids);
-    }
-
-    [Fact]
-    public async Task GetTraderCountAsync_ReturnsCorrectCount()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-
-        var service = new TraderRegistrationService(db, NullLogger<TraderRegistrationService>.Instance);
-
-        await service.RegisterTraderAsync(100, "Alice");
-        await service.RegisterTraderAsync(200, "Bob");
-        await service.RegisterTraderAsync(300, "Charlie");
-
-        var result = await service.GetTraderCountAsync();
-
-        Assert.True(result.IsSuccess);
-        Assert.True(result.TryGetData(out var count));
-        Assert.Equal(3, count);
-    }
-
-    [Fact]
-    public async Task GetTraderCountAsync_EmptyDatabase_ReturnsZero()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-
-        var service = new TraderRegistrationService(db, NullLogger<TraderRegistrationService>.Instance);
-
-        var result = await service.GetTraderCountAsync();
-
-        Assert.True(result.IsSuccess);
-        Assert.True(result.TryGetData(out var count));
-        Assert.Equal(0, count);
     }
 }

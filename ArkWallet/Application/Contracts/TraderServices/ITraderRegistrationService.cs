@@ -38,9 +38,5 @@ namespace ArkWallet.Application.Contracts.TraderServices
         /// Например, в контроллерах аутентификации для решения: регистрировать нового пользователя или выдавать токен существующему.
         /// </remarks>
         Task<bool> CheckTraderAlreadyRegistered(long telegramId);
-
-        Task<Result<List<long>>> GetAllTraderIdsAsync();
-
-        Task<Result<int>> GetTraderCountAsync();
     }
 }
