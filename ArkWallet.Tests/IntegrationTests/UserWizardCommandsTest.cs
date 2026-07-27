@@ -29,7 +29,10 @@ public class UserWizardCommandsTest : IDisposable
         _engine = _m.Engine;
     }
 
-    public void Dispose() { }
+    public void Dispose()
+    {
+        GC.SuppressFinalize(this);
+    }
 
     private static string Normalize(string s) => s.Replace("\r\n", "\n").Replace("\r", "\n");
 
