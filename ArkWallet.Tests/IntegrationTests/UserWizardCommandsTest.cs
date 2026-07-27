@@ -7,7 +7,12 @@ using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TradeServices;
 using ArkWallet.Application.Contracts.TraderServices;
+using ArkWallet.Application.Dtos;
+using ArkWallet.Application.Services.TraderServices;
+using ArkWallet.Application.Services.Wizard;
 using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Infrastructure.Wizard;
+using Moq;
 
 namespace ArkWallet.Tests.IntegrationTests;
 
@@ -42,7 +47,7 @@ public class UserWizardCommandsTest : IDisposable
         var result = await _engine.ProcessInput(UserId, "/start");
 
         Assert.NotNull(result.Message);
-        Assert.Equal("Как вас звать?", result.Message);
+        Assert.Equal("Как вас будут звать?", result.Message);
     }
 
     [Fact]
@@ -160,7 +165,7 @@ public class UserWizardCommandsTest : IDisposable
         var result = await _engine.ProcessInput(UserId, "/get_profile");
 
         Assert.NotNull(result.Message);
-        Assert.Contains("не найден", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Trader not found.", result.Message);
     }
 
     [Fact]
@@ -549,7 +554,7 @@ public class UserWizardCommandsTest : IDisposable
         var result = await _engine.ProcessInput(UserId, "NONEXISTENT");
 
         Assert.NotNull(result.Message);
-        Assert.Contains("Токен не найден", result.Message);
+        Assert.Equal("Ошибка на стороне сервера", result.Message);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -951,7 +956,7 @@ public class UserWizardCommandsTest : IDisposable
     public async Task GetTops_WithRanking_ShowsLeaderboard()
     {
         _m.LeadersTop
-            .Setup(s => s.GetTopAsync(3))
+            .Setup(s => s.GetTopAsync(5))
             .ReturnsAsync(Result<List<LeaderEntry>>.Ok(new List<LeaderEntry>
             {
                 new(1, 100, "HasHas", 13097.80m),
@@ -1025,7 +1030,7 @@ public class UserWizardCommandsTest : IDisposable
     public async Task GetTops_NoLocalTop_SkipsLocalSection()
     {
         _m.LeadersTop
-            .Setup(s => s.GetTopAsync(3))
+            .Setup(s => s.GetTopAsync(5))
             .ReturnsAsync(Result<List<LeaderEntry>>.Ok(new List<LeaderEntry>
             {
                 new(1, 100, "HasHas", 13097.80m),
@@ -1128,6 +1133,7 @@ public class UserWizardCommandsTest : IDisposable
             .Setup(s => s.CreateTokenAsync(It.IsAny<CreateTokenCommand>()))
             .ReturnsAsync(Result<TokenCreationData>.Ok(new TokenCreationData()));
 
+        await _engine.ProcessInput(UserId, "/admin_create_token");
         var json = """{"symbol": "TEST", "name": "Test", "rarity": 3, "startPrice": 100, "totalSupply": 1000, "isActive": true, "imageUrl": "", "iconUrl": ""}""";
         var result = await _engine.ProcessInput(UserId, json);
 

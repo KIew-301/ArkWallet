@@ -47,7 +47,7 @@ jobs:
             /d:sonar.token="$env:SONAR_TOKEN" `
             /d:sonar.cs.vscoveragexml.reportsPaths="coverage.xml" `
             /d:sonar.sln="ArkWallet.sln" `
-            /d:sonar.exclusions="**/Migrations/*.cs,**/Presentation/DTOs/*.cs,**/Presentation/StartProgram.cs,**/Infrastructure/Data/ArkWalletDbContext.cs,**/Domain/ValueObjects/WizardKit.cs"
+            /d:sonar.exclusions="**/Migrations/*.cs,**/Presentation/DTOs/*.cs,**/Presentation/StartProgram.cs,**/Infrastructure/Data/ArkWalletDbContext.cs,**/Domain/ValueObjects/WizardKit.cs,**/ArkWallet.Tests/**"
           
           dotnet restore ArkWallet.sln
           dotnet restore ArkWallet.sln

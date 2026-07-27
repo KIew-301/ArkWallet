@@ -591,7 +591,8 @@ namespace ArkWallet.Infrastructure.Wizard
 
         private static StepResult WriteTxtAndReturn(string content, string fileName)
         {
-            var tempDir = Path.GetTempPath();
+            var tempDir = Path.Combine(Path.GetTempPath(), "arkwallet");
+            Directory.CreateDirectory(tempDir);
             var filePath = Path.Combine(tempDir, fileName);
             File.WriteAllText(filePath, content);
 
