@@ -1,7 +1,8 @@
-﻿using ArkWallet.Infrastructure.Wizard;
+﻿using ArkWallet.Application.Contracts.Other;
+using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Infrastructure.Wizard;
 using ArkWallet.Presentation.Telegram;
 using Microsoft.Extensions.Configuration;
-using Microsoft.OpenApi.Writers;
 using System.Diagnostics.CodeAnalysis;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
@@ -13,7 +14,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 namespace ArkWallet.Telegram
 {
     [ExcludeFromCodeCoverage(Justification = "Telegram-бот: точка входа Telegram API, зависит от внешнего клиента и polling. Тестируется интеграционно.")]
-    internal partial class TelegramBot(IServiceProvider serviceProvider)
+    internal partial class TelegramBot(IServiceProvider serviceProvider) : IMessageSender
     {
         // Интерфейс для взаимодействия с ботом
         ITelegramBotClient botClient = null!;
@@ -92,13 +93,17 @@ namespace ArkWallet.Telegram
                 await botClient.AnswerCallbackQuery(callbackQuery.Id, cancellationToken: cancellationToken);
 
                 if (callbackData == null) return;
-                var (answer, buttons) = await wizardEngine.ProcessInput(chatId, callbackData);
+                var result = await wizardEngine.ProcessInput(chatId, callbackData);
 
                 if (IsAuthorizedUser(chatId))
                 {
-                    if (buttons != null && buttons.Any())
+                    if (!string.IsNullOrEmpty(result.SentFilePath))
                     {
-                        var inlineButtons = buttons.Select(btn =>
+                        await SendDocumentFromFile(chatId, result.SentFilePath, result.Message, cancellationToken);
+                    }
+                    else if (result.Buttons != null && result.Buttons.Any())
+                    {
+                        var inlineButtons = result.Buttons.Select(btn =>
                             new[] { InlineKeyboardButton.WithCallbackData(btn.Text, btn.Value ?? btn.Text) }
                         );
                         var inlineMarkup = new InlineKeyboardMarkup(inlineButtons);
@@ -106,7 +111,7 @@ namespace ArkWallet.Telegram
                         await botClient.EditMessageText(
                             chatId: chatId,
                             messageId: messageId,
-                            text: answer,
+                            text: result.Message,
                             replyMarkup: inlineMarkup,
                             cancellationToken: cancellationToken
                         );
@@ -116,7 +121,7 @@ namespace ArkWallet.Telegram
                         await botClient.EditMessageText(
                             chatId: chatId,
                             messageId: messageId,
-                            text: answer,
+                            text: result.Message,
                             cancellationToken: cancellationToken
                         );
                     }
@@ -150,20 +155,24 @@ namespace ArkWallet.Telegram
                     using var scope = serviceProvider.CreateScope();
                     var wizardEngine = scope.ServiceProvider.GetRequiredService<WizardEngine>();
 
-                    var (answer, buttons) = await wizardEngine.ProcessInput(chatId, input);
+                    var result = await wizardEngine.ProcessInput(chatId, input);
 
-                    if (string.IsNullOrEmpty(answer)) return;
+                    if (string.IsNullOrEmpty(result.Message)) return;
 
-                    if (buttons != null && buttons.Any())
+                    if (!string.IsNullOrEmpty(result.SentFilePath))
                     {
-                        var inlineButtons = buttons.Select(btn =>
+                        await SendDocumentFromFile(chatId, result.SentFilePath, result.Message, cancellationToken);
+                    }
+                    else if (result.Buttons != null && result.Buttons.Any())
+                    {
+                        var inlineButtons = result.Buttons.Select(btn =>
                             new[] { InlineKeyboardButton.WithCallbackData(btn.Text, btn.Value ?? btn.Text) }
                         );
                         var inlineMarkup = new InlineKeyboardMarkup(inlineButtons);
 
                         await botClient.SendMessage(
                             chatId: chatId,
-                            text: answer,
+                            text: result.Message,
                             replyMarkup: inlineMarkup,
                             cancellationToken: cancellationToken
                         );
@@ -172,7 +181,7 @@ namespace ArkWallet.Telegram
                     {
                         await botClient.SendMessage(
                             chatId: chatId,
-                            text: answer,
+                            text: result.Message,
                             cancellationToken: cancellationToken
                         );
                     }
@@ -183,6 +192,33 @@ namespace ArkWallet.Telegram
                 await botClient.SendMessage(
                     chatId: chatId,
                     text: "Ошибка в системе.",
+                    cancellationToken: cancellationToken
+                );
+            }
+        }
+
+        private async Task SendDocumentFromFile(long chatId, string filePath, string? caption, CancellationToken cancellationToken)
+        {
+            try
+            {
+                using var fileStream = File.OpenRead(filePath);
+                var fileName = Path.GetFileName(filePath);
+
+                await botClient.SendDocument(
+                    chatId: chatId,
+                    document: InputFile.FromStream(fileStream, fileName),
+                    caption: caption,
+                    cancellationToken: cancellationToken
+                );
+
+                File.Delete(filePath);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending file: {ex.Message}");
+                await botClient.SendMessage(
+                    chatId: chatId,
+                    text: caption ?? "Данные получены.",
                     cancellationToken: cancellationToken
                 );
             }

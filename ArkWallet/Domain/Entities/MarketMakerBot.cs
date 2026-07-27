@@ -54,6 +54,24 @@ internal class MarketMakerBot
     {
         NextRebalance = DateTime.UtcNow.AddMinutes(10);
     }
+
+    /// <summary>Устанавливает роль бота</summary>
+    public void SetRole(BotRole role)
+    {
+        Role = role;
+    }
+
+    /// <summary>Устанавливает флаг активности бота</summary>
+    public void SetActive(bool isActive)
+    {
+        IsActive = isActive;
+    }
+
+    /// <summary>Устанавливает мощность напрямую</summary>
+    public void SetBasePower(decimal power)
+    {
+        BasePower = power;
+    }
 }
 
 /// <summary>

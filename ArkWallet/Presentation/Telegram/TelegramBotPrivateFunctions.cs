@@ -1,10 +1,12 @@
-﻿using ArkWallet.Presentation.Telegram;
+﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Contracts.Other;
+using ArkWallet.Presentation.Telegram;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
 namespace ArkWallet.Telegram
 {
-    internal partial class TelegramBot
+    internal partial class TelegramBot : IMessageSender
     {
         // Рабочие Id
         long PAId;
@@ -169,6 +171,23 @@ namespace ArkWallet.Telegram
             catch (Exception ex)
             {
                 Console.WriteLine($"Ошибка отправки: {ex.Message}");
+            }
+        }
+
+        public async Task SendMessageAsync(long chatId, string message)
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            try
+            {
+                await botClient.SendMessage(
+                    chatId: chatId,
+                    text: message,
+                    cancellationToken: cts.Token
+                );
+            }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine("SendMessageAsync timed out");
             }
         }
 
