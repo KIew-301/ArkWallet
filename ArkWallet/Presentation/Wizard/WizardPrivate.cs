@@ -207,33 +207,16 @@ namespace ArkWallet.Infrastructure.Wizard
             if (string.IsNullOrEmpty(symbol))
                 return StepResult.Ok("completed", "Token not selected.");
 
-            var botsResult = await _botQueryService.GetBotsBySymbolAsync(symbol);
-            if (!botsResult.TryGetData(out var bots) || bots.Count == 0)
+            var message = await BuildBotsMessage(symbol);
+            if (message == null)
                 return StepResult.Ok("completed", $"No bots found for {symbol}.");
-
-            var sb = new System.Text.StringBuilder();
-            sb.AppendLine($"Bots for {symbol} (count: {bots.Count}):\n");
-
-            foreach (var bot in bots)
-            {
-                sb.AppendLine($"Bot #{bot.Id}:");
-                sb.AppendLine($"  Symbol: {bot.Symbol}");
-                sb.AppendLine($"  TraderId: {bot.TraderId}");
-                sb.AppendLine($"  BasePower: {bot.BasePower}");
-                sb.AppendLine($"  Role: {bot.Role}");
-                sb.AppendLine($"  NextPowerChange: {bot.NextPowerChange:yyyy-MM-dd HH:mm:ss} UTC");
-                sb.AppendLine($"  NextRebalance: {bot.NextRebalance:yyyy-MM-dd HH:mm:ss} UTC");
-                sb.AppendLine($"  IsActive: {bot.IsActive}");
-                sb.AppendLine($"  CreatedAt: {bot.CreatedAt:yyyy-MM-dd HH:mm:ss} UTC");
-                sb.AppendLine();
-            }
 
             var refreshButton = new List<QuickButton>
             {
                 new() { Text = "Refresh", Value = $"/admin_bots_activity {symbol}" }
             };
 
-            var stepResult = StepResult.Ok("completed", sb.ToString());
+            var stepResult = StepResult.Ok("completed", message);
             stepResult.Buttons = refreshButton;
             return stepResult;
         }
@@ -285,9 +268,23 @@ namespace ArkWallet.Infrastructure.Wizard
         private async Task<WizardResult> HandleQuickAdminBotsActivity(string symbolStr)
         {
             var symbol = symbolStr.ToUpper();
+            var message = await BuildBotsMessage(symbol);
+            if (message == null)
+                return new WizardResult { Message = $"No bots found for {symbol}." };
+
+            var buttons = new List<QuickButton>
+            {
+                new() { Text = "Refresh", Value = $"/admin_bots_activity {symbol}" }
+            };
+
+            return new WizardResult { Message = message, Buttons = buttons };
+        }
+
+        private async Task<string?> BuildBotsMessage(string symbol)
+        {
             var botsResult = await _botQueryService.GetBotsBySymbolAsync(symbol);
             if (!botsResult.TryGetData(out var bots) || bots.Count == 0)
-                return new WizardResult { Message = $"No bots found for {symbol}." };
+                return null;
 
             var sb = new System.Text.StringBuilder();
             sb.AppendLine($"Bots for {symbol} (count: {bots.Count}):\n");
@@ -306,12 +303,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 sb.AppendLine();
             }
 
-            var buttons = new List<QuickButton>
-            {
-                new() { Text = "Refresh", Value = $"/admin_bots_activity {symbol}" }
-            };
-
-            return new WizardResult { Message = sb.ToString(), Buttons = buttons };
+            return sb.ToString();
         }
 
         private async Task<StepResult> AdminHandleGenerateAuthToken(UserSession session, string input)
