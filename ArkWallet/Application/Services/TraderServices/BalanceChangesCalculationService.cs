@@ -47,9 +47,11 @@ internal class BalanceChangesCalculationService(
             if (!currentSnapshotResult.TryGetData(out var currentSnapshot))
                 return Fail(currentSnapshotResult.Message);
 
-            var targetDate = currentSnapshot.dateTimeSnapshot.Date.AddDays(-periodDays);
+            var targetDate = currentSnapshot.dateTimeSnapshot.AddDays(-periodDays);
             var previousSnapshot = await db.BalanceSnapshots
-                .FirstOrDefaultAsync(s => s.TraderId == traderTelegramId && s.SnapshotDateTime.Date >= targetDate);
+                .Where(s => s.TraderId == traderTelegramId && s.SnapshotDateTime <= targetDate)
+                .OrderByDescending(s => s.SnapshotDateTime)
+                .FirstOrDefaultAsync();
 
             var currentBalance = currentSelector(currentSnapshot);
             var previousBalance = previousSnapshot == null

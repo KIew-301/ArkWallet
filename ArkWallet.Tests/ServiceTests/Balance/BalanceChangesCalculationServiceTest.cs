@@ -75,10 +75,10 @@ public class BalanceChangesCalculationServiceTest
         var calculationService = new BalanceChangesCalculationService(db, snapshotService, calculationServicelogger);
 
         await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.SaveBalanceSnapshot(db, 101, 1000, 1000, 0, 0, 0, DateTime.UtcNow.Date.AddDays(-7));
-        await HelpMethods.SaveBalanceSnapshot(db, 101, 1750, 1750, 0, 0, 0, DateTime.UtcNow.Date.AddDays(-3));
-        await HelpMethods.SaveBalanceSnapshot(db, 101, 2500, 2500, 0, 0, 0, DateTime.UtcNow.Date.AddDays(-2));
-        await HelpMethods.SaveBalanceSnapshot(db, 101, 1500, 1500, 0, 0, 0, DateTime.UtcNow.Date.AddDays(-1));
+        await HelpMethods.SaveBalanceSnapshot(db, 101, 1000, 1000, 0, 0, 0, DateTime.UtcNow.AddDays(-7));
+        await HelpMethods.SaveBalanceSnapshot(db, 101, 1750, 1750, 0, 0, 0, DateTime.UtcNow.AddDays(-3));
+        await HelpMethods.SaveBalanceSnapshot(db, 101, 2500, 2500, 0, 0, 0, DateTime.UtcNow.AddDays(-2));
+        await HelpMethods.SaveBalanceSnapshot(db, 101, 1500, 1500, 0, 0, 0, DateTime.UtcNow.AddDays(-1));
         await HelpMethods.GiveMoney(db, 101, 1000);
 
         var result = await calculationService.TakeMainBalanceChanges(101, period);
@@ -168,7 +168,7 @@ public class BalanceChangesCalculationServiceTest
         var calculationService = new BalanceChangesCalculationService(db, snapshotService, calculationServicelogger);
 
         await HelpMethods.RegisterTrader(db, 202);
-        await HelpMethods.SaveBalanceSnapshot(db, 202, 1000, 1000, 0, 0, 0, DateTime.UtcNow.Date.AddDays(-7));
+        await HelpMethods.SaveBalanceSnapshot(db, 202, 1000, 1000, 0, 0, 0, DateTime.UtcNow.AddDays(-7));
         await HelpMethods.GiveMoney(db, 202, 500);
 
         var result = await calculationService.TakeTotalBalanceChanges(202, 7);
