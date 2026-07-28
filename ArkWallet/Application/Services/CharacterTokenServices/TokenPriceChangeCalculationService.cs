@@ -21,8 +21,9 @@ internal class TokenPriceChangeCalculationService(ArkWalletDbContext dbContext, 
             if (token == null)
                 return Fail($"Токен с идентификатором {symbol} не найден");
 
+            var cutoffDate = timeProvider.GetUtcNow().UtcDateTime.AddDays(-periodDays);
             var firstCandleInPeriod = await dbContext.PriceCandles
-                .FirstOrDefaultAsync(c => c.CharacterTokenId == symbol && c.Timestamp >= timeProvider.GetUtcNow().Date.AddDays(-periodDays));
+                .FirstOrDefaultAsync(c => c.CharacterTokenId == symbol && c.Timestamp >= cutoffDate);
 
             if (firstCandleInPeriod == null)
                 return Fail("Истории цены токена не существует");
