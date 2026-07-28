@@ -114,7 +114,7 @@ public class TradingVolumeServiceTest
     }
 
     [Fact]
-    public async Task GetTokenVolumeAsync_IncludeBotsFalse_BuyerBotSellerNonBot_Excludes()
+    public async Task GetTokenVolumeAsync_IncludeBotsFalse_BuyerBotSellerNonBot_Includes()
     {
         var (db, service) = CreateService();
         using (db)
@@ -125,17 +125,33 @@ public class TradingVolumeServiceTest
 
             Assert.True(result.IsSuccess);
             Assert.True(result.TryGetData(out var volume));
-            Assert.Equal(0m, volume);
+            Assert.Equal(500m, volume);
         }
     }
 
     [Fact]
-    public async Task GetTokenVolumeAsync_IncludeBotsFalse_SellerBotBuyerNonBot_Excludes()
+    public async Task GetTokenVolumeAsync_IncludeBotsFalse_SellerBotBuyerNonBot_Includes()
     {
         var (db, service) = CreateService();
         using (db)
         {
             await InsertTrade(db, 10, 101, "ZZZ", quantity: 5, price: 100m);
+
+            var result = await service.GetTokenVolumeAsync("ZZZ", 0, includeBots: false);
+
+            Assert.True(result.IsSuccess);
+            Assert.True(result.TryGetData(out var volume));
+            Assert.Equal(500m, volume);
+        }
+    }
+
+    [Fact]
+    public async Task GetTokenVolumeAsync_IncludeBotsFalse_BothBots_Excludes()
+    {
+        var (db, service) = CreateService();
+        using (db)
+        {
+            await InsertTrade(db, 101, 200, "ZZZ", quantity: 5, price: 100m);
 
             var result = await service.GetTokenVolumeAsync("ZZZ", 0, includeBots: false);
 
