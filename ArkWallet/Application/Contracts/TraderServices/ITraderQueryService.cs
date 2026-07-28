@@ -21,10 +21,16 @@ public interface ITraderQueryService
     Task<Result<List<long>>> GetAllTraderIdsAsync();
 
     /// <summary>
-    /// Возвращает количество зарегистрированных трейдеров
+    /// Возвращает количество зарегистрированных трейдеров (без ботов)
     /// </summary>
     /// <returns>Количество трейдеров</returns>
     Task<Result<int>> GetTraderCountAsync();
+
+    /// <summary>
+    /// Возвращает список всех трейдеров (без ботов) с именем и Telegram ID
+    /// </summary>
+    /// <returns>Список кортежей (Username, TelegramId)</returns>
+    Task<Result<List<(string Username, long TelegramId)>>> GetAllTradersWithoutBotsAsync();
 }
 
 /// <summary>

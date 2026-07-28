@@ -212,6 +212,11 @@ namespace ArkWallet.Entities.Configurations
             {
                 new() { Name = "set_period", OneStep = true }
             };
+
+            Commands["/admin_get_ids"] = new List<WizardStep>
+            {
+                new() { Name = "request", OneStep = true }
+            };
         }
     }
 }

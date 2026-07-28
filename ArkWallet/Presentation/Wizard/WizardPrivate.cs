@@ -67,11 +67,13 @@ namespace ArkWallet.Infrastructure.Wizard
             "   null = keep current value";
 
         private const string AdminHelpOtherText =
-            "Other commands:\n\n" +
-            "1) /admin_broadcast\n" +
-            "   Send a message to all registered traders.\n\n" +
-            "2) /admin_stats\n" +
-            "   Show system statistics with volume data.";
+             "Other commands:\n\n" +
+             "1) /admin_broadcast\n" +
+             "   Send a message to all registered traders.\n\n" +
+             "2) /admin_stats\n" +
+             "   Show system statistics with volume data.\n\n" +
+             "3) /admin_get_ids\n" +
+             "   Get list of all registered traders with Telegram IDs (excluding bots).";
 
         private void ConfigureAdditionHandlers()
         {
@@ -94,6 +96,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/admin_broadcast"][0].Handler = AdminHandleBroadcastSetMessage;
             _config.Commands["/admin_broadcast"][1].Handler = AdminHandleBroadcastConfirm;
             _config.Commands["/admin_stats"][0].Handler = AdminHandleStats;
+            _config.Commands["/admin_get_ids"][0].Handler = AdminHandleGetIds;
         }
 
         private Task<StepResult> AdminHandleHelp(UserSession session, string input)
@@ -693,6 +696,78 @@ namespace ArkWallet.Infrastructure.Wizard
                 Console.WriteLine(ex.StackTrace);
                 return StepResult.Error($"Error: {ex.Message}");
             }
+        }
+
+        private async Task<StepResult> AdminHandleGetIds(UserSession session, string input)
+        {
+            try
+            {
+                var result = await _traderQueryService.GetAllTradersWithoutBotsAsync();
+
+                if (!result.TryGetData(out var traders))
+                    return StepResult.Error("Failed to get trader list.");
+
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("Registered traders (excluding bots):");
+                sb.AppendLine();
+
+                foreach (var (username, telegramId) in traders)
+                    sb.AppendLine($"• {username} — {telegramId}");
+
+                return StepResult.Ok("completed", sb.ToString());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.StackTrace);
+                return StepResult.Error($"Error: {ex.Message}");
+            }
+        }
+
+        private async Task<WizardResult> HandleQuickAdminStats(string periodStr)
+        {
+            var periodDays = 0;
+            if (int.TryParse(periodStr, out var parsed))
+                periodDays = parsed;
+
+            var traderCountResult = await _traderQueryService.GetTraderCountAsync();
+            var totalVolumeResult = await _tradingVolumeService.GetTotalVolumeAsync(periodDays, includeBots: false);
+            var volumePerTokenResult = await _tradingVolumeService.GetVolumePerTokenAsync(periodDays, includeBots: false);
+
+            var sb = new System.Text.StringBuilder();
+            var periodLabel = periodDays == 0 ? "All time" : $"Last {periodDays} days";
+            sb.AppendLine($"=== System Statistics ({periodLabel}) ===");
+            sb.AppendLine();
+
+            if (traderCountResult.TryGetData(out var traderCount))
+                sb.AppendLine($"Registered traders: {traderCount}");
+
+            if (totalVolumeResult.TryGetData(out var totalVolume))
+                sb.AppendLine($"Total volume (no bots): {totalVolume:F2}{Descriptor.CurrencySymbol}");
+
+            sb.AppendLine();
+
+            if (volumePerTokenResult.TryGetData(out var perToken) && perToken.Count > 0)
+            {
+                sb.AppendLine("Volume per token:");
+                foreach (var (symbol, volume) in perToken)
+                    sb.AppendLine($"  {symbol}: {volume:F2}{Descriptor.CurrencySymbol}");
+            }
+            else
+            {
+                sb.AppendLine("No trade data available.");
+            }
+
+            var buttons = new List<QuickButton>
+            {
+                new() { Text = "All", Value = "/admin_stats 0" },
+                new() { Text = "1d", Value = "/admin_stats 1" },
+                new() { Text = "1w", Value = "/admin_stats 7" },
+                new() { Text = "1m", Value = "/admin_stats 30" },
+                new() { Text = "6m", Value = "/admin_stats 180" },
+                new() { Text = "1y", Value = "/admin_stats 365" }
+            };
+
+            return new WizardResult { Message = sb.ToString(), Buttons = buttons };
         }
     }
 }
