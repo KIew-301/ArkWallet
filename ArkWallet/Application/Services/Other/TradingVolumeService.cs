@@ -22,8 +22,8 @@ internal class TradingVolumeService(
 
             query = ApplyPeriodFilter(query, periodDays);
             if (!includeBots)
-                query = query.Where(t => t.BuyerId < BotIdMin || t.BuyerId > BotIdMax)
-                             .Where(t => t.SellerId < BotIdMin || t.SellerId > BotIdMax);
+                query = query.Where(t => (t.BuyerId < BotIdMin || t.BuyerId > BotIdMax)
+                                      || (t.SellerId < BotIdMin || t.SellerId > BotIdMax));
 
             var volume = await query.SumAsync(t => (decimal)t.Quantity * t.Price);
             return Result<decimal>.Ok(volume);
@@ -38,8 +38,8 @@ internal class TradingVolumeService(
 
             query = ApplyPeriodFilter(query, periodDays);
             if (!includeBots)
-                query = query.Where(t => t.BuyerId < BotIdMin || t.BuyerId > BotIdMax)
-                             .Where(t => t.SellerId < BotIdMin || t.SellerId > BotIdMax);
+                query = query.Where(t => (t.BuyerId < BotIdMin || t.BuyerId > BotIdMax)
+                                      || (t.SellerId < BotIdMin || t.SellerId > BotIdMax));
 
             var volume = await query.SumAsync(t => (decimal)t.Quantity * t.Price);
             return Result<decimal>.Ok(volume);
@@ -54,8 +54,8 @@ internal class TradingVolumeService(
 
             query = ApplyPeriodFilter(query, periodDays);
             if (!includeBots)
-                query = query.Where(t => t.BuyerId < BotIdMin || t.BuyerId > BotIdMax)
-                             .Where(t => t.SellerId < BotIdMin || t.SellerId > BotIdMax);
+                query = query.Where(t => (t.BuyerId < BotIdMin || t.BuyerId > BotIdMax)
+                                      || (t.SellerId < BotIdMin || t.SellerId > BotIdMax));
 
             var trades = await query.Select(t => new { t.CharacterTokenId, t.Quantity, t.Price }).ToListAsync();
 
