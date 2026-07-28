@@ -87,9 +87,10 @@ public class TraderQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 100, "Alice");
-        await HelpMethods.RegisterTrader(db, 200, "Bob");
-        await HelpMethods.RegisterTrader(db, 300, "Charlie");
+        await HelpMethods.RegisterTrader(db, 50, "Alice");
+        await HelpMethods.RegisterTrader(db, 1500, "Bob");
+        await HelpMethods.RegisterTrader(db, 2000, "Charlie");
+        await HelpMethods.RegisterTrader(db, 101, "BotOne");
 
         var service = new TraderQueryService(db, NullLogger<TraderQueryService>.Instance);
 
@@ -98,6 +99,24 @@ public class TraderQueryServiceTest
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var count));
         Assert.Equal(3, count);
+    }
+
+    [Fact]
+    public async Task GetTraderCountAsync_OnlyBots_ReturnsZero()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101, "BotOne");
+        await HelpMethods.RegisterTrader(db, 200, "BotTwo");
+
+        var service = new TraderQueryService(db, NullLogger<TraderQueryService>.Instance);
+
+        var result = await service.GetTraderCountAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var count));
+        Assert.Equal(0, count);
     }
 
     [Fact]
@@ -113,5 +132,82 @@ public class TraderQueryServiceTest
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var count));
         Assert.Equal(0, count);
+    }
+
+    [Fact]
+    public async Task GetAllTradersWithoutBotsAsync_ReturnsOnlyRealTraders()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101, "BotOne");
+        await HelpMethods.RegisterTrader(db, 50, "Alice");
+        await HelpMethods.RegisterTrader(db, 1500, "Bob");
+        await HelpMethods.RegisterTrader(db, 2000, "Charlie");
+
+        var service = new TraderQueryService(db, NullLogger<TraderQueryService>.Instance);
+
+        var result = await service.GetAllTradersWithoutBotsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var traders));
+        Assert.Equal(3, traders.Count);
+        Assert.Contains(traders, t => t.Username == "Alice" && t.TelegramId == 50);
+        Assert.Contains(traders, t => t.Username == "Bob" && t.TelegramId == 1500);
+        Assert.Contains(traders, t => t.Username == "Charlie" && t.TelegramId == 2000);
+        Assert.DoesNotContain(traders, t => t.Username == "BotOne");
+    }
+
+    [Fact]
+    public async Task GetAllTradersWithoutBotsAsync_OnlyBots_ReturnsEmpty()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101, "BotOne");
+        await HelpMethods.RegisterTrader(db, 200, "BotTwo");
+
+        var service = new TraderQueryService(db, NullLogger<TraderQueryService>.Instance);
+
+        var result = await service.GetAllTradersWithoutBotsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var traders));
+        Assert.Empty(traders);
+    }
+
+    [Fact]
+    public async Task GetAllTradersWithoutBotsAsync_EmptyDatabase_ReturnsEmpty()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var service = new TraderQueryService(db, NullLogger<TraderQueryService>.Instance);
+
+        var result = await service.GetAllTradersWithoutBotsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var traders));
+        Assert.Empty(traders);
+    }
+
+    [Fact]
+    public async Task GetAllTradersWithoutBotsAsync_TraderWithNoName_ReturnsUnknown()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var trader = ArkWallet.Domain.Entities.Trader.Create(1500, null);
+        db.Traders.Add(trader);
+        await db.SaveChangesAsync();
+
+        var service = new TraderQueryService(db, NullLogger<TraderQueryService>.Instance);
+
+        var result = await service.GetAllTradersWithoutBotsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var traders));
+        Assert.Single(traders);
+        Assert.Equal("Unknown", traders[0].Username);
     }
 }

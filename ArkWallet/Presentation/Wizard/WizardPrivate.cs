@@ -67,11 +67,13 @@ namespace ArkWallet.Infrastructure.Wizard
             "   null = keep current value";
 
         private const string AdminHelpOtherText =
-            "Other commands:\n\n" +
-            "1) /admin_broadcast\n" +
-            "   Send a message to all registered traders.\n\n" +
-            "2) /admin_stats\n" +
-            "   Show system statistics with volume data.";
+             "Other commands:\n\n" +
+             "1) /admin_broadcast\n" +
+             "   Send a message to all registered traders.\n\n" +
+             "2) /admin_stats\n" +
+             "   Show system statistics with volume data.\n\n" +
+             "3) /admin_get_ids\n" +
+             "   Get list of all registered traders with Telegram IDs (excluding bots).";
 
         private void ConfigureAdditionHandlers()
         {
@@ -94,6 +96,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/admin_broadcast"][0].Handler = AdminHandleBroadcastSetMessage;
             _config.Commands["/admin_broadcast"][1].Handler = AdminHandleBroadcastConfirm;
             _config.Commands["/admin_stats"][0].Handler = AdminHandleStats;
+            _config.Commands["/admin_get_ids"][0].Handler = AdminHandleGetIds;
         }
 
         private Task<StepResult> AdminHandleHelp(UserSession session, string input)
@@ -687,6 +690,31 @@ namespace ArkWallet.Infrastructure.Wizard
                 var stepResult = StepResult.Ok("completed", sb.ToString());
                 stepResult.Buttons = buttons;
                 return stepResult;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.StackTrace);
+                return StepResult.Error($"Error: {ex.Message}");
+            }
+        }
+
+        private async Task<StepResult> AdminHandleGetIds(UserSession session, string input)
+        {
+            try
+            {
+                var result = await _traderQueryService.GetAllTradersWithoutBotsAsync();
+
+                if (!result.TryGetData(out var traders))
+                    return StepResult.Error("Failed to get trader list.");
+
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("Registered traders (excluding bots):");
+                sb.AppendLine();
+
+                foreach (var (username, telegramId) in traders)
+                    sb.AppendLine($"• {username} — {telegramId}");
+
+                return StepResult.Ok("completed", sb.ToString());
             }
             catch (Exception ex)
             {

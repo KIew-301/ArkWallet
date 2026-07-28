@@ -1250,4 +1250,42 @@ public class UserWizardCommandsTest : IDisposable
         Assert.Contains("Total volume (no bots): 8000", result.Message);
         Assert.NotNull(result.Buttons);
     }
+
+    [Fact]
+    public async Task AdminGetIds_ShowsTraderList()
+    {
+        var traders = new List<(string Username, long TelegramId)>
+        {
+            ("Alice", 101),
+            ("Bob", 200),
+            ("Charlie", 1500)
+        };
+
+        _m.TraderQuery
+            .Setup(s => s.GetAllTradersWithoutBotsAsync())
+            .ReturnsAsync(Result<List<(string Username, long TelegramId)>>.Ok(traders));
+
+        var result = await _engine.ProcessInput(UserId, "/admin_get_ids");
+
+        Assert.NotNull(result.Message);
+        Assert.Contains("Alice", result.Message);
+        Assert.Contains("101", result.Message);
+        Assert.Contains("Bob", result.Message);
+        Assert.Contains("200", result.Message);
+        Assert.Contains("Charlie", result.Message);
+        Assert.Contains("1500", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminGetIds_Error_ShowsErrorMessage()
+    {
+        _m.TraderQuery
+            .Setup(s => s.GetAllTradersWithoutBotsAsync())
+            .ReturnsAsync(Result<List<(string Username, long TelegramId)>>.Fail("DB error"));
+
+        var result = await _engine.ProcessInput(UserId, "/admin_get_ids");
+
+        Assert.NotNull(result.Message);
+        Assert.Contains("Ошибка", result.Message);
+    }
 }
