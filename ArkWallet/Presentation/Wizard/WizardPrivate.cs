@@ -694,5 +694,52 @@ namespace ArkWallet.Infrastructure.Wizard
                 return StepResult.Error($"Error: {ex.Message}");
             }
         }
+
+        private async Task<WizardResult> HandleQuickAdminStats(string periodStr)
+        {
+            var periodDays = 0;
+            if (int.TryParse(periodStr, out var parsed))
+                periodDays = parsed;
+
+            var traderCountResult = await _traderQueryService.GetTraderCountAsync();
+            var totalVolumeResult = await _tradingVolumeService.GetTotalVolumeAsync(periodDays, includeBots: false);
+            var volumePerTokenResult = await _tradingVolumeService.GetVolumePerTokenAsync(periodDays, includeBots: false);
+
+            var sb = new System.Text.StringBuilder();
+            var periodLabel = periodDays == 0 ? "All time" : $"Last {periodDays} days";
+            sb.AppendLine($"=== System Statistics ({periodLabel}) ===");
+            sb.AppendLine();
+
+            if (traderCountResult.TryGetData(out var traderCount))
+                sb.AppendLine($"Registered traders: {traderCount}");
+
+            if (totalVolumeResult.TryGetData(out var totalVolume))
+                sb.AppendLine($"Total volume (no bots): {totalVolume:F2}{Descriptor.CurrencySymbol}");
+
+            sb.AppendLine();
+
+            if (volumePerTokenResult.TryGetData(out var perToken) && perToken.Count > 0)
+            {
+                sb.AppendLine("Volume per token:");
+                foreach (var (symbol, volume) in perToken)
+                    sb.AppendLine($"  {symbol}: {volume:F2}{Descriptor.CurrencySymbol}");
+            }
+            else
+            {
+                sb.AppendLine("No trade data available.");
+            }
+
+            var buttons = new List<QuickButton>
+            {
+                new() { Text = "All", Value = "/admin_stats 0" },
+                new() { Text = "1d", Value = "/admin_stats 1" },
+                new() { Text = "1w", Value = "/admin_stats 7" },
+                new() { Text = "1m", Value = "/admin_stats 30" },
+                new() { Text = "6m", Value = "/admin_stats 180" },
+                new() { Text = "1y", Value = "/admin_stats 365" }
+            };
+
+            return new WizardResult { Message = sb.ToString(), Buttons = buttons };
+        }
     }
 }

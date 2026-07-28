@@ -1170,4 +1170,84 @@ public class UserWizardCommandsTest : IDisposable
         Assert.NotNull(result.Message);
         Assert.Contains("telegramId", result.Message);
     }
+
+    [Fact]
+    public async Task AdminStats_ShowsStatistics()
+    {
+        _m.TraderQuery
+            .Setup(s => s.GetTraderCountAsync())
+            .ReturnsAsync(Result<int>.Ok(5));
+
+        _m.TradingVolume
+            .Setup(s => s.GetTotalVolumeAsync(0, false))
+            .ReturnsAsync(Result<decimal>.Ok(15000m));
+
+        _m.TradingVolume
+            .Setup(s => s.GetVolumePerTokenAsync(0, false))
+            .ReturnsAsync(Result<List<(string, decimal)>>.Ok(
+                new List<(string, decimal)> { ("ZZZ", 10000m), ("YYY", 5000m) }));
+
+        var result = await _engine.ProcessInput(UserId, "/admin_stats");
+
+        Assert.NotNull(result.Message);
+        Assert.Contains("System Statistics", result.Message);
+        Assert.Contains("All time", result.Message);
+        Assert.Contains("Registered traders: 5", result.Message);
+        Assert.Contains("Total volume (no bots): 15000", result.Message);
+        Assert.Contains("Volume per token:", result.Message);
+        Assert.Contains("ZZZ", result.Message);
+        Assert.Contains("YYY", result.Message);
+        Assert.NotNull(result.Buttons);
+        Assert.Contains(result.Buttons, b => b.Value == "/admin_stats 0");
+        Assert.Contains(result.Buttons, b => b.Value == "/admin_stats 1");
+        Assert.Contains(result.Buttons, b => b.Value == "/admin_stats 7");
+        Assert.Contains(result.Buttons, b => b.Value == "/admin_stats 30");
+        Assert.Contains(result.Buttons, b => b.Value == "/admin_stats 180");
+        Assert.Contains(result.Buttons, b => b.Value == "/admin_stats 365");
+    }
+
+    [Fact]
+    public async Task AdminStats_NoTradeData_ShowsNoDataMessage()
+    {
+        _m.TraderQuery
+            .Setup(s => s.GetTraderCountAsync())
+            .ReturnsAsync(Result<int>.Ok(3));
+
+        _m.TradingVolume
+            .Setup(s => s.GetTotalVolumeAsync(0, false))
+            .ReturnsAsync(Result<decimal>.Ok(0m));
+
+        _m.TradingVolume
+            .Setup(s => s.GetVolumePerTokenAsync(0, false))
+            .ReturnsAsync(Result<List<(string, decimal)>>.Ok(new List<(string, decimal)>()));
+
+        var result = await _engine.ProcessInput(UserId, "/admin_stats");
+
+        Assert.NotNull(result.Message);
+        Assert.Contains("No trade data available", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminStats_QuickPath_ReturnsStatsForPeriod()
+    {
+        _m.TraderQuery
+            .Setup(s => s.GetTraderCountAsync())
+            .ReturnsAsync(Result<int>.Ok(5));
+
+        _m.TradingVolume
+            .Setup(s => s.GetTotalVolumeAsync(7, false))
+            .ReturnsAsync(Result<decimal>.Ok(8000m));
+
+        _m.TradingVolume
+            .Setup(s => s.GetVolumePerTokenAsync(7, false))
+            .ReturnsAsync(Result<List<(string, decimal)>>.Ok(new List<(string, decimal)> { ("ZZZ", 8000m) }));
+
+        var result = await _engine.ProcessInput(UserId, "/admin_stats 7");
+
+        Assert.NotNull(result.Message);
+        Assert.Contains("System Statistics", result.Message);
+        Assert.Contains("Last 7 days", result.Message);
+        Assert.Contains("Total volume (no bots): 8000", result.Message);
+        Assert.NotNull(result.Buttons);
+    }
 }

@@ -199,6 +199,15 @@ namespace ArkWallet.Infrastructure.Wizard
                     }
                 }
 
+                if (input.StartsWith("/admin_stats "))
+                {
+                    var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                    {
+                        return await HandleQuickAdminStats(parts[1]);
+                    }
+                }
+
                 if (_config.Commands.ContainsKey(input))
                 {
                     return await StartCommand(userId, input);
