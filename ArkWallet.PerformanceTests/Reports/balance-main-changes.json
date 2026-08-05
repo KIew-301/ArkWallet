@@ -1,0 +1,39 @@
+{
+  "Scenario": "balance-main-changes",
+  "Timestamp": "2026-08-05T08:54:51.4517983Z",
+  "QueryBudget": 5,
+  "SaveChangesBudget": 2147483647,
+  "Perf": {
+    "Steps": [
+      {
+        "Name": "TakeMainBalanceChanges",
+        "Ms": 134.126,
+        "Queries": 3
+      }
+    ],
+    "TotalMs": 134.154,
+    "TotalQueries": 3
+  },
+  "Queries": {
+    "Count": 3,
+    "TotalMs": 0.3824,
+    "TopHeavy": [
+      {
+        "CommandText": "SELECT \u0022t1\u0022.\u0022TelegramId\u0022, \u0022t1\u0022.\u0022Balance\u0022, \u0022t1\u0022.\u0022JoinedAt\u0022, \u0022t1\u0022.\u0022NotificationOn\u0022, \u0022t1\u0022.\u0022Username\u0022, \u0022p\u0022.\u0022Id\u0022, \u0022p\u0022.\u0022AcquiredAt\u0022, \u0022p\u0022.\u0022AverageBuyPrice\u0022, \u0022p\u0022.\u0022AverageReservePrice\u0022, \u0022p\u0022.\u0022AverageSellPrice\u0022, \u0022p\u0022.\u0022CharacterTokenId\u0022, \u0022p\u0022.\u0022Quantity\u0022, \u0022p\u0022.\u0022ReserveQuantity\u0022, \u0022p\u0022.\u0022SellingQuantity\u0022, \u0022p\u0022.\u0022TraderTelegramId\u0022, \u0022t0\u0022.\u0022Id\u0022, \u0022t0\u0022.\u0022AverageExecutePrice\u0022, \u0022t0\u0022.\u0022CharacterTokenId\u0022, \u0022t0\u0022.\u0022CreatedAt\u0022, \u0022t0\u0022.\u0022ExecutedAt\u0022, \u0022t0\u0022.\u0022FilledQuantity\u0022, \u0022t0\u0022.\u0022Price\u0022, \u0022t0\u0022.\u0022Quantity\u0022, \u0022t0\u0022.\u0022Status\u0022, \u0022t0\u0022.\u0022TraderTelegramId\u0022, \u0022t0\u0022.\u0022Type\u0022\r\nFROM (\r\n    SELECT \u0022t\u0022.\u0022TelegramId\u0022, \u0022t\u0022.\u0022Balance\u0022, \u0022t\u0022.\u0022JoinedAt\u0022, \u0022t\u0022.\u0022NotificationOn\u0022, \u0022t\u0022.\u0022Username\u0022\r\n    FROM \u0022Traders\u0022 AS \u0022t\u0022\r\n    WHERE \u0022t\u0022.\u0022TelegramId\u0022 = @__traderTelegramId_0\r\n    LIMIT 1\r\n) AS \u0022t1\u0022\r\nLEFT JOIN \u0022PortfolioItems\u0022 AS \u0022p\u0022 ON \u0022t1\u0022.\u0022TelegramId\u0022 = \u0022p\u0022.\u0022TraderTelegramId\u0022\r\nLEFT JOIN \u0022TradeOrders\u0022 AS \u0022t0\u0022 ON \u0022t1\u0022.\u0022TelegramId\u0022 = \u0022t0\u0022.\u0022TraderTelegramId\u0022\r\nORDER BY \u0022t1\u0022.\u0022TelegramId\u0022, \u0022p\u0022.\u0022Id\u0022",
+        "Count": 1,
+        "TotalMs": 0.1962
+      },
+      {
+        "CommandText": "SELECT \u0022c\u0022.\u0022Symbol\u0022, \u0022c\u0022.\u0022CreatedAt\u0022, \u0022c\u0022.\u0022CurrentPrice\u0022, \u0022c\u0022.\u0022IconUrl\u0022, \u0022c\u0022.\u0022ImageUrl\u0022, \u0022c\u0022.\u0022IsActive\u0022, \u0022c\u0022.\u0022Name\u0022, \u0022c\u0022.\u0022Rarity\u0022, \u0022c\u0022.\u0022TotalSupply\u0022\r\nFROM \u0022CharacterTokens\u0022 AS \u0022c\u0022\r\nWHERE \u0022c\u0022.\u0022Symbol\u0022 IN (\r\n    SELECT \u0022a\u0022.\u0022value\u0022\r\n    FROM json_each(@__activeSymbols_0) AS \u0022a\u0022\r\n)",
+        "Count": 1,
+        "TotalMs": 0.1286
+      },
+      {
+        "CommandText": "SELECT \u0022b\u0022.\u0022Id\u0022, \u0022b\u0022.\u0022BalanceInTokens\u0022, \u0022b\u0022.\u0022LongOrderReserveBalance\u0022, \u0022b\u0022.\u0022MainBalance\u0022, \u0022b\u0022.\u0022ShortOrderReserveBalance\u0022, \u0022b\u0022.\u0022SnapshotDateTime\u0022, \u0022b\u0022.\u0022TotalBalance\u0022, \u0022b\u0022.\u0022TraderId\u0022\r\nFROM \u0022BalanceSnapshots\u0022 AS \u0022b\u0022\r\nWHERE \u0022b\u0022.\u0022TraderId\u0022 = @__traderTelegramId_0 AND \u0022b\u0022.\u0022SnapshotDateTime\u0022 \u003C= @__targetDate_1\r\nORDER BY \u0022b\u0022.\u0022SnapshotDateTime\u0022 DESC\r\nLIMIT 1",
+        "Count": 1,
+        "TotalMs": 0.0576
+      }
+    ]
+  },
+  "SaveChanges": 0
+}
