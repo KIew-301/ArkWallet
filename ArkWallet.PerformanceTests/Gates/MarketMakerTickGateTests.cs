@@ -10,13 +10,16 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ArkWallet.PerformanceTests.Gates;
 
+[Collection("Perf")]
 public class MarketMakerTickGateTests
 {
     [Theory]
-    [InlineData(10, 6000, 600)]
-    [InlineData(20, 12000, 1200)]
-    public async Task ProcessBotsAsync_WithTokens_StaysWithinQueryBudget(int tokenCount, int budget, int saveChangesBudget)
+    [InlineData(10, "market-maker-tick-10t")]
+    [InlineData(20, "market-maker-tick-20t")]
+    public async Task ProcessBotsAsync_WithTokens_StaysWithinQueryBudget(int tokenCount, string scenario)
     {
+        var budget = BudgetFor(tokenCount);
+        await WarmUpAsync();
         var counter = new QueryCounter();
         var saveChangesCounter = new SaveChangesCounter();
         using var db = PerfDb.CreateDbContext(counter, saveChangesCounter);
@@ -34,13 +37,20 @@ public class MarketMakerTickGateTests
             Assert.True(result.IsSuccess, result.Message);
         }
 
-        GateAssert.QueryBudget(
-            $"market-maker-tick-{tokenCount}t",
-            budget,
-            counter,
-            scope,
-            saveChangesBudget: saveChangesBudget,
-            saveChangesCounter: saveChangesCounter);
+        GateAssert.QueryBudget(scenario, budget, counter, scope, saveChangesCounter);
+    }
+
+    private static Budget BudgetFor(int tokenCount)
+        => tokenCount == 20 ? GateBudgets.MarketMakerTick20T : GateBudgets.MarketMakerTick10T;
+
+    private static async Task WarmUpAsync()
+    {
+        await PerfWarmup.WithDbAsync(async warmupDb =>
+        {
+            await GatesSeed.SeedMarketMakerScenarioAsync(warmupDb, 1);
+            var warmupOrchestrator = BuildOrchestrator(warmupDb);
+            await warmupOrchestrator.ProcessBotsAsync();
+        });
     }
 
     private static MarketMakerOrchestrator BuildOrchestrator(ArkWalletDbContext db)

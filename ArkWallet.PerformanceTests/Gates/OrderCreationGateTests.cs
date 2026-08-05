@@ -9,10 +9,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ArkWallet.PerformanceTests.Gates;
 
+[Collection("Perf")]
 public class OrderCreationGateTests
 {
-    private const int BuyBudget = 10;
-    private const int SellBudget = 11;
     private const string Symbol = "TKN000";
 
     private static async Task<ArkWalletDbContext> CreateSeededDbAsync(QueryCounter counter)
@@ -41,9 +40,23 @@ public class OrderCreationGateTests
             NullLogger<OrderCreationService>.Instance);
     }
 
+    private static async Task WarmUpAsync()
+    {
+        await PerfWarmup.WithDbAsync(async warmupDb =>
+        {
+            await GatesSeed.SeedTraderAsync(warmupDb, 102, 100_000_000m);
+            await GatesSeed.SeedTokenCatalogAsync(warmupDb, 1);
+            await GatesSeed.SeedTraderPortfolioAsync(warmupDb, 102, Symbol, 1_000_000);
+
+            var warmupService = BuildService(warmupDb);
+            await warmupService.CreateOrderAsync(new CreateOrderCommand(102, "купить", Symbol, 10, 1000m));
+        });
+    }
+
     [Fact]
     public async Task CreateBuyOrder_StaysWithinQueryBudget()
     {
+        await WarmUpAsync();
         var counter = new QueryCounter();
         using var db = await CreateSeededDbAsync(counter);
 
@@ -57,12 +70,13 @@ public class OrderCreationGateTests
             Assert.True(result.IsSuccess, result.Message);
         }
 
-        GateAssert.QueryBudget("order-create-buy", BuyBudget, counter, scope);
+        GateAssert.QueryBudget("order-create-buy", GateBudgets.OrderCreateBuy, counter, scope);
     }
 
     [Fact]
     public async Task CreateSellOrder_StaysWithinQueryBudget()
     {
+        await WarmUpAsync();
         var counter = new QueryCounter();
         using var db = await CreateSeededDbAsync(counter);
 
@@ -76,6 +90,6 @@ public class OrderCreationGateTests
             Assert.True(result.IsSuccess, result.Message);
         }
 
-        GateAssert.QueryBudget("order-create-sell", SellBudget, counter, scope);
+        GateAssert.QueryBudget("order-create-sell", GateBudgets.OrderCreateSell, counter, scope);
     }
 }

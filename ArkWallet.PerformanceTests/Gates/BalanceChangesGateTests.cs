@@ -6,9 +6,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ArkWallet.PerformanceTests.Gates;
 
+[Collection("Perf")]
 public class BalanceChangesGateTests
 {
-    private const int PerCallBudget = 5;
     private const string TraderSymbol = "TKN000";
 
     private static async Task<ArkWalletDbContext> CreateSeededDbAsync(QueryCounter counter)
@@ -38,6 +38,8 @@ public class BalanceChangesGateTests
         using var db = await CreateSeededDbAsync(counter);
 
         var service = BuildService(db);
+
+        await PerfWarmup.RunAsync(async () => await service.TakeMainBalanceChanges(101, 1));
         counter.Reset();
 
         using var scope = new PerfScope(counter);
@@ -47,7 +49,7 @@ public class BalanceChangesGateTests
             Assert.True(result.IsSuccess, result.Message);
         }
 
-        GateAssert.QueryBudget("balance-main-changes", PerCallBudget, counter, scope);
+        GateAssert.QueryBudget("balance-main-changes", GateBudgets.BalanceMainChanges, counter, scope);
     }
 
     [Fact]
@@ -57,6 +59,8 @@ public class BalanceChangesGateTests
         using var db = await CreateSeededDbAsync(counter);
 
         var service = BuildService(db);
+
+        await PerfWarmup.RunAsync(async () => await service.TakeTotalBalanceChanges(101, 1));
         counter.Reset();
 
         using var scope = new PerfScope(counter);
@@ -66,6 +70,6 @@ public class BalanceChangesGateTests
             Assert.True(result.IsSuccess, result.Message);
         }
 
-        GateAssert.QueryBudget("balance-total-changes", PerCallBudget, counter, scope);
+        GateAssert.QueryBudget("balance-total-changes", GateBudgets.BalanceTotalChanges, counter, scope);
     }
 }

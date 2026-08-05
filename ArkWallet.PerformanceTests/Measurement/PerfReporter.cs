@@ -6,20 +6,31 @@ public sealed record GateReport(
     string Scenario,
     DateTime Timestamp,
     int QueryBudget,
-    int SaveChangesBudget,
+    int TimeBudget,
+    int? SaveChangesBudget,
     PerfReport Perf,
     QuerySnapshot Queries,
-    int SaveChanges);
+    int SaveChanges,
+    IReadOnlyDictionary<string, string>? Conditions = null);
 
 internal static class PerfReporter
 {
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+
     public static string ReportsDirectory { get; } = FindReportsDirectory();
+
+    public static string ArchiveDirectory => Path.Combine(ReportsDirectory, "archive");
 
     public static void Save(GateReport report)
     {
         Directory.CreateDirectory(ReportsDirectory);
-        var path = Path.Combine(ReportsDirectory, $"{report.Scenario}.json");
-        File.WriteAllText(path, JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
+        var json = JsonSerializer.Serialize(report, JsonOptions);
+        File.WriteAllText(Path.Combine(ReportsDirectory, $"{report.Scenario}.json"), json);
+
+        Directory.CreateDirectory(ArchiveDirectory);
+        File.WriteAllText(
+            Path.Combine(ArchiveDirectory, $"{report.Scenario}-{report.Timestamp:yyyyMMdd-HHmmss-fff}.json"),
+            json);
     }
 
     private static string FindReportsDirectory()

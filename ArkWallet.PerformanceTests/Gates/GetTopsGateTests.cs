@@ -7,10 +7,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ArkWallet.PerformanceTests.Gates;
 
+[Collection("Perf")]
 public class GetTopsGateTests
 {
     private const int TraderCount = 50;
-    private const int QueryBudget = 110;
 
     [Fact]
     public async Task GetTopAsync_With50Traders_StaysWithinQueryBudget()
@@ -23,6 +23,7 @@ public class GetTopsGateTests
         var snapshotService = new BalanceSnapshotService(db, NullLogger<BalanceSnapshotService>.Instance);
         var service = new LeadersTopByBalanceQueryService(db, snapshotService, NullLogger<LeadersTopByBalanceQueryService>.Instance);
 
+        await PerfWarmup.RunAsync(async () => await service.GetTopAsync(10));
         counter.Reset();
 
         using var scope = new PerfScope(counter);
@@ -32,6 +33,6 @@ public class GetTopsGateTests
             Assert.True(result.IsSuccess, result.Message);
         }
 
-        GateAssert.QueryBudget("leaders-top-50t", QueryBudget, counter, scope);
+        GateAssert.QueryBudget("leaders-top-50t", GateBudgets.LeadersTop50T, counter, scope);
     }
 }

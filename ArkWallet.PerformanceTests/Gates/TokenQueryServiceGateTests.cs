@@ -7,10 +7,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ArkWallet.PerformanceTests.Gates;
 
+[Collection("Perf")]
 public class TokenQueryServiceGateTests
 {
     private const int TokenCount = 50;
-    private const int QueryBudget = 110;
 
     [Fact]
     public async Task GetAllActiveTokensAsync_With50Tokens_StaysWithinQueryBudget()
@@ -24,6 +24,7 @@ public class TokenQueryServiceGateTests
             db, NullLogger<TokenPriceChangeCalculationService>.Instance, TimeProvider.System);
         var service = new TokenQueryService(db, priceChangeService, NullLogger<TokenQueryService>.Instance);
 
+        await PerfWarmup.RunAsync(async () => await service.GetAllActiveTokensAsync());
         counter.Reset();
 
         using var scope = new PerfScope(counter);
@@ -35,6 +36,6 @@ public class TokenQueryServiceGateTests
             Assert.Equal(TokenCount, data.Count);
         }
 
-        GateAssert.QueryBudget("token-query-50t", QueryBudget, counter, scope);
+        GateAssert.QueryBudget("token-query-50t", GateBudgets.TokenQuery50T, counter, scope);
     }
 }
