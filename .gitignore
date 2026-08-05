@@ -272,10 +272,10 @@ ServiceFabricBackup/
 # SQLite database files
 *.db
 
-# Local plan files
-PLAN.md
-ORDER.md
-CONTEXT.md
+# Local docs for commit and PR conventions (CONTRIBUTING.md, ORDER.md, CONTEXT.md, PLAN.md)
+.docs/
+
+# Environment
 .env.server
 
 # Debug scripts
