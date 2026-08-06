@@ -49,6 +49,8 @@ class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        var isTesting = builder.Environment.EnvironmentName == "Testing";
+
         builder.Services.AddLogging(builder => builder.AddConsole());
 
         builder.Services.AddCors(options =>
@@ -173,9 +175,12 @@ class Program
         RegisterServices(builder.Services);
 
         // Background Services
-        builder.Services.AddHostedService<MarketMakerWorker>();
-        builder.Services.AddHostedService<NotificationWorker>();
-        builder.Services.AddHostedService<BalanceSavingSnapshotWorker>();
+        if (!isTesting)
+        {
+            builder.Services.AddHostedService<MarketMakerWorker>();
+            builder.Services.AddHostedService<NotificationWorker>();
+            builder.Services.AddHostedService<BalanceSavingSnapshotWorker>();
+        }
 
         var app = builder.Build();
 
@@ -196,27 +201,30 @@ class Program
         app.MapControllers();
 
         // Применение миграций
-        using (var scope = app.Services.CreateScope())
+        if (!isTesting)
         {
-            var db = scope.ServiceProvider.GetRequiredService<ArkWalletDbContext>();
-            var provider = app.Services.GetRequiredService<IConfiguration>()["Database:Provider"] ?? "SQLite";
-            if (provider == "PostgreSQL")
+            using (var scope = app.Services.CreateScope())
             {
-                await db.Database.EnsureCreatedAsync();
-                Console.WriteLine("PostgreSQL schema ensured!");
+                var db = scope.ServiceProvider.GetRequiredService<ArkWalletDbContext>();
+                var provider = app.Services.GetRequiredService<IConfiguration>()["Database:Provider"] ?? "SQLite";
+                if (provider == "PostgreSQL")
+                {
+                    await db.Database.EnsureCreatedAsync();
+                    Console.WriteLine("PostgreSQL schema ensured!");
+                }
+                else
+                {
+                    await db.Database.MigrateAsync();
+                    Console.WriteLine("Миграции применены!");
+                }
             }
-            else
-            {
-                await db.Database.MigrateAsync();
-                Console.WriteLine("Миграции применены!");
-            }
-        }
 
-        // Telegram BotS
-        using (var scope = app.Services.CreateScope())
-        { 
-            var bot = scope.ServiceProvider.GetRequiredService<TelegramBot>();
-            await bot.Start();
+            // Telegram BotS
+            using (var scope = app.Services.CreateScope())
+            {
+                var bot = scope.ServiceProvider.GetRequiredService<TelegramBot>();
+                await bot.Start();
+            }
         }
 
         await app.RunAsync();

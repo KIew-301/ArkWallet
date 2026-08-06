@@ -61,35 +61,35 @@ internal static class ScenarioCatalog
                 C(("Токены", "20"), ("Свечи", "20"), ("MM-боты", "40 (2 на токен)"), ("Трейдеры", "2"),
                     ("Sell-ордера", "40"), ("Портфель", "40 позиций"))),
 
-            Planned("e2e-dashboard-flow",
+            E2e("e2e-dashboard-flow",
                 "E2E API · Dashboard flow",
-                "login → GET /tokens → GET /tokens/{id} → GET /candles → GET /portfolios → GET /balance.",
+                "login → GET /tokens → GET /candles → GET /orders → GET /portfolios → GET /balance.",
                 C(("Токены", "50"), ("Свечи", "50"), ("Трейдеры", "1"), ("Сеть", "выкл. (WebApplicationFactory)"))),
 
-            Planned("e2e-trading-flow",
+            E2e("e2e-trading-flow",
                 "E2E API · Trading flow",
                 "login → POST /orders (buy) → GET /orders → GET /trades → DELETE /orders/{id}.",
                 C(("Токены", "1"), ("Трейдеры", "1"), ("Ордер", "1 buy"), ("Сеть", "выкл."))),
 
-            Planned("e2e-cache-check",
+            E2e("e2e-cache-check",
                 "E2E API · Cache check",
-                "Повторный прогон Dashboard-последовательности при включённом IMemoryCache → 0 запросов БД на 2-й прогон.",
+                "Двойной вызов GET /tokens при включённом IMemoryCache-декораторе → 0 запросов БД на 2-й вызов.",
                 C(("Прогоны", "2"), ("Цель 2-го прогона", "0 запросов БД"), ("IMemoryCache", "вкл."))),
 
-            Planned("e2e-bot-wizard-flow",
+            E2e("e2e-bot-wizard-flow",
                 "E2E Bot · Wizard flow",
                 "/start → /place_order (4 шага) → /get_orders → /get_profile.",
-                C(("Трейдеры", "1"), ("Токены", "50"), ("Команды", "7"))),
+                C(("Трейдеры", "1"), ("Токены", "50"), ("Команды", "4"), ("Вводы", "4"))),
 
-            Planned("e2e-bot-admin-flow",
+            E2e("e2e-bot-admin-flow",
                 "E2E Bot · Admin flow",
-                "/admin_bots_activity → /admin_stats → /admin_get_ids.",
-                C(("Трейдеры", "1 (не-бот)"), ("MM-боты", "10"), ("Команды", "3"))),
+                "/admin_bots_activity → TKN000 → /admin_stats → /admin_get_ids.",
+                C(("Трейдеры", "1 (не-бот)"), ("MM-боты", "10"), ("Команды", "3"), ("Вводы", "1"))),
 
-            Planned("e2e-telegram-bot-level",
+            E2e("e2e-telegram-bot-level",
                 "E2E Bot · TelegramBot level",
-                "TelegramBot с фейковым IMessageSender: несколько команд подряд; замер от Update до ответа (без сети).",
-                C(("Команды", "несколько подряд"), ("Сеть", "выкл. (фейковый IMessageSender)"))),
+                "TelegramBot с фейковым ITelegramBotClient: 4 команды подряд; замер от Update до ответа (без сети).",
+                C(("Команды", "4"), ("Сеть", "выкл. (фейковый ITelegramBotClient)"))),
         };
     }
 
@@ -98,6 +98,9 @@ internal static class ScenarioCatalog
 
     private static ScenarioDefinition Planned(string id, string title, string description, IReadOnlyDictionary<string, string> conditions)
         => new(id, title, "E2E", description, false, conditions);
+
+    private static ScenarioDefinition E2e(string id, string title, string description, IReadOnlyDictionary<string, string> conditions)
+        => new(id, title, "E2E", description, true, conditions);
 
     private static IReadOnlyDictionary<string, string> C(params (string Key, string Value)[] pairs)
     {
