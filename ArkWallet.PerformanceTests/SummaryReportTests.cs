@@ -12,7 +12,8 @@ public class SummaryReportTests
         var tempDir = Path.Combine(Path.GetTempPath(), "arkwallet-perf-summary", Guid.NewGuid().ToString("N"));
         try
         {
-            var path = HtmlReporter.SaveSummary(tempDir);
+            var run = new RunReport(DateTime.UtcNow, Array.Empty<RunScenario>());
+            var path = HtmlReporter.SaveSummary(tempDir, run);
 
             Assert.True(File.Exists(path));
             var html = File.ReadAllText(path);

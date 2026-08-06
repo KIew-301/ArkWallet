@@ -1,13 +1,10 @@
 using System.Net;
 using System.Text;
-using System.Text.Json;
 
 namespace ArkWallet.PerformanceTests.Measurement;
 
 internal static class HtmlReporter
 {
-    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
-
     private static readonly (double Position, (int R, int G, int B) Color)[] GradientStops =
     {
         (0.10, (46, 160, 67)),
@@ -16,39 +13,46 @@ internal static class HtmlReporter
         (1.00, (0, 0, 0)),
     };
 
-    public static string SaveSummary(string reportsDirectory)
+    public static string SaveSummary(string directory, RunReport run)
     {
-        Directory.CreateDirectory(reportsDirectory);
-        var html = Build(DateTime.UtcNow, reportsDirectory);
-        var fileName = $"performance-summary-{DateTime.UtcNow:yyyyMMdd-HHmmss-fff}.html";
-        var path = Path.Combine(reportsDirectory, fileName);
+        Directory.CreateDirectory(directory);
+        var html = Build(DateTime.UtcNow, run);
+        var path = Path.Combine(directory, "summary.html");
         File.WriteAllText(path, html);
-        File.WriteAllText(Path.Combine(reportsDirectory, "performance-summary.html"), html);
         return path;
     }
 
-    private static string Build(DateTime generatedAt, string reportsDirectory)
+    private static string Build(DateTime generatedAt, RunReport run)
     {
+        var byId = run.Scenarios.ToDictionary(s => s.Id, StringComparer.OrdinalIgnoreCase);
+
         var cards = new List<string>();
         var passed = 0;
         var failed = 0;
+        var noBudget = 0;
         var notRun = 0;
 
         foreach (var definition in ScenarioCatalog.All)
         {
-            var report = definition.Implemented ? TryRead(reportsDirectory, definition.Id) : null;
-
-            if (report == null)
+            byId.TryGetValue(definition.Id, out var scenario);
+            if (scenario == null)
             {
                 notRun++;
             }
+            else if (!scenario.QueryBudget.HasValue)
+            {
+                noBudget++;
+            }
+            else if (IsPassing(scenario))
+            {
+                passed++;
+            }
             else
             {
-                if (IsPassing(report)) passed++;
-                else failed++;
+                failed++;
             }
 
-            cards.Add(RenderCard(definition, report));
+            cards.Add(RenderCard(definition, scenario));
         }
 
         var total = ScenarioCatalog.All.Count;
@@ -68,18 +72,20 @@ internal static class HtmlReporter
         sb.AppendLine("<body>");
         sb.AppendLine("<header>");
         sb.AppendLine("<h1>ArkWallet — сводный отчёт по производительности</h1>");
-        sb.AppendLine($"<p class=\"meta\">Сформирован: {generatedAt:yyyy-MM-dd HH:mm:ss} UTC · папка отчётов: {Esc(reportsDirectory)}</p>");
+        sb.AppendLine($"<p class=\"meta\">Сформирован: {generatedAt:yyyy-MM-dd HH:mm:ss} UTC · запуск: {run.Timestamp:yyyy-MM-dd HH:mm:ss} UTC · сценариев в запуске: {run.Scenarios.Count}</p>");
         sb.AppendLine("<div class=\"chips\">");
         sb.AppendLine($"<span class=\"chip\">Сценариев: <b>{total}</b></span>");
         sb.AppendLine($"<span class=\"chip\">Сервис-гейтов: <b>{implemented}</b></span>");
         sb.AppendLine($"<span class=\"chip\">E2E (запланированы): <b>{e2e}</b></span>");
         sb.AppendLine($"<span class=\"chip chip-ok\">Успешно: <b>{passed}</b></span>");
         sb.AppendLine($"<span class=\"chip chip-bad\">Нарушение бюджета: <b>{failed}</b></span>");
-        sb.AppendLine($"<span class=\"chip chip-warn\">Не реализованы: <b>{notRun}</b></span>");
+        sb.AppendLine($"<span class=\"chip\">Без бюджета: <b>{noBudget}</b></span>");
+        sb.AppendLine($"<span class=\"chip chip-warn\">Не запущены: <b>{notRun}</b></span>");
         sb.AppendLine("</div>");
         sb.AppendLine("<div class=\"legend\">");
         sb.AppendLine("<span class=\"badge badge-ok\">PASS</span> <span>в пределах бюджета</span>");
         sb.AppendLine("<span class=\"badge badge-bad\">FAIL</span> <span>бюджет превышен</span>");
+        sb.AppendLine("<span class=\"badge badge-warn\">NOT RUN</span> <span>сценарий не выполнялся</span>");
         sb.AppendLine("<span class=\"badge badge-warn\">NOT IMPLEMENTED</span> <span>сценарий ещё не реализован</span>");
         sb.AppendLine("</div>");
         sb.AppendLine("<div class=\"legend\"><span>Полоса бюджета:</span></div>");
@@ -96,22 +102,22 @@ internal static class HtmlReporter
                 sb.AppendLine(card);
         }
 
-        sb.AppendLine(RenderProposals(reportsDirectory));
+        sb.AppendLine(RenderProposals());
 
-        sb.AppendLine("<footer>Отчёт формируется автоматически после каждого прогона гейтов. Файлы JSON и история — в той же папке.</footer>");
+        sb.AppendLine("<footer>Отчёт строится только по repeat-прогону (медиана из N замеров, N = <code>ARKWALLET_PERF_REPEAT</code>); одиночные прогоны гейтов не пишут отчёт. Архив JSON — один файл на прогон в <code>Reports/archive</code>; сравнение прогонов — <code>overview.html</code> в той же папке запуска.</footer>");
         sb.AppendLine("</body>");
         sb.AppendLine("</html>");
         return sb.ToString();
     }
 
-    private static string RenderCard(ScenarioDefinition definition, GateReport? report)
+    private static string RenderCard(ScenarioDefinition definition, RunScenario? scenario)
     {
         var sb = new StringBuilder();
         sb.AppendLine("<div class=\"card\">");
         sb.AppendLine("<div class=\"card-head\">");
         sb.AppendLine($"<span class=\"card-title\">{Esc(definition.Title)}</span>");
         sb.AppendLine($"<code class=\"scenario-id\">{Esc(definition.Id)}</code>");
-        sb.AppendLine(RenderStatusBadge(definition, report));
+        sb.AppendLine(RenderStatusBadge(definition, scenario));
         sb.AppendLine("</div>");
         sb.AppendLine($"<p class=\"card-desc\">{Esc(definition.Description)}</p>");
 
@@ -128,28 +134,32 @@ internal static class HtmlReporter
 
         sb.AppendLine("<div>");
         sb.AppendLine("<div class=\"subtitle\">Метрики</div>");
-        if (report == null)
+        if (scenario == null)
         {
-            sb.AppendLine("<p class=\"placeholder\">Сценарий ещё не реализован — метрик нет.</p>");
+            sb.AppendLine("<p class=\"placeholder\">Сценарий не выполнялся в этом запуске — метрик нет.</p>");
         }
         else
         {
-            sb.AppendLine($"<p class=\"meta\">Запуск: {report.Timestamp:yyyy-MM-dd HH:mm:ss} UTC</p>");
-            sb.AppendLine(RenderMetric("Запросы SQL", report.Queries.Count, report.QueryBudget,
-                $"время SQL: {Fmt(report.Queries.TotalMs)} ms"));
-            sb.AppendLine(RenderMetric("SaveChanges", report.SaveChanges, report.SaveChangesBudget, null));
-            sb.AppendLine(RenderMetric("Время", report.Perf.TotalMs, report.TimeBudget, null));
+            var repeatInfo = scenario.Repeats > 0
+                ? $" · повторов: {scenario.Repeats} (медиана)"
+                : "";
+            sb.AppendLine($"<p class=\"meta\">значения{repeatInfo}</p>");
+            sb.AppendLine(RenderMetric("Запросы SQL", scenario.Queries, scenario.QueryBudget, null));
+            sb.AppendLine(RenderMetric("Строки (прочитано)", scenario.Rows, scenario.RowsBudget, null));
+            sb.AppendLine(RenderMetric("Время", scenario.TotalMs, scenario.TimeBudget, null));
+            if (scenario.Counters is { Count: > 0 })
+                sb.AppendLine($"<p class=\"meta\">{string.Join(" · ", scenario.Counters.Select(c => $"{Esc(c.Name)}: {c.Value}"))}</p>");
         }
         sb.AppendLine("</div>");
         sb.AppendLine("</div>");
 
-        if (report is { Perf.Steps.Count: > 0 })
+        if (scenario is { Steps.Count: > 0 })
         {
             sb.AppendLine("<div class=\"subtitle\">Шаги</div>");
             sb.AppendLine("<table class=\"steps\">");
-            sb.AppendLine("<tr><th>Шаг</th><th class=\"num\">ms</th><th class=\"num\">SQL</th></tr>");
-            foreach (var step in report.Perf.Steps)
-                sb.AppendLine($"<tr><td>{Esc(step.Name)}</td><td class=\"num\">{Fmt(step.Ms)}</td><td class=\"num\">{step.Queries}</td></tr>");
+            sb.AppendLine("<tr><th>Шаг</th><th class=\"num\">ms</th><th class=\"num\">SQL</th><th class=\"num\">строк</th></tr>");
+            foreach (var step in scenario.Steps)
+                sb.AppendLine($"<tr><td>{Esc(step.Name)}</td><td class=\"num\">{Fmt(step.Ms)}</td><td class=\"num\">{step.Queries}</td><td class=\"num\">{step.Rows}</td></tr>");
             sb.AppendLine("</table>");
         }
 
@@ -157,22 +167,26 @@ internal static class HtmlReporter
         return sb.ToString();
     }
 
-    private static string RenderStatusBadge(ScenarioDefinition definition, GateReport? report)
+    private static string RenderStatusBadge(ScenarioDefinition definition, RunScenario? scenario)
     {
         if (!definition.Implemented)
             return "<span class=\"badge badge-warn\">NOT IMPLEMENTED</span>";
-        if (report == null)
+        if (scenario == null)
             return "<span class=\"badge badge-warn\">NOT RUN</span>";
+        if (!scenario.QueryBudget.HasValue)
+            return "<span class=\"badge badge-warn\">NO BUDGET</span>";
 
-        return IsPassing(report)
+        return IsPassing(scenario)
             ? "<span class=\"badge badge-ok\">PASS</span>"
             : "<span class=\"badge badge-bad\">FAIL</span>";
     }
 
-    private static bool IsPassing(GateReport report)
-        => report.Queries.Count <= report.QueryBudget
-            && report.Perf.TotalMs <= report.TimeBudget
-            && (!report.SaveChangesBudget.HasValue || report.SaveChanges <= report.SaveChangesBudget);
+    private static bool IsPassing(RunScenario scenario)
+        => scenario.QueryBudget.HasValue
+            && scenario.TimeBudget.HasValue
+            && scenario.Queries <= scenario.QueryBudget.Value
+            && (!scenario.RowsBudget.HasValue || scenario.Rows <= scenario.RowsBudget.Value)
+            && scenario.TotalMs <= scenario.TimeBudget.Value;
 
     private static string RenderMetric(string label, double value, int? budget, string? extra)
     {
@@ -200,32 +214,38 @@ internal static class HtmlReporter
         return sb.ToString();
     }
 
-    private static string RenderProposals(string reportsDirectory)
+    private static string RenderProposals()
     {
-        var archiveDir = Path.Combine(reportsDirectory, "archive");
+        var byId = RunArchive.ReadAll()
+            .SelectMany(r => r.Scenarios)
+            .GroupBy(s => s.Id, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.ToArray(), StringComparer.OrdinalIgnoreCase);
+
         var sb = new StringBuilder();
         sb.AppendLine("<h2>Предлагаемые бюджеты (правило: последние замеры × 1.05)</h2>");
-        sb.AppendLine("<p class=\"card-desc\">Бюджет = максимум за последние 10 прогонов +5% (время — не ниже 25 ms из-за шума). После оптимизаций (#10-20) применить новые значения к <code>Gates/GateBudgets.cs</code>.</p>");
+        sb.AppendLine("<p class=\"card-desc\">Бюджет = максимум за последние прогоны +5% (время — не ниже 25 ms из-за шума). После оптимизаций (#10-20) применить новые значения к <code>Gates/GateBudgets.cs</code>.</p>");
         sb.AppendLine("<table class=\"proposal\">");
-        sb.AppendLine("<tr><th>Сценарий</th><th class=\"num\">Прогонов</th><th class=\"num\">Запросы (замер → +5%)</th><th class=\"num\">Время ms (замер → +5%)</th><th class=\"num\">SaveChanges (замер → +5%)</th></tr>");
+        sb.AppendLine("<tr><th>Сценарий</th><th class=\"num\">Прогонов</th><th class=\"num\">Запросы (замер → +5%)</th><th class=\"num\">Строки (замер → +5%)</th><th class=\"num\">Время ms (замер → +5%)</th></tr>");
 
         foreach (var definition in ScenarioCatalog.All.Where(d => d.Implemented))
         {
-            var history = ReadHistory(archiveDir, definition.Id);
-            if (history.Count == 0)
+            if (!byId.TryGetValue(definition.Id, out var history))
             {
                 sb.AppendLine($"<tr><td>{Esc(definition.Id)}</td><td class=\"num\">0</td><td colspan=\"3\">нет замеров</td></tr>");
                 continue;
             }
 
-            var maxQueries = history.Max(h => (double)h.Queries.Count);
-            var maxTime = history.Max(h => h.Perf.TotalMs);
-            var maxSaves = history.Max(h => (double)h.SaveChanges);
+            var maxQueries = history.Max(h => h.Queries);
+            var maxTime = history.Max(h => h.TotalMs);
+            var rowValues = history.Select(h => h.Rows).Where(r => r > 0).ToArray();
+            var rowsCell = rowValues.Length > 0
+                ? $"{Fmt(rowValues.Max())} → {BudgetRules.NextRows(rowValues.Max())}"
+                : "—";
             sb.AppendLine(
-                $"<tr><td>{Esc(definition.Id)}</td><td class=\"num\">{history.Count}</td>" +
+                $"<tr><td>{Esc(definition.Id)}</td><td class=\"num\">{history.Length}</td>" +
                 $"<td class=\"num\">{Fmt(maxQueries)} → {BudgetRules.Next(maxQueries)}</td>" +
-                $"<td class=\"num\">{Fmt(maxTime)} → {BudgetRules.NextTime(maxTime)}</td>" +
-                $"<td class=\"num\">{Fmt(maxSaves)} → {BudgetRules.Next(maxSaves)}</td></tr>");
+                $"<td class=\"num\">{rowsCell}</td>" +
+                $"<td class=\"num\">{Fmt(maxTime)} → {BudgetRules.NextTime(maxTime)}</td></tr>");
         }
 
         sb.AppendLine("</table>");
@@ -254,48 +274,6 @@ internal static class HtmlReporter
         }
 
         return "rgb(0,0,0)";
-    }
-
-    private static GateReport? TryRead(string reportsDirectory, string id)
-    {
-        var path = Path.Combine(reportsDirectory, $"{id}.json");
-        if (!File.Exists(path))
-            return null;
-
-        try
-        {
-            return JsonSerializer.Deserialize<GateReport>(File.ReadAllText(path), JsonOptions);
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
-    }
-
-    private static List<GateReport> ReadHistory(string archiveDir, string id)
-    {
-        if (!Directory.Exists(archiveDir))
-            return new List<GateReport>();
-
-        var files = Directory.GetFiles(archiveDir, $"{id}-*.json")
-            .OrderByDescending(f => f, StringComparer.Ordinal)
-            .Take(10);
-
-        var reports = new List<GateReport>();
-        foreach (var file in files)
-        {
-            try
-            {
-                var report = JsonSerializer.Deserialize<GateReport>(File.ReadAllText(file), JsonOptions);
-                if (report != null)
-                    reports.Add(report);
-            }
-            catch (JsonException)
-            {
-            }
-        }
-
-        return reports;
     }
 
     private static string Esc(string value) => WebUtility.HtmlEncode(value);

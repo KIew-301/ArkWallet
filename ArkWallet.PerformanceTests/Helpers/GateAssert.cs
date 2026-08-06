@@ -15,19 +15,14 @@ internal static class GateAssert
         var report = scope.Report();
         var snapshot = counter.Snapshot();
 
-        PerfReporter.Save(new GateReport(
-            scenario,
-            DateTime.UtcNow,
-            budget.Queries,
-            budget.TimeMs,
-            budget.SaveChanges,
-            report,
-            snapshot,
-            saveChangesCounter?.Count ?? 0,
-            ScenarioCatalog.GetById(scenario)?.Conditions));
-
         Assert.True(snapshot.Count <= budget.Queries,
             $"[{scenario}] SQL queries = {snapshot.Count}, budget = {budget.Queries}");
+
+        if (budget.Rows.HasValue)
+        {
+            Assert.True(snapshot.TotalRows <= budget.Rows.Value,
+                $"[{scenario}] rows read = {snapshot.TotalRows}, budget = {budget.Rows.Value}");
+        }
 
         Assert.True(report.TotalMs <= budget.TimeMs,
             $"[{scenario}] time = {report.TotalMs:0.##} ms, budget = {budget.TimeMs} ms");

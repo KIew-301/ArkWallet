@@ -9,5 +9,5 @@ public sealed class PerfCollection : ICollectionFixture<PerfSummaryFinalizer>
 
 public sealed class PerfSummaryFinalizer : IDisposable
 {
-    public void Dispose() => HtmlReporter.SaveSummary(PerfReporter.ReportsDirectory);
+    public void Dispose() => ReportSession.Close();
 }
