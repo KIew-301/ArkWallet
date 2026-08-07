@@ -22,6 +22,24 @@ internal static class RunArchive
             .OrderByDescending(r => r.Timestamp)
             .ToArray();
 
+    public static RunReport? ReadFile(string fileName)
+    {
+        var path = Path.Combine(ArchiveDirectory, fileName);
+        if (!File.Exists(path))
+            return null;
+
+        try
+        {
+            if (JsonSerializer.Deserialize<RunReport>(File.ReadAllText(path), ReadOptions) is { } run)
+                return run;
+        }
+        catch (JsonException)
+        {
+        }
+
+        return null;
+    }
+
     public static IReadOnlyList<RunReport> ReadAll()
     {
         if (!Directory.Exists(ArchiveDirectory))

@@ -8,18 +8,20 @@ internal static class OverviewReporter
 {
     private const double QueryDeltaThreshold = 2.0;
     private const double RowsDeltaThreshold = 2.0;
+    private const double QueryRegressionMinPercent = 10.0;
+    private const double QueryRegressionMinCount = 10.0;
     private const double TimeColorFloorMs = 10.0;
 
-    public static void Save(string directory, RunReport current, IReadOnlyList<RunReport> previousRuns)
+    public static void Save(string directory, RunReport current, IReadOnlyList<RunReport> baselineRuns, string? baselineLabel = null)
     {
         Directory.CreateDirectory(directory);
-        var html = Build(DateTime.UtcNow, current, previousRuns);
+        var html = Build(DateTime.UtcNow, current, baselineRuns, baselineLabel);
         File.WriteAllText(Path.Combine(directory, "overview.html"), html);
     }
 
-    private static string Build(DateTime generatedAt, RunReport current, IReadOnlyList<RunReport> previousRuns)
+    private static string Build(DateTime generatedAt, RunReport current, IReadOnlyList<RunReport> baselineRuns, string? baselineLabel)
     {
-        var latestPrevious = previousRuns.FirstOrDefault();
+        var latestPrevious = baselineRuns.FirstOrDefault();
 
         var rows = new List<string>();
         var compared = 0;
@@ -36,7 +38,7 @@ internal static class OverviewReporter
 
         foreach (var scenario in current.Scenarios.OrderBy(s => s.Id, StringComparer.Ordinal))
         {
-            var prev = FindBaseline(previousRuns, scenario.Id);
+            var prev = FindBaseline(baselineRuns, scenario.Id);
             if (prev == null)
             {
                 newScenarios++;
@@ -49,7 +51,7 @@ internal static class OverviewReporter
             var dr = Delta(prev.Rows, scenario.Rows);
             var dt = Delta(prev.TotalMs, scenario.TotalMs);
             var timeMeasurable = prev.TotalMs >= TimeColorFloorMs;
-            var status = Classify(dq, dr);
+            var status = Classify(dq, dr, scenario.Queries);
 
             if (status == "improved") improved++;
             else if (status == "regressed") regressed++;
@@ -79,9 +81,11 @@ internal static class OverviewReporter
         sb.AppendLine("<header>");
         sb.AppendLine("<h1>ArkWallet — общая картина по производительности</h1>");
         sb.AppendLine($"<p class=\"meta\">Сформирован: {generatedAt:yyyy-MM-dd HH:mm:ss} UTC · прогон: {current.Timestamp:yyyy-MM-dd HH:mm:ss} UTC" +
-            (latestPrevious != null
-                ? $" · база: последний прогон, в котором есть сценарий (прогонов в архиве: {previousRuns.Count})"
-                : " · предыдущих прогонов нет — сравнивать не с чем") + "</p>");
+            (baselineLabel != null
+                ? $" · база: выбранный прогон {baselineLabel} (Reports/target.txt)"
+                : latestPrevious != null
+                    ? $" · база: последний прогон, в котором есть сценарий (прогонов в архиве: {baselineRuns.Count})"
+                    : " · предыдущих прогонов нет — сравнивать не с чем") + "</p>");
         sb.AppendLine("<div class=\"chips\">");
         sb.AppendLine($"<span class=\"chip\">Сценариев в прогоне: <b>{current.Scenarios.Count}</b></span>");
         sb.AppendLine($"<span class=\"chip\">Сравниваемых: <b>{compared}</b></span>");
@@ -102,7 +106,9 @@ internal static class OverviewReporter
         }
         else
         {
-            sb.AppendLine("<p class=\"placeholder\">Нет предыдущего прогона — сравнивать не с чем. Запустите прогон ещё раз, чтобы увидеть дельту.</p>");
+            sb.AppendLine(baselineLabel != null
+                ? "<p class=\"placeholder\">В выбранном целевом прогоне нет ни одного сценария из текущего прогона — сравнивать не с чем.</p>"
+                : "<p class=\"placeholder\">Нет предыдущего прогона — сравнивать не с чем. Запустите прогон ещё раз, чтобы увидеть дельту.</p>");
         }
         sb.AppendLine("</div>");
         sb.AppendLine("</header>");
@@ -113,7 +119,7 @@ internal static class OverviewReporter
             sb.AppendLine(row);
         sb.AppendLine("</table>");
 
-        sb.AppendLine("<footer>Для каждого сценария база берётся из самого последнего прогона в <code>Reports/archive</code> (один JSON на прогон), в котором этот сценарий присутствует. Сценарии без предшествующего замера помечаются «Нет данных». Статус определяется только по детерминированным метрикам: запросы ±2%, строки ±2%. Время (±20% для флоу &ge;10 мс) показывается справочно и на статус не влияет. Repeat-прогон (медиана из N замеров): <code>ARKWALLET_PERF_REPEAT=100 dotnet test --filter PerfRepeat</code>.</footer>");
+        sb.AppendLine("<footer>База сравнения: последний прогон в <code>Reports/archive</code>, где есть сценарий, либо выбранный целевой прогон (переменная <code>ARKWALLET_PERF_TARGET</code>, сохраняется в <code>Reports/target.txt</code> до смены). Сценарии без замера в базе помечаются «Нет данных». Статус определяется только по детерминированным метрикам: запросы ±2%, строки ±2%; рост запросов не считается регрессом, если прирост &lt;10% или запросов &lt;10. Время (±20% для флоу &ge;10 мс) показывается справочно и на статус не влияет. Repeat-прогон (медиана из N замеров): <code>ARKWALLET_PERF_REPEAT=100 dotnet test ArkWallet.PerformanceTests --filter \"FullyQualifiedName~Repeats\"</code>.</footer>");
         sb.AppendLine("</body>");
         sb.AppendLine("</html>");
         return sb.ToString();
@@ -155,10 +161,12 @@ internal static class OverviewReporter
             $"<td>{badge}</td></tr>";
     }
 
-    private static string Classify(double? dq, double? dr)
+    private static string Classify(double? dq, double? dr, double currentQueries)
     {
         var isImproved = (dq ?? 0) <= -QueryDeltaThreshold || (dr ?? 0) <= -RowsDeltaThreshold;
-        var isRegressed = (dq ?? 0) >= QueryDeltaThreshold || (dr ?? 0) >= RowsDeltaThreshold;
+
+        var queryCountsAsRegression = (dq ?? 0) >= QueryRegressionMinPercent && currentQueries >= QueryRegressionMinCount;
+        var isRegressed = (dr ?? 0) >= RowsDeltaThreshold || queryCountsAsRegression;
 
         if (isImproved == isRegressed)
             return "stable";

@@ -173,7 +173,9 @@ public sealed class ApiE2eHeavyGateTests : IDisposable
 
         await measured(scope);
 
-        Dump(scenario, scope, saveChanges ? _host.SaveChangesCounter : null);
+        var report = scope.Report();
+        Dump(scenario, report, saveChanges ? _host.SaveChangesCounter : null);
+        ReportSession.RecordSingle(scenario, report, saveChanges ? _host.SaveChangesCounter : null);
 
         GateAssert.QueryBudget(scenario, budget, _host.QueryCounter, scope,
             saveChanges ? _host.SaveChangesCounter : null);
@@ -198,9 +200,8 @@ public sealed class ApiE2eHeavyGateTests : IDisposable
 
     private const string OrdersUrl = "/api/v1/orders/order?includeActive=true&includeFilled=true&includeCancelled=true";
 
-    private void Dump(string scenario, PerfScope scope, SaveChangesCounter? save)
+    private void Dump(string scenario, PerfReport report, SaveChangesCounter? save)
     {
-        var report = scope.Report();
         var lines = new List<string>
         {
             $"[{scenario}] totalMs={report.TotalMs:0.##} queries={report.TotalQueries} rows={report.TotalRows}" +

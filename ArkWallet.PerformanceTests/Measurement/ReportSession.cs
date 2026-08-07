@@ -13,6 +13,27 @@ internal static class ReportSession
             Repeats[report.Scenario] = report;
     }
 
+    public static void RecordSingle(string scenario, PerfReport report, SaveChangesCounter? saveChanges = null)
+    {
+        IReadOnlyList<CounterRecord>? counters = saveChanges != null
+            ? new[] { new CounterRecord("save-changes", saveChanges.Count) }
+            : null;
+
+        RecordRepeat(new RepeatReport(
+            scenario,
+            DateTime.UtcNow,
+            1,
+            RepeatStatsCalculator.Calculate(new[] { report.TotalMs }),
+            RepeatStatsCalculator.Calculate(new[] { (double)report.TotalQueries }),
+            RepeatStatsCalculator.Calculate(new[] { (double)report.TotalRows }),
+            report.Steps.Select(step => new RepeatStepStats(
+                step.Name,
+                RepeatStatsCalculator.Calculate(new[] { step.Ms }),
+                RepeatStatsCalculator.Calculate(new[] { (double)step.Queries }),
+                RepeatStatsCalculator.Calculate(new[] { (double)step.Rows }))).ToArray(),
+            counters));
+    }
+
     public static RunReport Snapshot(DateTime timestamp)
     {
         lock (Sync)
@@ -51,15 +72,22 @@ internal static class ReportSession
                 return;
         }
 
+        ReportTarget.ConfigureFromEnvironment();
+
         var timestamp = DateTime.UtcNow;
         var run = Snapshot(timestamp);
         var previousRuns = RunArchive.ReadAllBefore(timestamp);
+        var targetRun = ReportTarget.GetResolved();
+
+        var baselineRuns = targetRun != null
+            ? new[] { targetRun }
+            : previousRuns;
 
         var runDirectory = Path.Combine(PerfReporter.ReportsDirectory, timestamp.ToString("yyyyMMdd-HHmmss-fff"));
         Directory.CreateDirectory(runDirectory);
 
         HtmlReporter.SaveSummary(runDirectory, run);
-        OverviewReporter.Save(runDirectory, run, previousRuns);
+        OverviewReporter.Save(runDirectory, run, baselineRuns, ReportTarget.FileName);
         RunArchive.WriteRun(run);
     }
 }

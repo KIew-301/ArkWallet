@@ -104,7 +104,7 @@ internal static class HtmlReporter
 
         sb.AppendLine(RenderProposals());
 
-        sb.AppendLine("<footer>Отчёт строится только по repeat-прогону (медиана из N замеров, N = <code>ARKWALLET_PERF_REPEAT</code>); одиночные прогоны гейтов не пишут отчёт. Архив JSON — один файл на прогон в <code>Reports/archive</code>; сравнение прогонов — <code>overview.html</code> в той же папке запуска.</footer>");
+        sb.AppendLine("<footer>Отчёт пишут repeat-сценарии (медиана из N замеров, N = <code>ARKWALLET_PERF_REPEAT</code>) и одиночные E2E-гейты (повтор = 1). Архив JSON — один файл на прогон в <code>Reports/archive</code>; сравнение прогонов — <code>overview.html</code> в той же папке запуска.</footer>");
         sb.AppendLine("</body>");
         sb.AppendLine("</html>");
         return sb.ToString();
@@ -140,9 +140,9 @@ internal static class HtmlReporter
         }
         else
         {
-            var repeatInfo = scenario.Repeats > 0
+            var repeatInfo = scenario.Repeats > 1
                 ? $" · повторов: {scenario.Repeats} (медиана)"
-                : "";
+                : scenario.Repeats == 1 ? " · одиночный прогон" : "";
             sb.AppendLine($"<p class=\"meta\">значения{repeatInfo}</p>");
             sb.AppendLine(RenderMetric("Запросы SQL", scenario.Queries, scenario.QueryBudget, null));
             sb.AppendLine(RenderMetric("Строки (прочитано)", scenario.Rows, scenario.RowsBudget, null));
