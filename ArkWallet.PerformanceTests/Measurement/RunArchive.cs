@@ -16,10 +16,11 @@ internal static class RunArchive
         File.WriteAllText(Path.Combine(ArchiveDirectory, $"run-{run.Timestamp:yyyyMMdd-HHmmss-fff}.json"), json);
     }
 
-    public static RunReport? ReadLatestBefore(DateTime timestamp)
-        => ReadAll().Where(r => r.Timestamp < timestamp)
+    public static IReadOnlyList<RunReport> ReadAllBefore(DateTime timestamp)
+        => ReadAll()
+            .Where(r => r.Timestamp < timestamp)
             .OrderByDescending(r => r.Timestamp)
-            .FirstOrDefault();
+            .ToArray();
 
     public static IReadOnlyList<RunReport> ReadAll()
     {

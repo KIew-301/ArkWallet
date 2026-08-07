@@ -53,13 +53,13 @@ internal static class ReportSession
 
         var timestamp = DateTime.UtcNow;
         var run = Snapshot(timestamp);
-        var baseline = RunArchive.ReadLatestBefore(timestamp);
+        var previousRuns = RunArchive.ReadAllBefore(timestamp);
 
         var runDirectory = Path.Combine(PerfReporter.ReportsDirectory, timestamp.ToString("yyyyMMdd-HHmmss-fff"));
         Directory.CreateDirectory(runDirectory);
 
         HtmlReporter.SaveSummary(runDirectory, run);
-        OverviewReporter.Save(runDirectory, run, baseline);
+        OverviewReporter.Save(runDirectory, run, previousRuns);
         RunArchive.WriteRun(run);
     }
 }
