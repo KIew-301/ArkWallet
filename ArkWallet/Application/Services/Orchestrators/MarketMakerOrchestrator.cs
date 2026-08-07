@@ -210,14 +210,16 @@ internal class MarketMakerOrchestrator(
 
             var commands = marketMakerGridEngine.GetOrdersToPlace(bot, token.CurrentPrice, existingOrders);
 
-            foreach (var command in commands)
+            if (commands == null || !commands.Any())
             {
-                var result = await orderCreationService.CreateOrderAsync(command);
-                if (!result.IsSuccess)
-                {
-                    logger.LogWarning("Failed to create order for bot {BotId}: {Error}", bot.Id, result.Message);
-                }
+                logger.LogDebug("No orders to place for bot {BotId}", bot.Id);
+                return Result.Ok();
             }
+
+            var result = await orderCreationService.CreateOrdersAsync(commands);
+
+            if (!result.IsSuccess)
+                logger.LogWarning("Failed to create order for bot {BotId}: {Error}", bot.Id, result.Message);
 
             logger.LogDebug("Grid updated for bot {BotId}, {Count} orders placed", bot.Id, commands.Count);
             return Result.Ok();

@@ -433,17 +433,11 @@ public class MarketMakerOrchestratorTest
 
         var mockOrderCreationService = new Mock<IOrderCreationService>();
         mockOrderCreationService
-            .Setup(x => x.CreateOrderAsync(It.IsAny<CreateOrderCommand>()))
-            .ReturnsAsync(Result<OrderCreationData>.Ok(new OrderCreationData(true, new OrderDto(
-                "1",
-                OrderType.Buy,
-                101,
-                "ZZZ",
-                6,
-                100,
-                OrderStatus.Active,
-                DateTime.UtcNow
-            ))));
+            .Setup(x => x.CreateOrdersAsync(It.IsAny<IEnumerable<CreateOrderCommand>>()))
+            .ReturnsAsync(Result<List<OrderCreationData>>.Ok(new List<OrderCreationData>
+            {
+                new(true, new OrderDto("1", OrderType.Buy, 101, "ZZZ", 6, 100, OrderStatus.Active, DateTime.UtcNow))
+            }));
 
         var logger = NullLogger<MarketMakerOrchestrator>.Instance;
         var orchestrator = new MarketMakerOrchestrator(
@@ -460,7 +454,7 @@ public class MarketMakerOrchestratorTest
         Assert.True(result.IsSuccess, result.Message);
 
         mockOrderCreationService.Verify(
-            x => x.CreateOrderAsync(It.IsAny<CreateOrderCommand>()),
+            x => x.CreateOrdersAsync(It.IsAny<IEnumerable<CreateOrderCommand>>()),
             Times.AtLeastOnce);
     }
 
@@ -481,8 +475,8 @@ public class MarketMakerOrchestratorTest
 
         var mockOrderCreationService = new Mock<IOrderCreationService>();
         mockOrderCreationService
-            .Setup(x => x.CreateOrderAsync(It.IsAny<CreateOrderCommand>()))
-            .ReturnsAsync(Result<OrderCreationData>.Fail("Order creation failed"));
+            .Setup(x => x.CreateOrdersAsync(It.IsAny<IEnumerable<CreateOrderCommand>>()))
+            .ReturnsAsync(Result<List<OrderCreationData>>.Fail("Order creation failed"));
 
         var logger = NullLogger<MarketMakerOrchestrator>.Instance;
         var orchestrator = new MarketMakerOrchestrator(
@@ -545,17 +539,11 @@ public class MarketMakerOrchestratorTest
 
         var mockOrderCreationService = new Mock<IOrderCreationService>();
         mockOrderCreationService
-            .Setup(x => x.CreateOrderAsync(It.IsAny<CreateOrderCommand>()))
-            .ReturnsAsync(Result<OrderCreationData>.Ok(new OrderCreationData(true, new OrderDto(
-                "1",
-                OrderType.Buy,
-                101,
-                "ZZZ",
-                6,
-                100,
-                OrderStatus.Active,
-                DateTime.UtcNow
-            ))));
+            .Setup(x => x.CreateOrdersAsync(It.IsAny<IEnumerable<CreateOrderCommand>>()))
+            .ReturnsAsync(Result<List<OrderCreationData>>.Ok(new List<OrderCreationData>
+            {
+                new(true, new OrderDto("1", OrderType.Buy, 101, "ZZZ", 6, 100, OrderStatus.Active, DateTime.UtcNow))
+            }));
 
         var mockMarketMakerOrderService = new Mock<IMarketMakerOrderService>();
         mockMarketMakerOrderService
@@ -577,7 +565,7 @@ public class MarketMakerOrchestratorTest
         Assert.True(result.IsSuccess, result.Message);
 
         mockOrderCreationService.Verify(
-            x => x.CreateOrderAsync(It.IsAny<CreateOrderCommand>()),
+            x => x.CreateOrdersAsync(It.IsAny<IEnumerable<CreateOrderCommand>>()),
             Times.AtLeastOnce);
 
         mockMarketMakerOrderService.Verify(
@@ -606,17 +594,11 @@ public class MarketMakerOrchestratorTest
 
         var mockOrderCreationService = new Mock<IOrderCreationService>();
         mockOrderCreationService
-            .Setup(x => x.CreateOrderAsync(It.IsAny<CreateOrderCommand>()))
-            .ReturnsAsync(Result<OrderCreationData>.Ok(new OrderCreationData(true, new OrderDto(
-                "1",
-                OrderType.Buy,
-                101,
-                "ZZZ",
-                6,
-                100,
-                OrderStatus.Active,
-                DateTime.UtcNow
-            ))));
+            .Setup(x => x.CreateOrdersAsync(It.IsAny<IEnumerable<CreateOrderCommand>>()))
+            .ReturnsAsync(Result<List<OrderCreationData>>.Ok(new List<OrderCreationData>
+            {
+                new(true, new OrderDto("1", OrderType.Buy, 101, "ZZZ", 6, 100, OrderStatus.Active, DateTime.UtcNow))
+            }));
 
         var mockMarketMakerOrderService = new Mock<IMarketMakerOrderService>();
         mockMarketMakerOrderService
@@ -718,7 +700,7 @@ public class MarketMakerOrchestratorTest
 
         var mockOrderCreationService = new Mock<IOrderCreationService>();
         mockOrderCreationService
-            .Setup(x => x.CreateOrderAsync(It.IsAny<CreateOrderCommand>()))
+            .Setup(x => x.CreateOrdersAsync(It.IsAny<IEnumerable<CreateOrderCommand>>()))
             .ThrowsAsync(new InvalidOperationException("order error"));
 
         var fixedGridEngine = new FixedGridEngine();
@@ -754,7 +736,7 @@ public class MarketMakerOrchestratorTest
 
         var mockOrderCreationService = new Mock<IOrderCreationService>();
         mockOrderCreationService
-            .Setup(x => x.CreateOrderAsync(It.IsAny<CreateOrderCommand>()))
+            .Setup(x => x.CreateOrdersAsync(It.IsAny<IEnumerable<CreateOrderCommand>>()))
             .ThrowsAsync(new InvalidOperationException("process error"));
 
         var fixedGridEngine = new FixedGridEngine();
