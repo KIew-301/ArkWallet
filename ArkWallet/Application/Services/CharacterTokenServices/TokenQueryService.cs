@@ -9,7 +9,7 @@ using static Result<List<TokenInfoWithPriceChange>>;
 
 internal class TokenQueryService(
     ArkWalletDbContext dbContext,
-    ITokenPriceChangesCalculationService priceChangeService,
+    TimeProvider timeProvider,
     ILogger<TokenQueryService> logger) : ITokenQueryService
 {
     public async Task<Result<List<TokenInfoWithPriceChange>>> GetAllActiveTokensAsync()
@@ -18,16 +18,31 @@ internal class TokenQueryService(
         {
             var tokens = await dbContext.CharacterTokens
                 .Where(t => t.IsActive)
+                .AsNoTracking()
                 .ToListAsync();
 
-            var result = new List<TokenInfoWithPriceChange>();
+            if (tokens.Count == 0)
+                return Ok(new List<TokenInfoWithPriceChange>());
+
+            var cutoffDate = timeProvider.GetUtcNow().UtcDateTime.AddDays(-1);
+            var symbols = tokens.Select(t => t.Symbol).ToArray();
+
+            var firstCandleOpenPrices = await dbContext.PriceCandles
+                .Where(c => symbols.Contains(c.CharacterTokenId) && c.Timestamp >= cutoffDate)
+                .GroupBy(c => c.CharacterTokenId)
+                .Select(g => new
+                {
+                    TokenId = g.Key,
+                    OpenPrice = g.OrderBy(c => c.Timestamp).Select(c => c.OpenPrice).FirstOrDefault()
+                })
+                .ToDictionaryAsync(x => x.TokenId, x => x.OpenPrice);
+
+            var result = new List<TokenInfoWithPriceChange>(tokens.Count);
 
             foreach (var token in tokens)
             {
-                var changeResult = await priceChangeService.TakeTokenPriceChangesAsync(token.Symbol, 1);
-
-                var dailyChangePercent = changeResult.TryGetData(out var changeData)
-                    ? changeData.ChangePercent
+                var dailyChangePercent = firstCandleOpenPrices.TryGetValue(token.Symbol, out var openPrice)
+                    ? (token.CurrentPrice - openPrice) / openPrice * 100m
                     : 0m;
 
                 result.Add(TokenInfoWithPriceChange.FromEntity(token, dailyChangePercent));

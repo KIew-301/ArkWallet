@@ -4,7 +4,7 @@ internal sealed record Budget(int Queries, int TimeMs, int? SaveChanges, int? Ro
 
 internal static class GateBudgets
 {
-    public static readonly Budget TokenQuery50T = new(110, 30, null, 158);
+    public static readonly Budget TokenQuery50T = new(4, 15, null, 150);
     public static readonly Budget BalanceMainChanges = new(5, 355, null, 4);
     public static readonly Budget BalanceTotalChanges = new(5, 25, null, 4);
     public static readonly Budget LeadersTop50T = new(220, 50, null, 220);
@@ -22,7 +22,7 @@ internal static class GateBudgets
     public static readonly Budget HeavyOrdersGet = new(2, 250, null, 12000);
     public static readonly Budget HeavyOrderCreate = new(25, 2000, 5, 2500);
     public static readonly Budget HeavyOrdersCancelAll = new(130, 250, 5, 5000);
-    public static readonly Budget HeavyTokensGet = new(2000, 1000, null, 3000);
+    public static readonly Budget HeavyTokensGet = new(4, 25, null, 1500);
     public static readonly Budget HeavyCandleGet = new(2, 1000, null, 120000);
     public static readonly Budget HeavyBalanceGet = new(6, 100, null, 2500);
     public static readonly Budget HeavyTradesGet = new(2, 350, null, 25000);

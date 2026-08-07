@@ -20,9 +20,7 @@ public class TokenQueryServiceGateTests
         await db.Database.EnsureCreatedAsync();
         await GatesSeed.SeedTokenCatalogAsync(db, TokenCount);
 
-        var priceChangeService = new TokenPriceChangeCalculationService(
-            db, NullLogger<TokenPriceChangeCalculationService>.Instance, TimeProvider.System);
-        var service = new TokenQueryService(db, priceChangeService, NullLogger<TokenQueryService>.Instance);
+        var service = new TokenQueryService(db, TimeProvider.System, NullLogger<TokenQueryService>.Instance);
 
         await PerfWarmup.RunAsync(async () => await service.GetAllActiveTokensAsync());
         counter.Reset();

@@ -25,9 +25,7 @@ internal static class ScenarioBodies
         await db.Database.EnsureCreatedAsync();
         await GatesSeed.SeedTokenCatalogAsync(db, 50);
 
-        var priceChangeService = new TokenPriceChangeCalculationService(
-            db, NullLogger<TokenPriceChangeCalculationService>.Instance, TimeProvider.System);
-        var service = new TokenQueryService(db, priceChangeService, NullLogger<TokenQueryService>.Instance);
+        var service = new TokenQueryService(db, TimeProvider.System, NullLogger<TokenQueryService>.Instance);
 
         counter.Reset();
         using var scope = new PerfScope(counter);
