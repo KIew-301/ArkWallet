@@ -18,4 +18,10 @@ internal class ArkWalletDbContext : DbContext
     public ArkWalletDbContext(DbContextOptions<ArkWalletDbContext> options) : base(options)
     {
     }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<BalanceSnapshot>()
+            .HasIndex(b => new { b.TraderId, b.SnapshotDateTime });
+    }
 }
