@@ -28,28 +28,62 @@ public class TradingEngineTest
     private static TradeOrder CreateSellOrder(long traderId, string symbol = "ZZZ", int quantity = 5, decimal price = 100m)
         => TradeOrder.Create(OrderType.Sell, symbol, traderId, price, quantity);
 
+    private static TradingContext CreateContext(
+        TradeOrder newOrder,
+        List<TradeOrder> existingOrders = null,
+        Dictionary<long, Trader> traders = null,
+        Dictionary<long, PortfolioItem> portfolios = null,
+        CharacterToken token = null)
+    {
+        return new TradingContext
+        {
+            NewOrders = new List<TradeOrder> { newOrder },
+            ExistingOrders = existingOrders ?? new List<TradeOrder>(),
+            Traders = traders ?? new Dictionary<long, Trader>(),
+            Portfolios = portfolios ?? new Dictionary<long, PortfolioItem>(),
+            Token = token ?? CreateToken(),
+            AllTrades = new List<Trade>()
+        };
+    }
+
     [Fact]
     public void ProcessOrder_NullOrder_ReturnsFailed()
     {
-        var result = _engine.ProcessOrder(null!, new(), new(), new(), CreateToken());
+        var context = new TradingContext
+        {
+            NewOrders = null,
+            ExistingOrders = new List<TradeOrder>(),
+            Traders = new Dictionary<long, Trader>(),
+            Portfolios = new Dictionary<long, PortfolioItem>(),
+            Token = CreateToken(),
+            AllTrades = new List<Trade>()
+        };
+
+        var result = _engine.ProcessOrder(context);
         Assert.False(result.IsSuccess);
-        Assert.Contains("null", result.Error);
+        Assert.Contains("не может быть null", result.Message);
     }
 
     [Fact]
     public void ProcessOrder_ZeroQuantity_ReturnsFailed()
     {
         var order = new TradeOrder { Quantity = 0, Price = 100, Type = OrderType.Buy, CharacterTokenId = "ZZZ", TraderTelegramId = 1 };
-        var result = _engine.ProcessOrder(order, new(), new(), new(), CreateToken());
+        var context = CreateContext(order);
+
+        var result = _engine.ProcessOrder(context);
         Assert.False(result.IsSuccess);
+        Assert.Contains("Количество", result.Message);
     }
 
     [Fact]
     public void ProcessOrder_ZeroPrice_ReturnsFailed()
     {
         var order = new TradeOrder { Quantity = 5, Price = 0, Type = OrderType.Buy, CharacterTokenId = "ZZZ", TraderTelegramId = 1 };
-        var result = _engine.ProcessOrder(order, new(), new(), new(), CreateToken());
+        var context = CreateContext(order);
+
+        var result = _engine.ProcessOrder(context);
         Assert.False(result.IsSuccess);
+        Assert.Contains("цена", result.Message);
     }
 
     [Fact]
@@ -58,12 +92,12 @@ public class TradingEngineTest
         var buyer = CreateTrader(1, 10000m);
         var traders = new Dictionary<long, Trader> { { 1, buyer } };
         var order = CreateBuyOrder(1, quantity: 10, price: 100m);
+        var context = CreateContext(order, traders: traders);
 
-        var result = _engine.ProcessOrder(order, new(), traders, new(), CreateToken());
+        var result = _engine.ProcessOrder(context);
 
         Assert.True(result.IsSuccess);
-        Assert.Empty(result.Trades);
-        Assert.Equal(order, result.OrderToAdd);
+        Assert.Empty(context.AllTrades);
         Assert.True(order.IsActive());
         Assert.Equal(10000m - 1000m, buyer.Balance);
     }
@@ -76,14 +110,15 @@ public class TradingEngineTest
         var portfolio = PortfolioItem.Create(1, "ZZZ", 10, 50m);
         var portfolios = new Dictionary<long, PortfolioItem> { { 1, portfolio } };
         var order = CreateSellOrder(1, quantity: 5, price: 200m);
+        var context = CreateContext(order, traders: traders, portfolios: portfolios);
 
-        var result = _engine.ProcessOrder(order, new(), traders, portfolios, CreateToken());
+        var result = _engine.ProcessOrder(context);
 
         Assert.True(result.IsSuccess);
-        Assert.Empty(result.Trades);
+        Assert.Empty(context.AllTrades);
         Assert.Equal(5, portfolio.ReserveQuantity);
         Assert.Equal(5, portfolio.Quantity);
-        Assert.Empty(result.PortfoliosToAdd);
+        Assert.True(portfolio.IsDirty);
     }
 
     [Fact]
@@ -92,11 +127,12 @@ public class TradingEngineTest
         var seller = CreateTrader(1);
         var traders = new Dictionary<long, Trader> { { 1, seller } };
         var order = CreateSellOrder(1);
+        var context = CreateContext(order, traders: traders);
 
-        var result = _engine.ProcessOrder(order, new(), traders, new(), CreateToken());
+        var result = _engine.ProcessOrder(context);
 
         Assert.False(result.IsSuccess);
-        Assert.Contains("портфеле", result.Error);
+        Assert.Contains("портфеле", result.Message);
     }
 
     [Fact]
@@ -114,15 +150,16 @@ public class TradingEngineTest
 
         var buyOrder = CreateBuyOrder(1, quantity: 5, price: 100m);
         var token = CreateToken();
+        var context = CreateContext(buyOrder, existingOrders, traders, portfolios, token);
 
-        var result = _engine.ProcessOrder(buyOrder, existingOrders, traders, portfolios, token);
+        var result = _engine.ProcessOrder(context);
 
         Assert.True(result.IsSuccess);
-        Assert.Single(result.Trades);
-        Assert.Equal(5, result.Trades[0].Quantity);
-        Assert.Equal(80m, result.Trades[0].Price);
-        Assert.Equal(1, result.Trades[0].BuyerId);
-        Assert.Equal(2, result.Trades[0].SellerId);
+        Assert.Single(context.AllTrades);
+        Assert.Equal(5, context.AllTrades[0].Quantity);
+        Assert.Equal(80m, context.AllTrades[0].Price);
+        Assert.Equal(1, context.AllTrades[0].BuyerId);
+        Assert.Equal(2, context.AllTrades[0].SellerId);
         Assert.True(buyOrder.IsFilled());
         Assert.True(existingSell.IsFilled());
         Assert.Equal(1000m + 80m * 5, seller.Balance);
@@ -145,14 +182,15 @@ public class TradingEngineTest
 
         var sellOrder = CreateSellOrder(2, quantity: 3, price: 120m);
         var token = CreateToken();
+        var context = CreateContext(sellOrder, existingOrders, traders, portfolios, token);
 
-        var result = _engine.ProcessOrder(sellOrder, existingOrders, traders, portfolios, token);
+        var result = _engine.ProcessOrder(context);
 
         Assert.True(result.IsSuccess);
-        Assert.Single(result.Trades);
-        Assert.Equal(1, result.Trades[0].BuyerId);
-        Assert.Equal(2, result.Trades[0].SellerId);
-        Assert.Equal(150m, result.Trades[0].Price);
+        Assert.Single(context.AllTrades);
+        Assert.Equal(1, context.AllTrades[0].BuyerId);
+        Assert.Equal(2, context.AllTrades[0].SellerId);
+        Assert.Equal(150m, context.AllTrades[0].Price);
         Assert.True(sellOrder.IsFilled());
         Assert.True(existingBuy.IsFilled());
         Assert.Equal(150m, token.CurrentPrice);
@@ -172,9 +210,9 @@ public class TradingEngineTest
         var portfolios = new Dictionary<long, PortfolioItem> { { 2, sellerPortfolio } };
 
         var buyOrder = CreateBuyOrder(1, quantity: 5, price: 100m);
-        var token = CreateToken();
+        var context = CreateContext(buyOrder, existingOrders, traders, portfolios);
 
-        var result = _engine.ProcessOrder(buyOrder, existingOrders, traders, portfolios, token);
+        var result = _engine.ProcessOrder(context);
 
         Assert.True(result.IsSuccess);
         var overpayment = (100m - 60m) * 5;
@@ -196,14 +234,14 @@ public class TradingEngineTest
         var portfolios = new Dictionary<long, PortfolioItem> { { 2, sellerPortfolio } };
 
         var buyOrder = CreateBuyOrder(1, quantity: 5, price: 100m);
-        var token = CreateToken();
+        var context = CreateContext(buyOrder, existingOrders, traders, portfolios);
 
-        var result = _engine.ProcessOrder(buyOrder, existingOrders, traders, portfolios, token);
+        var result = _engine.ProcessOrder(context);
 
         Assert.True(result.IsSuccess);
-        Assert.Single(result.Trades);
-        Assert.True(portfolios.ContainsKey(1));
-        Assert.Equal(5, portfolios[1].Quantity);
+        Assert.Single(context.AllTrades);
+        Assert.True(context.Portfolios.ContainsKey(1));
+        Assert.Equal(5, context.Portfolios[1].Quantity);
     }
 
     [Fact]
@@ -226,17 +264,17 @@ public class TradingEngineTest
         };
 
         var buyOrder = CreateBuyOrder(1, quantity: 5, price: 100m);
-        var token = CreateToken();
+        var context = CreateContext(buyOrder, existingOrders, traders, portfolios);
 
-        var result = _engine.ProcessOrder(buyOrder, existingOrders, traders, portfolios, token);
+        var result = _engine.ProcessOrder(context);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(2, result.Trades.Count);
+        Assert.Equal(2, context.AllTrades.Count);
         Assert.True(buyOrder.IsFilled());
         Assert.True(sell1.IsFilled());
         Assert.Equal(2, sell2.FilledQuantity);
         Assert.Equal(1, sell2.GetRemainingQuantity());
-        Assert.Contains(sell2, result.UpdatedOrders);
+        Assert.False(sell2.IsFilled());
     }
 
     [Fact]
@@ -253,8 +291,9 @@ public class TradingEngineTest
         var portfolios = new Dictionary<long, PortfolioItem> { { 2, sellerPortfolio } };
 
         var buyOrder = CreateBuyOrder(1, quantity: 5, price: 100m);
+        var context = CreateContext(buyOrder, existingOrders, traders, portfolios);
 
-        var result = _engine.ProcessOrder(buyOrder, existingOrders, traders, portfolios, CreateToken());
+        var result = _engine.ProcessOrder(context);
 
         Assert.True(result.IsSuccess);
         Assert.Equal(10000m - 500m, buyer.Balance);
@@ -268,11 +307,12 @@ public class TradingEngineTest
         var traders = new Dictionary<long, Trader> { { 1, buyer } };
         var order = CreateBuyOrder(1);
         var token = CreateToken(price: 200m);
+        var context = CreateContext(order, traders: traders, token: token);
 
-        var result = _engine.ProcessOrder(order, new(), traders, new(), token);
+        var result = _engine.ProcessOrder(context);
 
         Assert.True(result.IsSuccess);
-        Assert.Empty(result.Trades);
+        Assert.Empty(context.AllTrades);
         Assert.Equal(200m, token.CurrentPrice);
     }
 
@@ -290,11 +330,12 @@ public class TradingEngineTest
         var portfolios = new Dictionary<long, PortfolioItem> { { 2, sellerPortfolio } };
 
         var buyOrder = CreateBuyOrder(1, quantity: 5, price: 100m);
+        var context = CreateContext(buyOrder, existingOrders, traders, portfolios);
 
-        var result = _engine.ProcessOrder(buyOrder, existingOrders, traders, portfolios, CreateToken());
+        var result = _engine.ProcessOrder(context);
 
         Assert.True(result.IsSuccess);
-        Assert.Empty(result.Trades);
+        Assert.Empty(context.AllTrades);
         Assert.True(buyOrder.IsActive());
     }
 
@@ -312,11 +353,12 @@ public class TradingEngineTest
         var portfolios = new Dictionary<long, PortfolioItem> { { 2, sellerPortfolio } };
 
         var sellOrder = CreateSellOrder(2, quantity: 5, price: 100m);
+        var context = CreateContext(sellOrder, existingOrders, traders, portfolios);
 
-        var result = _engine.ProcessOrder(sellOrder, existingOrders, traders, portfolios, CreateToken());
+        var result = _engine.ProcessOrder(context);
 
         Assert.True(result.IsSuccess);
-        Assert.Empty(result.Trades);
+        Assert.Empty(context.AllTrades);
     }
 
     [Fact]
@@ -334,12 +376,13 @@ public class TradingEngineTest
         var portfolios = new Dictionary<long, PortfolioItem> { { 2, seller1Portfolio } };
 
         var buyOrder = CreateBuyOrder(1, quantity: 5, price: 100m);
+        var context = CreateContext(buyOrder, existingOrders, traders, portfolios);
 
-        var result = _engine.ProcessOrder(buyOrder, existingOrders, traders, portfolios, CreateToken());
+        var result = _engine.ProcessOrder(context);
 
         Assert.True(result.IsSuccess);
-        Assert.Single(result.Trades);
-        Assert.Equal(2, result.Trades[0].Quantity);
+        Assert.Single(context.AllTrades);
+        Assert.Equal(2, context.AllTrades[0].Quantity);
         Assert.False(buyOrder.IsFilled());
         Assert.Equal(3, buyOrder.GetRemainingQuantity());
         Assert.True(sell1.IsFilled());
@@ -360,11 +403,13 @@ public class TradingEngineTest
         var portfolios = new Dictionary<long, PortfolioItem> { { 1, buyerPortfolio }, { 2, sellerPortfolio } };
 
         var sellOrder = CreateSellOrder(2, quantity: 3, price: 120m);
+        var context = CreateContext(sellOrder, existingOrders, traders, portfolios);
 
-        var result = _engine.ProcessOrder(sellOrder, existingOrders, traders, portfolios, CreateToken());
+        var result = _engine.ProcessOrder(context);
 
         Assert.True(result.IsSuccess);
         Assert.Equal(8, buyerPortfolio.Quantity);
+        Assert.True(buyerPortfolio.IsDirty);
     }
 
     [Fact]
@@ -381,11 +426,12 @@ public class TradingEngineTest
         var portfolios = new Dictionary<long, PortfolioItem> { { 2, sellerPortfolio } };
 
         var buyOrder = CreateBuyOrder(1, quantity: 5, price: 100m);
+        var context = CreateContext(buyOrder, existingOrders, traders, portfolios);
 
-        var result = _engine.ProcessOrder(buyOrder, existingOrders, traders, portfolios, CreateToken());
+        var result = _engine.ProcessOrder(context);
 
         Assert.True(result.IsSuccess);
-        Assert.Empty(result.Trades);
+        Assert.Empty(context.AllTrades);
         Assert.True(buyOrder.IsActive());
         Assert.True(existingSell.IsActive());
     }
@@ -404,10 +450,11 @@ public class TradingEngineTest
         var portfolios = new Dictionary<long, PortfolioItem> { { 2, sellerPortfolio } };
 
         var sellOrder = CreateSellOrder(2, quantity: 5, price: 100m);
+        var context = CreateContext(sellOrder, existingOrders, traders, portfolios);
 
-        var result = _engine.ProcessOrder(sellOrder, existingOrders, traders, portfolios, CreateToken());
+        var result = _engine.ProcessOrder(context);
 
         Assert.True(result.IsSuccess);
-        Assert.Empty(result.Trades);
+        Assert.Empty(context.AllTrades);
     }
 }
