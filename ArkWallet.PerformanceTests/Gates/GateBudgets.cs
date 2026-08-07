@@ -19,6 +19,14 @@ internal static class GateBudgets
     public static readonly Budget E2eBotAdminFlow = new(40, 2000, null, 23);
     public static readonly Budget E2eTelegramBotLevel = new(102, 40, null, 141);
 
+    public static readonly Budget HeavyOrdersGet = new(2, 2000, null, 12000);
+    public static readonly Budget HeavyOrderCreate = new(25, 2000, 5, 2500);
+    public static readonly Budget HeavyOrdersCancelAll = new(6000, 5000, 5, 10000);
+    public static readonly Budget HeavyTokensGet = new(2000, 1000, null, 3000);
+    public static readonly Budget HeavyCandleGet = new(2, 3000, null, 120000);
+    public static readonly Budget HeavyBalanceGet = new(10, 15000, null, 1500000);
+    public static readonly Budget HeavyTradesGet = new(2, 3000, null, 25000);
+
     public static readonly IReadOnlyDictionary<string, Budget> ById = new Dictionary<string, Budget>(StringComparer.OrdinalIgnoreCase)
     {
         ["token-query-50t"] = TokenQuery50T,
@@ -35,5 +43,13 @@ internal static class GateBudgets
         ["e2e-bot-wizard-flow"] = E2eBotWizardFlow,
         ["e2e-bot-admin-flow"] = E2eBotAdminFlow,
         ["e2e-telegram-bot-level"] = E2eTelegramBotLevel,
+
+        ["heavy-orders-get"] = HeavyOrdersGet,
+        ["heavy-order-create"] = HeavyOrderCreate,
+        ["heavy-orders-cancel-all"] = HeavyOrdersCancelAll,
+        ["heavy-tokens-get"] = HeavyTokensGet,
+        ["heavy-candle-get"] = HeavyCandleGet,
+        ["heavy-balance-get"] = HeavyBalanceGet,
+        ["heavy-trades-get"] = HeavyTradesGet,
     };
 }
