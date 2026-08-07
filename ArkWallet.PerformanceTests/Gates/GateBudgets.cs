@@ -25,7 +25,7 @@ internal static class GateBudgets
     public static readonly Budget HeavyTokensGet = new(2000, 1000, null, 3000);
     public static readonly Budget HeavyCandleGet = new(2, 1000, null, 120000);
     public static readonly Budget HeavyBalanceGet = new(6, 100, null, 2500);
-    public static readonly Budget HeavyTradesGet = new(2, 3000, null, 25000);
+    public static readonly Budget HeavyTradesGet = new(2, 350, null, 25000);
 
     public static readonly IReadOnlyDictionary<string, Budget> ById = new Dictionary<string, Budget>(StringComparer.OrdinalIgnoreCase)
     {
