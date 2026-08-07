@@ -144,19 +144,18 @@ internal class OrderCreationService(
         var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(t => t.Symbol == firstCommand.Symbol)
             ?? throw new InvalidOperationException("Токена не существует");
 
+        var validationResult = await orderValidationService.ValidateFullOrdersAsync(commandList);
+        if (!validationResult.IsValid)
+            throw new InvalidOperationException(validationResult.Message);
+
         var orders = new List<TradeOrder>();
         foreach (var command in commandList)
         {
-            var validationResult = await orderValidationService.ValidateFullOrderAsync(command);
-            if (!validationResult.IsValid)
-                throw new InvalidOperationException(validationResult.Message);
-
             var orderType = command.Direction.Equals("купить", StringComparison.CurrentCultureIgnoreCase)
                 ? OrderType.Buy
                 : OrderType.Sell;
 
-            var order = TradeOrder.Create(orderType, command.Symbol, command.TraderId, command.Price, command.Quantity);
-            orders.Add(order);
+            orders.Add(TradeOrder.Create(orderType, command.Symbol, command.TraderId, command.Price, command.Quantity));
         }
 
         var isBuy = orders.First().IsLong();

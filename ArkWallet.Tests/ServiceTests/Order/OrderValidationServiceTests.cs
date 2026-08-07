@@ -97,6 +97,56 @@ public class OrderValidationServiceTests
     }
 
     [Fact]
+    public async Task ValidateTokensAsync_BuyDirection_ReturnsSuccess()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+        await HelpMethods.RegisterTrader(db, 101);
+
+        var service = new OrderValidationService(db);
+
+        var result = await service.ValidateTokensAsync(101, new[] { "ZZZ" }, "купить");
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public async Task ValidateTokensAsync_SellWithAllTokens_ReturnsSuccess()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.CreateToken(db, "YYY");
+        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 101, "YYY", 5);
+
+        var service = new OrderValidationService(db);
+
+        var result = await service.ValidateTokensAsync(101, new[] { "ZZZ", "YYY" }, "продать");
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public async Task ValidateTokensAsync_SellWithoutOneToken_ReturnsFail()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.CreateToken(db, "YYY");
+        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
+
+        var service = new OrderValidationService(db);
+
+        var result = await service.ValidateTokensAsync(101, new[] { "ZZZ", "YYY" }, "продать");
+
+        Assert.False(result.IsValid);
+        Assert.Contains("не обладает", result.Message);
+    }
+
+    [Fact]
     public async Task ValidateOrderCancellationAsync_ActiveOrder_ReturnsSuccess()
     {
         using var db = DbTest.CreateDbContext();

@@ -65,4 +65,128 @@ public class OrderValidationFullOrderTests
 
         Assert.True(result.IsValid);
     }
+
+    [Fact]
+    public async Task ValidateFullOrdersAsync_Empty_ReturnsSuccess()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var service = new OrderValidationService(db);
+
+        var result = await service.ValidateFullOrdersAsync(Array.Empty<CreateOrderCommand>());
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public async Task ValidateFullOrdersAsync_InvalidPrice_ReturnsFail()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+
+        var service = new OrderValidationService(db);
+
+        var requests = new[]
+        {
+            new CreateOrderCommand(101, "\u043A\u0443\u043F\u0438\u0442\u044C", "ZZZ", 5, 0),
+            new CreateOrderCommand(101, "\u043A\u0443\u043F\u0438\u0442\u044C", "ZZZ", 3, 100),
+        };
+
+        var result = await service.ValidateFullOrdersAsync(requests);
+
+        Assert.False(result.IsValid);
+    }
+
+    [Fact]
+    public async Task ValidateFullOrdersAsync_InvalidQuantity_ReturnsFail()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+
+        var service = new OrderValidationService(db);
+
+        var requests = new[]
+        {
+            new CreateOrderCommand(101, "\u043A\u0443\u043F\u0438\u0442\u044C", "ZZZ", 0, 100),
+            new CreateOrderCommand(101, "\u043A\u0443\u043F\u0438\u0442\u044C", "ZZZ", 5, 100),
+        };
+
+        var result = await service.ValidateFullOrdersAsync(requests);
+
+        Assert.False(result.IsValid);
+    }
+
+    [Fact]
+    public async Task ValidateFullOrdersAsync_SellWithoutTokens_ReturnsFail()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.CreateToken(db, "YYY");
+
+        var service = new OrderValidationService(db);
+
+        var requests = new[]
+        {
+            new CreateOrderCommand(101, "\u043F\u0440\u043E\u0434\u0430\u0442\u044C", "ZZZ", 5, 100),
+            new CreateOrderCommand(101, "\u043F\u0440\u043E\u0434\u0430\u0442\u044C", "YYY", 3, 100),
+        };
+
+        var result = await service.ValidateFullOrdersAsync(requests);
+
+        Assert.False(result.IsValid);
+        Assert.Contains("не обладает", result.Message);
+    }
+
+    [Fact]
+    public async Task ValidateFullOrdersAsync_MixedGroupAllValid_ReturnsSuccess()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
+
+        var service = new OrderValidationService(db);
+
+        var requests = new[]
+        {
+            new CreateOrderCommand(101, "\u043A\u0443\u043F\u0438\u0442\u044C", "ZZZ", 5, 100),
+            new CreateOrderCommand(101, "\u043F\u0440\u043E\u0434\u0430\u0442\u044C", "ZZZ", 5, 100),
+        };
+
+        var result = await service.ValidateFullOrdersAsync(requests);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public async Task ValidateFullOrdersAsync_MixedGroupMissingToken_ReturnsFail()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.CreateToken(db, "YYY");
+        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
+
+        var service = new OrderValidationService(db);
+
+        var requests = new[]
+        {
+            new CreateOrderCommand(101, "\u043A\u0443\u043F\u0438\u0442\u044C", "ZZZ", 5, 100),
+            new CreateOrderCommand(101, "\u043F\u0440\u043E\u0434\u0430\u0442\u044C", "YYY", 5, 100),
+        };
+
+        var result = await service.ValidateFullOrdersAsync(requests);
+
+        Assert.False(result.IsValid);
+        Assert.Contains("не обладает", result.Message);
+    }
 }
