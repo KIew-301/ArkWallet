@@ -19,7 +19,7 @@ internal static class GateBudgets
     public static readonly Budget E2eBotAdminFlow = new(40, 2000, null, 23);
     public static readonly Budget E2eTelegramBotLevel = new(210, 40, null, 190);
 
-    public static readonly Budget HeavyOrdersGet = new(2, 2000, null, 12000);
+    public static readonly Budget HeavyOrdersGet = new(2, 250, null, 12000);
     public static readonly Budget HeavyOrderCreate = new(25, 2000, 5, 2500);
     public static readonly Budget HeavyOrdersCancelAll = new(130, 250, 5, 5000);
     public static readonly Budget HeavyTokensGet = new(2000, 1000, null, 3000);

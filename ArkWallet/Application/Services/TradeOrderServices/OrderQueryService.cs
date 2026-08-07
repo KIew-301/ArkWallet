@@ -36,17 +36,40 @@ internal class OrderQueryService(
                 return Ok(new List<OrderInfo>());
 
             var orders = await dbContext.TradeOrders
-                .Where(o => o.TraderTelegramId == traderTelegramId && statuses.Contains(o.Status))
-                .Include(o => o.CharacterToken)
+                .AsNoTracking()
+                .Where(o => o.TraderTelegramId == traderTelegramId && statuses.Contains(o.Status) && o.CharacterToken != null)
                 .OrderByDescending(o => o.CreatedAt)
+                .Select(o => new
+                {
+                    o.Id,
+                    o.Type,
+                    o.Quantity,
+                    o.FilledQuantity,
+                    o.Price,
+                    o.Status,
+                    Symbol = o.CharacterToken!.Symbol,
+                    TokenName = o.CharacterToken.Name,
+                    IconUrl = o.CharacterToken.IconUrl,
+                    CurrentPrice = o.CharacterToken.CurrentPrice
+                })
                 .ToListAsync();
 
-            if (!orders.Any())
+            if (orders.Count == 0)
                 return Ok(new List<OrderInfo>());
 
             var result = orders
-                .Where(o => o.CharacterToken != null)
-                .Select(o => OrderInfo.FromEntity(o, o.CharacterToken!, withTokenInfo))
+                .Select(o => new OrderInfo(
+                    o.Id,
+                    o.Symbol,
+                    o.TokenName,
+                    o.Type == OrderType.Buy ? "Buy" : "Sell",
+                    o.Quantity,
+                    o.FilledQuantity,
+                    o.Quantity > 0 ? (decimal)o.FilledQuantity / o.Quantity * 100m : 0m,
+                    o.Price,
+                    o.Status.ToString(),
+                    withTokenInfo ? o.IconUrl : null,
+                    withTokenInfo ? o.CurrentPrice : null))
                 .ToList();
 
             return Ok(result);

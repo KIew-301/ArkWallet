@@ -1,6 +1,4 @@
 ﻿using ArkWallet.Application.Common;
-using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.ValueObjects;
 
 namespace ArkWallet.Application.Contracts.TradeOrderServices;
 
@@ -60,26 +58,4 @@ public record OrderInfo(
     string Status,
     string? IconUrl = null,
     decimal? CurrentPrice = null
-)
-{
-    internal static OrderInfo FromEntity(TradeOrder order, CharacterToken token, bool withTokenInfo)
-    {
-        var fillPercent = order.Quantity > 0
-            ? (decimal)order.FilledQuantity / order.Quantity * 100m
-            : 0m;
-
-        return new OrderInfo(
-            order.Id,
-            token.Symbol,
-            token.Name,
-            order.Type == OrderType.Buy ? "Buy" : "Sell",
-            order.Quantity,
-            order.FilledQuantity,
-            fillPercent,
-            order.Price,
-            order.Status.ToString(),
-            withTokenInfo ? token.IconUrl : null,
-            withTokenInfo ? token.CurrentPrice : null
-        );
-    }
-}
+);
