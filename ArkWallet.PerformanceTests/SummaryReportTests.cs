@@ -182,6 +182,56 @@ public class SummaryReportTests
         }
     }
 
+    [Fact]
+    public void OverviewHtml_TimeDecreaseAtLeast60Percent_FromAbove20ms_IsImproved()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "arkwallet-perf-overview", Guid.NewGuid().ToString("N"));
+        try
+        {
+            var current = new RunReport(DateTime.UtcNow, new[] { Scenario("heavy-trades-get", 5, 100, 15) });
+            var previousRuns = new RunReport[]
+            {
+                new(DateTime.UtcNow.AddMinutes(-1), new[] { Scenario("heavy-trades-get", 5, 100, 50) }),
+            };
+
+            OverviewReporter.Save(tempDir, current, previousRuns);
+            var html = File.ReadAllText(Path.Combine(tempDir, "overview.html"));
+
+            Assert.Contains("badge-ok\">Улучшено", html);
+            Assert.DoesNotContain("badge-bad\">Регресс", html);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void OverviewHtml_TimeDecreaseAtLeast60Percent_FromAtMost20ms_IsStable()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "arkwallet-perf-overview", Guid.NewGuid().ToString("N"));
+        try
+        {
+            var current = new RunReport(DateTime.UtcNow, new[] { Scenario("heavy-trades-get", 5, 100, 5) });
+            var previousRuns = new RunReport[]
+            {
+                new(DateTime.UtcNow.AddMinutes(-1), new[] { Scenario("heavy-trades-get", 5, 100, 15) }),
+            };
+
+            OverviewReporter.Save(tempDir, current, previousRuns);
+            var html = File.ReadAllText(Path.Combine(tempDir, "overview.html"));
+
+            Assert.DoesNotContain("badge-ok\">Улучшено", html);
+            Assert.DoesNotContain("badge-bad\">Регресс", html);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
     private static RunScenario Scenario(string id, double queries, int rows, double ms)
         => new(id, "Сценарий " + id, "Сервис", queries, ms, 100, null, null, Array.Empty<StepReport>(), rows, null, null);
 }

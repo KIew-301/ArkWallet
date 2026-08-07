@@ -11,6 +11,8 @@ internal static class OverviewReporter
     private const double QueryRegressionMinPercent = 10.0;
     private const double QueryRegressionMinCount = 10.0;
     private const double TimeColorFloorMs = 10.0;
+    private const double TimeImprovementFloorMs = 20.0;
+    private const double TimeImprovementMinPercent = 60.0;
 
     public static void Save(string directory, RunReport current, IReadOnlyList<RunReport> baselineRuns, string? baselineLabel = null)
     {
@@ -51,7 +53,7 @@ internal static class OverviewReporter
             var dr = Delta(prev.Rows, scenario.Rows);
             var dt = Delta(prev.TotalMs, scenario.TotalMs);
             var timeMeasurable = prev.TotalMs >= TimeColorFloorMs;
-            var status = Classify(dq, dr, scenario.Queries);
+            var status = Classify(dq, dr, scenario.Queries, prev.TotalMs, dt);
 
             if (status == "improved") improved++;
             else if (status == "regressed") regressed++;
@@ -119,7 +121,7 @@ internal static class OverviewReporter
             sb.AppendLine(row);
         sb.AppendLine("</table>");
 
-        sb.AppendLine("<footer>База сравнения: последний прогон в <code>Reports/archive</code>, где есть сценарий, либо выбранный целевой прогон (переменная <code>ARKWALLET_PERF_TARGET</code>, сохраняется в <code>Reports/target.txt</code> до смены). Сценарии без замера в базе помечаются «Нет данных». Статус определяется только по детерминированным метрикам: запросы ±2%, строки ±2%; рост запросов не считается регрессом, если прирост &lt;10% или запросов &lt;10. Время (±20% для флоу &ge;10 мс) показывается справочно и на статус не влияет. Repeat-прогон (медиана из N замеров): <code>ARKWALLET_PERF_REPEAT=100 dotnet test ArkWallet.PerformanceTests --filter \"FullyQualifiedName~Repeats\"</code>.</footer>");
+        sb.AppendLine("<footer>База сравнения: последний прогон в <code>Reports/archive</code>, где есть сценарий, либо выбранный целевой прогон (переменная <code>ARKWALLET_PERF_TARGET</code>, сохраняется в <code>Reports/target.txt</code> до смены). Сценарии без замера в базе помечаются «Нет данных». Статус определяется только по детерминированным метрикам: запросы ±2%, строки ±2%; рост запросов не считается регрессом, если прирост &lt;10% или запросов &lt;10. «Улучшено» также ставится, если время было &gt;20 мс и снизилось на &ge;60%. Время (±20% для флоу &ge;10 мс) показывается справочно и на статус не влияет. Repeat-прогон (медиана из N замеров): <code>ARKWALLET_PERF_REPEAT=100 dotnet test ArkWallet.PerformanceTests --filter \"FullyQualifiedName~Repeats\"</code>.</footer>");
         sb.AppendLine("</body>");
         sb.AppendLine("</html>");
         return sb.ToString();
@@ -161,9 +163,11 @@ internal static class OverviewReporter
             $"<td>{badge}</td></tr>";
     }
 
-    private static string Classify(double? dq, double? dr, double currentQueries)
+    private static string Classify(double? dq, double? dr, double currentQueries, double prevMs, double? dt)
     {
-        var isImproved = (dq ?? 0) <= -QueryDeltaThreshold || (dr ?? 0) <= -RowsDeltaThreshold;
+        var isImproved = (dq ?? 0) <= -QueryDeltaThreshold
+            || (dr ?? 0) <= -RowsDeltaThreshold
+            || (prevMs > TimeImprovementFloorMs && (dt ?? 0) <= -TimeImprovementMinPercent);
 
         var queryCountsAsRegression = (dq ?? 0) >= QueryRegressionMinPercent && currentQueries >= QueryRegressionMinCount;
         var isRegressed = (dr ?? 0) >= RowsDeltaThreshold || queryCountsAsRegression;
