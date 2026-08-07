@@ -103,7 +103,7 @@ internal static class ScenarioCatalog
 
             E2e("heavy-orders-cancel-all",
                 "E2E API · DELETE /orders (2k отмена)",
-                "Отмена всех активных ордеров: 2k ордеров, 1.6k short на 100 символах (N+1 на портфель).",
+                "Отмена всех активных ордеров: 2k ордеров, 1.6k short на 100 символах (батч портфеля + bulk UPDATE).",
                 C(("Ордера", "2 000"), ("Short", "1 600"), ("Символы", "100"))),
 
             E2e("heavy-tokens-get",

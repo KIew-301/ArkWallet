@@ -21,7 +21,7 @@ internal static class GateBudgets
 
     public static readonly Budget HeavyOrdersGet = new(2, 2000, null, 12000);
     public static readonly Budget HeavyOrderCreate = new(25, 2000, 5, 2500);
-    public static readonly Budget HeavyOrdersCancelAll = new(6000, 5000, 5, 10000);
+    public static readonly Budget HeavyOrdersCancelAll = new(130, 250, 5, 5000);
     public static readonly Budget HeavyTokensGet = new(2000, 1000, null, 3000);
     public static readonly Budget HeavyCandleGet = new(2, 3000, null, 120000);
     public static readonly Budget HeavyBalanceGet = new(6, 100, null, 2500);
