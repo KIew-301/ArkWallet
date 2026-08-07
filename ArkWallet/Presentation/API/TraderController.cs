@@ -34,21 +34,15 @@ public class TradersController(IBalanceChangesCalculationService balanceChangesC
         if (!long.TryParse(User?.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userTelegramId))
             return Unauthorized();
 
-        var resultMain = await balanceChangesCalculationService
-            .TakeMainBalanceChanges(userTelegramId, request.PeriodDays);
+        var result = await balanceChangesCalculationService
+            .TakeBalanceChanges(userTelegramId, request.PeriodDays);
 
-        var resultTotal = await balanceChangesCalculationService
-            .TakeTotalBalanceChanges(userTelegramId, request.PeriodDays);
-
-        if (!resultMain.TryGetData(out var dataMain))
-            return BadRequest(resultMain.Message);
-
-        if (!resultTotal.TryGetData(out var dataTotal))
-            return BadRequest(resultTotal.Message);
+        if (!result.TryGetData(out var data))
+            return BadRequest(result.Message);
 
         return Ok(new GetBalanceResponse(
-            new BalanceInfo(dataMain.CurrentBalance, dataMain.ChangeAbsolute, dataMain.ChangePercent),
-            new BalanceInfo(dataTotal.CurrentBalance, dataTotal.ChangeAbsolute, dataTotal.ChangePercent)
+            new BalanceInfo(data.Main.CurrentBalance, data.Main.ChangeAbsolute, data.Main.ChangePercent),
+            new BalanceInfo(data.Total.CurrentBalance, data.Total.ChangeAbsolute, data.Total.ChangePercent)
         ));
     }
 }

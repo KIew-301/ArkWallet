@@ -48,6 +48,14 @@ public interface IBalanceChangesCalculationService
     /// </para>
     /// </remarks>
     Task<Result<BalanceChangesData>> TakeTotalBalanceChanges(long traderTelegramId, int periodDays);
+
+    /// <summary>
+    /// Рассчитывает изменение основного и полного баланса за период одним прогоном текущего снапшота
+    /// </summary>
+    /// <param name="traderTelegramId">Telegram ID трейдера</param>
+    /// <param name="periodDays">Количество дней для расчёта (минимум 1, максимум 365)</param>
+    /// <returns>Изменения основного и полного баланса</returns>
+    Task<Result<BalanceChangesBundle>> TakeBalanceChanges(long traderTelegramId, int periodDays);
 }
 /// <summary>
 /// Данные об изменении баланса за период
@@ -62,3 +70,10 @@ public record BalanceChangesData(
     decimal ChangeAbsolute,
     decimal ChangePercent
 );
+
+/// <summary>
+/// Изменения основного и полного баланса за период (текущий снапшот считается один раз)
+/// </summary>
+/// <param name="Main">Изменение основного баланса</param>
+/// <param name="Total">Изменение полного баланса</param>
+public record BalanceChangesBundle(BalanceChangesData Main, BalanceChangesData Total);
