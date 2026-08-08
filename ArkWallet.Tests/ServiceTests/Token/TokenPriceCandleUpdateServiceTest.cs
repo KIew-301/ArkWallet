@@ -17,6 +17,7 @@ public class TokenPriceCandleUpdateServiceTest
 
         await HelpMethods.CreateToken(db, "ZZZ");
         var result = await tokenPriceCandleUpdateService.UpdateTokenPriceCandleAsync("ZZZ", 1000m);
+        await db.SaveChangesAsync();
 
         var candles = db.PriceCandles.Where(c => c.CharacterTokenId == "ZZZ").ToArray();
 
@@ -61,6 +62,7 @@ public class TokenPriceCandleUpdateServiceTest
         foreach (var price in priceArray)
         {
             await tokenPriceCandleUpdateService.UpdateTokenPriceCandleAsync("ZZZ", price);
+            await db.SaveChangesAsync();
             timeProvider.SkipInSeconds(20);
         }
 

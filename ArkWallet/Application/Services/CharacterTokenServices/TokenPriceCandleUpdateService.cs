@@ -46,7 +46,6 @@ internal class TokenPriceCandleUpdateService(
                 dbContext.PriceCandles.Update(lastCandle);
             }
 
-            await dbContext.SaveChangesAsync();
             return Ok();
         }, logger, nameof(TokenPriceCandleUpdateService));
     }
