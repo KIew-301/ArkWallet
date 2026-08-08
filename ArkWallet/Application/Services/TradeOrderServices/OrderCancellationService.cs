@@ -109,7 +109,7 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
     private static void RefundOrders(
         Trader trader,
         IEnumerable<TradeOrder> orders,
-        IReadOnlyDictionary<string, PortfolioItem> portfolioItems)
+        Dictionary<string, PortfolioItem> portfolioItems)
     {
         foreach (var order in orders)
         {

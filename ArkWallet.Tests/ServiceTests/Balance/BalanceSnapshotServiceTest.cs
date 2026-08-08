@@ -6,6 +6,8 @@ namespace ArkWallet.Tests.ServiceTests.Balance;
 
 public class BalanceSnapshotServiceTest
 {
+    private static readonly long[] TraderIds = [101L, 102L];
+
     [Fact]
     public async Task TakeSnapshot_ValidData_ReturnsSuccess()
     {
@@ -137,7 +139,7 @@ public class BalanceSnapshotServiceTest
         await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 5, 60);
 
         var service = new BalanceSnapshotService(db, NullLogger<BalanceSnapshotService>.Instance);
-        var result = await service.TakeTotalTraderBalanceSnapshotsAsync(new[] { 101L, 102L });
+        var result = await service.TakeTotalTraderBalanceSnapshotsAsync(TraderIds);
 
         Assert.True(result.IsSuccess, result.Message);
         Assert.True(result.TryGetData(out var data));

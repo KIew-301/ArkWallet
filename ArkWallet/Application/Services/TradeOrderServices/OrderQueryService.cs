@@ -40,8 +40,8 @@ internal class OrderQueryService(
                     o.FilledQuantity,
                     o.Price,
                     o.Status,
-                    Symbol = o.CharacterToken.Symbol,
-                    TokenName = o.CharacterToken.Name,
+                    Symbol = o.CharacterToken!.Symbol,
+                    TokenName = o.CharacterToken!.Name,
                     IconUrl = o.CharacterToken.IconUrl,
                     CurrentPrice = o.CharacterToken.CurrentPrice
                 })
