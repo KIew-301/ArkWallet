@@ -11,8 +11,12 @@ internal static class DbRowLockExtensions
         if (ids.Length == 0 || !dbContext.Database.IsNpgsql())
             return;
 
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         await dbContext.Database.ExecuteSqlInterpolatedAsync(
             $"SELECT \"TelegramId\" FROM \"Traders\" WHERE \"TelegramId\" = ANY({ids}) ORDER BY \"TelegramId\" FOR UPDATE");
+        stopwatch.Stop();
+
+        ArkWalletMetrics.RecordLockWait("trader", stopwatch.Elapsed.TotalSeconds);
     }
 
     internal static async Task LockTokenAsync(this ArkWalletDbContext dbContext, string symbol)
@@ -20,7 +24,11 @@ internal static class DbRowLockExtensions
         if (!dbContext.Database.IsNpgsql())
             return;
 
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         await dbContext.Database.ExecuteSqlInterpolatedAsync(
             $"SELECT \"Symbol\" FROM \"CharacterTokens\" WHERE \"Symbol\" = {symbol} FOR UPDATE");
+        stopwatch.Stop();
+
+        ArkWalletMetrics.RecordLockWait("token", stopwatch.Elapsed.TotalSeconds);
     }
 }

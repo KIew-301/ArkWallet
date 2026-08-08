@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "arkwallet"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["app:5000"]
+
+  - job_name: "rabbitmq"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["rabbitmq:15672"]
+    basic_auth:
+      username: guest
+      password: guest

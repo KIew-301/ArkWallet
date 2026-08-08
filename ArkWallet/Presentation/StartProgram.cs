@@ -1,4 +1,5 @@
-﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
+﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Contracts.Decorators;
 using ArkWallet.Application.Contracts.Leaders;
 using ArkWallet.Application.Contracts.MarketMaker;
@@ -39,6 +40,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using OpenTelemetry.Metrics;
 using System.Reflection;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
@@ -106,6 +108,13 @@ class Program
         builder.Services.AddRouting(options => options.LowercaseUrls = true);
 
         builder.Services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
+
+        builder.Services.AddOpenTelemetry()
+            .WithMetrics(metrics => metrics
+                .AddAspNetCoreInstrumentation()
+                .AddMeter("Npgsql")
+                .AddMeter(ArkWalletMetrics.Meter.Name)
+                .AddPrometheusExporter());
 
         builder.Services.AddSingleton<IConfiguration>(configuration);
 
@@ -203,6 +212,7 @@ class Program
         app.UseStaticFiles();
         app.MapControllers();
         app.MapHealthChecks("/health");
+        app.MapPrometheusScrapingEndpoint();
 
         // Применение миграций
         if (!isTesting)
@@ -311,5 +321,8 @@ class Program
         services.AddScoped<ITraderAuthService, TraderAuthService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<ITradingVolumeService, TradingVolumeService>();
+
+        // Observability
+        services.AddSingleton<IMetricsSnapshotService, MetricsSnapshotService>();
     }
 }
