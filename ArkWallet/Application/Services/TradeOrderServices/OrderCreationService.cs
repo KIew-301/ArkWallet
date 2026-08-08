@@ -80,8 +80,8 @@ internal class OrderCreationService(
 
     private async Task<TradingContext> PrepareSingleTradingContextAsync(CreateOrderCommand command)
     {
-        var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == command.TraderId);
-        var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(t => t.Symbol == command.Symbol);
+        var trader = await dbContext.Traders.FindAsync(command.TraderId);
+        var token = await dbContext.CharacterTokens.FindAsync(command.Symbol);
 
         if (trader == null)
             throw new InvalidOperationException("Пользователя не существует");
@@ -138,10 +138,10 @@ internal class OrderCreationService(
             throw new InvalidOperationException("Нет команд для обработки");
 
         var firstCommand = commandList.First();
-        var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == firstCommand.TraderId)
+        var trader = await dbContext.Traders.FindAsync(firstCommand.TraderId)
             ?? throw new InvalidOperationException("Пользователя не существует");
 
-        var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(t => t.Symbol == firstCommand.Symbol)
+        var token = await dbContext.CharacterTokens.FindAsync(firstCommand.Symbol)
             ?? throw new InvalidOperationException("Токена не существует");
 
         var validationResult = await orderValidationService.ValidateFullOrdersAsync(commandList);
@@ -217,16 +217,50 @@ internal class OrderCreationService(
     private async Task<Dictionary<long, Trader>> GetTradersForOrderAsync(TradeOrder[] activeOrders, long newOrderTraderId)
     {
         var traderIds = activeOrders.Select(o => o.TraderTelegramId).Append(newOrderTraderId).Distinct().ToHashSet();
-        var traders = await dbContext.Traders.Where(t => traderIds.Contains(t.TelegramId)).ToArrayAsync();
-        return traders.ToDictionary(t => t.TelegramId);
+
+        var traders = new Dictionary<long, Trader>();
+        foreach (var traderId in traderIds)
+        {
+            var tracked = dbContext.Traders.Local.FirstOrDefault(t => t.TelegramId == traderId);
+            if (tracked != null)
+                traders[traderId] = tracked;
+        }
+
+        var missingIds = traderIds.Except(traders.Keys).ToArray();
+        if (missingIds.Length > 0)
+        {
+            var fromDb = await dbContext.Traders.Where(t => missingIds.Contains(t.TelegramId)).ToArrayAsync();
+            foreach (var trader in fromDb)
+                traders[trader.TelegramId] = trader;
+        }
+
+        return traders;
     }
 
     private async Task<Dictionary<long, PortfolioItem>> GetPortfoliosForTradersAsync(string symbol, IEnumerable<long> traderIds)
     {
-        var portfolios = await dbContext.PortfolioItems
-            .Where(p => traderIds.Contains(p.TraderTelegramId) && p.CharacterTokenId == symbol)
-            .ToArrayAsync();
-        return portfolios.ToDictionary(p => p.TraderTelegramId);
+        var ids = traderIds.Distinct().ToHashSet();
+
+        var portfolios = new Dictionary<long, PortfolioItem>();
+        foreach (var traderId in ids)
+        {
+            var tracked = dbContext.PortfolioItems.Local
+                .FirstOrDefault(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
+            if (tracked != null)
+                portfolios[traderId] = tracked;
+        }
+
+        var missingIds = ids.Except(portfolios.Keys).ToArray();
+        if (missingIds.Length > 0)
+        {
+            var fromDb = await dbContext.PortfolioItems
+                .Where(p => missingIds.Contains(p.TraderTelegramId) && p.CharacterTokenId == symbol)
+                .ToArrayAsync();
+            foreach (var portfolio in fromDb)
+                portfolios[portfolio.TraderTelegramId] = portfolio;
+        }
+
+        return portfolios;
     }
 
     private async Task<Result> SaveChangesAsync(TradingContext context)

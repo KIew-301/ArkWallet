@@ -100,9 +100,12 @@ internal class MarketMakerOrchestrator(
             if (bots.Count == 0)
                 return Result.Fail("Список ботов пуст");
 
+            var tokens = await LoadTokensForBotsAsync(bots);
+            await LoadActiveOrdersForBotsAsync(bots);
+
             foreach (var bot in bots)
             {
-                var result = await UpdateBotGridAsync(bot);
+                var result = await UpdateBotGridAsync(bot, tokens.GetValueOrDefault(bot.Symbol));
                 if (!result.IsSuccess)
                     return result;
             }
@@ -124,6 +127,9 @@ internal class MarketMakerOrchestrator(
             if (bots.Count == 0)
                 return Result.Fail("Список ботов пуст");
 
+            var tokens = await LoadTokensForBotsAsync(bots);
+            await LoadActiveOrdersForBotsAsync(bots);
+
             foreach (var bot in bots)
             {
                 if (DateTime.UtcNow >= bot.NextPowerChange)
@@ -134,7 +140,7 @@ internal class MarketMakerOrchestrator(
 
                 if (DateTime.UtcNow >= bot.NextRebalance || DateTime.UtcNow.Minute == 0)
                 {
-                    var result = await UpdateBotGridAsync(bot);
+                    var result = await UpdateBotGridAsync(bot, tokens.GetValueOrDefault(bot.Symbol));
                     if (!result.IsSuccess)
                         return result;
 
@@ -142,7 +148,7 @@ internal class MarketMakerOrchestrator(
                     logger.LogDebug("Bot {BotId} grid updated", bot.Id);
                 }
 
-                var marketOrderResult = await marketMakerOrderService.ExecuteMarketOrderAsync(bot.TraderId, bot.Symbol);
+                var marketOrderResult = await marketMakerOrderService.ExecuteMarketOrderAsync(bot.Id);
                 if (!marketOrderResult.IsSuccess)
                 {
                     logger.LogWarning("Failed to execute market order for bot {BotId}: {Error}", bot.Id, marketOrderResult.Message);
@@ -152,6 +158,22 @@ internal class MarketMakerOrchestrator(
             await dbContext.SaveChangesAsync();
             return Result.Ok();
         }, logger, nameof(MarketMakerOrchestrator));
+    }
+
+    private async Task<Dictionary<string, CharacterToken>> LoadTokensForBotsAsync(List<MarketMakerBot> bots)
+    {
+        var symbols = bots.Select(b => b.Symbol).Distinct().ToArray();
+        return await dbContext.CharacterTokens
+            .Where(t => symbols.Contains(t.Symbol))
+            .ToDictionaryAsync(t => t.Symbol);
+    }
+
+    private async Task LoadActiveOrdersForBotsAsync(List<MarketMakerBot> bots)
+    {
+        var symbols = bots.Select(b => b.Symbol).Distinct().ToArray();
+        await dbContext.TradeOrders
+            .Where(o => symbols.Contains(o.CharacterTokenId) && o.Status == OrderStatus.Active)
+            .ToListAsync();
     }
 
     private async Task<Result> UpdateTraderPortfolioAsync(long traderId, string symbol)
@@ -189,24 +211,21 @@ internal class MarketMakerOrchestrator(
         }
     }
 
-    private async Task<Result> UpdateBotGridAsync(MarketMakerBot bot)
+    private async Task<Result> UpdateBotGridAsync(MarketMakerBot bot, CharacterToken? token)
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            var token = await dbContext.CharacterTokens
-                .FirstOrDefaultAsync(t => t.Symbol == bot.Symbol);
-
             if (token == null)
             {
                 logger.LogWarning("Token {Symbol} not found", bot.Symbol);
                 return Result.Fail($"Токен {bot.Symbol} не найден");
             }
 
-            var existingOrders = await dbContext.TradeOrders
+            var existingOrders = dbContext.TradeOrders.Local
                 .Where(o => o.CharacterTokenId == bot.Symbol
                             && o.TraderTelegramId == bot.TraderId
                             && o.Status == OrderStatus.Active)
-                .ToListAsync();
+                .ToList();
 
             var commands = marketMakerGridEngine.GetOrdersToPlace(bot, token.CurrentPrice, existingOrders);
 

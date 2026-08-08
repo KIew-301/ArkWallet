@@ -10,8 +10,7 @@ public interface IMarketMakerOrderService
     /// <summary>
     /// Исполняет рыночный ордер для бота на основе его роли и мощности
     /// </summary>
-    /// <param name="traderIdInBot">ID трейдера, связанного с ботом</param>
-    /// <param name="symbolInBot">Символ токена</param>
+    /// <param name="botId">ID бота</param>
     /// <returns>Результат операции</returns>
     /// <remarks>
     /// <para>
@@ -23,5 +22,5 @@ public interface IMarketMakerOrderService
     /// Объём ордера рассчитывается как 30% от базовой мощности бота (минимум 1)
     /// </para>
     /// </remarks>
-    Task<Result> ExecuteMarketOrderAsync(long traderIdInBot, string symbolInBot);
+    Task<Result> ExecuteMarketOrderAsync(long botId);
 }

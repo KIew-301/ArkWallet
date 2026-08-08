@@ -547,7 +547,7 @@ public class MarketMakerOrchestratorTest
 
         var mockMarketMakerOrderService = new Mock<IMarketMakerOrderService>();
         mockMarketMakerOrderService
-            .Setup(x => x.ExecuteMarketOrderAsync(It.IsAny<long>(), It.IsAny<string>()))
+            .Setup(x => x.ExecuteMarketOrderAsync(It.IsAny<long>()))
             .ReturnsAsync(Result.Ok());
 
         var logger = NullLogger<MarketMakerOrchestrator>.Instance;
@@ -569,7 +569,7 @@ public class MarketMakerOrchestratorTest
             Times.AtLeastOnce);
 
         mockMarketMakerOrderService.Verify(
-            x => x.ExecuteMarketOrderAsync(It.IsAny<long>(), It.IsAny<string>()),
+            x => x.ExecuteMarketOrderAsync(It.IsAny<long>()),
             Times.AtLeastOnce);
     }
 
@@ -602,7 +602,7 @@ public class MarketMakerOrchestratorTest
 
         var mockMarketMakerOrderService = new Mock<IMarketMakerOrderService>();
         mockMarketMakerOrderService
-            .Setup(x => x.ExecuteMarketOrderAsync(It.IsAny<long>(), It.IsAny<string>()))
+            .Setup(x => x.ExecuteMarketOrderAsync(It.IsAny<long>()))
             .ReturnsAsync(Result.Fail("Market order failed"));
 
         var logger = NullLogger<MarketMakerOrchestrator>.Instance;
@@ -620,7 +620,7 @@ public class MarketMakerOrchestratorTest
         Assert.True(result.IsSuccess, result.Message);
 
         mockMarketMakerOrderService.Verify(
-            x => x.ExecuteMarketOrderAsync(It.IsAny<long>(), It.IsAny<string>()),
+            x => x.ExecuteMarketOrderAsync(It.IsAny<long>()),
             Times.AtLeastOnce);
     }
 
