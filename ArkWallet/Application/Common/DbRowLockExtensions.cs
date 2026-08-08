@@ -14,4 +14,13 @@ internal static class DbRowLockExtensions
         await dbContext.Database.ExecuteSqlInterpolatedAsync(
             $"SELECT \"TelegramId\" FROM \"Traders\" WHERE \"TelegramId\" = ANY({ids}) ORDER BY \"TelegramId\" FOR UPDATE");
     }
+
+    internal static async Task LockTokenAsync(this ArkWalletDbContext dbContext, string symbol)
+    {
+        if (!dbContext.Database.IsNpgsql())
+            return;
+
+        await dbContext.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT \"Symbol\" FROM \"CharacterTokens\" WHERE \"Symbol\" = {symbol} FOR UPDATE");
+    }
 }

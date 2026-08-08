@@ -86,11 +86,6 @@ internal class OrderCreationService(
 
     private async Task<TradingContext> PrepareSingleTradingContextAsync(CreateOrderCommand command)
     {
-        var token = await dbContext.CharacterTokens.FindAsync(command.Symbol);
-
-        if (token == null)
-            throw new InvalidOperationException("Токена не существует");
-
         var orderType = command.Direction.Equals("купить", StringComparison.CurrentCultureIgnoreCase)
             ? OrderType.Buy
             : OrderType.Sell;
@@ -100,6 +95,12 @@ internal class OrderCreationService(
         var takerIds = await GetTakerIdsForMatchingAsync(order);
 
         await dbContext.LockTradersAsync(takerIds.Append(order.TraderTelegramId));
+        await dbContext.LockTokenAsync(order.CharacterTokenId);
+
+        var token = await dbContext.CharacterTokens.FindAsync(command.Symbol);
+
+        if (token == null)
+            throw new InvalidOperationException("Токена не существует");
 
         var activeOrders = await GetActiveOrdersForMatchingAsync(order);
 
@@ -151,9 +152,6 @@ internal class OrderCreationService(
 
         var firstCommand = commandList.First();
 
-        var token = await dbContext.CharacterTokens.FindAsync(firstCommand.Symbol)
-            ?? throw new InvalidOperationException("Токена не существует");
-
         var validationResult = await orderValidationService.ValidateFullOrdersAsync(commandList);
         if (!validationResult.IsValid)
             throw new InvalidOperationException(validationResult.Message);
@@ -177,6 +175,10 @@ internal class OrderCreationService(
         var takerIds = await GetTakerIdsForMatchingAsync(targetOrder);
 
         await dbContext.LockTradersAsync(takerIds.Append(firstCommand.TraderId));
+        await dbContext.LockTokenAsync(targetOrder.CharacterTokenId);
+
+        var token = await dbContext.CharacterTokens.FindAsync(firstCommand.Symbol)
+            ?? throw new InvalidOperationException("Токена не существует");
 
         var activeOrders = await GetActiveOrdersForMatchingAsync(targetOrder);
 

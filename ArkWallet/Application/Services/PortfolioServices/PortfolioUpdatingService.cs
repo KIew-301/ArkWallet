@@ -20,6 +20,7 @@ internal class PortfolioUpdatingService(ArkWalletDbContext dbContext, ILogger<Po
             return await TransactionHandler.ExecuteAsync(dbContext, async () =>
             {
                 await dbContext.LockTradersAsync([traderId]);
+                await dbContext.LockTokenAsync(symbol);
 
                 var item = await dbContext.PortfolioItems.FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
                 var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(t => t.Symbol == symbol);
