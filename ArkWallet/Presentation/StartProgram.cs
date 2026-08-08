@@ -27,6 +27,7 @@ using ArkWallet.Entities.Configurations;
 using ArkWallet.Infrastructure;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Infrastructure.Wizard;
+using ArkWallet.Presentation.Health;
 using ArkWallet.Presentation.Wizard;
 using ArkWallet.Telegram;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -103,6 +104,8 @@ class Program
         builder.Services.AddAuthorization();
         builder.Services.AddControllers();
         builder.Services.AddRouting(options => options.LowercaseUrls = true);
+
+        builder.Services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
 
         builder.Services.AddSingleton<IConfiguration>(configuration);
 
@@ -199,6 +202,7 @@ class Program
         app.UseDefaultFiles();
         app.UseStaticFiles();
         app.MapControllers();
+        app.MapHealthChecks("/health");
 
         // Применение миграций
         if (!isTesting)
