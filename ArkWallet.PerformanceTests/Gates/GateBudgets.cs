@@ -7,7 +7,7 @@ internal static class GateBudgets
     public static readonly Budget TokenQuery50T = new(4, 15, null, 150);
     public static readonly Budget BalanceMainChanges = new(5, 355, null, 4);
     public static readonly Budget BalanceTotalChanges = new(5, 25, null, 4);
-    public static readonly Budget LeadersTop50T = new(220, 50, null, 220);
+    public static readonly Budget LeadersTop50T = new(15, 25, null, 240);
     public static readonly Budget OrderCreateBuy = new(10, 25, null, 7);
     public static readonly Budget OrderCreateSell = new(11, 25, null, 8);
     public static readonly Budget MarketMakerTick10T = new(900, 1500, 90, 700);
@@ -17,7 +17,7 @@ internal static class GateBudgets
     public static readonly Budget E2eCacheCheck = new(108, 40, null, 159);
     public static readonly Budget E2eBotWizardFlow = new(238, 4000, null, 369);
     public static readonly Budget E2eBotAdminFlow = new(40, 2000, null, 23);
-    public static readonly Budget E2eTelegramBotLevel = new(210, 40, null, 190);
+    public static readonly Budget E2eTelegramBotLevel = new(60, 30, null, 220);
 
     public static readonly Budget HeavyOrdersGet = new(2, 250, null, 12000);
     public static readonly Budget HeavyOrderCreate = new(25, 2000, 5, 2500);
