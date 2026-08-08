@@ -53,6 +53,7 @@ services:
       Database__Provider: "PostgreSQL"
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-arkwallet};Username=${POSTGRES_USER:-arkwallet};Password=${POSTGRES_PASSWORD}"
       Jwt__SecretKey: ${JWT_SECRET_KEY}
+      Metrics__ApiKey: ${METRICS_API_KEY:-change-me-metrics-api-key}
       Telegram__BotToken__Main: ${TELEGRAM_BOT_TOKEN}
       Telegram__AdminId__Main: ${TELEGRAM_ADMIN_ID}
       Telegram__AdminId__Addition: ${TELEGRAM_ADMIN_ID_ADDITION}

@@ -300,6 +300,7 @@ All services follow the **Single Responsibility Principle** and are organized by
 - **Prometheus** — scraping at `/metrics` (port 9090), config in `prometheus.yml`.
 - **Grafana** — pre-configured service in docker-compose (port 3000).
 - **Admin bot** — `/admin_metrics` command exports the same snapshot in Telegram.
+- **Protected metrics** — `/metrics` requires `Authorization: Bearer <Metrics__ApiKey>` (API key from config), so only admins can access the metrics endpoint.
 
 ---
 

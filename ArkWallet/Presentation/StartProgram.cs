@@ -212,6 +212,7 @@ class Program
         app.UseStaticFiles();
         app.MapControllers();
         app.MapHealthChecks("/health");
+        app.UseMiddleware<MetricsApiKeyMiddleware>();
         app.MapPrometheusScrapingEndpoint();
 
         // Применение миграций
