@@ -298,9 +298,10 @@ All services follow the **Single Responsibility Principle** and are organized by
   - `arkwallet_lock_wait_seconds` — `SELECT ... FOR UPDATE` lock wait time
   - `arkwallet_commands_total` / `arkwallet_command_duration_seconds` — Telegram bot command usage
 - **Prometheus** — scraping at `/metrics` (port 9090), config in `prometheus.yml`.
-- **Grafana** — pre-configured service in docker-compose (port 3000).
+- **Grafana** — pre-configured service in docker-compose (port 3000). Prometheus datasource and an ArkWallet dashboard (service results, lock wait, bot commands, HTTP, Npgsql) are provisioned automatically from `grafana/`.
 - **Admin bot** — `/admin_metrics` command exports the same snapshot in Telegram.
 - **Protected metrics** — `/metrics` requires `Authorization: Bearer <Metrics__ApiKey>` (API key from config), so only admins can access the metrics endpoint.
+- **Protected Grafana** — access only for admins: login `admin` / password = `Metrics__ApiKey` (same secret), anonymous access and sign-up disabled.
 
 ---
 
