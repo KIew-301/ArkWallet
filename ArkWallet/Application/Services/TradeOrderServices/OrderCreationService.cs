@@ -23,17 +23,20 @@ internal class OrderCreationService(
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            var context = await PrepareSingleTradingContextAsync(command);
-            tradingEngine.ProcessOrder(context);
+            return await TransactionHandler.ExecuteAsync(dbContext, async () =>
+            {
+                var context = await PrepareSingleTradingContextAsync(command);
+                tradingEngine.ProcessOrder(context);
 
-            var saveResult = await SaveChangesAsync(context);
-            if (!saveResult.IsSuccess)
-                return Result<OrderCreationData>.Fail(saveResult.Message);
+                var saveResult = await SaveChangesAsync(context);
+                if (!saveResult.IsSuccess)
+                    return Result<OrderCreationData>.Fail(saveResult.Message);
 
-            await NotifyAsync(context);
+                await NotifyAsync(context);
 
-            var order = context.NewOrders.First();
-            return Result<OrderCreationData>.Ok(new(order.IsFilled(), OrderDto.FromEntity(order)));
+                var order = context.NewOrders.First();
+                return Result<OrderCreationData>.Ok(new(order.IsFilled(), OrderDto.FromEntity(order)));
+            });
         }, logger, nameof(OrderCreationService));
     }
 
@@ -41,57 +44,52 @@ internal class OrderCreationService(
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            var commandList = commands.ToList();
-            if (!commandList.Any())
-                return Result<List<OrderCreationData>>.Ok(new List<OrderCreationData>());
-
-            var groups = commandList
-                .GroupBy(c => new { c.Direction, c.Symbol })
-                .ToList();
-
-            var allResults = new List<OrderCreationData>();
-            var allContexts = new List<TradingContext>();
-
-            foreach (var group in groups)
+            return await TransactionHandler.ExecuteAsync(dbContext, async () =>
             {
-                var groupCommands = group.ToList();
-                var context = await PrepareGroupTradingContextAsync(groupCommands);
-                tradingEngine.ProcessOrders(context);
-                allContexts.Add(context);
+                var commandList = commands.ToList();
+                if (!commandList.Any())
+                    return Result<List<OrderCreationData>>.Ok(new List<OrderCreationData>());
 
-                foreach (var order in context.NewOrders)
+                var groups = commandList
+                    .GroupBy(c => new { c.Direction, c.Symbol })
+                    .ToList();
+
+                var allResults = new List<OrderCreationData>();
+                var allContexts = new List<TradingContext>();
+
+                foreach (var group in groups)
                 {
-                    allResults.Add(new(order.IsFilled(), OrderDto.FromEntity(order)));
+                    var groupCommands = group.ToList();
+                    var context = await PrepareGroupTradingContextAsync(groupCommands);
+                    tradingEngine.ProcessOrders(context);
+                    allContexts.Add(context);
+
+                    foreach (var order in context.NewOrders)
+                    {
+                        allResults.Add(new(order.IsFilled(), OrderDto.FromEntity(order)));
+                    }
                 }
-            }
 
-            foreach (var context in allContexts)
-            {
-                var saveResult = await SaveChangesAsync(context);
-                if (!saveResult.IsSuccess)
-                    return Result<List<OrderCreationData>>.Fail(saveResult.Message);
+                foreach (var context in allContexts)
+                {
+                    var saveResult = await SaveChangesAsync(context);
+                    if (!saveResult.IsSuccess)
+                        return Result<List<OrderCreationData>>.Fail(saveResult.Message);
 
-                await NotifyAsync(context);
-            }
+                    await NotifyAsync(context);
+                }
 
-            return Result<List<OrderCreationData>>.Ok(allResults);
+                return Result<List<OrderCreationData>>.Ok(allResults);
+            });
         }, logger, nameof(OrderCreationService));
     }
 
     private async Task<TradingContext> PrepareSingleTradingContextAsync(CreateOrderCommand command)
     {
-        var trader = await dbContext.Traders.FindAsync(command.TraderId);
         var token = await dbContext.CharacterTokens.FindAsync(command.Symbol);
-
-        if (trader == null)
-            throw new InvalidOperationException("Пользователя не существует");
 
         if (token == null)
             throw new InvalidOperationException("Токена не существует");
-
-        var validationResult = await orderValidationService.ValidateFullOrderAsync(command);
-        if (!validationResult.IsValid)
-            throw new InvalidOperationException(validationResult.Message);
 
         var orderType = command.Direction.Equals("купить", StringComparison.CurrentCultureIgnoreCase)
             ? OrderType.Buy
@@ -99,11 +97,25 @@ internal class OrderCreationService(
 
         var order = TradeOrder.Create(orderType, command.Symbol, command.TraderId, command.Price, command.Quantity);
 
+        var takerIds = await GetTakerIdsForMatchingAsync(order);
+
+        await dbContext.LockTradersAsync(takerIds.Append(order.TraderTelegramId));
+
+        var activeOrders = await GetActiveOrdersForMatchingAsync(order);
+
+        var trader = await dbContext.Traders.FindAsync(command.TraderId);
+
+        if (trader == null)
+            throw new InvalidOperationException("Пользователя не существует");
+
+        var validationResult = await orderValidationService.ValidateFullOrderAsync(command);
+        if (!validationResult.IsValid)
+            throw new InvalidOperationException(validationResult.Message);
+
         if (order.IsLong() && trader.Balance < order.GetReservedBalance())
             throw new InvalidOperationException("Недостаточно средств для выставления ордера");
 
-        var existingOrders = await GetActiveOrdersForMatchingAsync(order);
-        var traders = await GetTradersForOrderAsync(existingOrders, order.TraderTelegramId);
+        var traders = await GetTradersForOrderAsync(activeOrders, order.TraderTelegramId);
 
         var traderIds = traders.Keys.ToList();
         if (!traderIds.Contains(order.TraderTelegramId))
@@ -123,7 +135,7 @@ internal class OrderCreationService(
         return new TradingContext
         {
             NewOrders = new List<TradeOrder> { order },
-            ExistingOrders = existingOrders.ToList(),
+            ExistingOrders = activeOrders.ToList(),
             Traders = traders,
             Portfolios = portfolios,
             Token = token,
@@ -138,8 +150,6 @@ internal class OrderCreationService(
             throw new InvalidOperationException("Нет команд для обработки");
 
         var firstCommand = commandList.First();
-        var trader = await dbContext.Traders.FindAsync(firstCommand.TraderId)
-            ?? throw new InvalidOperationException("Пользователя не существует");
 
         var token = await dbContext.CharacterTokens.FindAsync(firstCommand.Symbol)
             ?? throw new InvalidOperationException("Токена не существует");
@@ -164,6 +174,15 @@ internal class OrderCreationService(
             ? orders.OrderByDescending(o => o.Price).First()
             : orders.OrderBy(o => o.Price).First();
 
+        var takerIds = await GetTakerIdsForMatchingAsync(targetOrder);
+
+        await dbContext.LockTradersAsync(takerIds.Append(firstCommand.TraderId));
+
+        var activeOrders = await GetActiveOrdersForMatchingAsync(targetOrder);
+
+        var trader = await dbContext.Traders.FindAsync(firstCommand.TraderId)
+            ?? throw new InvalidOperationException("Пользователя не существует");
+
         if (isBuy)
         {
             var totalReserved = orders.Sum(o => o.GetReservedBalance());
@@ -171,8 +190,7 @@ internal class OrderCreationService(
                 throw new InvalidOperationException("Недостаточно средств для выставления ордеров");
         }
 
-        var existingOrders = await GetActiveOrdersForMatchingAsync(targetOrder);
-        var traders = await GetTradersForOrderAsync(existingOrders, trader.TelegramId);
+        var traders = await GetTradersForOrderAsync(activeOrders, trader.TelegramId);
         var portfolios = await GetPortfoliosForTradersAsync(targetOrder.CharacterTokenId, traders.Keys);
 
         if (!isBuy)
@@ -189,7 +207,7 @@ internal class OrderCreationService(
         return new TradingContext
         {
             NewOrders = sortedOrders,
-            ExistingOrders = existingOrders.ToList(),
+            ExistingOrders = activeOrders.ToList(),
             Traders = traders,
             Portfolios = portfolios,
             Token = token,
@@ -211,6 +229,27 @@ internal class OrderCreationService(
                            o.Status == OrderStatus.Active &&
                            o.Type == OrderType.Buy &&
                            o.Price >= order.Price)
+                .ToArrayAsync();
+    }
+
+    private async Task<long[]> GetTakerIdsForMatchingAsync(TradeOrder order)
+    {
+        return order.IsLong()
+            ? await dbContext.TradeOrders
+                .Where(o => o.CharacterTokenId == order.CharacterTokenId &&
+                           o.Status == OrderStatus.Active &&
+                           o.Type == OrderType.Sell &&
+                           o.Price <= order.Price)
+                .Select(o => o.TraderTelegramId)
+                .Distinct()
+                .ToArrayAsync()
+            : await dbContext.TradeOrders
+                .Where(o => o.CharacterTokenId == order.CharacterTokenId &&
+                           o.Status == OrderStatus.Active &&
+                           o.Type == OrderType.Buy &&
+                           o.Price >= order.Price)
+                .Select(o => o.TraderTelegramId)
+                .Distinct()
                 .ToArrayAsync();
     }
 

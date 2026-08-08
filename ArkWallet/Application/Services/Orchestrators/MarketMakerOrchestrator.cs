@@ -192,23 +192,30 @@ internal class MarketMakerOrchestrator(
 
     private async Task EnsureTraderBalancesCoreAsync()
     {
-        foreach (var traderId in TraderIds)
+        await TransactionHandler.ExecuteAsync(dbContext, async () =>
         {
-            var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
-            if (trader == null)
+            await dbContext.LockTradersAsync(TraderIds);
+
+            foreach (var traderId in TraderIds)
             {
-                logger.LogWarning("Trader {TraderId} not found", traderId);
-                continue;
+                var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
+                if (trader == null)
+                {
+                    logger.LogWarning("Trader {TraderId} not found", traderId);
+                    continue;
+                }
+
+                if (trader.Balance < 1_000_000_000m)
+                {
+                    trader.AddToBalance(1_000_000_000m - trader.Balance);
+                    trader.MarkDirty();
+                    await dbContext.SaveChangesAsync();
+                    logger.LogInformation("Trader {TraderId} balance replenished", traderId);
+                }
             }
 
-            if (trader.Balance < 1_000_000_000m)
-            {
-                trader.AddToBalance(1_000_000_000m - trader.Balance);
-                trader.MarkDirty();
-                await dbContext.SaveChangesAsync();
-                logger.LogInformation("Trader {TraderId} balance replenished", traderId);
-            }
-        }
+            return Result.Ok();
+        });
     }
 
     private async Task<Result> UpdateBotGridAsync(MarketMakerBot bot, CharacterToken? token)
