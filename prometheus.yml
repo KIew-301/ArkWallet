@@ -10,11 +10,3 @@ scrape_configs:
       credentials: change-me-metrics-api-key
     static_configs:
       - targets: ["app:5000"]
-
-  - job_name: "rabbitmq"
-    metrics_path: /metrics
-    static_configs:
-      - targets: ["rabbitmq:15672"]
-    basic_auth:
-      username: guest
-      password: guest
