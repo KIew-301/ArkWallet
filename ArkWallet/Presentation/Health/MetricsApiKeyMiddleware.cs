@@ -11,13 +11,11 @@ internal sealed class MetricsApiKeyMiddleware(RequestDelegate next, IConfigurati
 
     public async Task InvokeAsync(HttpContext context)
     {
-        if (context.Request.Path.Equals(MetricsPath, StringComparison.OrdinalIgnoreCase))
+        if (context.Request.Path.Equals(MetricsPath, StringComparison.OrdinalIgnoreCase)
+            && (string.IsNullOrEmpty(_apiKey) || !IsAuthorized(context)))
         {
-            if (string.IsNullOrEmpty(_apiKey) || !IsAuthorized(context))
-            {
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                return;
-            }
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return;
         }
 
         await next(context);
