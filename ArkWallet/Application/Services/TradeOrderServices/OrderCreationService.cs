@@ -265,6 +265,16 @@ internal class OrderCreationService(
 
     private async Task<Result> SaveChangesAsync(TradingContext context)
     {
+        var stageResult = await StageChangesAsync(context);
+        if (!stageResult.IsSuccess)
+            return stageResult;
+
+        await dbContext.SaveChangesAsync();
+        return Result.Ok();
+    }
+
+    private async Task<Result> StageChangesAsync(TradingContext context)
+    {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             if (context.NewOrdersToAdd.Any())
@@ -305,7 +315,6 @@ internal class OrderCreationService(
                     return Result.Fail(result.Message);
             }
 
-            await dbContext.SaveChangesAsync();
             return Result.Ok();
         }, logger, nameof(OrderCreationService));
     }
