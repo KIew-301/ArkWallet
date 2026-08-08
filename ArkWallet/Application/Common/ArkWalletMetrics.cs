@@ -11,21 +11,21 @@ internal static class ArkWalletMetrics
 
     internal static readonly Counter<long> ServiceResults = Meter.CreateCounter<long>(
         "arkwallet_service_results_total",
-        description: "РљРѕР»РёС‡РµСЃС‚РІРѕ Ok/Fail Result РїРѕ СЃРµСЂРІРёСЃР°Рј.");
+        description: "Количество Ok/Fail Result по сервисам.");
 
     internal static readonly Histogram<double> LockWaitSeconds = Meter.CreateHistogram<double>(
         "arkwallet_lock_wait_seconds",
         unit: "seconds",
-        description: "Р’СЂРµРјСЏ РІС‹РїРѕР»РЅРµРЅРёСЏ SELECT ... FOR UPDATE (РІРєР»СЋС‡Р°СЏ РѕР¶РёРґР°РЅРёРµ Р±Р»РѕРєРёСЂРѕРІРєРё).");
+        description: "Время выполнения SELECT ... FOR UPDATE (включая ожидание блокировки).");
 
     internal static readonly Counter<long> Commands = Meter.CreateCounter<long>(
         "arkwallet_commands_total",
-        description: "РљРѕР»РёС‡РµСЃС‚РІРѕ РІС‹Р·РѕРІРѕРІ РєРѕРјР°РЅРґ Р±РѕС‚Р°.");
+        description: "Количество вызовов команд бота.");
 
     internal static readonly Histogram<double> CommandDurationSeconds = Meter.CreateHistogram<double>(
         "arkwallet_command_duration_seconds",
         unit: "seconds",
-        description: "Р”Р»РёС‚РµР»СЊРЅРѕСЃС‚СЊ РІС‹РїРѕР»РЅРµРЅРёСЏ РєРѕРјР°РЅРґ Р±РѕС‚Р°.");
+        description: "Длительность выполнения команд бота.");
 
     internal sealed record ServiceResultCounts(long Ok, long Fail);
 
