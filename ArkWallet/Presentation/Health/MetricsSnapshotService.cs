@@ -1,9 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.Other;
 
 namespace ArkWallet.Presentation.Health;
 
+[ExcludeFromCodeCoverage(Justification = "Метрики: инфраструктурный код форматирования снимка метрик, не содержит бизнес-логики")]
 internal sealed class MetricsSnapshotService : IMetricsSnapshotService
 {
     public Task<string> GetMetricsTextAsync()

@@ -757,4 +757,54 @@ public class MarketMakerOrchestratorTest
         Assert.False(result.IsSuccess);
         Assert.Contains("process error", result.Message);
     }
+
+    [Fact]
+    public async Task UpdateAllBotsGridAsync_WhenGridFullyCovered_PlacesNoOrders()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.CreateToken(db, "ZZZ", price: 100);
+
+        var bot = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 20);
+        await db.MarketMakerBots.AddAsync(bot);
+
+        var trader = Trader.Create(101, "MarketMakerBot_ZZZ_101");
+        await db.Traders.AddAsync(trader);
+
+        await db.SaveChangesAsync();
+
+        var fixedGridEngine = new FixedGridEngine();
+        var marketMakerGridEngine = new MarketMakerGridEngine(fixedGridEngine);
+
+        var grid = fixedGridEngine.GetGridBelowPrice(100, 21);
+        for (int i = 0; i < grid.Count - 1; i++)
+        {
+            var lower = grid[i + 1];
+            var upper = grid[i];
+            var order = TradeOrder.Create(OrderType.Buy, "ZZZ", bot.TraderId, (lower + upper) / 2, 5);
+            await db.TradeOrders.AddAsync(order);
+        }
+
+        await db.SaveChangesAsync();
+
+        var mockOrderCreationService = new Mock<IOrderCreationService>();
+        var logger = NullLogger<MarketMakerOrchestrator>.Instance;
+        var orchestrator = new MarketMakerOrchestrator(
+            db,
+            null!,
+            null!,
+            mockOrderCreationService.Object,
+            null!,
+            marketMakerGridEngine,
+            logger);
+
+        var result = await orchestrator.UpdateAllBotsGridAsync();
+
+        Assert.True(result.IsSuccess, result.Message);
+
+        mockOrderCreationService.Verify(
+            x => x.CreateOrdersAsync(It.IsAny<IEnumerable<CreateOrderCommand>>()),
+            Times.Never);
+    }
 }

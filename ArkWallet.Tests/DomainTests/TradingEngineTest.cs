@@ -30,10 +30,10 @@ public class TradingEngineTest
 
     private static TradingContext CreateContext(
         TradeOrder newOrder,
-        List<TradeOrder> existingOrders = null,
-        Dictionary<long, Trader> traders = null,
-        Dictionary<long, PortfolioItem> portfolios = null,
-        CharacterToken token = null)
+        List<TradeOrder>? existingOrders = null,
+        Dictionary<long, Trader>? traders = null,
+        Dictionary<long, PortfolioItem>? portfolios = null,
+        CharacterToken? token = null)
     {
         return new TradingContext
         {
@@ -51,7 +51,7 @@ public class TradingEngineTest
     {
         var context = new TradingContext
         {
-            NewOrders = null,
+            NewOrders = null!,
             ExistingOrders = new List<TradeOrder>(),
             Traders = new Dictionary<long, Trader>(),
             Portfolios = new Dictionary<long, PortfolioItem>(),
@@ -456,5 +456,167 @@ public class TradingEngineTest
 
         Assert.True(result.IsSuccess);
         Assert.Empty(context.AllTrades);
+    }
+
+    [Fact]
+    public void ProcessOrder_NullToken_ReturnsFailed()
+    {
+        var buyer = CreateTrader(1, 10000m);
+        var traders = new Dictionary<long, Trader> { { 1, buyer } };
+        var order = CreateBuyOrder(1, quantity: 5, price: 100m);
+        var context = CreateContext(order, traders: traders);
+        context.Token = null!;
+
+        var result = _engine.ProcessOrder(context);
+
+        Assert.False(result.IsSuccess);
+    }
+
+    [Fact]
+    public void ProcessOrder_BuyTraderMissing_ReturnsFailed()
+    {
+        var order = CreateBuyOrder(1, quantity: 5, price: 100m);
+        var context = CreateContext(order);
+
+        var result = _engine.ProcessOrder(context);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Трейдер не найден", result.Message);
+    }
+
+    [Fact]
+    public void ProcessOrder_TradeBuyerNotFound_ReturnsFailed()
+    {
+        var seller = CreateTrader(2, 10000m);
+        var traders = new Dictionary<long, Trader> { { 2, seller } };
+
+        var existingBuy = CreateBuyOrder(1, quantity: 3, price: 150m);
+        var existingOrders = new List<TradeOrder> { existingBuy };
+
+        var sellerPortfolio = PortfolioItem.Create(2, "ZZZ", 10, 50m);
+        var portfolios = new Dictionary<long, PortfolioItem> { { 2, sellerPortfolio } };
+
+        var sellOrder = CreateSellOrder(2, quantity: 3, price: 120m);
+        var context = CreateContext(sellOrder, existingOrders, traders, portfolios);
+
+        var result = _engine.ProcessOrder(context);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Покупатель", result.Message);
+    }
+
+    [Fact]
+    public void ProcessOrder_TradeSellerNotFound_ReturnsFailed()
+    {
+        var buyer = CreateTrader(1, 10000m);
+        var traders = new Dictionary<long, Trader> { { 1, buyer } };
+
+        var existingSell = CreateSellOrder(2, quantity: 5, price: 80m);
+        var existingOrders = new List<TradeOrder> { existingSell };
+
+        var buyOrder = CreateBuyOrder(1, quantity: 5, price: 100m);
+        var context = CreateContext(buyOrder, existingOrders, traders);
+
+        var result = _engine.ProcessOrder(context);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Продавец", result.Message);
+    }
+
+    [Fact]
+    public void ProcessOrder_TradeSellerHasNoPortfolio_ReturnsFailed()
+    {
+        var buyer = CreateTrader(1, 10000m);
+        var seller = CreateTrader(2);
+        var traders = new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } };
+
+        var existingSell = CreateSellOrder(2, quantity: 5, price: 80m);
+        var existingOrders = new List<TradeOrder> { existingSell };
+
+        var buyOrder = CreateBuyOrder(1, quantity: 5, price: 100m);
+        var context = CreateContext(buyOrder, existingOrders, traders);
+
+        var result = _engine.ProcessOrder(context);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("портфеля", result.Message);
+    }
+
+    [Fact]
+    public void ProcessOrders_MatchingOrder_ExecutesTrade()
+    {
+        var buyer = CreateTrader(1, 10000m);
+        var seller = CreateTrader(2);
+        var traders = new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } };
+
+        var existingSell = CreateSellOrder(2, quantity: 5, price: 80m);
+        var existingOrders = new List<TradeOrder> { existingSell };
+
+        var sellerPortfolio = PortfolioItem.Create(2, "ZZZ", 5, 50m);
+        var portfolios = new Dictionary<long, PortfolioItem> { { 2, sellerPortfolio } };
+
+        var buyOrder = CreateBuyOrder(1, quantity: 5, price: 100m);
+        var context = CreateContext(buyOrder, existingOrders, traders, portfolios);
+
+        var result = _engine.ProcessOrders(context);
+
+        Assert.True(result.IsSuccess);
+        Assert.Single(context.AllTrades);
+        Assert.True(buyOrder.IsFilled());
+    }
+
+    [Fact]
+    public void ProcessOrders_EmptyOrders_ReturnsFailed()
+    {
+        var context = new TradingContext
+        {
+            NewOrders = new List<TradeOrder>(),
+            ExistingOrders = new List<TradeOrder>(),
+            Traders = new Dictionary<long, Trader>(),
+            Portfolios = new Dictionary<long, PortfolioItem>(),
+            Token = CreateToken(),
+            AllTrades = new List<Trade>()
+        };
+
+        var result = _engine.ProcessOrders(context);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("пустым", result.Message);
+    }
+
+    [Fact]
+    public void ProcessOrders_ZeroQuantity_ReturnsFailed()
+    {
+        var order = new TradeOrder { Quantity = 0, Price = 100, Type = OrderType.Buy, CharacterTokenId = "ZZZ", TraderTelegramId = 1 };
+        var context = CreateContext(order);
+
+        var result = _engine.ProcessOrders(context);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Количество", result.Message);
+    }
+
+    [Fact]
+    public void ProcessOrders_NullToken_ReturnsFailed()
+    {
+        var order = CreateBuyOrder(1, quantity: 5, price: 100m);
+        var context = CreateContext(order);
+        context.Token = null!;
+
+        var result = _engine.ProcessOrders(context);
+
+        Assert.False(result.IsSuccess);
+    }
+
+    [Fact]
+    public void TradingResult_Failed_CreatesFailedInstance()
+    {
+        var result = TradingResult.Failed("error");
+        result.UpdatedToken = CreateToken();
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("error", result.Error);
+        Assert.Empty(result.PortfoliosToAdd);
+        Assert.NotNull(result.UpdatedToken);
     }
 }

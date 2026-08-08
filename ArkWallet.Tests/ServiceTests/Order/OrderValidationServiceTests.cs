@@ -5,6 +5,9 @@ namespace ArkWallet.Tests.ServiceTests.Order;
 
 public class OrderValidationServiceTests
 {
+    private static readonly string[] SingleToken = ["ZZZ"];
+    private static readonly string[] TwoTokens = ["ZZZ", "YYY"];
+
     [Theory]
     [InlineData("купить", true)]
     [InlineData("продать", true)]
@@ -105,7 +108,7 @@ public class OrderValidationServiceTests
 
         var service = new OrderValidationService(db);
 
-        var result = await service.ValidateTokensAsync(101, new[] { "ZZZ" }, "купить");
+        var result = await service.ValidateTokensAsync(101, SingleToken, "купить");
 
         Assert.True(result.IsValid);
     }
@@ -123,7 +126,7 @@ public class OrderValidationServiceTests
 
         var service = new OrderValidationService(db);
 
-        var result = await service.ValidateTokensAsync(101, new[] { "ZZZ", "YYY" }, "продать");
+        var result = await service.ValidateTokensAsync(101, TwoTokens, "продать");
 
         Assert.True(result.IsValid);
     }
@@ -140,10 +143,23 @@ public class OrderValidationServiceTests
 
         var service = new OrderValidationService(db);
 
-        var result = await service.ValidateTokensAsync(101, new[] { "ZZZ", "YYY" }, "продать");
+        var result = await service.ValidateTokensAsync(101, TwoTokens, "продать");
 
         Assert.False(result.IsValid);
         Assert.Contains("не обладает", result.Message);
+    }
+
+    [Fact]
+    public async Task ValidateTokensAsync_SellWithEmptySymbols_ReturnsSuccess()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var service = new OrderValidationService(db);
+
+        var result = await service.ValidateTokensAsync(101, Array.Empty<string>(), "продать");
+
+        Assert.True(result.IsValid);
     }
 
     [Fact]

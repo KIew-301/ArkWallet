@@ -1,8 +1,10 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Metrics;
 
 namespace ArkWallet.Application.Common;
 
+[ExcludeFromCodeCoverage(Justification = "Метрики: инфраструктурный код сбора метрик приложения, не содержит бизнес-логики")]
 internal static class ArkWalletMetrics
 {
     internal static readonly Meter Meter = new("ArkWallet", "1.0.0");

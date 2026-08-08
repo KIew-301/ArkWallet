@@ -87,17 +87,7 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
                         .GroupBy(p => p.CharacterTokenId)
                         .ToDictionary(g => g.Key, g => g.First());
 
-                foreach (var order in orders)
-                {
-                    if (order.IsLong())
-                    {
-                        trader.AddToBalance(order.GetReservedBalance());
-                    }
-                    else if (portfolioItems.TryGetValue(order.CharacterTokenId, out var portfolioItem))
-                    {
-                        portfolioItem.ReturnTokens(order.GetRemainingQuantity());
-                    }
-                }
+                RefundOrders(trader, orders, portfolioItems);
 
                 await dbContext.TradeOrders
                     .Where(o => o.TraderTelegramId == traderId && o.Status == OrderStatus.Active)
@@ -114,5 +104,23 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
     {
         return await dbContext.TradeOrders
             .AnyAsync(o => o.TraderTelegramId == traderId && o.Status == OrderStatus.Active);
+    }
+
+    private static void RefundOrders(
+        Trader trader,
+        IEnumerable<TradeOrder> orders,
+        IReadOnlyDictionary<string, PortfolioItem> portfolioItems)
+    {
+        foreach (var order in orders)
+        {
+            if (order.IsLong())
+            {
+                trader.AddToBalance(order.GetReservedBalance());
+            }
+            else if (portfolioItems.TryGetValue(order.CharacterTokenId, out var portfolioItem))
+            {
+                portfolioItem.ReturnTokens(order.GetRemainingQuantity());
+            }
+        }
     }
 }

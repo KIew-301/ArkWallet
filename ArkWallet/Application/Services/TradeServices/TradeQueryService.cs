@@ -28,7 +28,7 @@ internal class TradeQueryService(
                     t.Price,
                     t.Quantity,
                     t.ExecutedAt,
-                    Symbol = t.CharacterToken!.Symbol,
+                    Symbol = t.CharacterToken.Symbol,
                     Name = t.CharacterToken.Name,
                     CurrentPrice = t.CharacterToken.CurrentPrice,
                     IconUrl = t.CharacterToken.IconUrl,

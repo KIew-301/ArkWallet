@@ -30,7 +30,7 @@ internal class LeadersTopByBalanceQueryService(
             return null!;
 
         return traders
-            .Select(t => (t.TelegramId, t.Username ?? "Аноним", snapshotByTrader.GetValueOrDefault(t.TelegramId).totalBalance))
+            .Select(t => (t.TelegramId, t.Username ?? "Аноним", snapshotByTrader.TryGetValue(t.TelegramId, out var snapshot) ? snapshot.totalBalance : 0m))
             .OrderByDescending(e => e.Item3)
             .ToList();
     }

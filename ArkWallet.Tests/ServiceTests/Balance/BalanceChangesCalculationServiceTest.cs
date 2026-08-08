@@ -196,4 +196,60 @@ public class BalanceChangesCalculationServiceTest
 
         Assert.False(result.IsSuccess);
     }
+
+    [Fact]
+    public async Task TakeBalanceChanges_ValidPeriod_ReturnsBundle()
+    {
+        var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var snapshotService = new BalanceSnapshotService(db, NullLogger<BalanceSnapshotService>.Instance);
+        var calculationService = new BalanceChangesCalculationService(db, snapshotService, NullLogger<BalanceChangesCalculationService>.Instance);
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.SaveBalanceSnapshot(db, 101, 1000, 1000, 0, 0, 0, DateTime.UtcNow.AddDays(-2));
+        await HelpMethods.GiveMoney(db, 101, 500);
+
+        var result = await calculationService.TakeBalanceChanges(101, 1);
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.True(result.TryGetData(out var data));
+        Assert.Equal(1500m, data.Main.CurrentBalance);
+        Assert.Equal(1000m, data.Main.PreviousBalance);
+        Assert.Equal(1500m, data.Total.CurrentBalance);
+    }
+
+    [Fact]
+    public async Task TakeBalanceChanges_InvalidPeriod_ReturnsFail()
+    {
+        var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var snapshotService = new BalanceSnapshotService(db, NullLogger<BalanceSnapshotService>.Instance);
+        var calculationService = new BalanceChangesCalculationService(db, snapshotService, NullLogger<BalanceChangesCalculationService>.Instance);
+
+        var result = await calculationService.TakeBalanceChanges(101, 0);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("Минимальный период для расчёта: 1 день", result.Message);
+    }
+
+    [Fact]
+    public async Task TakeBalanceChanges_SnapshotFails_ReturnsFail()
+    {
+        var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var mockSnapshotService = new Mock<IBalanceSnapshotService>();
+        mockSnapshotService
+            .Setup(x => x.TakeTotalTraderBalanceSnapshot(It.IsAny<long>()))
+            .ReturnsAsync(Result<BalanceSnapshotData>.Fail("Error"));
+
+        var calculationService = new BalanceChangesCalculationService(db, mockSnapshotService.Object, NullLogger<BalanceChangesCalculationService>.Instance);
+
+        var result = await calculationService.TakeBalanceChanges(101, 1);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("Error", result.Message);
+    }
 }

@@ -236,7 +236,7 @@ internal class MarketMakerOrchestrator(
 
             var commands = marketMakerGridEngine.GetOrdersToPlace(bot, token.CurrentPrice, existingOrders);
 
-            if (commands == null || !commands.Any())
+            if (commands.Count == 0)
             {
                 logger.LogDebug("No orders to place for bot {BotId}", bot.Id);
                 return Result.Ok();

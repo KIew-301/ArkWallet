@@ -13,10 +13,10 @@ namespace ArkWallet.Domain.Engines
         {
             try
             {
-                if (context.NewOrders == null || !context.NewOrders.Any())
+                if (context.NewOrders == null || context.NewOrders.Count == 0)
                     return Result.Fail("Ордер не может быть null");
 
-                var newOrder = context.NewOrders.First();
+                var newOrder = context.NewOrders[0];
 
                 if (newOrder.Quantity <= 0 || newOrder.Price <= 0)
                     return Result.Fail("Количество и цена должны быть > 0");
@@ -27,9 +27,9 @@ namespace ArkWallet.Domain.Engines
 
                 ProcessSingleOrder(newOrder, context);
 
-                if (context.AllTrades.Any())
+                if (context.AllTrades.Count > 0)
                 {
-                    var lastTrade = context.AllTrades.Last();
+                    var lastTrade = context.AllTrades[^1];
                     context.Token.UpdatePrice(lastTrade.Price);
                     context.ModifiedTokens.Add(context.Token);
                 }
@@ -50,7 +50,7 @@ namespace ArkWallet.Domain.Engines
         {
             try
             {
-                if (context.NewOrders == null || !context.NewOrders.Any())
+                if (context.NewOrders == null || context.NewOrders.Count == 0)
                     return Result.Fail("Список ордеров не может быть пустым");
 
                 foreach (var newOrder in context.NewOrders)
@@ -62,9 +62,9 @@ namespace ArkWallet.Domain.Engines
                     ProcessSingleOrder(newOrder, context);
                 }
 
-                if (context.AllTrades.Any())
+                if (context.AllTrades.Count > 0)
                 {
-                    var lastTrade = context.AllTrades.Last();
+                    var lastTrade = context.AllTrades[^1];
                     context.Token.UpdatePrice(lastTrade.Price);
                     context.ModifiedTokens.Add(context.Token);
                 }
@@ -89,27 +89,12 @@ namespace ArkWallet.Domain.Engines
             if (newOrder.Quantity <= 0 || newOrder.Price <= 0)
                 throw new DomainException("Количество и цена должны быть > 0");
 
-            if (newOrder.IsLong())
-            {
-                if (!context.Traders.TryGetValue(newOrder.TraderTelegramId, out var buyer))
-                    throw new DomainException("Трейдер не найден");
-
-                buyer.AddToBalance(-newOrder.GetReservedBalance());
-                context.ModifiedTraders.Add(buyer);
-            }
-            else
-            {
-                if (!context.Portfolios.TryGetValue(newOrder.TraderTelegramId, out var sellerPortfolio))
-                    throw new DomainException("В портфеле отсутствует данный токен");
-
-                sellerPortfolio.ReserveTokens(newOrder.Quantity, newOrder.Price);
-                context.ModifiedPortfolios.Add(sellerPortfolio);
-            }
+            ReserveOrderFunds(newOrder, context);
 
             var matches = FindMatchingOrders(newOrder, context.OrderBook);
             var remainingQuantity = newOrder.Quantity;
 
-            if (!matches.Any())
+            if (matches.Count == 0)
             {
                 context.NewOrdersToAdd.Add(newOrder);
                 return;
@@ -140,6 +125,26 @@ namespace ArkWallet.Domain.Engines
             }
 
             context.NewOrdersToAdd.Add(newOrder);
+        }
+
+        private static void ReserveOrderFunds(TradeOrder newOrder, TradingContext context)
+        {
+            if (newOrder.IsLong())
+            {
+                if (!context.Traders.TryGetValue(newOrder.TraderTelegramId, out var buyer))
+                    throw new DomainException("Трейдер не найден");
+
+                buyer.AddToBalance(-newOrder.GetReservedBalance());
+                context.ModifiedTraders.Add(buyer);
+            }
+            else
+            {
+                if (!context.Portfolios.TryGetValue(newOrder.TraderTelegramId, out var sellerPortfolio))
+                    throw new DomainException("В портфеле отсутствует данный токен");
+
+                sellerPortfolio.ReserveTokens(newOrder.Quantity, newOrder.Price);
+                context.ModifiedPortfolios.Add(sellerPortfolio);
+            }
         }
 
         private void UpdateTradersAndPortfolios(
@@ -227,8 +232,8 @@ namespace ArkWallet.Domain.Engines
         public List<TradeOrder> ExistingOrders { get; set; } = new();
         public Dictionary<long, Trader> Traders { get; set; } = new();
         public Dictionary<long, PortfolioItem> Portfolios { get; set; } = new();
-        public CharacterToken Token { get; set; }
-        public OrderBook OrderBook { get; set; }
+        public CharacterToken Token { get; set; } = null!;
+        public OrderBook OrderBook { get; set; } = null!;
         public List<Trade> AllTrades { get; set; } = new();
 
         // Явные списки для сохранения

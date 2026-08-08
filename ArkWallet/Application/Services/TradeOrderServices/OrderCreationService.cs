@@ -34,7 +34,7 @@ internal class OrderCreationService(
 
                 await NotifyAsync(context);
 
-                var order = context.NewOrders.First();
+                var order = context.NewOrders[0];
                 return Result<OrderCreationData>.Ok(new(order.IsFilled(), OrderDto.FromEntity(order)));
             });
         }, logger, nameof(OrderCreationService));
@@ -47,7 +47,7 @@ internal class OrderCreationService(
             return await TransactionHandler.ExecuteAsync(dbContext, async () =>
             {
                 var commandList = commands.ToList();
-                if (!commandList.Any())
+                if (commandList.Count == 0)
                     return Result<List<OrderCreationData>>.Ok(new List<OrderCreationData>());
 
                 var groups = commandList
@@ -58,17 +58,7 @@ internal class OrderCreationService(
                 var allContexts = new List<TradingContext>();
 
                 foreach (var group in groups)
-                {
-                    var groupCommands = group.ToList();
-                    var context = await PrepareGroupTradingContextAsync(groupCommands);
-                    tradingEngine.ProcessOrders(context);
-                    allContexts.Add(context);
-
-                    foreach (var order in context.NewOrders)
-                    {
-                        allResults.Add(new(order.IsFilled(), OrderDto.FromEntity(order)));
-                    }
-                }
+                    await ProcessGroupAsync(group, allContexts, allResults);
 
                 foreach (var context in allContexts)
                 {
@@ -82,6 +72,21 @@ internal class OrderCreationService(
                 return Result<List<OrderCreationData>>.Ok(allResults);
             });
         }, logger, nameof(OrderCreationService));
+    }
+
+    private async Task ProcessGroupAsync(
+        IEnumerable<CreateOrderCommand> groupCommands,
+        List<TradingContext> allContexts,
+        List<OrderCreationData> allResults)
+    {
+        var context = await PrepareGroupTradingContextAsync(groupCommands);
+        tradingEngine.ProcessOrders(context);
+        allContexts.Add(context);
+
+        foreach (var order in context.NewOrders)
+        {
+            allResults.Add(new(order.IsFilled(), OrderDto.FromEntity(order)));
+        }
     }
 
     private async Task<TradingContext> PrepareSingleTradingContextAsync(CreateOrderCommand command)
@@ -147,10 +152,10 @@ internal class OrderCreationService(
     private async Task<TradingContext> PrepareGroupTradingContextAsync(IEnumerable<CreateOrderCommand> commands)
     {
         var commandList = commands.ToList();
-        if (!commandList.Any())
+        if (commandList.Count == 0)
             throw new InvalidOperationException("Нет команд для обработки");
 
-        var firstCommand = commandList.First();
+        var firstCommand = commandList[0];
 
         var validationResult = await orderValidationService.ValidateFullOrdersAsync(commandList);
         if (!validationResult.IsValid)
@@ -166,7 +171,7 @@ internal class OrderCreationService(
             orders.Add(TradeOrder.Create(orderType, command.Symbol, command.TraderId, command.Price, command.Quantity));
         }
 
-        var isBuy = orders.First().IsLong();
+        var isBuy = orders[0].IsLong();
 
         var targetOrder = isBuy
             ? orders.OrderByDescending(o => o.Price).First()
@@ -318,46 +323,64 @@ internal class OrderCreationService(
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            if (context.NewOrdersToAdd.Any())
-                await dbContext.TradeOrders.AddRangeAsync(context.NewOrdersToAdd);
-
-            var modifiedOrders = context.ModifiedOrders
-                .Where(o => !context.NewOrdersToAdd.Contains(o))
-                .ToList();
-
-            if (modifiedOrders.Any())
-                dbContext.TradeOrders.UpdateRange(modifiedOrders);
-
-            if (context.NewTradesToAdd.Any())
-                await dbContext.Trades.AddRangeAsync(context.NewTradesToAdd);
-
-            if (context.ModifiedTraders.Any())
-                dbContext.Traders.UpdateRange(context.ModifiedTraders);
-
-            if (context.NewPortfoliosToAdd.Any())
-                await dbContext.PortfolioItems.AddRangeAsync(context.NewPortfoliosToAdd);
-
-            var modifiedPortfolios = context.ModifiedPortfolios
-                .Where(p => !context.NewPortfoliosToAdd.Contains(p))
-                .ToList();
-
-            if (modifiedPortfolios.Any())
-                dbContext.PortfolioItems.UpdateRange(modifiedPortfolios);
-
-            if (context.ModifiedTokens.Any())
-                dbContext.CharacterTokens.UpdateRange(context.ModifiedTokens);
-
-            if (context.AllTrades.Any())
-            {
-                var result = await tokenPriceCandleUpdateService
-                    .UpdateTokenPriceCandleAsync(context.Token.Symbol, context.AllTrades.Last().Price);
-
-                if (!result.IsSuccess)
-                    return Result.Fail(result.Message);
-            }
-
-            return Result.Ok();
+            StageOrders(dbContext, context);
+            await StageTradesAndTradersAsync(dbContext, context);
+            await StagePortfoliosAsync(dbContext, context);
+            StageTokens(dbContext, context);
+            return await UpdateTokenPriceIfNeededAsync(context);
         }, logger, nameof(OrderCreationService));
+    }
+
+    private static void StageOrders(ArkWalletDbContext dbContext, TradingContext context)
+    {
+        if (context.NewOrdersToAdd.Count > 0)
+            dbContext.TradeOrders.AddRange(context.NewOrdersToAdd);
+
+        var modifiedOrders = context.ModifiedOrders
+            .Where(o => !context.NewOrdersToAdd.Contains(o))
+            .ToList();
+
+        if (modifiedOrders.Count > 0)
+            dbContext.TradeOrders.UpdateRange(modifiedOrders);
+    }
+
+    private static async Task StageTradesAndTradersAsync(ArkWalletDbContext dbContext, TradingContext context)
+    {
+        if (context.NewTradesToAdd.Count > 0)
+            await dbContext.Trades.AddRangeAsync(context.NewTradesToAdd);
+
+        if (context.ModifiedTraders.Count > 0)
+            dbContext.Traders.UpdateRange(context.ModifiedTraders);
+    }
+
+    private static async Task StagePortfoliosAsync(ArkWalletDbContext dbContext, TradingContext context)
+    {
+        if (context.NewPortfoliosToAdd.Count > 0)
+            await dbContext.PortfolioItems.AddRangeAsync(context.NewPortfoliosToAdd);
+
+        var modifiedPortfolios = context.ModifiedPortfolios
+            .Where(p => !context.NewPortfoliosToAdd.Contains(p))
+            .ToList();
+
+        if (modifiedPortfolios.Count > 0)
+            dbContext.PortfolioItems.UpdateRange(modifiedPortfolios);
+    }
+
+    private static void StageTokens(ArkWalletDbContext dbContext, TradingContext context)
+    {
+        if (context.ModifiedTokens.Count > 0)
+            dbContext.CharacterTokens.UpdateRange(context.ModifiedTokens);
+    }
+
+    private async Task<Result> UpdateTokenPriceIfNeededAsync(TradingContext context)
+    {
+        if (context.AllTrades.Count == 0)
+            return Result.Ok();
+
+        var result = await tokenPriceCandleUpdateService
+            .UpdateTokenPriceCandleAsync(context.Token.Symbol, context.AllTrades[^1].Price);
+
+        return result.IsSuccess ? Result.Ok() : Result.Fail(result.Message);
     }
 
     private async Task NotifyAsync(TradingContext context)
@@ -366,7 +389,7 @@ internal class OrderCreationService(
         var filledOrders = context.NewOrders.Where(o => o.IsFilled()).ToList();
         ordersToNotify.AddRange(filledOrders);
 
-        if (ordersToNotify.Any())
+        if (ordersToNotify.Count > 0)
         {
             await taskDispatcher.SendTaskAsync("notification",
                 NotificationEvent.FromOrderList(ordersToNotify, context.Traders.Values.ToList(), logger));

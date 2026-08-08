@@ -147,12 +147,13 @@ namespace ArkWallet.Application.Services.TradeOrderServices
             var sellerGroups = requests
                 .Where(r => r.Direction == OrderDirections.Sell)
                 .GroupBy(r => (r.TraderId, r.Symbol))
+                .Select(g => g.Key)
                 .ToList();
 
-            foreach (var group in sellerGroups)
+            foreach (var (traderId, symbol) in sellerGroups)
             {
                 var tokenValidationResult = await ValidateTokensAsync(
-                    group.Key.TraderId, new[] { group.Key.Symbol }, OrderDirections.Sell);
+                    traderId, new[] { symbol }, OrderDirections.Sell);
 
                 if (!tokenValidationResult.IsValid)
                     return ValidationResult.Failed(tokenValidationResult.Message);
