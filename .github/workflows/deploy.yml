@@ -77,6 +77,7 @@ jobs:
             POSTGRES_USER=arkwallet
             POSTGRES_PASSWORD=arkwallet_secure_pass_2024
             JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
+            METRICS_API_KEY=${{ secrets.METRICS_API_KEY }}
             TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
             TELEGRAM_ADMIN_ID=${{ secrets.TELEGRAM_ADMIN_ID }}
             TELEGRAM_ADMIN_ID_ADDITION=${{ secrets.TELEGRAM_ADMIN_ID_ADDITION }}
@@ -86,6 +87,16 @@ jobs:
             ENVEOF
               echo "[!] Created .env from GitHub Secrets"
             fi
+
+            # Update METRICS_API_KEY in existing .env
+            if grep -q '^METRICS_API_KEY=' "$APP_DIR/.env"; then
+              sed -i "s|^METRICS_API_KEY=.*|METRICS_API_KEY=${{ secrets.METRICS_API_KEY }}|" "$APP_DIR/.env"
+            else
+              echo "METRICS_API_KEY=${{ secrets.METRICS_API_KEY }}" >> "$APP_DIR/.env"
+            fi
+
+            # Render prometheus.yml with the metrics API key
+            sed -i "s|change-me-metrics-api-key|${{ secrets.METRICS_API_KEY }}|g" "$APP_DIR/prometheus.yml"
 
             # Pull new image and restart
             echo "[3/4] Pulling image and restarting at $(date)..."
