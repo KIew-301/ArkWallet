@@ -1,10 +1,13 @@
 ﻿using ArkWallet.Application.Services.TraderServices;
 using ArkWallet.Tests.HelpTools;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ArkWallet.Tests.ServiceTests.Balance;
 
 public class BalanceSnapshotServiceTest
 {
+    private static readonly long[] TraderIds = [101L, 102L];
+
     [Fact]
     public async Task TakeSnapshot_ValidData_ReturnsSuccess()
     {
@@ -121,5 +124,42 @@ public class BalanceSnapshotServiceTest
 
         Assert.True(resultSnapshot.TryGetData(out var data));
         Assert.Equal(0, data.longOrderReserve);
+    }
+
+    [Fact]
+    public async Task TakeTotalTraderBalanceSnapshots_MultipleTraders_ReturnsSnapshots()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
+        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 5, 60);
+
+        var service = new BalanceSnapshotService(db, NullLogger<BalanceSnapshotService>.Instance);
+        var result = await service.TakeTotalTraderBalanceSnapshotsAsync(TraderIds);
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.True(result.TryGetData(out var data));
+        Assert.Equal(2, data.Count);
+        Assert.Contains(101L, data.Keys);
+        Assert.Contains(102L, data.Keys);
+        Assert.Equal(1000m, data[101L].mainBalance);
+    }
+
+    [Fact]
+    public async Task TakeTotalTraderBalanceSnapshots_EmptyIds_ReturnsEmptyDictionary()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var service = new BalanceSnapshotService(db, NullLogger<BalanceSnapshotService>.Instance);
+        var result = await service.TakeTotalTraderBalanceSnapshotsAsync(Array.Empty<long>());
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.True(result.TryGetData(out var data));
+        Assert.Empty(data);
     }
 }

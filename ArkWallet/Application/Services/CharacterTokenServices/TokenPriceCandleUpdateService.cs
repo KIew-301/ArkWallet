@@ -18,7 +18,7 @@ internal class TokenPriceCandleUpdateService(
 
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(c => c.Symbol == symbol);
+            var token = await dbContext.CharacterTokens.FindAsync(symbol);
             if (token == null)
                 return Fail("Токен не найден");
 
@@ -46,7 +46,6 @@ internal class TokenPriceCandleUpdateService(
                 dbContext.PriceCandles.Update(lastCandle);
             }
 
-            await dbContext.SaveChangesAsync();
             return Ok();
         }, logger, nameof(TokenPriceCandleUpdateService));
     }

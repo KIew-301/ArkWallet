@@ -1,4 +1,5 @@
-﻿using ArkWallet.Domain.Entities;
+﻿using ArkWallet.Application.Common;
+using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.Exceptions;
 using ArkWallet.Domain.ValueObjects;
 
@@ -8,44 +9,96 @@ namespace ArkWallet.Domain.Engines
     {
         private readonly Dictionary<string, OrderBook> _orderBooks = new();
 
-        public TradingResult ProcessOrder(
-            TradeOrder newOrder,
-            List<TradeOrder> existingOrders,
-            Dictionary<long, Trader> traders,
-            Dictionary<long, PortfolioItem> portfolios,
-            CharacterToken token)
+        public Result ProcessOrder(TradingContext context)
         {
-            // Валидация (только логическая)
+            try
+            {
+                if (context.NewOrders == null || context.NewOrders.Count == 0)
+                    return Result.Fail("Ордер не может быть null");
+
+                var newOrder = context.NewOrders[0];
+
+                if (newOrder.Quantity <= 0 || newOrder.Price <= 0)
+                    return Result.Fail("Количество и цена должны быть > 0");
+
+                var orderBook = CreateOrGetOrderBook(context.Token.Symbol);
+                orderBook.LoadOrders(context.ExistingOrders, newOrder.TraderTelegramId);
+                context.OrderBook = orderBook;
+
+                ProcessSingleOrder(newOrder, context);
+
+                if (context.AllTrades.Count > 0)
+                {
+                    var lastTrade = context.AllTrades[^1];
+                    context.Token.UpdatePrice(lastTrade.Price);
+                    context.ModifiedTokens.Add(context.Token);
+                }
+
+                return Result.Ok();
+            }
+            catch (DomainException ex)
+            {
+                return Result.Fail(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return Result.Fail(ex.Message);
+            }
+        }
+
+        public Result ProcessOrders(TradingContext context)
+        {
+            try
+            {
+                if (context.NewOrders == null || context.NewOrders.Count == 0)
+                    return Result.Fail("Список ордеров не может быть пустым");
+
+                foreach (var newOrder in context.NewOrders)
+                {
+                    var orderBook = CreateOrGetOrderBook(context.Token.Symbol);
+                    orderBook.LoadOrders(context.ExistingOrders, newOrder.TraderTelegramId);
+                    context.OrderBook = orderBook;
+
+                    ProcessSingleOrder(newOrder, context);
+                }
+
+                if (context.AllTrades.Count > 0)
+                {
+                    var lastTrade = context.AllTrades[^1];
+                    context.Token.UpdatePrice(lastTrade.Price);
+                    context.ModifiedTokens.Add(context.Token);
+                }
+
+                return Result.Ok();
+            }
+            catch (DomainException ex)
+            {
+                return Result.Fail(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return Result.Fail(ex.Message);
+            }
+        }
+
+        private void ProcessSingleOrder(TradeOrder newOrder, TradingContext context)
+        {
             if (newOrder == null)
-                return TradingResult.Failed("Ордер не может быть null");
+                throw new DomainException("Ордер не может быть null");
 
             if (newOrder.Quantity <= 0 || newOrder.Price <= 0)
-                return TradingResult.Failed("Количество и цена должны быть > 0");
+                throw new DomainException("Количество и цена должны быть > 0");
 
-            if (newOrder.IsLong())
-            {
-                var buyer = traders[newOrder.TraderTelegramId];
-                buyer.AddToBalance(-newOrder.GetReservedBalance());
-                buyer.MarkDirty();
-            }
-            else
-            {
-                if (!portfolios.TryGetValue(newOrder.TraderTelegramId, out var sellerPortfolio))
-                    return TradingResult.Failed("В портфеле отсуствует данный токен");
+            ReserveOrderFunds(newOrder, context);
 
-                sellerPortfolio.ReserveTokens(newOrder.Quantity, newOrder.Price);
-                sellerPortfolio.MarkDirty();
-            }
-
-            // Загружаем стакан из существующих ордеров
-            var orderBook = CreateOrderBook(newOrder.CharacterTokenId);
-            orderBook.LoadOrders(existingOrders, newOrder.TraderTelegramId);
-
-            // Матчинг
-            var matches = FindMatchingOrders(newOrder, orderBook);
-            var trades = new List<Trade>();
-            var traderIdWithNewPortfolio = new List<long>();
+            var matches = FindMatchingOrders(newOrder, context.OrderBook);
             var remainingQuantity = newOrder.Quantity;
+
+            if (matches.Count == 0)
+            {
+                context.NewOrdersToAdd.Add(newOrder);
+                return;
+            }
 
             foreach (var match in matches)
             {
@@ -54,63 +107,60 @@ namespace ArkWallet.Domain.Engines
                 var tradeQuantity = Math.Min(remainingQuantity, match.GetRemainingQuantity());
                 var tradePrice = match.Price;
 
-                // Создаем сделку
                 var trade = CreateTrade(newOrder, match, tradeQuantity, tradePrice);
-                trades.Add(trade);
+                context.NewTradesToAdd.Add(trade);
+                context.AllTrades.Add(trade);
 
-                if (!portfolios.ContainsKey(trade.BuyerId))
-                    traderIdWithNewPortfolio.Add(trade.BuyerId);
+                UpdateTradersAndPortfolios(context, trade, tradeQuantity, tradePrice, newOrder.Price);
 
-                // Рассчитываем изменения (не сохраняем в бд)
-                UpdateTradersAndPortfolios(traders, portfolios, trade, tradeQuantity, tradePrice, newOrder.Price);
-
-                // Обновляем ордера
                 newOrder.UpdateOrderFill(tradeQuantity, trade.Price);
                 match.UpdateOrderFill(tradeQuantity, trade.Price);
+
+                if (match.IsFilled() || match.FilledQuantity > 0)
+                {
+                    context.ModifiedOrders.Add(match);
+                }
 
                 remainingQuantity -= tradeQuantity;
             }
 
-            // Возвращаем результат для сохранения
-            return new TradingResult
-            {
-                Trades = trades,
-                UpdatedOrders = GetUpdatedOrders(existingOrders, matches),
-                UpdatedTraders = traders.Values.Where(t => t.IsDirty).ToList(),
-                UpdatedPortfolios = portfolios.Values.Where(p => p.IsDirty && !traderIdWithNewPortfolio.Contains(p.TraderTelegramId)).ToList(),
-                OrderToAdd = newOrder,
-                PortfoliosToAdd = portfolios.Values.Where(p => p.IsDirty && traderIdWithNewPortfolio.Contains(p.TraderTelegramId)).ToList(),
-                UpdatedToken = UpdateTokenPrice(token, trades),
-                IsSuccess = true
-            };
+            context.NewOrdersToAdd.Add(newOrder);
         }
 
-        private List<TradeOrder> GetUpdatedOrders(List<TradeOrder> existingOrders, List<TradeOrder> matchedOrders)
+        private static void ReserveOrderFunds(TradeOrder newOrder, TradingContext context)
         {
-            var updatedOrders = new List<TradeOrder>();
-
-            foreach (var match in matchedOrders)
+            if (newOrder.IsLong())
             {
-                if (match.FilledQuantity > 0)
-                {
-                    updatedOrders.Add(match);
-                }
-            }
+                if (!context.Traders.TryGetValue(newOrder.TraderTelegramId, out var buyer))
+                    throw new DomainException("Трейдер не найден");
 
-            return updatedOrders.Distinct().ToList();
+                buyer.AddToBalance(-newOrder.GetReservedBalance());
+                context.ModifiedTraders.Add(buyer);
+            }
+            else
+            {
+                if (!context.Portfolios.TryGetValue(newOrder.TraderTelegramId, out var sellerPortfolio))
+                    throw new DomainException("В портфеле отсутствует данный токен");
+
+                sellerPortfolio.ReserveTokens(newOrder.Quantity, newOrder.Price);
+                context.ModifiedPortfolios.Add(sellerPortfolio);
+            }
         }
 
         private void UpdateTradersAndPortfolios(
-            Dictionary<long, Trader> traders,
-            Dictionary<long, PortfolioItem> portfolios,
-            Trade trade, int quantity, decimal price,
+            TradingContext context,
+            Trade trade,
+            int quantity,
+            decimal price,
             decimal buyerOrderPrice)
         {
             var totalAmount = quantity * price;
 
-            // Обновляем балансы
-            var buyer = traders[trade.BuyerId];
-            var seller = traders[trade.SellerId];
+            if (!context.Traders.TryGetValue(trade.BuyerId, out var buyer))
+                throw new DomainException($"Покупатель {trade.BuyerId} не найден");
+
+            if (!context.Traders.TryGetValue(trade.SellerId, out var seller))
+                throw new DomainException($"Продавец {trade.SellerId} не найден");
 
             seller.AddToBalance(totalAmount);
 
@@ -120,23 +170,30 @@ namespace ArkWallet.Domain.Engines
                 buyer.AddToBalance(overpayment);
             }
 
-            // Обновляем портфели
-            if (portfolios.TryGetValue(trade.BuyerId, out var buyerPortfolio))
+            context.ModifiedTraders.Add(buyer);
+            context.ModifiedTraders.Add(seller);
+
+            if (context.Portfolios.TryGetValue(trade.BuyerId, out var buyerPortfolio))
+            {
                 buyerPortfolio.BuyTokens(quantity, price);
+                context.ModifiedPortfolios.Add(buyerPortfolio);
+            }
             else
             {
                 buyerPortfolio = PortfolioItem.Create(trade.BuyerId, trade.CharacterTokenId, quantity, price);
-                portfolios[trade.BuyerId] = buyerPortfolio;
+                context.NewPortfoliosToAdd.Add(buyerPortfolio);
+                context.Portfolios[trade.BuyerId] = buyerPortfolio;
             }
 
-            if (portfolios.TryGetValue(trade.SellerId, out var sellerPortfolio))
+            if (context.Portfolios.TryGetValue(trade.SellerId, out var sellerPortfolio))
+            {
                 sellerPortfolio.SellTokens(quantity, price);
+                context.ModifiedPortfolios.Add(sellerPortfolio);
+            }
             else
-                throw new DomainException("Матчинг - один из продавцов не имеет токенов в портфеле при активном ордере на продажу");
-
-            buyer.MarkDirty();
-            seller.MarkDirty();
-            buyerPortfolio.MarkDirty();
+            {
+                throw new DomainException("Продавец не имеет портфеля");
+            }
         }
 
         private List<TradeOrder> FindMatchingOrders(TradeOrder order, OrderBook orderBook)
@@ -144,18 +201,6 @@ namespace ArkWallet.Domain.Engines
             return order.Type == OrderType.Buy
                 ? orderBook.Asks.Where(ask => ask.Price <= order.Price).OrderBy(o => o.Price).ToList()
                 : orderBook.Bids.Where(bid => bid.Price >= order.Price).OrderByDescending(o => o.Price).ToList();
-        }
-
-        private CharacterToken UpdateTokenPrice(CharacterToken token, List<Trade> trades)
-        {
-            if (trades.Any())
-            {
-                // Обновляем цену токена на основе последней сделки
-                var lastTrade = trades.Last();
-                token.UpdatePrice(lastTrade.Price);
-                return token;
-            }
-            return token;
         }
 
         private Trade CreateTrade(TradeOrder order, TradeOrder match, int quantity, decimal price)
@@ -171,9 +216,33 @@ namespace ArkWallet.Domain.Engines
             };
         }
 
-        private OrderBook CreateOrderBook(string characterTokenId)
+        private OrderBook CreateOrGetOrderBook(string characterTokenId)
         {
-            return _orderBooks[characterTokenId] = new OrderBook();
+            if (!_orderBooks.ContainsKey(characterTokenId))
+                _orderBooks[characterTokenId] = new OrderBook();
+
+            return _orderBooks[characterTokenId];
         }
+    }
+
+    internal class TradingContext
+    {
+        // Исходные данные
+        public List<TradeOrder> NewOrders { get; set; } = new();
+        public List<TradeOrder> ExistingOrders { get; set; } = new();
+        public Dictionary<long, Trader> Traders { get; set; } = new();
+        public Dictionary<long, PortfolioItem> Portfolios { get; set; } = new();
+        public CharacterToken Token { get; set; } = null!;
+        public OrderBook OrderBook { get; set; } = null!;
+        public List<Trade> AllTrades { get; set; } = new();
+
+        // Явные списки для сохранения
+        public List<TradeOrder> NewOrdersToAdd { get; set; } = new();
+        public List<TradeOrder> ModifiedOrders { get; set; } = new();
+        public List<Trade> NewTradesToAdd { get; set; } = new();
+        public List<Trader> ModifiedTraders { get; set; } = new();
+        public List<PortfolioItem> NewPortfoliosToAdd { get; set; } = new();
+        public List<PortfolioItem> ModifiedPortfolios { get; set; } = new();
+        public List<CharacterToken> ModifiedTokens { get; set; } = new();
     }
 }

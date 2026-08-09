@@ -15,17 +15,17 @@ internal class MarketMakerOrderService(
     IOrderCreationService orderCreationService,
     ILogger<MarketMakerOrderService> logger) : IMarketMakerOrderService
 {
-    public async Task<Result> ExecuteMarketOrderAsync(long traderIdInBot, string symbolInBot)
+    public async Task<Result> ExecuteMarketOrderAsync(long botId)
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            var bot = await dbContext.MarketMakerBots.FirstOrDefaultAsync(b => b.Symbol == symbolInBot && b.TraderId == traderIdInBot);
+            var bot = await dbContext.MarketMakerBots.FindAsync(botId);
 
             if (bot == null)
-                return Result.Fail($"Бот для трейдера {traderIdInBot} и токена {symbolInBot} не найден");
+                return Result.Fail($"Бот с ID {botId} не найден");
 
             var token = await dbContext.CharacterTokens
-                .FirstOrDefaultAsync(t => t.Symbol == bot.Symbol);
+                .FindAsync(bot.Symbol);
 
             if (token == null)
                 return Fail($"Токен {bot.Symbol} не найден");

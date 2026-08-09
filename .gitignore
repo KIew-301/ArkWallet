@@ -272,10 +272,16 @@ ServiceFabricBackup/
 # SQLite database files
 *.db
 
-# Local plan files
-PLAN.md
-ORDER.md
-CONTEXT.md
+# Local docs for commit and PR conventions (CONTRIBUTING.md, ORDER.md, CONTEXT.md, PLAN.md)
+.docs/
+
+# Local session logs
+sessions/
+
+# Local performance reports (JSON + HTML summary) — regenerated on every test run
+ArkWallet.PerformanceTests/Reports/
+
+# Environment
 .env.server
 
 # Debug scripts

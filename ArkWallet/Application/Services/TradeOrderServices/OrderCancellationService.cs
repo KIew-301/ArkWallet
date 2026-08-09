@@ -15,35 +15,40 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            var order = await dbContext.TradeOrders.FirstOrDefaultAsync(o => o.Id == orderId);
-            var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
-
-            if (trader == null)
-                return Fail("Трейдер не найден");
-
-            if (order == null)
-                return Fail("Ордера не существует");
-
-            if (!order.IsActive())
-                return Fail("Можно отменить только активный ордер");
-
-            order.Cancel(traderId);
-
-            if (order.IsLong())
+            return await TransactionHandler.ExecuteAsync(dbContext, async () =>
             {
-                trader.AddToBalance(order.GetReservedBalance());
-            }
-            else
-            {
-                var portfolioItem = await dbContext.PortfolioItems
-                    .FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == order.CharacterTokenId);
-                portfolioItem.ReturnTokens(order.GetRemainingQuantity());
-            }
+                await dbContext.LockTradersAsync([traderId]);
 
-            dbContext.TradeOrders.Update(order);
-            await dbContext.SaveChangesAsync();
+                var order = await dbContext.TradeOrders.FirstOrDefaultAsync(o => o.Id == orderId);
+                var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
 
-            return Ok();
+                if (trader == null)
+                    return Fail("Трейдер не найден");
+
+                if (order == null)
+                    return Fail("Ордера не существует");
+
+                if (!order.IsActive())
+                    return Fail("Можно отменить только активный ордер");
+
+                order.Cancel(traderId);
+
+                if (order.IsLong())
+                {
+                    trader.AddToBalance(order.GetReservedBalance());
+                }
+                else
+                {
+                    var portfolioItem = await dbContext.PortfolioItems
+                        .FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == order.CharacterTokenId);
+                    portfolioItem.ReturnTokens(order.GetRemainingQuantity());
+                }
+
+                dbContext.TradeOrders.Update(order);
+                await dbContext.SaveChangesAsync();
+
+                return Ok();
+            });
         }, logger, nameof(OrderCancellationService));
     }
 
@@ -51,27 +56,47 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
-
-            if (trader == null)
-                return Result<int>.Fail("Трейдер не найден");
-
-            var orders = await dbContext.TradeOrders
-                .Where(o => o.TraderTelegramId == traderId && o.Status == OrderStatus.Active)
-                .ToArrayAsync();
-
-            if (orders.Length == 0)
-                return Result<int>.Fail("Нет активных ордеров для отмены");
-
-            foreach (var order in orders)
+            return await TransactionHandler.ExecuteAsync(dbContext, async () =>
             {
-                await CancelAndRestoreOrderResources(order, traderId, trader);
-            }
+                await dbContext.LockTradersAsync([traderId]);
 
-            dbContext.TradeOrders.UpdateRange(orders);
-            await dbContext.SaveChangesAsync();
+                var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
 
-            return Result<int>.Ok(orders.Length);
+                if (trader == null)
+                    return Result<int>.Fail("Трейдер не найден");
+
+                var orders = await dbContext.TradeOrders
+                    .AsNoTracking()
+                    .Where(o => o.TraderTelegramId == traderId && o.Status == OrderStatus.Active)
+                    .ToArrayAsync();
+
+                if (orders.Length == 0)
+                    return Result<int>.Fail("Нет активных ордеров для отмены");
+
+                var shortTokens = orders
+                    .Where(o => o.IsShort())
+                    .Select(o => o.CharacterTokenId)
+                    .Distinct()
+                    .ToArray();
+
+                var portfolioItems = shortTokens.Length == 0
+                    ? new Dictionary<string, PortfolioItem>()
+                    : (await dbContext.PortfolioItems
+                        .Where(p => p.TraderTelegramId == traderId && shortTokens.Contains(p.CharacterTokenId))
+                        .ToArrayAsync())
+                        .GroupBy(p => p.CharacterTokenId)
+                        .ToDictionary(g => g.Key, g => g.First());
+
+                RefundOrders(trader, orders, portfolioItems);
+
+                await dbContext.TradeOrders
+                    .Where(o => o.TraderTelegramId == traderId && o.Status == OrderStatus.Active)
+                    .ExecuteUpdateAsync(o => o.SetProperty(o => o.Status, OrderStatus.Cancelled));
+
+                await dbContext.SaveChangesAsync();
+
+                return Result<int>.Ok(orders.Length);
+            });
         }, logger, nameof(OrderCancellationService));
     }
 
@@ -81,20 +106,21 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
             .AnyAsync(o => o.TraderTelegramId == traderId && o.Status == OrderStatus.Active);
     }
 
-    private async Task CancelAndRestoreOrderResources(TradeOrder order, long traderId, Trader trader)
+    private static void RefundOrders(
+        Trader trader,
+        IEnumerable<TradeOrder> orders,
+        Dictionary<string, PortfolioItem> portfolioItems)
     {
-        order.Cancel(traderId);
-
-        if (order.IsLong())
+        foreach (var order in orders)
         {
-            trader.AddToBalance(order.GetReservedBalance());
-        }
-        else
-        {
-            var portfolioItem = await dbContext.PortfolioItems
-                .FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == order.CharacterTokenId);
-            if (portfolioItem != null)
+            if (order.IsLong())
+            {
+                trader.AddToBalance(order.GetReservedBalance());
+            }
+            else if (portfolioItems.TryGetValue(order.CharacterTokenId, out var portfolioItem))
+            {
                 portfolioItem.ReturnTokens(order.GetRemainingQuantity());
+            }
         }
     }
 }

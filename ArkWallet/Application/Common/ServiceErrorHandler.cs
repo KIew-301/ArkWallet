@@ -10,54 +10,66 @@ internal static class ServiceErrorHandler
     internal static async Task<Result<T>> ExecuteAsync<T>(
         Func<Task<Result<T>>> action, ILogger logger, string context)
     {
+        Result<T> result;
         try
         {
-            return await action();
+            result = await action();
         }
         catch (DomainException ex)
         {
-            return Result<T>.Fail(ex.Message);
+            result = Result<T>.Fail(ex.Message);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "{Context}: {ErrorMessage}", context, ex.Message);
-            return Result<T>.Fail(ex.InnerException?.Message ?? ex.Message);
+            result = Result<T>.Fail(ex.InnerException?.Message ?? ex.Message);
         }
+
+        ArkWalletMetrics.RecordServiceResult(context, result.IsSuccess, result.Message);
+        return result;
     }
 
     internal static async Task<Result> ExecuteAsync(
         Func<Task<Result>> action, ILogger logger, string context)
     {
+        Result result;
         try
         {
-            return await action();
+            result = await action();
         }
         catch (DomainException ex)
         {
-            return Result.Fail(ex.Message);
+            result = Result.Fail(ex.Message);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "{Context}: {ErrorMessage}", context, ex.Message);
-            return Result.Fail(ex.InnerException?.Message ?? ex.Message);
+            result = Result.Fail(ex.InnerException?.Message ?? ex.Message);
         }
+
+        ArkWalletMetrics.RecordServiceResult(context, result.IsSuccess, result.Message);
+        return result;
     }
 
     internal static Result<T> Execute<T>(
         Func<Result<T>> action, ILogger logger, string context)
     {
+        Result<T> result;
         try
         {
-            return action();
+            result = action();
         }
         catch (DomainException ex)
         {
-            return Result<T>.Fail(ex.Message);
+            result = Result<T>.Fail(ex.Message);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "{Context}: {ErrorMessage}", context, ex.Message);
-            return Result<T>.Fail(ex.InnerException?.Message ?? ex.Message);
+            result = Result<T>.Fail(ex.InnerException?.Message ?? ex.Message);
         }
+
+        ArkWalletMetrics.RecordServiceResult(context, result.IsSuccess, result.Message);
+        return result;
     }
 }

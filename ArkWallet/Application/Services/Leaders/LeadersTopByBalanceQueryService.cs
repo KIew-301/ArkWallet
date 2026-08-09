@@ -24,19 +24,14 @@ internal class LeadersTopByBalanceQueryService(
             .Where(t => t.TelegramId < BotIdMin || t.TelegramId > BotIdMax)
             .ToListAsync();
 
-        var entries = new List<(long TelegramId, string Username, decimal TotalBalance)>();
+        var snapshots = await balanceSnapshotService.TakeTotalTraderBalanceSnapshotsAsync(
+            traders.Select(t => t.TelegramId));
+        if (!snapshots.IsSuccess || !snapshots.TryGetData(out var snapshotByTrader))
+            return null!;
 
-        foreach (var trader in traders)
-        {
-            var snap = await balanceSnapshotService.TakeTotalTraderBalanceSnapshot(trader.TelegramId);
-            if (!snap.IsSuccess || !snap.TryGetData(out var s))
-                return null!;
-
-            entries.Add((trader.TelegramId, trader.Username ?? "Аноним", s.totalBalance));
-        }
-
-        return entries
-            .OrderByDescending(e => e.TotalBalance)
+        return traders
+            .Select(t => (t.TelegramId, t.Username ?? "Аноним", snapshotByTrader.TryGetValue(t.TelegramId, out var snapshot) ? snapshot.totalBalance : 0m))
+            .OrderByDescending(e => e.Item3)
             .ToList();
     }
 

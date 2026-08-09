@@ -53,6 +53,7 @@ services:
       Database__Provider: "PostgreSQL"
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-arkwallet};Username=${POSTGRES_USER:-arkwallet};Password=${POSTGRES_PASSWORD}"
       Jwt__SecretKey: ${JWT_SECRET_KEY}
+      Metrics__ApiKey: ${METRICS_API_KEY:-change-me-metrics-api-key}
       Telegram__BotToken__Main: ${TELEGRAM_BOT_TOKEN}
       Telegram__AdminId__Main: ${TELEGRAM_ADMIN_ID}
       Telegram__AdminId__Addition: ${TELEGRAM_ADMIN_ID_ADDITION}
@@ -62,7 +63,45 @@ services:
       RabbitMQ__HostName: rabbitmq
     ports:
       - "5000:5000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: arkwallet-prometheus
+    restart: always
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - app
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: arkwallet-grafana
+    restart: always
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${METRICS_API_KEY:-change-me-metrics-api-key}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
 
 volumes:
   postgres_data:
   rabbitmq_data:
+  prometheus_data:
+  grafana_data:

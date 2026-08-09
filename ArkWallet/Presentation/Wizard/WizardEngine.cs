@@ -1,4 +1,5 @@
-﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
+﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Contracts.Decorators;
 using ArkWallet.Application.Contracts.Leaders;
 using ArkWallet.Application.Contracts.MarketMaker;
@@ -12,6 +13,7 @@ using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Entities.Configurations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Infrastructure.Wizard
@@ -72,6 +74,9 @@ namespace ArkWallet.Infrastructure.Wizard
         private readonly IQuestionDecorator _questionDecorator;
         private readonly IButtonDecorator _buttonDecorator;
 
+        // OBSERVABILITY
+        private readonly IMetricsSnapshotService _metricsSnapshotService;
+
         public WizardEngine(
             IUserSessionStore sessionStore,
             ILogger<WizardEngine> logger,
@@ -99,6 +104,7 @@ namespace ArkWallet.Infrastructure.Wizard
             IConfiguration configuration,
             IQuestionDecorator questionDecorator,
             IButtonDecorator buttonDecorator,
+            IMetricsSnapshotService metricsSnapshotService,
             WizardConfiguration config
             )
         {
@@ -128,6 +134,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _primaryAdminId = long.Parse(configuration["Telegram:AdminId:Main"] ?? "0");
             _questionDecorator = questionDecorator;
             _buttonDecorator = buttonDecorator;
+            _metricsSnapshotService = metricsSnapshotService;
             _config = config;
 
             ConfigureHandlers();
@@ -161,6 +168,9 @@ namespace ArkWallet.Infrastructure.Wizard
 
         public async Task<WizardResult> ProcessInput(long userId, string input)
         {
+            var command = ResolveCommandName(input, userId);
+            var stopwatch = Stopwatch.StartNew();
+
             try
             {
                 if (input.StartsWith("/get_order_book "))
@@ -225,6 +235,31 @@ namespace ArkWallet.Infrastructure.Wizard
                 _logger.LogError(ex, "Wizard ProcessInput failed for user {UserId}, input: {Input}", userId, input);
                 return new WizardResult { Message = ServerErrorMessage };
             }
+            finally
+            {
+                stopwatch.Stop();
+                ArkWalletMetrics.RecordCommand(command, stopwatch.Elapsed.TotalSeconds);
+            }
+        }
+
+        private string ResolveCommandName(string input, long userId)
+        {
+            if (input.StartsWith("/get_order_book ")
+                || input.StartsWith("/get_trades ")
+                || input.StartsWith("/get_tops ")
+                || input.StartsWith("/admin_bots_activity ")
+                || input.StartsWith("/admin_stats "))
+            {
+                return input.Split(' ', 2)[0];
+            }
+
+            if (_config.Commands.ContainsKey(input))
+                return input;
+
+            if (_sessionStore.TryGet(userId, out var session) && session != null)
+                return session.CurrentCommand ?? "unknown";
+
+            return "unknown";
         }
 
         private async Task<WizardResult> StartCommand(long userId, string command)

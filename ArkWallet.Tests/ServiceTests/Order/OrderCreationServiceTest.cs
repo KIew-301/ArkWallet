@@ -142,10 +142,10 @@ public class OrderCreationServiceTest
         var activeOrders1 = await HelpMethods.GetTraderOrders(db, 101, "ZZZ", OrderStatus.Active);
         var activeOrders2 = await HelpMethods.GetTraderOrders(db, 102, "ZZZ", OrderStatus.Active);
 
-        Assert.True(result1.IsSuccess);
-        Assert.True(result2.IsSuccess);
-        Assert.True(result3.IsSuccess);
-        Assert.True(result4.IsSuccess);
+        Assert.True(result1.IsSuccess, result1.Message);
+        Assert.True(result2.IsSuccess, result2.Message);
+        Assert.True(result3.IsSuccess, result3.Message);
+        Assert.True(result4.IsSuccess, result4.Message);
 
         Assert.NotNull(trader1);
         Assert.NotNull(trader2);
@@ -417,7 +417,7 @@ public class OrderCreationServiceTest
 
         var result = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 10, 100);
 
-        Assert.True(result.TryGetData(out var data));
+        Assert.True(result.TryGetData(out var data), result.Message);
 
         var order = await db.TradeOrders.FirstOrDefaultAsync(o => o.Id == data.Order.Id);
         Assert.NotNull(order);
@@ -443,7 +443,7 @@ public class OrderCreationServiceTest
 
         var result = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
 
-        Assert.True(result.TryGetData(out var data));
+        Assert.True(result.TryGetData(out var data), result.Message);
 
         var order = await db.TradeOrders.FirstOrDefaultAsync(o => o.Id == data.Order.Id);
         Assert.NotNull(order);

@@ -1,6 +1,5 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Domain.Entities;
 
 namespace ArkWallet.Application.Contracts.TradeServices;
 
@@ -44,26 +43,4 @@ public record TradeInfo(
     decimal Profit,
     DateTime TradeDateTime,
     TokenInfo? TokenInfo
-)
-{
-    /// <summary>
-    /// Создаёт DTO из сущности Trade
-    /// </summary>
-    /// <param name="trade">Сущность сделки</param>
-    /// <returns>DTO с информацией о сделке</returns>
-    internal static TradeInfo FromEntity(Trade trade)
-    {
-        var tokenInfo = trade.CharacterToken != null
-            ? TokenInfo.FromEntity(trade.CharacterToken)
-            : null;
-
-        return new TradeInfo(
-            string.Empty, // TraderRole будет установлен отдельно в сервисе
-            trade.Price,
-            trade.Quantity,
-            0m, // Profit будет рассчитан отдельно в сервисе
-            trade.ExecutedAt,
-            tokenInfo!
-        );
-    }
-}
+);

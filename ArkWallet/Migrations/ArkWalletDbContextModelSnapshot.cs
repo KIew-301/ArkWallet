@@ -17,20 +17,6 @@ namespace ArkWallet.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.10");
 
-            modelBuilder.Entity("AppState", b =>
-                {
-                    b.Property<string>("Key")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Key");
-
-                    b.ToTable("AppStates");
-                });
-
             modelBuilder.Entity("ArkWallet.Domain.Entities.BalanceSnapshot", b =>
                 {
                     b.Property<long>("Id")
@@ -60,7 +46,7 @@ namespace ArkWallet.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TraderId");
+                    b.HasIndex("TraderId", "SnapshotDateTime");
 
                     b.ToTable("BalanceSnapshots");
                 });
@@ -313,6 +299,20 @@ namespace ArkWallet.Migrations
                     b.HasKey("TelegramId");
 
                     b.ToTable("Traders");
+                });
+
+            modelBuilder.Entity("ArkWallet.Infrastructure.Data.AppState", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("AppStates");
                 });
 
             modelBuilder.Entity("ArkWallet.Domain.Entities.BalanceSnapshot", b =>

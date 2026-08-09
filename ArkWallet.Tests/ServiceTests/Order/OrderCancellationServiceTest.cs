@@ -223,6 +223,18 @@ public class OrderCancellationServiceTest
         Assert.Equal(10, portfolio.Quantity);
     }
 
+    [Fact]
+    public async Task CancelAllOrders_TraderNotExist_ReturnsFail()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var result = await HelpMethods.CancelAllOrders(db, 999);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("Трейдер не найден", result.Message);
+    }
+
     [Theory]
     [InlineData("none", false)]
     [InlineData("active", true)]

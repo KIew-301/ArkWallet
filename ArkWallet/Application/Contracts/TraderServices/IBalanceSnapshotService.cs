@@ -28,4 +28,11 @@ public interface IBalanceSnapshotService
     /// </para>
     /// </remarks>
     Task<Result<BalanceSnapshotData>> TakeTotalTraderBalanceSnapshot(long traderTelegramId);
+
+    /// <summary>
+    /// Создаёт снимки полного баланса для нескольких трейдеров одним набором запросов
+    /// </summary>
+    /// <param name="traderTelegramIds">Telegram ID трейдеров</param>
+    /// <returns>Результат операции со словарём снимков по ID трейдера</returns>
+    Task<Result<IReadOnlyDictionary<long, BalanceSnapshotData>>> TakeTotalTraderBalanceSnapshotsAsync(IEnumerable<long> traderTelegramIds);
 }

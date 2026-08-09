@@ -46,7 +46,7 @@ public class MarketMakerOrderServiceTest
         var logger = NullLogger<MarketMakerOrderService>.Instance;
         var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, logger);
 
-        var result = await service.ExecuteMarketOrderAsync((int)bot.TraderId, bot.Symbol);
+        var result = await service.ExecuteMarketOrderAsync(bot.Id);
 
         Assert.True(result.IsSuccess, result.Message);
 
@@ -87,7 +87,7 @@ public class MarketMakerOrderServiceTest
         var logger = NullLogger<MarketMakerOrderService>.Instance;
         var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, logger);
 
-        var result = await service.ExecuteMarketOrderAsync((int)bot.TraderId, bot.Symbol);
+        var result = await service.ExecuteMarketOrderAsync(bot.Id);
 
         Assert.True(result.IsSuccess, result.Message);
 
@@ -106,10 +106,10 @@ public class MarketMakerOrderServiceTest
         var logger = NullLogger<MarketMakerOrderService>.Instance;
         var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, logger);
 
-        var result = await service.ExecuteMarketOrderAsync(101, "ZZZ");
+        var result = await service.ExecuteMarketOrderAsync(101);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("Бот для трейдера 101 и токена ZZZ не найден", result.Message);
+        Assert.Equal("Бот с ID 101 не найден", result.Message);
     }
 
     [Fact]
@@ -126,7 +126,7 @@ public class MarketMakerOrderServiceTest
         var logger = NullLogger<MarketMakerOrderService>.Instance;
         var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, logger);
 
-        var result = await service.ExecuteMarketOrderAsync((int)bot.TraderId, bot.Symbol);
+        var result = await service.ExecuteMarketOrderAsync(bot.Id);
 
         Assert.False(result.IsSuccess);
         Assert.Equal($"Токен {bot.Symbol} не найден", result.Message);
@@ -155,7 +155,7 @@ public class MarketMakerOrderServiceTest
         var logger = NullLogger<MarketMakerOrderService>.Instance;
         var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, logger);
 
-        var result = await service.ExecuteMarketOrderAsync((int)bot.TraderId, bot.Symbol);
+        var result = await service.ExecuteMarketOrderAsync(bot.Id);
 
         Assert.False(result.IsSuccess);
         Assert.Equal("Не удалось создать ордер: Order creation failed", result.Message);
@@ -182,7 +182,7 @@ public class MarketMakerOrderServiceTest
         var logger = NullLogger<MarketMakerOrderService>.Instance;
         var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, logger);
 
-        var result = await service.ExecuteMarketOrderAsync((int)bot.TraderId, bot.Symbol);
+        var result = await service.ExecuteMarketOrderAsync(bot.Id);
 
         Assert.False(result.IsSuccess);
         Assert.Contains("db error", result.Message);

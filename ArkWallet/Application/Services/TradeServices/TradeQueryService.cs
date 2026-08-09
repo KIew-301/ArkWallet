@@ -1,4 +1,5 @@
 ﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Contracts.TradeServices;
 using ArkWallet.Domain.Entities;
 using ArkWallet.Infrastructure.Data;
@@ -18,26 +19,37 @@ internal class TradeQueryService(
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             var trades = await dbContext.Trades
-                .Where(t => t.BuyerId == traderTelegramId || t.SellerId == traderTelegramId)
-                .Include(t => t.CharacterToken)
+                .AsNoTracking()
+                .Where(t => (t.BuyerId == traderTelegramId || t.SellerId == traderTelegramId) && t.CharacterToken != null)
                 .OrderByDescending(t => t.ExecutedAt)
+                .Select(t => new
+                {
+                    t.BuyerId,
+                    t.Price,
+                    t.Quantity,
+                    t.ExecutedAt,
+                    Symbol = t.CharacterToken.Symbol,
+                    Name = t.CharacterToken.Name,
+                    CurrentPrice = t.CharacterToken.CurrentPrice,
+                    IconUrl = t.CharacterToken.IconUrl,
+                    ImageUrl = t.CharacterToken.ImageUrl
+                })
                 .ToListAsync();
 
-            if (!trades.Any())
+            if (trades.Count == 0)
                 return Ok(new List<TradeInfo>());
 
             var result = trades
-                .Where(t => t.CharacterToken != null)
                 .Select(t =>
                 {
                     var isBuyer = t.BuyerId == traderTelegramId;
-                    var info = TradeInfo.FromEntity(t);
-
-                    return info with
-                    {
-                        TraderRole = isBuyer ? "Buyer" : "Seller",
-                        Profit = isBuyer ? -(t.Quantity * t.Price) : (t.Quantity * t.Price)
-                    };
+                    return new TradeInfo(
+                        isBuyer ? "Buyer" : "Seller",
+                        t.Price,
+                        t.Quantity,
+                        isBuyer ? -(t.Quantity * t.Price) : t.Quantity * t.Price,
+                        t.ExecutedAt,
+                        new TokenInfo(t.Symbol, t.Name, t.CurrentPrice, t.IconUrl, t.ImageUrl));
                 })
                 .ToList();
 

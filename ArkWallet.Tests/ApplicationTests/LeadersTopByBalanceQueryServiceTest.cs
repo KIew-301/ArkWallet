@@ -26,6 +26,22 @@ public class LeadersTopByBalanceQueryServiceTest : IDisposable
             _db,
             _mockSnapshotService.Object,
             NullLogger<LeadersTopByBalanceQueryService>.Instance);
+
+        _mockSnapshotService
+            .Setup(s => s.TakeTotalTraderBalanceSnapshotsAsync(It.IsAny<IEnumerable<long>>()))
+            .ReturnsAsync((IEnumerable<long> ids) =>
+            {
+                var result = new Dictionary<long, BalanceSnapshotData>();
+                foreach (var id in ids)
+                {
+                    var single = _mockSnapshotService.Object.TakeTotalTraderBalanceSnapshot(id).Result;
+                    if (!single.IsSuccess || !single.TryGetData(out var data))
+                        return Result<IReadOnlyDictionary<long, BalanceSnapshotData>>.Fail(single.Message);
+                    result[id] = data;
+                }
+
+                return Result<IReadOnlyDictionary<long, BalanceSnapshotData>>.Ok(result);
+            });
     }
 
     public void Dispose()

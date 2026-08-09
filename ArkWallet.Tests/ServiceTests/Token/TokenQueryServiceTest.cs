@@ -4,7 +4,6 @@ using ArkWallet.Application.Services.CharacterTokenServices;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Tests.HelpTools;
 using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
 
 namespace ArkWallet.Tests.ServiceTests.Token;
 
@@ -16,9 +15,7 @@ public class TokenQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        var mockPriceChangeService = new Mock<ITokenPriceChangesCalculationService>();
-        var logger = NullLogger<TokenQueryService>.Instance;
-        var service = new TokenQueryService(db, mockPriceChangeService.Object, logger);
+        var service = new TokenQueryService(db, TimeProvider.System, NullLogger<TokenQueryService>.Instance);
 
         var result = await service.GetAllActiveTokensAsync();
 
@@ -36,13 +33,7 @@ public class TokenQueryServiceTest
         await HelpMethods.CreateToken(db, "ZZZ", "Zero", CharacterRarity.FiveStar, 1000, 100m);
         await HelpMethods.CreateToken(db, "YYY", "One", CharacterRarity.FourStar, 500, 50m);
 
-        var mockPriceChangeService = new Mock<ITokenPriceChangesCalculationService>();
-        mockPriceChangeService
-            .Setup(x => x.TakeTokenPriceChangesAsync(It.IsAny<string>(), 1))
-            .ReturnsAsync(Result<TokenPriceChangesData>.Ok(new TokenPriceChangesData(100m, 90m, 10m, 11.11m)));
-
-        var logger = NullLogger<TokenQueryService>.Instance;
-        var service = new TokenQueryService(db, mockPriceChangeService.Object, logger);
+        var service = new TokenQueryService(db, TimeProvider.System, NullLogger<TokenQueryService>.Instance);
 
         var result = await service.GetAllActiveTokensAsync();
 
@@ -58,14 +49,9 @@ public class TokenQueryServiceTest
         db.Database.EnsureCreated();
 
         await HelpMethods.CreateToken(db, "ZZZ", "Zero", CharacterRarity.FiveStar, 1000, 100m);
+        await HelpMethods.CreatePriceCandle(db, "ZZZ", 80m, DateTime.UtcNow);
 
-        var mockPriceChangeService = new Mock<ITokenPriceChangesCalculationService>();
-        mockPriceChangeService
-            .Setup(x => x.TakeTokenPriceChangesAsync("ZZZ", 1))
-            .ReturnsAsync(Result<TokenPriceChangesData>.Ok(new TokenPriceChangesData(100m, 90m, 10m, 11.11m)));
-
-        var logger = NullLogger<TokenQueryService>.Instance;
-        var service = new TokenQueryService(db, mockPriceChangeService.Object, logger);
+        var service = new TokenQueryService(db, TimeProvider.System, NullLogger<TokenQueryService>.Instance);
 
         var result = await service.GetAllActiveTokensAsync();
 
@@ -76,24 +62,18 @@ public class TokenQueryServiceTest
         Assert.Equal("ZZZ", token.TokenInfo.Symbol);
         Assert.Equal("Zero", token.TokenInfo.Name);
         Assert.Equal(100m, token.TokenInfo.CurrentPrice);
-        Assert.Equal(11.11m, token.DailyChangePercent);
+        Assert.Equal(25m, token.DailyChangePercent);
     }
 
     [Fact]
-    public async Task GetAllActiveTokensAsync_WhenPriceChangeFails_ReturnsZeroPercent()
+    public async Task GetAllActiveTokensAsync_WhenNoPriceHistory_ReturnsZeroPercent()
     {
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
         await HelpMethods.CreateToken(db, "ZZZ", "Zero", CharacterRarity.FiveStar, 1000, 100m);
 
-        var mockPriceChangeService = new Mock<ITokenPriceChangesCalculationService>();
-        mockPriceChangeService
-            .Setup(x => x.TakeTokenPriceChangesAsync("ZZZ", 1))
-            .ReturnsAsync(Result<TokenPriceChangesData>.Fail("Нет истории ценыЫ"));
-
-        var logger = NullLogger<TokenQueryService>.Instance;
-        var service = new TokenQueryService(db, mockPriceChangeService.Object, logger);
+        var service = new TokenQueryService(db, TimeProvider.System, NullLogger<TokenQueryService>.Instance);
 
         var result = await service.GetAllActiveTokensAsync();
 
@@ -102,6 +82,26 @@ public class TokenQueryServiceTest
 
         var token = data.First();
         Assert.Equal(100m, token.TokenInfo.CurrentPrice);
+        Assert.Equal(0m, token.DailyChangePercent);
+    }
+
+    [Fact]
+    public async Task GetAllActiveTokensAsync_WhenOnlyStaleCandle_ReturnsZeroPercent()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.CreateToken(db, "ZZZ", "Zero", CharacterRarity.FiveStar, 1000, 100m);
+        await HelpMethods.CreatePriceCandle(db, "ZZZ", 80m, DateTime.UtcNow.AddDays(-2));
+
+        var service = new TokenQueryService(db, TimeProvider.System, NullLogger<TokenQueryService>.Instance);
+
+        var result = await service.GetAllActiveTokensAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var data));
+
+        var token = data.First();
         Assert.Equal(0m, token.DailyChangePercent);
     }
 
@@ -116,9 +116,7 @@ public class TokenQueryServiceTest
         if (expectedSuccess)
             await HelpMethods.CreateToken(db, "ZZZ", "Zero", CharacterRarity.FiveStar, 1000, 100m);
 
-        var mockPriceChangeService = new Mock<ITokenPriceChangesCalculationService>();
-        var logger = NullLogger<TokenQueryService>.Instance;
-        var service = new TokenQueryService(db, mockPriceChangeService.Object, logger);
+        var service = new TokenQueryService(db, TimeProvider.System, NullLogger<TokenQueryService>.Instance);
 
         var result = await service.GetTokenInfoAsync(symbol);
 

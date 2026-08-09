@@ -4,8 +4,10 @@
 
 ![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)
 ![C#](https://img.shields.io/badge/C%23-239120?style=for-the-badge&logo=csharp&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
 ![RabbitMQ](https://img.shields.io/badge/RabbitMQ-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)
+![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white)
+![Grafana](https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)
 ![Telegram](https://img.shields.io/badge/Telegram_Bot-26A5E4?style=for-the-badge&logo=telegram&logoColor=white)
@@ -26,6 +28,8 @@
 - [🏗️ Domain Model](#️-domain-model)
 - [🔧 Service Layer](#-service-layer)
 - [📡 API Endpoints](#-api-endpoints)
+- [📈 Observability](#-observability)
+- [⚡ Performance Testing](#-performance-testing)
 - [🛠 Technology Stack](#-technology-stack)
 - [🤝 Connect](#-connect)
 - [📄 License](#-license)
@@ -34,7 +38,7 @@
 
 ## 🧠 Overview
 
-**ArkWallet** is a **high-load token trading platform** built as a mini-app for Telegram. It simulates a full-featured trading ecosystem with real-time order matching, balance snapshots, candle aggregation, and an automated market-making system.
+**ArkWallet** is a **high-load token trading platform** built as a mini-app for Telegram. It simulates a full-featured trading ecosystem with real-time order matching, balance snapshots, candle aggregation, an automated market-making system, and built-in performance & observability tooling.
 
 > **Key Objective:** Demonstrate production-ready architecture, clean code principles, and deep understanding of distributed systems — not just a working prototype.
 
@@ -44,12 +48,15 @@
 
 | Feature | Description |
 |---------|-------------|
-| **💱 Token Trading** | Place buy/sell orders via REST API or Telegram Bot |
+| **💱 Token Trading** | Place buy/sell orders via REST API or Telegram Bot, incl. batch order creation |
 | **⚡ Order Matching Engine** | Custom engine with partial fills, average execution price, and in-memory transactionality |
-| **📊 Balance Snapshots** | Periodic full-state balance snapshots with historical analytics |
+| **📊 Balance Snapshots** | Periodic full-state balance snapshots with historical analytics (batched for multiple traders) |
 | **🕯️ Candle Aggregation** | Flexible timeframe aggregation (1m, 5m, 15m, 1h, etc.) |
-| **🤖 Market Maker Bots** | Automated liquidity providers with dynamic pricing grids |
+| **🤖 Market Maker Bots** | Automated liquidity providers with dynamic pricing grids, batched grid order placement |
 | **📨 Notification System** | RabbitMQ-based event bus with Telegram notifications |
+| **🔐 Concurrency Control** | Pessimistic row locking (`SELECT ... FOR UPDATE`) and transaction wrapper to serialize trades and price updates |
+| **📈 Observability** | Health checks, OpenTelemetry metrics, Prometheus scraping, Grafana dashboards, `/admin_metrics` bot command |
+| **⚡ Performance Gates** | Dedicated perf-testing project with EF query counters, budget gates, and HTML reports |
 
 ---
 
@@ -94,8 +101,8 @@ Engines
 - ✅ **SOLID** — Single Responsibility, Dependency Injection
 - ✅ **Domain-Driven Design** — Rich domain model, value objects, invariants
 - ✅ **Result Pattern** — Explicit error handling without exceptions
-- ✅ **Unit Testing** — xUnit + Moq with coverage via Coverlet
-- ✅ **Code Quality** — SonarCloud integration
+- ✅ **Unit Testing** — xUnit + Moq + Coverlet (570+ tests), Testcontainers for PostgreSQL race scenarios
+- ✅ **Code Quality** — SonarCloud integration (coverage, duplications, hotspots)
 
 ---
 
@@ -107,12 +114,13 @@ At the core of the platform lies a **custom order matching engine** that process
 
 | Step | Action |
 |------|--------|
-| **1️⃣ Validation** | Verify price, quantity, and trader funds |
-| **2️⃣ Reserve Funds** | Lock balance (buy) or tokens (sell) |
-| **3️⃣ Load Order Book** | Fetch active opposite-side orders from DB |
-| **4️⃣ Find Matches** | Sort by best price (ascending for buys, descending for sells) |
-| **5️⃣ Execute Trades** | Calculate trade volume, update balances/portfolios, track partial fills |
-| **6️⃣ Return Result** | Atomic `TradingResult` with all changes for single DB transaction |
+| **1️⃣ Validation** | Verify price, quantity, and trader funds (group validation in a single query for batches) |
+| **2️⃣ Lock Rows** | Pessimistic trader/token locks on PostgreSQL to serialize concurrent updates |
+| **3️⃣ Reserve Funds** | Lock balance (buy) or tokens (sell) |
+| **4️⃣ Load Order Book** | Fetch active opposite-side orders from DB |
+| **5️⃣ Find Matches** | Sort by best price (ascending for buys, descending for sells) |
+| **6️⃣ Execute Trades** | Calculate trade volume, update balances/portfolios, track partial fills |
+| **7️⃣ Return Result** | Atomic `TradingContext` with all changes, staged and saved in a single DB transaction |
 
 ### Key Characteristics
 
@@ -121,7 +129,7 @@ At the core of the platform lies a **custom order matching engine** that process
 | **🔒 Encapsulation** | Engine lives in Domain layer, zero external dependencies |
 | **🔄 Partial Fills** | Orders stay active with remaining quantity |
 | **📊 Average Price** | Weighted average calculated across all fills |
-| **⚛️ Atomicity** | All changes computed in-memory, saved in single DB transaction |
+| **⚛️ Atomicity** | All changes computed in-memory, saved in a single DB transaction (optionally batched via `CreateOrdersAsync`) |
 
 ### Example Execution
 
@@ -197,11 +205,11 @@ All services follow the **Single Responsibility Principle** and are organized by
 
 | Service | Purpose |
 |---------|---------|
-| `IOrderCreationService` | Create and process orders through trading engine |
+| `IOrderCreationService` | Create and process orders through trading engine (single + batched `CreateOrdersAsync`) |
 | `IOrderCreationFullValidationService` | Full validation pipeline for order creation |
 | `IOrderValidationService` | Individual parameter validation (price, quantity, direction) |
-| `IOrderCancellationService` | Cancel single or all active orders with fund return |
-| `IOrderQueryService` | Query orders with status filtering |
+| `IOrderCancellationService` | Cancel single or all active orders with fund return (bulk status update) |
+| `IOrderQueryService` | Query orders with status filtering (untracked projection) |
 
 ### Trader Services
 
@@ -277,6 +285,35 @@ All services follow the **Single Responsibility Principle** and are organized by
 | **Portfolios** | GET | `/api/portfolios` | Get trader portfolio |
 | **Traders** | GET | `/api/traders/balance` | Get balance with period changes |
 | **Trades** | GET | `/api/trades` | Get trade history |
+| **Health** | GET | `/health` | Liveness/readiness probe (DB check) for Docker healthcheck |
+| **Metrics** | GET | `/metrics` | Prometheus-compatible OpenTelemetry metrics |
+
+---
+
+## 📈 Observability
+
+- **Health checks** — `/health` endpoint with a database probe (`DatabaseHealthCheck`), wired into the Docker healthcheck.
+- **OpenTelemetry metrics** — ASP.NET Core instrumentation + Npgsql meters + custom `ArkWalletMetrics` counters/histograms:
+  - `arkwallet_service_results_total` — Ok/Fail results per service
+  - `arkwallet_lock_wait_seconds` — `SELECT ... FOR UPDATE` lock wait time
+  - `arkwallet_commands_total` / `arkwallet_command_duration_seconds` — Telegram bot command usage
+- **Prometheus** — scraping at `/metrics` (port 9090), config in `prometheus.yml`.
+- **Grafana** — pre-configured service in docker-compose (port 3000). Prometheus datasource and an ArkWallet dashboard (service results, lock wait, bot commands, HTTP, Npgsql) are provisioned automatically from `grafana/`.
+- **Admin bot** — `/admin_metrics` command exports the same snapshot in Telegram.
+- **Protected metrics** — `/metrics` requires `Authorization: Bearer <Metrics__ApiKey>` (API key from config), so only admins can access the metrics endpoint.
+- **Protected Grafana** — access only for admins: login `admin` / password = `Metrics__ApiKey` (same secret), anonymous access and sign-up disabled.
+
+---
+
+## ⚡ Performance Testing
+
+The `ArkWallet.PerformanceTests` project (excluded from CI and the main solution) provides:
+
+- **EF Core `IDbCommandInterceptor`** (`QueryCounter`) — counts queries, tracks execution time and slowest SQL.
+- **`PerfScope.Step`** — measures `{name, ms, queries}` deltas around each code region.
+- **Query-count gates** — per-service budgets for orders, snapshots, leaders, tokens, and market-maker ticks (#26-30), plus E2E API/bot gates (#31-36).
+- **Repeat mode** — median reports over N runs, row/cache counters, query-regression detection.
+- **HTML summary reports** — saved to `ArkWallet.PerformanceTests/Reports/` on every run.
 
 ---
 
@@ -286,13 +323,15 @@ All services follow the **Single Responsibility Principle** and are organized by
 |-------|-----------|
 | **Runtime** | .NET 9 |
 | **Framework** | ASP.NET Core 9 |
-| **Database** | SQLite (Entity Framework Core 9) |
+| **Database** | PostgreSQL (Npgsql, production) / SQLite (local dev & tests) |
 | **Message Broker** | RabbitMQ (RabbitMQ.Client 7.2.0) |
+| **Observability** | OpenTelemetry + Prometheus (`/metrics`) + Grafana (docker-compose) |
 | **Authentication** | JWT (Microsoft.AspNetCore.Authentication.JwtBearer 9) |
 | **API Documentation** | Swagger / OpenAPI (Swashbuckle.AspNetCore 9.0.6) |
 | **Telegram SDK** | Telegram.Bot 22.7.5 |
-| **Testing** | xUnit + Moq + Coverlet |
-| **CI/CD** | GitHub Actions + SSH + systemd |
+| **Testing** | xUnit + Moq + Coverlet + Testcontainers (PostgreSQL race tests) |
+| **Performance Tests** | ArkWallet.PerformanceTests — EF QueryCounter, budget gates, HTML reports |
+| **CI/CD** | GitHub Actions + SonarCloud code analysis + Docker Compose deployment |
 | **Code Quality** | SonarCloud |
 | **Architecture** | Clean Architecture + DDD + CQRS |
 

@@ -1,5 +1,6 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.TraderServices;
+using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -13,50 +14,118 @@ internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnap
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            var trader = await db.Traders
-                .Include(t => t.Portfolio)
-                .Include(t => t.Orders)
-                .FirstOrDefaultAsync(t => t.TelegramId == traderTelegramId);
+            var data = await db.Traders
+                .Where(t => t.TelegramId == traderTelegramId)
+                .Select(t => new
+                {
+                    t.Balance,
+                    Portfolio = t.Portfolio.Select(p => new PortfolioSnapshot(p.CharacterTokenId, p.Quantity)),
+                    ActiveOrders = t.Orders
+                        .Where(o => o.Status == OrderStatus.Active)
+                        .Select(o => new OrderSnapshot(o.Type, o.CharacterTokenId, o.Quantity - o.FilledQuantity, o.Price))
+                })
+                .AsSplitQuery()
+                .FirstOrDefaultAsync();
 
-            if (trader == null)
+            if (data == null)
                 return Fail("Трейдер на найден");
 
-            var mainBalance = trader.Balance;
-            var longOrderReserve = 0m;
-            var shortOrderReserve = 0m;
-            var balanceInTokens = 0m;
+            var tokenPrices = await LoadTokenPricesAsync(data.ActiveOrders, data.Portfolio);
 
-            var longOrders = trader.Orders.Where(o => o.IsLong() && o.IsActive());
-            var shortOrders = trader.Orders.Where(o => o.IsShort() && o.IsActive());
-            var portfolioItems = trader.Portfolio;
-            var activeSymbols = shortOrders
-                .Select(o => o.CharacterTokenId)
-                .Union(portfolioItems.Select(p => p.CharacterTokenId))
-                .ToArray();
+            var (totalBalance, longOrderReserve, shortOrderReserve, balanceInTokens) =
+                ComputeSnapshot(data.Balance, data.ActiveOrders, data.Portfolio, tokenPrices);
 
-            var tokenPrices = new Dictionary<string, decimal>();
-
-            if (activeSymbols.Length > 0)
-                tokenPrices = await db.CharacterTokens
-                    .Where(t => activeSymbols.Contains(t.Symbol))
-                    .ToDictionaryAsync(t => t.Symbol, t => t.CurrentPrice);
-
-            foreach (var order in longOrders)
-                longOrderReserve += order.GetReservedBalance();
-
-            foreach (var order in shortOrders)
-                if (tokenPrices.TryGetValue(order.CharacterTokenId, out var price))
-                    shortOrderReserve += order.GetRemainingQuantity() * price;
-
-            foreach (var item in portfolioItems)
-                if (tokenPrices.TryGetValue(item.CharacterTokenId, out var price))
-                    balanceInTokens += item.Quantity * price;
-
-            var totalBalance = mainBalance + longOrderReserve + shortOrderReserve + balanceInTokens;
-
-            return Ok(new(traderTelegramId, totalBalance, mainBalance, longOrderReserve, shortOrderReserve, balanceInTokens, DateTime.UtcNow));
+            return Ok(new(traderTelegramId, totalBalance, data.Balance, longOrderReserve, shortOrderReserve, balanceInTokens, DateTime.UtcNow));
         }, logger, nameof(BalanceSnapshotService));
     }
+
+    public async Task<Result<IReadOnlyDictionary<long, BalanceSnapshotData>>> TakeTotalTraderBalanceSnapshotsAsync(IEnumerable<long> traderTelegramIds)
+    {
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
+        {
+            var ids = traderTelegramIds.Distinct().ToArray();
+            if (ids.Length == 0)
+                return Result<IReadOnlyDictionary<long, BalanceSnapshotData>>.Ok(new Dictionary<long, BalanceSnapshotData>());
+
+            var data = await db.Traders
+                .Where(t => ids.Contains(t.TelegramId))
+                .Select(t => new
+                {
+                    t.TelegramId,
+                    t.Balance,
+                    Portfolio = t.Portfolio.Select(p => new PortfolioSnapshot(p.CharacterTokenId, p.Quantity)),
+                    ActiveOrders = t.Orders
+                        .Where(o => o.Status == OrderStatus.Active)
+                        .Select(o => new OrderSnapshot(o.Type, o.CharacterTokenId, o.Quantity - o.FilledQuantity, o.Price))
+                })
+                .AsSplitQuery()
+                .ToListAsync();
+
+            var tokenPrices = await LoadTokenPricesAsync(
+                data.SelectMany(d => d.ActiveOrders),
+                data.SelectMany(d => d.Portfolio));
+
+            var result = new Dictionary<long, BalanceSnapshotData>();
+            foreach (var trader in data)
+            {
+                var (totalBalance, longOrderReserve, shortOrderReserve, balanceInTokens) =
+                    ComputeSnapshot(trader.Balance, trader.ActiveOrders, trader.Portfolio, tokenPrices);
+
+                result[trader.TelegramId] = new(trader.TelegramId, totalBalance, trader.Balance, longOrderReserve, shortOrderReserve, balanceInTokens, DateTime.UtcNow);
+            }
+
+            return Result<IReadOnlyDictionary<long, BalanceSnapshotData>>.Ok(result);
+        }, logger, nameof(BalanceSnapshotService));
+    }
+
+    private async Task<Dictionary<string, decimal>> LoadTokenPricesAsync(
+        IEnumerable<OrderSnapshot> activeOrders,
+        IEnumerable<PortfolioSnapshot> portfolio)
+    {
+        var activeSymbols = activeOrders
+            .Where(o => o.Type == OrderType.Sell)
+            .Select(o => o.CharacterTokenId)
+            .Union(portfolio.Select(p => p.CharacterTokenId))
+            .ToArray();
+
+        if (activeSymbols.Length == 0)
+            return new Dictionary<string, decimal>();
+
+        return await db.CharacterTokens
+            .Where(t => activeSymbols.Contains(t.Symbol))
+            .Select(t => new { t.Symbol, t.CurrentPrice })
+            .ToDictionaryAsync(x => x.Symbol, x => x.CurrentPrice);
+    }
+
+    private static (decimal Total, decimal LongOrderReserve, decimal ShortOrderReserve, decimal BalanceInTokens) ComputeSnapshot(
+        decimal mainBalance,
+        IEnumerable<OrderSnapshot> activeOrders,
+        IEnumerable<PortfolioSnapshot> portfolio,
+        Dictionary<string, decimal> tokenPrices)
+    {
+        var longOrderReserve = 0m;
+        var shortOrderReserve = 0m;
+        var balanceInTokens = 0m;
+
+        foreach (var order in activeOrders)
+        {
+            if (order.Type == OrderType.Buy)
+                longOrderReserve += order.Remaining * order.Price;
+            else if (tokenPrices.TryGetValue(order.CharacterTokenId, out var price))
+                shortOrderReserve += order.Remaining * price;
+        }
+
+        foreach (var item in portfolio)
+            if (tokenPrices.TryGetValue(item.CharacterTokenId, out var price))
+                balanceInTokens += item.Quantity * price;
+
+        return (mainBalance + longOrderReserve + shortOrderReserve + balanceInTokens,
+            longOrderReserve, shortOrderReserve, balanceInTokens);
+    }
+
+    private sealed record OrderSnapshot(OrderType Type, string CharacterTokenId, decimal Remaining, decimal Price);
+
+    private sealed record PortfolioSnapshot(string CharacterTokenId, int Quantity);
 }
 
 public record BalanceSnapshotData(

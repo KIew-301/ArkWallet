@@ -1,4 +1,6 @@
+using ArkWallet.Application.Services.PortfolioServices;
 using ArkWallet.Tests.HelpTools;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ArkWallet.Tests.ServiceTests.Portfolio;
 
@@ -55,5 +57,20 @@ public class PortfolioUpdatingServiceTest
         Assert.True(result.IsSuccess);
         Assert.NotNull(portfolio);
         Assert.Equal(225, portfolio.Quantity);
+    }
+
+    [Fact]
+    public async Task CreateOrUpdatePortfolioAsync_TokenNotExist_ReturnsFail()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+
+        var service = new PortfolioUpdatingService(db, NullLogger<PortfolioUpdatingService>.Instance);
+        var result = await service.CreateOrUpdatePortfolioAsync(101, "NONEXISTENT", 10);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Токен", result.Message);
     }
 }

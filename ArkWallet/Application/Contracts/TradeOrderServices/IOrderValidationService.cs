@@ -85,6 +85,31 @@ namespace ArkWallet.Application.Contracts.TradeOrderServices
         /// При первой ошибке валидация прекращается.
         /// </remarks>
         Task<ValidationResult> ValidateFullOrderAsync(CreateOrderCommand request);
+
+        /// <summary>
+        /// Валидирует наличие токенов у трейдера батчем
+        /// </summary>
+        /// <param name="traderId">ID трейдера в Telegram</param>
+        /// <param name="symbols">Список символов токенов</param>
+        /// <param name="direction">Направление сделки</param>
+        /// <returns>Результат валидации</returns>
+        /// <remarks>
+        /// Для продажи проверяет одним запросом наличие всех токенов в портфеле трейдера.
+        /// Для покупки проверка не требуется.
+        /// </remarks>
+        Task<ValidationResult> ValidateTokensAsync(long traderId, IReadOnlyCollection<string> symbols, string direction);
+
+        /// <summary>
+        /// Выполняет полную валидацию группы команд создания ордеров
+        /// </summary>
+        /// <param name="requests">Список команд создания ордеров</param>
+        /// <returns>Результат валидации</returns>
+        /// <remarks>
+        /// Проверяет цену и количество для каждой команды, а также наличие токенов
+        /// у трейдеров одним батч-запросом вместо N+1 запросов.
+        /// При первой ошибке валидация прекращается.
+        /// </remarks>
+        Task<ValidationResult> ValidateFullOrdersAsync(IReadOnlyCollection<CreateOrderCommand> requests);
     }
 
 

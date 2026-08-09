@@ -26,15 +26,23 @@ internal class TokenPriceCandleQueryService(
                 return Fail("Символ токена не может быть пустым");
 
             var candles = await dbContext.PriceCandles
+                .AsNoTracking()
                 .Where(c => c.CharacterTokenId == symbol && c.Timestamp >= startDateTime && c.Timestamp < endDateTime)
                 .OrderBy(c => c.Timestamp)
+                .Select(c => new { c.OpenPrice, c.HighPrice, c.LowPrice, c.ClosePrice, c.Timestamp })
                 .ToListAsync();
 
-            if (!candles.Any())
+            if (candles.Count == 0)
                 return Ok(new List<PriceCandleInfo>());
 
             var result = candles
-                .Select(PriceCandleInfo.FromEntity)
+                .Select(c => new PriceCandleInfo(
+                    c.OpenPrice,
+                    c.HighPrice,
+                    c.LowPrice,
+                    c.ClosePrice,
+                    c.Timestamp,
+                    new DateTimeOffset(c.Timestamp).ToUnixTimeSeconds()))
                 .ToList();
 
             return Ok(result);

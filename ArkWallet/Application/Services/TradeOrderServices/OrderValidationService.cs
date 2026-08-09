@@ -105,6 +105,62 @@ namespace ArkWallet.Application.Services.TradeOrderServices
 
             return ValidationResult.Success();
         }
+
+        public async Task<ValidationResult> ValidateTokensAsync(long traderId, IReadOnlyCollection<string> symbols, string direction)
+        {
+            if (direction == OrderDirections.Buy)
+                return ValidationResult.Success();
+
+            var distinctSymbols = symbols.Distinct().ToList();
+            if (distinctSymbols.Count == 0)
+                return ValidationResult.Success();
+
+            var ownedSymbols = await dbContext.PortfolioItems
+                .Where(p => p.TraderTelegramId == traderId && distinctSymbols.Contains(p.CharacterTokenId))
+                .Select(p => p.CharacterTokenId)
+                .ToListAsync();
+
+            var ownedSet = ownedSymbols.ToHashSet();
+            var missingSymbol = distinctSymbols.FirstOrDefault(s => !ownedSet.Contains(s));
+
+            return missingSymbol == null
+                ? ValidationResult.Success()
+                : ValidationResult.Failed($"Пользователь не обладает токеном {missingSymbol}");
+        }
+
+        public async Task<ValidationResult> ValidateFullOrdersAsync(IReadOnlyCollection<CreateOrderCommand> requests)
+        {
+            if (requests.Count == 0)
+                return ValidationResult.Success();
+
+            foreach (var request in requests)
+            {
+                var priceValidationResult = ValidatePrice(request.Price);
+                if (!priceValidationResult.IsValid)
+                    return ValidationResult.Failed(priceValidationResult.Message);
+
+                var quantityValidationResult = ValidateQuantity(request.Quantity);
+                if (!quantityValidationResult.IsValid)
+                    return ValidationResult.Failed(quantityValidationResult.Message);
+            }
+
+            var sellerGroups = requests
+                .Where(r => r.Direction == OrderDirections.Sell)
+                .GroupBy(r => (r.TraderId, r.Symbol))
+                .Select(g => g.Key)
+                .ToList();
+
+            foreach (var (traderId, symbol) in sellerGroups)
+            {
+                var tokenValidationResult = await ValidateTokensAsync(
+                    traderId, new[] { symbol }, OrderDirections.Sell);
+
+                if (!tokenValidationResult.IsValid)
+                    return ValidationResult.Failed(tokenValidationResult.Message);
+            }
+
+            return ValidationResult.Success();
+        }
     }
 
     public static class OrderDirections

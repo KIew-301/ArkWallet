@@ -16,13 +16,11 @@ public class TradersControllerTest
     {
         var mockBalanceChangesCalculationService = new Mock<IBalanceChangesCalculationService>();
         mockBalanceChangesCalculationService
-            .Setup(x => x.TakeMainBalanceChanges(It.IsAny<long>(), It.IsAny<int>()))
-            .ReturnsAsync(Result<BalanceChangesData>
-                .Ok(new BalanceChangesData(1250, 1000, 250, 25)));
-        mockBalanceChangesCalculationService
-            .Setup(x => x.TakeTotalBalanceChanges(It.IsAny<long>(), It.IsAny<int>()))
-            .ReturnsAsync(Result<BalanceChangesData>
-                .Ok(new BalanceChangesData(1250, 1000, 250, 25)));
+            .Setup(x => x.TakeBalanceChanges(It.IsAny<long>(), It.IsAny<int>()))
+            .ReturnsAsync(Result<BalanceChangesBundle>
+                .Ok(new BalanceChangesBundle(
+                    new BalanceChangesData(1250, 1000, 250, 25),
+                    new BalanceChangesData(1250, 1000, 250, 25))));
 
         var traderController = new TradersController(mockBalanceChangesCalculationService.Object);
         traderController.AddContext("101");
@@ -45,8 +43,8 @@ public class TradersControllerTest
     {
         var mockBalanceChangesCalculationService = new Mock<IBalanceChangesCalculationService>();
         mockBalanceChangesCalculationService
-            .Setup(x => x.TakeMainBalanceChanges(It.IsAny<long>(), It.IsAny<int>()))
-            .ReturnsAsync(Result<BalanceChangesData>
+            .Setup(x => x.TakeBalanceChanges(It.IsAny<long>(), It.IsAny<int>()))
+            .ReturnsAsync(Result<BalanceChangesBundle>
                 .Fail("Calculation service error"));
 
         var traderController = new TradersController(mockBalanceChangesCalculationService.Object);
@@ -65,8 +63,8 @@ public class TradersControllerTest
     {
         var mockBalanceChangesCalculationService = new Mock<IBalanceChangesCalculationService>();
         mockBalanceChangesCalculationService
-            .Setup(x => x.TakeMainBalanceChanges(It.IsAny<long>(), It.IsAny<int>()))
-            .ReturnsAsync(Result<BalanceChangesData>
+            .Setup(x => x.TakeBalanceChanges(It.IsAny<long>(), It.IsAny<int>()))
+            .ReturnsAsync(Result<BalanceChangesBundle>
                 .Fail("Calculation service error"));
 
         var traderController = new TradersController(mockBalanceChangesCalculationService.Object);

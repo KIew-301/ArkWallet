@@ -53,6 +53,7 @@ internal static class WizardEngineTestHelper
         var tokenService = new Mock<ITokenService>();
         var tradingVolumeService = new Mock<ITradingVolumeService>();
         var messageSender = new Mock<IMessageSender>();
+        var metricsSnapshotService = new Mock<IMetricsSnapshotService>();
 
         var configuration = new Mock<IConfiguration>();
         configuration.Setup(c => c["Telegram:AdminId:Main"]).Returns("999999");
@@ -94,6 +95,7 @@ internal static class WizardEngineTestHelper
             configuration.Object,
             questionDecorator.Object,
             buttonDecorator.Object,
+            metricsSnapshotService.Object,
             config
         );
 

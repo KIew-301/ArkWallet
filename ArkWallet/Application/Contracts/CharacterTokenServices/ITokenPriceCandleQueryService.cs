@@ -1,5 +1,4 @@
 ﻿using ArkWallet.Application.Common;
-using ArkWallet.Domain.Entities;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ArkWallet.Application.Contracts.CharacterTokenServices;
@@ -43,18 +42,4 @@ public record PriceCandleInfo(
     decimal ClosePrice,
     DateTime DateTime,
     long Timestamp
-)
-{
-    internal static PriceCandleInfo FromEntity(PriceCandle candle)
-    {
-        return new PriceCandleInfo(
-            candle.OpenPrice,
-            candle.HighPrice,
-            candle.LowPrice,
-            candle.ClosePrice,
-            candle.Timestamp,
-            new DateTimeOffset(candle.Timestamp)
-                .ToUnixTimeSeconds()
-        );
-    }
-}
+);

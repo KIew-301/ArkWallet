@@ -97,6 +97,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/admin_broadcast"][1].Handler = AdminHandleBroadcastConfirm;
             _config.Commands["/admin_stats"][0].Handler = AdminHandleStats;
             _config.Commands["/admin_get_ids"][0].Handler = AdminHandleGetIds;
+            _config.Commands["/admin_metrics"][0].Handler = AdminHandleMetrics;
         }
 
         private Task<StepResult> AdminHandleHelp(UserSession session, string input)
@@ -715,6 +716,27 @@ namespace ArkWallet.Infrastructure.Wizard
                     sb.AppendLine($"• {username} — {telegramId}");
 
                 return StepResult.Ok("completed", sb.ToString());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.StackTrace);
+                return StepResult.Error($"Error: {ex.Message}");
+            }
+        }
+
+        private async Task<StepResult> AdminHandleMetrics(UserSession session, string input)
+        {
+            try
+            {
+                var metricsText = await _metricsSnapshotService.GetMetricsTextAsync();
+
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("=== ArkWallet Metrics ===");
+                sb.AppendLine();
+                sb.AppendLine(metricsText);
+                sb.AppendLine("Полный экспорт в Prometheus-формате: /metrics (порт 5000)");
+
+                return WriteTxtAndReturn(sb.ToString(), "arkwallet_metrics.txt");
             }
             catch (Exception ex)
             {

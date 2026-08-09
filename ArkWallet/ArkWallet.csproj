@@ -21,6 +21,9 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.17.0-beta.1" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.17.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.17.0" />
     <PackageReference Include="RabbitMQ.Client" Version="7.2.0" />
 	<PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.6" />
 		<PackageReference Include="Telegram.Bot" Version="22.7.5" />
@@ -30,6 +33,9 @@
 
 	<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
 		<_Parameter1>ArkWallet.Tests</_Parameter1>
+	</AssemblyAttribute>
+	<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+		<_Parameter1>ArkWallet.PerformanceTests</_Parameter1>
 	</AssemblyAttribute>
 	<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
 		<_Parameter1>DynamicProxyGenAssembly2</_Parameter1>

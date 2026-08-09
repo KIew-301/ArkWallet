@@ -16,17 +16,24 @@ internal class TraderBalanceUpdatingService(ArkWalletDbContext dbContext, ILogge
             if (amount <= 0)
                 return Fail("Сумма должна составлять больше 0");
 
-            var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
+            return await TransactionHandler.ExecuteAsync(dbContext, async () =>
+            {
+                await dbContext.LockTradersAsync([traderId]);
 
-            if (trader == null)
-                return Fail("Трейдера не существует");
+                var trader = await dbContext.Traders
+                    .AsTracking()
+                    .FirstOrDefaultAsync(t => t.TelegramId == traderId);
 
-            trader.AddToBalance(amount);
+                if (trader == null)
+                    return Fail("Трейдера не существует");
 
-            dbContext.Traders.Update(trader);
-            await dbContext.SaveChangesAsync();
+                trader.AddToBalance(amount);
 
-            return Ok();
+                dbContext.Traders.Update(trader);
+                await dbContext.SaveChangesAsync();
+
+                return Ok();
+            });
         }, logger, nameof(TraderBalanceUpdatingService));
     }
 }

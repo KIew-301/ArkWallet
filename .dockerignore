@@ -17,6 +17,8 @@
 # Build artifacts
 bin/
 obj/
+**/bin/
+**/obj/
 [Bb]uild/
 [Dd]ebug/
 [Rr]elease/
