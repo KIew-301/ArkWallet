@@ -807,4 +807,111 @@ public class MarketMakerOrchestratorTest
             x => x.CreateOrdersAsync(It.IsAny<IEnumerable<CreateOrderCommand>>()),
             Times.Never);
     }
+
+    [Fact]
+    public async Task EnsureBotsRegisteredAsync_RemovesBotsForNonExistentTokens()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.CreateToken(db, "ZZZ", price: 100);
+
+        var orphanBot = MarketMakerBot.Create(101, "GONE", BotRole.Buyer, 20);
+        await db.MarketMakerBots.AddAsync(orphanBot);
+        await db.SaveChangesAsync();
+
+        var mockBotRegistrationService = new Mock<IMarketMakerBotRegistrationService>();
+        mockBotRegistrationService
+            .Setup(x => x.RegisterBotAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<BotRole>(), It.IsAny<decimal>()))
+            .ReturnsAsync(Result<MarketMakerBotRegistrationData>.Ok(new MarketMakerBotRegistrationData(1, 101)));
+
+        var logger = NullLogger<MarketMakerOrchestrator>.Instance;
+        var orchestrator = new MarketMakerOrchestrator(
+            db,
+            mockBotRegistrationService.Object,
+            null!,
+            null!,
+            null!,
+            null!,
+            logger);
+
+        var result = await orchestrator.EnsureBotsRegisteredAsync();
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.Empty(await db.MarketMakerBots.Where(b => b.Symbol == "GONE").ToListAsync());
+    }
+
+    [Fact]
+    public async Task EnsureBotsRegisteredAsync_RemovesBotsForInactiveTokens()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.CreateToken(db, "ZZZ", price: 100);
+
+        var token = await db.CharacterTokens.FirstAsync(t => t.Symbol == "ZZZ");
+        token.Deactivate();
+        await db.SaveChangesAsync();
+
+        var botForInactive = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 20);
+        await db.MarketMakerBots.AddAsync(botForInactive);
+        await db.SaveChangesAsync();
+
+        var mockBotRegistrationService = new Mock<IMarketMakerBotRegistrationService>();
+
+        var logger = NullLogger<MarketMakerOrchestrator>.Instance;
+        var orchestrator = new MarketMakerOrchestrator(
+            db,
+            mockBotRegistrationService.Object,
+            null!,
+            null!,
+            null!,
+            null!,
+            logger);
+
+        var result = await orchestrator.EnsureBotsRegisteredAsync();
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.Empty(await db.MarketMakerBots.Where(b => b.Symbol == "ZZZ").ToListAsync());
+        mockBotRegistrationService.Verify(
+            x => x.RegisterBotAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<BotRole>(), It.IsAny<decimal>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task EnsureBotsRegisteredAsync_RemovesDuplicateBots()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.CreateToken(db, "ZZZ", price: 100);
+
+        var dup1 = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 20);
+        var dup2 = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 20);
+        await db.MarketMakerBots.AddRangeAsync(dup1, dup2);
+        await db.SaveChangesAsync();
+
+        var mockBotRegistrationService = new Mock<IMarketMakerBotRegistrationService>();
+        mockBotRegistrationService
+            .Setup(x => x.RegisterBotAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<BotRole>(), It.IsAny<decimal>()))
+            .ReturnsAsync(Result<MarketMakerBotRegistrationData>.Ok(new MarketMakerBotRegistrationData(1, 101)));
+
+        var logger = NullLogger<MarketMakerOrchestrator>.Instance;
+        var orchestrator = new MarketMakerOrchestrator(
+            db,
+            mockBotRegistrationService.Object,
+            null!,
+            null!,
+            null!,
+            null!,
+            logger);
+
+        var result = await orchestrator.EnsureBotsRegisteredAsync();
+
+        Assert.True(result.IsSuccess, result.Message);
+        var remaining = await db.MarketMakerBots
+            .Where(b => b.Symbol == "ZZZ" && b.TraderId == 101 && b.Role == BotRole.Buyer)
+            .ToListAsync();
+        Assert.Single(remaining);
+    }
 }
