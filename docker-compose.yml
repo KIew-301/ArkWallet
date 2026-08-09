@@ -100,6 +100,21 @@ services:
     depends_on:
       - prometheus
 
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: arkwallet-node-exporter
+    restart: always
+    command:
+      - "--path.rootfs=/rootfs"
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    ports:
+      - "9100:9100"
+
 volumes:
   postgres_data:
   rabbitmq_data:

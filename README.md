@@ -297,11 +297,12 @@ All services follow the **Single Responsibility Principle** and are organized by
   - `arkwallet_service_results_total` — Ok/Fail results per service
   - `arkwallet_lock_wait_seconds` — `SELECT ... FOR UPDATE` lock wait time
   - `arkwallet_commands_total` / `arkwallet_command_duration_seconds` — Telegram bot command usage
-- **Prometheus** — scraping at `/metrics` (port 9090), config in `prometheus.yml`.
-- **Grafana** — pre-configured service in docker-compose (port 3000). Prometheus datasource and an ArkWallet dashboard (service results, lock wait, bot commands, HTTP, Npgsql) are provisioned automatically from `grafana/`.
+- **Prometheus** (`prom/prometheus:v2.53.0`) — scrapes the app at `http://app:5000/metrics` (config in `prometheus.yml`, 15s interval, Bearer auth), UI on port `9090`.
+- **Grafana** (`grafana/grafana:11.1.0`) — runs on port `3000` via docker-compose. Prometheus datasource and the **ArkWallet Overview** dashboard (service results, lock wait, bot commands, HTTP, Npgsql) are provisioned automatically from `grafana/` (datasource + file-provider dashboards).
 - **Admin bot** — `/admin_metrics` command exports the same snapshot in Telegram.
-- **Protected metrics** — `/metrics` requires `Authorization: Bearer <Metrics__ApiKey>` (API key from config), so only admins can access the metrics endpoint.
-- **Protected Grafana** — access only for admins: login `admin` / password = `Metrics__ApiKey` (same secret), anonymous access and sign-up disabled.
+- **Protected metrics** — `/metrics` requires `Authorization: Bearer <Metrics__ApiKey>` (`MetricsApiKeyMiddleware`), so only services/admins with the key can read the endpoint.
+- **Protected Grafana** — access only for admins: login `admin` / password = `METRICS_API_KEY` (same secret), anonymous access and sign-up disabled.
+- **Deploy** — `METRICS_API_KEY` is injected into `.env` and rendered into `prometheus.yml` from GitHub Secrets during deploy.
 
 ---
 
