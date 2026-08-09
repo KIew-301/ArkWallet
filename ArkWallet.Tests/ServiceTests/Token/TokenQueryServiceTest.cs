@@ -108,6 +108,7 @@ public class TokenQueryServiceTest
     [Theory]
     [InlineData("NONEXISTENT", false)]
     [InlineData("ZZZ", true)]
+    [InlineData("zzz", true)]
     public async Task GetTokenInfoAsync_VariousScenarios(string symbol, bool expectedSuccess)
     {
         using var db = DbTest.CreateDbContext();

@@ -46,6 +46,7 @@ namespace ArkWallet.Infrastructure.Wizard
         private readonly ITokenCreationService _tokenCreationServices;
         private readonly ITokenQueryService _tokenQueryService;
         private readonly ITokenMediaUpdateService _tokenMediaUpdateService;
+        private readonly ITokenDeletionService _tokenDeletionService;
 
         // TRADE SERVICES
         private readonly ITradeQueryService _tradeQueryService;
@@ -93,6 +94,7 @@ namespace ArkWallet.Infrastructure.Wizard
             ITokenCreationService tokenCreationServices,
             ITokenQueryService tokenQueryService,
             ITokenMediaUpdateService tokenMediaUpdateService,
+            ITokenDeletionService tokenDeletionService,
             ITradeQueryService tradeQueryService,
             ILeadersTopByBalanceQueryService leadersTopByBalanceQueryService,
             IBalanceSnapshotService balanceSnapshotService,
@@ -123,6 +125,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _tokenCreationServices = tokenCreationServices;
             _tokenQueryService = tokenQueryService;
             _tokenMediaUpdateService = tokenMediaUpdateService;
+            _tokenDeletionService = tokenDeletionService;
             _tradeQueryService = tradeQueryService;
             _leadersTopByBalanceQueryService = leadersTopByBalanceQueryService;
             _balanceSnapshotService = balanceSnapshotService;

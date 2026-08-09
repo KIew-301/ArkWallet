@@ -26,6 +26,66 @@ namespace ArkWallet.Entities.Configurations
                 }
             };
 
+            Commands["/admin_create_tokens"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send a JSON array to create multiple tokens at once:\n\n" +
+                        "[\n" +
+                        "  {\n" +
+                        "    \"symbol\": \"ARK_001\",\n" +
+                        "    \"name\": \"Ark Knight\",\n" +
+                        "    \"rarity\": 3,\n" +
+                        "    \"startPrice\": 100.50,\n" +
+                        "    \"totalSupply\": 1000,\n" +
+                        "    \"isActive\": true,\n" +
+                        "    \"imageUrl\": \"https://example.com/image.png\",\n" +
+                        "    \"iconUrl\": \"https://example.com/icon.png\"\n" +
+                        "  }\n" +
+                        "]"
+                }
+            };
+
+            Commands["/admin_delete_token"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_symbol",
+                    Question = "Enter token symbol to delete:"
+                },
+                new()
+                {
+                    Name = "confirm_delete",
+                    Question = "Are you sure you want to PERMANENTLY delete this token and all related data (orders, trades, candles, bots, portfolios)?",
+                    Buttons = new List<QuickButton>
+                    {
+                        new() { Text = "✅ Yes, delete", Value = "confirm" },
+                        new() { Text = "❌ No, cancel", Value = "cancel" }
+                    }
+                }
+            };
+
+            Commands["/admin_deactivate_token"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_symbol",
+                    Question = "Enter token symbol to deactivate:"
+                },
+                new()
+                {
+                    Name = "confirm_deactivate",
+                    Question = "Are you sure you want to deactivate this token? It will no longer be tradable.",
+                    Buttons = new List<QuickButton>
+                    {
+                        new() { Text = "✅ Yes, deactivate", Value = "confirm" },
+                        new() { Text = "❌ No, cancel", Value = "cancel" }
+                    }
+                }
+            };
+
             Commands["/admin_set_token_to_user"] = new List<WizardStep>
             {
                 new()

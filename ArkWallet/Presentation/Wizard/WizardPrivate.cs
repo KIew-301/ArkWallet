@@ -55,13 +55,24 @@ namespace ArkWallet.Infrastructure.Wizard
             "   JSON: { \"symbol\": \"ARK_001\", \"name\": \"Ark Knight\", \"rarity\": 3,\n" +
             "           \"startPrice\": 100.50, \"totalSupply\": 1000, \"isActive\": true,\n" +
             "           \"imageUrl\": \"...\", \"iconUrl\": \"...\" }\n\n" +
-            "2) /admin_update_token_media\n" +
+            "2) /admin_create_tokens\n" +
+            "   Creates multiple tokens at once (content fill).\n" +
+            "   JSON array: [{ \"symbol\": \"ARK_001\", \"name\": \"Ark Knight\", \"rarity\": 3,\n" +
+            "                 \"startPrice\": 100.50, \"totalSupply\": 1000, \"isActive\": true,\n" +
+            "                 \"imageUrl\": \"...\", \"iconUrl\": \"...\" }, ...]\n\n" +
+            "3) /admin_delete_token\n" +
+            "   Permanently deletes a token and all related data (orders, trades,\n" +
+            "   candles, bots, portfolios). Enter symbol, then confirm.\n\n" +
+            "4) /admin_deactivate_token\n" +
+            "   Deactivates a token (IsActive = false). It stays in DB but is not tradable.\n" +
+            "   Enter symbol, then confirm.\n\n" +
+            "5) /admin_update_token_media\n" +
             "   Updates token image/icon.\n" +
             "   JSON: { \"symbol\": \"ARK_001\", \"iconUrl\": \"...\", \"imageUrl\": \"...\" }\n\n" +
-            "3) /admin_bots_activity\n" +
+            "6) /admin_bots_activity\n" +
             "   Shows market maker bots data.\n" +
             "   Select token symbol, returns bot list.\n\n" +
-            "4) /admin_bots_reconstruction\n" +
+            "7) /admin_bots_reconstruction\n" +
             "   Updates bot parameters.\n" +
             "   JSON array: [{ \"botId\": 1, \"basePower\": 30, \"role\": \"Buyer\", \"isActive\": true }]\n" +
             "   null = keep current value";
@@ -78,6 +89,11 @@ namespace ArkWallet.Infrastructure.Wizard
         private void ConfigureAdditionHandlers()
         {
             _config.Commands["/admin_create_token"][0].Handler = AdminHandleTokenCreate;
+            _config.Commands["/admin_create_tokens"][0].Handler = AdminHandleTokensCreate;
+            _config.Commands["/admin_delete_token"][0].Handler = AdminHandleDeleteTokenSetSymbol;
+            _config.Commands["/admin_delete_token"][1].Handler = AdminHandleDeleteTokenConfirm;
+            _config.Commands["/admin_deactivate_token"][0].Handler = AdminHandleDeactivateTokenSetSymbol;
+            _config.Commands["/admin_deactivate_token"][1].Handler = AdminHandleDeactivateTokenConfirm;
             _config.Commands["/admin_set_token_to_user"][0].Handler = AdminHandleSetTokenToUser;
             _config.Commands["/admin_add_balance_to_user"][0].Handler = AdminHandleAddBalanceToUser;
             _config.Commands["/admin_update_token_media"][0].Handler = AdminHandleUpdateTokenMedia;
@@ -140,6 +156,100 @@ namespace ArkWallet.Infrastructure.Wizard
             }
         }
 
+        private async Task<StepResult> AdminHandleTokensCreate(UserSession session, string input)
+        {
+            try
+            {
+                var rawArray = JsonConvert.DeserializeObject<Dictionary<string, object>[]>(input,
+                    new JsonSerializerSettings { FloatParseHandling = FloatParseHandling.Decimal });
+                if (rawArray == null || rawArray.Length == 0)
+                    return StepResult.Error("Expected a JSON array with at least one token.");
+
+                var messages = new List<string>();
+
+                foreach (var rawData in rawArray)
+                {
+                    var normalized = NormalizeKeysToPascalCase(rawData);
+                    var normalizedJson = JsonConvert.SerializeObject(normalized);
+                    var command = JsonConvert.DeserializeObject<CreateTokenCommand>(normalizedJson);
+
+                    if (command == null)
+                    {
+                        messages.Add($"Skipped entry: {string.Join(", ", rawData.Keys)} — failed to parse token data");
+                        continue;
+                    }
+
+                    var result = await _tokenCreationServices.CreateTokenAsync(command);
+                    messages.Add(result.IsSuccess
+                        ? $"{command.Symbol} ({command.Name}) created"
+                        : $"{command.Symbol}: {result.Message}");
+                }
+
+                return StepResult.Ok("completed", string.Join("\n", messages));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.StackTrace);
+                return StepResult.Error($"Error: {ex.Message}");
+            }
+        }
+
+        private async Task<StepResult> AdminHandleDeleteTokenSetSymbol(UserSession session, string input)
+        {
+            var tokenResult = await _tokenQueryService.GetTokenInfoAsync(input);
+
+            if (!tokenResult.TryGetData(out var tokenInfo))
+                return StepResult.Error("Token not found. Check the symbol and try again.");
+
+            session.Data[TokenSymbolDataKey] = tokenInfo.Symbol;
+            return StepResult.Ok("confirm_delete");
+        }
+
+        private async Task<StepResult> AdminHandleDeleteTokenConfirm(UserSession session, string input)
+        {
+            if (input != "confirm")
+                return StepResult.Ok("completed", "Deletion cancelled.");
+
+            var symbol = session.Data[TokenSymbolDataKey]?.ToString();
+
+            if (string.IsNullOrEmpty(symbol))
+                return StepResult.Error("Token not selected.");
+
+            var result = await _tokenDeletionService.DeleteTokenAsync(symbol);
+
+            return result.IsSuccess
+                ? StepResult.Ok("completed", $"Token {symbol} deleted.")
+                : StepResult.Error(result.Message);
+        }
+
+        private async Task<StepResult> AdminHandleDeactivateTokenSetSymbol(UserSession session, string input)
+        {
+            var tokenResult = await _tokenQueryService.GetTokenInfoAsync(input);
+
+            if (!tokenResult.TryGetData(out var tokenInfo))
+                return StepResult.Error("Token not found. Check the symbol and try again.");
+
+            session.Data[TokenSymbolDataKey] = tokenInfo.Symbol;
+            return StepResult.Ok("confirm_deactivate");
+        }
+
+        private async Task<StepResult> AdminHandleDeactivateTokenConfirm(UserSession session, string input)
+        {
+            if (input != "confirm")
+                return StepResult.Ok("completed", "Deactivation cancelled.");
+
+            var symbol = session.Data[TokenSymbolDataKey]?.ToString();
+
+            if (string.IsNullOrEmpty(symbol))
+                return StepResult.Error("Token not selected.");
+
+            var result = await _tokenDeletionService.DeactivateTokenAsync(symbol);
+
+            return result.IsSuccess
+                ? StepResult.Ok("completed", $"Token {symbol} deactivated.")
+                : StepResult.Error(result.Message);
+        }
+
         private static Dictionary<string, object> NormalizeKeysToPascalCase(Dictionary<string, object> data)
         {
             var result = new Dictionary<string, object>(StringComparer.Ordinal);
@@ -149,9 +259,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 result[pascalKey] = kvp.Value;
             }
             return result;
-        }
-
-        private async Task<StepResult> AdminHandleSetTokenToUser(UserSession session, string input)
+        }        private async Task<StepResult> AdminHandleSetTokenToUser(UserSession session, string input)
             => await ExecuteAdminAction(async () =>
             {
                 var tradeData = JsonConvert.DeserializeObject<Dictionary<string, object>>(input);

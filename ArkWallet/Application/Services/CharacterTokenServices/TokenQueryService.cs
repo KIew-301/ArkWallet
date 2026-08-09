@@ -56,7 +56,8 @@ internal class TokenQueryService(
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(t => t.Symbol == symbol);
+            var token = await dbContext.CharacterTokens
+                .FirstOrDefaultAsync(t => t.Symbol.ToUpper() == symbol.ToUpper());
 
             if (token == null)
                 return Result<TokenInfo>.Fail("Токен не найден");
