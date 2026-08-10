@@ -24,6 +24,8 @@ internal class TokenQueryService(
             if (tokens.Count == 0)
                 return Ok(new List<TokenInfoWithPriceChange>());
 
+            tokens = tokens.OrderByDescending(t => t.CurrentPrice).ToList();
+
             var cutoffDate = timeProvider.GetUtcNow().UtcDateTime.AddDays(-1);
             var symbols = tokens.Select(t => t.Symbol).ToArray();
 
@@ -57,7 +59,7 @@ internal class TokenQueryService(
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             var token = await dbContext.CharacterTokens
-                .FirstOrDefaultAsync(t => t.Symbol.ToUpper() == symbol.ToUpper());
+                .FirstOrDefaultAsync(t => t.Symbol == symbol);
 
             if (token == null)
                 return Result<TokenInfo>.Fail("Токен не найден");

@@ -19,7 +19,7 @@ internal class TokenDeletionService(ArkWalletDbContext dbContext, ILogger<TokenD
                     return Fail("Требуется символ токена");
 
                 var token = await dbContext.CharacterTokens
-                    .FirstOrDefaultAsync(t => t.Symbol.ToUpper() == symbol.ToUpper());
+                    .FirstOrDefaultAsync(t => t.Symbol == symbol);
 
                 if (token is null)
                     return Fail($"Токен '{symbol}' не найден");
@@ -27,7 +27,7 @@ internal class TokenDeletionService(ArkWalletDbContext dbContext, ILogger<TokenD
                 var actualSymbol = token.Symbol;
 
                 await dbContext.MarketMakerBots
-                    .Where(b => b.Symbol.ToUpper() == actualSymbol.ToUpper())
+                    .Where(b => b.Symbol == actualSymbol)
                     .ExecuteDeleteAsync();
 
                 await dbContext.PortfolioItems
@@ -62,7 +62,7 @@ internal class TokenDeletionService(ArkWalletDbContext dbContext, ILogger<TokenD
                 return Result.Fail("Требуется символ токена");
 
             var token = await dbContext.CharacterTokens
-                .FirstOrDefaultAsync(t => t.Symbol.ToUpper() == symbol.ToUpper());
+                .FirstOrDefaultAsync(t => t.Symbol == symbol);
 
             if (token is null)
                 return Result.Fail($"Токен '{symbol}' не найден");
@@ -70,7 +70,7 @@ internal class TokenDeletionService(ArkWalletDbContext dbContext, ILogger<TokenD
             var actualSymbol = token.Symbol;
 
             await dbContext.MarketMakerBots
-                .Where(b => b.Symbol.ToUpper() == actualSymbol.ToUpper())
+                .Where(b => b.Symbol == actualSymbol)
                 .ExecuteDeleteAsync();
 
             token.Deactivate();

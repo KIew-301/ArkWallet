@@ -90,7 +90,7 @@ public class TokenDeletionServiceTest
     }
 
     [Fact]
-    public async Task DeleteTokenAsync_MixedCaseSymbol_DeletesToken()
+    public async Task DeleteTokenAsync_DifferentCaseSymbol_ReturnsFail()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
         await HelpMethods.CreateToken(db, "Loony");
@@ -98,12 +98,13 @@ public class TokenDeletionServiceTest
 
         var result = await service.DeleteTokenAsync("loony");
 
-        Assert.True(result.IsSuccess, result.Message);
-        Assert.Null(await db.CharacterTokens.FindAsync("Loony"));
+        Assert.False(result.IsSuccess);
+        Assert.Contains("не найден", result.Message);
+        Assert.NotNull(await db.CharacterTokens.FindAsync("Loony"));
     }
 
     [Fact]
-    public async Task DeactivateTokenAsync_MixedCaseSymbol_SetsIsActiveFalse()
+    public async Task DeactivateTokenAsync_DifferentCaseSymbol_ReturnsFail()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
         await HelpMethods.CreateToken(db, "Loony");
@@ -111,10 +112,11 @@ public class TokenDeletionServiceTest
 
         var result = await service.DeactivateTokenAsync("LOONY");
 
-        Assert.True(result.IsSuccess, result.Message);
+        Assert.False(result.IsSuccess);
+        Assert.Contains("не найден", result.Message);
         var token = await db.CharacterTokens.FindAsync("Loony");
         Assert.NotNull(token);
-        Assert.False(token!.IsActive);
+        Assert.True(token!.IsActive);
     }
 
     [Fact]
@@ -152,7 +154,7 @@ public class TokenDeletionServiceTest
     }
 
     [Fact]
-    public async Task DeleteTokenAsync_MixedCaseSymbol_DeletesBots()
+    public async Task DeleteTokenAsync_DifferentCaseSymbol_KeepsBots()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
         await HelpMethods.CreateToken(db, "Loony");
@@ -164,7 +166,7 @@ public class TokenDeletionServiceTest
 
         var result = await service.DeleteTokenAsync("loony");
 
-        Assert.True(result.IsSuccess, result.Message);
-        Assert.Empty(await db.MarketMakerBots.Where(b => b.Symbol == "Loony").ToListAsync());
+        Assert.False(result.IsSuccess);
+        Assert.NotEmpty(await db.MarketMakerBots.Where(b => b.Symbol == "Loony").ToListAsync());
     }
 }
