@@ -60,8 +60,39 @@ internal class MarketMakerOrchestrator(
                 }
             }
 
+            await CleanupBotsAsync();
+
             return Result.Ok();
         }, logger, nameof(MarketMakerOrchestrator));
+    }
+
+    private async Task CleanupBotsAsync()
+    {
+        var activeSymbols = await dbContext.CharacterTokens
+            .Where(t => t.IsActive)
+            .Select(t => t.Symbol)
+            .ToListAsync();
+
+        await dbContext.MarketMakerBots
+            .Where(b => !activeSymbols.Contains(b.Symbol))
+            .ExecuteDeleteAsync();
+
+        var bots = await dbContext.MarketMakerBots
+            .Select(b => new { b.Id, b.TraderId, b.Symbol, b.Role })
+            .ToListAsync();
+
+        var duplicateIds = bots
+            .GroupBy(b => new { b.TraderId, b.Symbol, b.Role })
+            .Where(g => g.Count() > 1)
+            .SelectMany(g => g.Where(b => b.Id != g.Min(x => x.Id)).Select(b => b.Id))
+            .ToList();
+
+        if (duplicateIds.Count > 0)
+        {
+            await dbContext.MarketMakerBots
+                .Where(b => duplicateIds.Contains(b.Id))
+                .ExecuteDeleteAsync();
+        }
     }
 
     public async Task<Result> EnsureTraderBalancesAsync()

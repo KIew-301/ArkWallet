@@ -270,6 +270,7 @@ class Program
 
         // CharacterTokenServices
         services.AddScoped<ITokenCreationService, TokenCreationService>();
+        services.AddScoped<ITokenDeletionService, TokenDeletionService>();
         services.AddScoped<ITokenPriceCandleUpdateService, TokenPriceCandleUpdateService>();
         services.AddScoped<ICandleAggregatorService, CandleAggregatorService>();
         services.AddScoped<ITokenQueryService, TokenQueryService>();

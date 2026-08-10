@@ -10,3 +10,7 @@ scrape_configs:
       credentials: change-me-metrics-api-key
     static_configs:
       - targets: ["app:5000"]
+
+  - job_name: "node"
+    static_configs:
+      - targets: ["node-exporter:9100"]

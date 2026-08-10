@@ -59,6 +59,10 @@ namespace ArkWallet.Domain.Entities
 
         public bool CanBeTraded() => IsActive && TotalSupply > 0;
 
+        public void Deactivate() => IsActive = false;
+
+        public void Activate() => IsActive = true;
+
         public void UpdatePrice(decimal newPrice)
         {
             if (newPrice < 0)

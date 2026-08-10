@@ -42,6 +42,7 @@ internal static class WizardEngineTestHelper
         var tokenCreationService = new Mock<ITokenCreationService>();
         var tokenQueryService = new Mock<ITokenQueryService>();
         var tokenMediaUpdateService = new Mock<ITokenMediaUpdateService>();
+        var tokenDeletionService = new Mock<ITokenDeletionService>();
 
         var tradeQueryService = new Mock<ITradeQueryService>();
 
@@ -84,6 +85,7 @@ internal static class WizardEngineTestHelper
             tokenCreationService.Object,
             tokenQueryService.Object,
             tokenMediaUpdateService.Object,
+            tokenDeletionService.Object,
             tradeQueryService.Object,
             leadersTopByBalanceQueryService.Object,
             balanceSnapshotService.Object,
@@ -115,6 +117,7 @@ internal static class WizardEngineTestHelper
             TokenCreation = tokenCreationService,
             TokenQuery = tokenQueryService,
             TokenMediaUpdate = tokenMediaUpdateService,
+            TokenDeletion = tokenDeletionService,
             TradeQuery = tradeQueryService,
             LeadersTop = leadersTopByBalanceQueryService,
             BalanceSnapshot = balanceSnapshotService,
@@ -144,6 +147,7 @@ internal class ServiceMocks
     public Mock<ITokenCreationService> TokenCreation { get; init; } = null!;
     public Mock<ITokenQueryService> TokenQuery { get; init; } = null!;
     public Mock<ITokenMediaUpdateService> TokenMediaUpdate { get; init; } = null!;
+    public Mock<ITokenDeletionService> TokenDeletion { get; init; } = null!;
     public Mock<ITradeQueryService> TradeQuery { get; init; } = null!;
     public Mock<ILeadersTopByBalanceQueryService> LeadersTop { get; init; } = null!;
     public Mock<IBalanceSnapshotService> BalanceSnapshot { get; init; } = null!;

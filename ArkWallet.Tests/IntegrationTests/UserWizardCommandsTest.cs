@@ -1288,4 +1288,163 @@ public class UserWizardCommandsTest : IDisposable
         Assert.NotNull(result.Message);
         Assert.Contains("Ошибка", result.Message);
     }
+
+    [Fact]
+    public async Task AdminCreateTokens_ShowsJsonArrayPrompt()
+    {
+        var result = await _engine.ProcessInput(UserId, "/admin_create_tokens");
+
+        Assert.NotNull(result.Message);
+        Assert.Contains("JSON array", result.Message);
+        Assert.Contains("symbol", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminCreateTokens_ValidJsonArray_CreatesTokens()
+    {
+        _m.TokenCreation
+            .Setup(s => s.CreateTokenAsync(It.IsAny<CreateTokenCommand>()))
+            .ReturnsAsync(Result<TokenCreationData>.Ok(new TokenCreationData()));
+
+        await _engine.ProcessInput(UserId, "/admin_create_tokens");
+        var json = """[{"symbol": "SHZA", "name": "Loony", "rarity": 3, "startPrice": 100, "totalSupply": 1000, "isActive": true, "imageUrl": "img", "iconUrl": "icon"}, {"symbol": "BLHD", "name": "Bloodhound", "rarity": 3, "startPrice": 100, "totalSupply": 1000, "isActive": true, "imageUrl": "img", "iconUrl": "icon"}]""";
+        var result = await _engine.ProcessInput(UserId, json);
+
+        Assert.NotNull(result.Message);
+        Assert.Contains("SHZA (Loony) created", result.Message);
+        Assert.Contains("BLHD (Bloodhound) created", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminCreateTokens_PartialFailure_ReportsPerToken()
+    {
+        _m.TokenCreation
+            .Setup(s => s.CreateTokenAsync(It.Is<CreateTokenCommand>(c => c.Symbol == "SHZA")))
+            .ReturnsAsync(Result<TokenCreationData>.Ok(new TokenCreationData()));
+        _m.TokenCreation
+            .Setup(s => s.CreateTokenAsync(It.Is<CreateTokenCommand>(c => c.Symbol == "BLHD")))
+            .ReturnsAsync(Result<TokenCreationData>.Fail("Такой токен уже существует"));
+
+        await _engine.ProcessInput(UserId, "/admin_create_tokens");
+        var json = """[{"symbol": "SHZA", "name": "Loony", "rarity": 3, "startPrice": 100, "totalSupply": 1000, "isActive": true, "imageUrl": "img", "iconUrl": "icon"}, {"symbol": "BLHD", "name": "Bloodhound", "rarity": 3, "startPrice": 100, "totalSupply": 1000, "isActive": true, "imageUrl": "img", "iconUrl": "icon"}]""";
+        var result = await _engine.ProcessInput(UserId, json);
+
+        Assert.NotNull(result.Message);
+        Assert.Contains("SHZA (Loony) created", result.Message);
+        Assert.Contains("BLHD: Такой токен уже существует", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminCreateTokens_EmptyArray_ReturnsError()
+    {
+        await _engine.ProcessInput(UserId, "/admin_create_tokens");
+        var result = await _engine.ProcessInput(UserId, "[]");
+
+        Assert.NotNull(result.Message);
+        Assert.Equal("Ошибка на стороне сервера", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminDeleteToken_ShowsSymbolQuestion()
+    {
+        var result = await _engine.ProcessInput(UserId, "/admin_delete_token");
+
+        Assert.NotNull(result.Message);
+        Assert.Equal("Enter token symbol to delete:", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminDeleteToken_UnknownSymbol_ReturnsError()
+    {
+        _m.TokenQuery
+            .Setup(s => s.GetTokenInfoAsync("NOPE"))
+            .ReturnsAsync(Result<TokenInfo>.Fail("Токен не найден"));
+
+        await _engine.ProcessInput(UserId, "/admin_delete_token");
+        var result = await _engine.ProcessInput(UserId, "NOPE");
+
+        Assert.NotNull(result.Message);
+        Assert.Equal("Ошибка на стороне сервера", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminDeleteToken_Confirm_DeletesToken()
+    {
+        _m.TokenQuery
+            .Setup(s => s.GetTokenInfoAsync("ZZZ"))
+            .ReturnsAsync(Result<TokenInfo>.Ok(new TokenInfo("ZZZ", "Test", 100m, "icon", "image")));
+        _m.TokenDeletion
+            .Setup(s => s.DeleteTokenAsync("ZZZ"))
+            .ReturnsAsync(Result.Ok());
+
+        await _engine.ProcessInput(UserId, "/admin_delete_token");
+        var confirmStep = await _engine.ProcessInput(UserId, "ZZZ");
+        var result = await _engine.ProcessInput(UserId, "confirm");
+
+        Assert.NotNull(confirmStep.Message);
+        Assert.Contains("PERMANENTLY delete", confirmStep.Message);
+        Assert.NotNull(confirmStep.Buttons);
+        Assert.Contains(confirmStep.Buttons, b => b.Value == "confirm");
+        Assert.Equal("Token ZZZ deleted.", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminDeleteToken_Cancel_DoesNotDelete()
+    {
+        _m.TokenQuery
+            .Setup(s => s.GetTokenInfoAsync("ZZZ"))
+            .ReturnsAsync(Result<TokenInfo>.Ok(new TokenInfo("ZZZ", "Test", 100m, "icon", "image")));
+
+        await _engine.ProcessInput(UserId, "/admin_delete_token");
+        await _engine.ProcessInput(UserId, "ZZZ");
+        var result = await _engine.ProcessInput(UserId, "cancel");
+
+        _m.TokenDeletion.Verify(s => s.DeleteTokenAsync(It.IsAny<string>()), Times.Never);
+        Assert.Equal("Deletion cancelled.", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminDeactivateToken_ShowsSymbolQuestion()
+    {
+        var result = await _engine.ProcessInput(UserId, "/admin_deactivate_token");
+
+        Assert.NotNull(result.Message);
+        Assert.Equal("Enter token symbol to deactivate:", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminDeactivateToken_Confirm_DeactivatesToken()
+    {
+        _m.TokenQuery
+            .Setup(s => s.GetTokenInfoAsync("ZZZ"))
+            .ReturnsAsync(Result<TokenInfo>.Ok(new TokenInfo("ZZZ", "Test", 100m, "icon", "image")));
+        _m.TokenDeletion
+            .Setup(s => s.DeactivateTokenAsync("ZZZ"))
+            .ReturnsAsync(Result.Ok());
+
+        await _engine.ProcessInput(UserId, "/admin_deactivate_token");
+        var confirmStep = await _engine.ProcessInput(UserId, "ZZZ");
+        var result = await _engine.ProcessInput(UserId, "confirm");
+
+        Assert.NotNull(confirmStep.Message);
+        Assert.Contains("deactivate", confirmStep.Message);
+        Assert.NotNull(confirmStep.Buttons);
+        Assert.Contains(confirmStep.Buttons, b => b.Value == "confirm");
+        Assert.Equal("Token ZZZ deactivated.", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminDeactivateToken_Cancel_DoesNotDeactivate()
+    {
+        _m.TokenQuery
+            .Setup(s => s.GetTokenInfoAsync("ZZZ"))
+            .ReturnsAsync(Result<TokenInfo>.Ok(new TokenInfo("ZZZ", "Test", 100m, "icon", "image")));
+
+        await _engine.ProcessInput(UserId, "/admin_deactivate_token");
+        await _engine.ProcessInput(UserId, "ZZZ");
+        var result = await _engine.ProcessInput(UserId, "cancel");
+
+        _m.TokenDeletion.Verify(s => s.DeactivateTokenAsync(It.IsAny<string>()), Times.Never);
+        Assert.Equal("Deactivation cancelled.", result.Message);
+    }
 }
