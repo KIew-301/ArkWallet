@@ -195,6 +195,9 @@ class Program
             builder.Services.AddHostedService<MarketWallBlockerWorker>();
             builder.Services.AddHostedService<NotificationWorker>();
             builder.Services.AddHostedService<BalanceSavingSnapshotWorker>();
+            builder.Services.AddHostedService<MiningMachineCalculationWorker>();
+            builder.Services.AddHostedService<MiningGlobalRuleCreationWorker>();
+            builder.Services.AddHostedService<MiningMachineSlotSwitchingWorker>();
         }
 
         var app = builder.Build();
