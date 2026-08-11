@@ -141,4 +141,119 @@ public class TokenPriceChangeCalculationServiceTest
         Assert.Equal(changeAbsolute, data.ChangeAbsolute, precision: 2);
         Assert.Equal(changePercent, data.ChangePercent, precision: 2);
     }
+
+    [Fact]
+    public async Task TakeSymbolsPriceChangesAsync_CalculatesPercentAgainstPenultimateCandle()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var timeProvider = new TestTimeProvider();
+        var logger = NullLogger<TokenPriceChangeCalculationService>.Instance;
+        var service = new TokenPriceChangeCalculationService(db, logger, timeProvider);
+
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.CreatePriceCandle(db, "ZZZ", 500m, timeProvider.Now.AddMinutes(-2).UtcDateTime);
+        await HelpMethods.CreatePriceCandle(db, "ZZZ", 1000m, timeProvider.Now.AddMinutes(-1).UtcDateTime);
+
+        var result = await service.TakeSymbolsPriceChangesAsync(new[] { "ZZZ" }, 1);
+
+        Assert.True(result.TryGetValue("ZZZ", out var percent));
+        Assert.Equal(100m, percent);
+    }
+
+    [Theory]
+    [InlineData(1, 50)]
+    [InlineData(2, 125)]
+    public async Task TakeSymbolsPriceChangesAsync_Position_SelectsTargetCandle(int candlePosition, decimal expected)
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var timeProvider = new TestTimeProvider();
+        var logger = NullLogger<TokenPriceChangeCalculationService>.Instance;
+        var service = new TokenPriceChangeCalculationService(db, logger, timeProvider);
+
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.CreatePriceCandle(db, "ZZZ", 400m, timeProvider.Now.AddMinutes(-3).UtcDateTime);
+        await HelpMethods.CreatePriceCandle(db, "ZZZ", 600m, timeProvider.Now.AddMinutes(-2).UtcDateTime);
+        await HelpMethods.CreatePriceCandle(db, "ZZZ", 900m, timeProvider.Now.AddMinutes(-1).UtcDateTime);
+
+        var result = await service.TakeSymbolsPriceChangesAsync(new[] { "ZZZ" }, candlePosition);
+
+        Assert.True(result.TryGetValue("ZZZ", out var percent));
+        Assert.Equal(expected, percent, precision: 2);
+    }
+
+    [Fact]
+    public async Task TakeSymbolsPriceChangesAsync_MultipleSymbols_ReturnsPercentsPerSymbol()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var timeProvider = new TestTimeProvider();
+        var logger = NullLogger<TokenPriceChangeCalculationService>.Instance;
+        var service = new TokenPriceChangeCalculationService(db, logger, timeProvider);
+
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.CreateToken(db, "YYY");
+        await HelpMethods.CreatePriceCandle(db, "ZZZ", 100m, timeProvider.Now.AddMinutes(-2).UtcDateTime);
+        await HelpMethods.CreatePriceCandle(db, "ZZZ", 200m, timeProvider.Now.AddMinutes(-1).UtcDateTime);
+        await HelpMethods.CreatePriceCandle(db, "YYY", 300m, timeProvider.Now.AddMinutes(-2).UtcDateTime);
+        await HelpMethods.CreatePriceCandle(db, "YYY", 100m, timeProvider.Now.AddMinutes(-1).UtcDateTime);
+
+        var result = await service.TakeSymbolsPriceChangesAsync(new[] { "ZZZ", "YYY" }, 1);
+
+        Assert.Equal(100m, result["ZZZ"]);
+        Assert.Equal(-66.67m, result["YYY"], precision: 2);
+    }
+
+    [Fact]
+    public async Task TakeSymbolsPriceChangesAsync_NotEnoughCandles_SkipsSymbol()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var timeProvider = new TestTimeProvider();
+        var logger = NullLogger<TokenPriceChangeCalculationService>.Instance;
+        var service = new TokenPriceChangeCalculationService(db, logger, timeProvider);
+
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.CreatePriceCandle(db, "ZZZ", 1000m, timeProvider.Now.AddMinutes(-1).UtcDateTime);
+
+        var result = await service.TakeSymbolsPriceChangesAsync(new[] { "ZZZ" }, 1);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task TakeSymbolsPriceChangesAsync_EmptySymbols_ReturnsEmpty()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var timeProvider = new TestTimeProvider();
+        var logger = NullLogger<TokenPriceChangeCalculationService>.Instance;
+        var service = new TokenPriceChangeCalculationService(db, logger, timeProvider);
+
+        var result = await service.TakeSymbolsPriceChangesAsync(Array.Empty<string>(), 1);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task TakeSymbolsPriceChangesAsync_InvalidPosition_Throws()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var timeProvider = new TestTimeProvider();
+        var logger = NullLogger<TokenPriceChangeCalculationService>.Instance;
+        var service = new TokenPriceChangeCalculationService(db, logger, timeProvider);
+
+        await HelpMethods.CreateToken(db, "ZZZ");
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => service.TakeSymbolsPriceChangesAsync(new[] { "ZZZ" }, 0));
+    }
 }
