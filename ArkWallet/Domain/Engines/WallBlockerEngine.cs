@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+
 namespace ArkWallet.Domain.Engines;
 
 /// <summary>
@@ -10,15 +12,13 @@ internal record WallBlockerLevel(decimal Price, string Direction);
 /// <summary>
 /// Движок генерации уровней для MarketWallBlocker-бота
 /// </summary>
-internal class WallBlockerEngine(Random? random = null)
+internal class WallBlockerEngine
 {
     private const int LevelsPerSide = 5;
     private const decimal NearestOffsetMin = 0.03m;
     private const decimal NearestOffsetMax = 0.05m;
     private const decimal StepOffsetMin = 0.02m;
     private const decimal StepOffsetMax = 0.10m;
-
-    private readonly Random _random = random ?? new Random();
 
     public List<WallBlockerLevel> GetLevels(decimal currentPrice)
     {
@@ -54,7 +54,7 @@ internal class WallBlockerEngine(Random? random = null)
 
     private decimal NextPercent(decimal min, decimal max)
     {
-        var range = (double)(max - min);
-        return min + (decimal)(_random.NextDouble() * range);
+        var next = RandomNumberGenerator.GetInt32(0, 1_000_000_001);
+        return min + (max - min) * next / 1_000_000_000m;
     }
 }

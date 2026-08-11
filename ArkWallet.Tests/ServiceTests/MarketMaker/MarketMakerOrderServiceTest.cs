@@ -68,7 +68,8 @@ public class MarketMakerOrderServiceTest
         var mockOrderCreationService = new Mock<IOrderCreationService>();
         var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, NullLogger<MarketMakerOrderService>.Instance);
 
-        var result = await service.ExecuteMarketMakerOrdersAsync(new[] { 999L });
+        var nonexistentBotId = new[] { 999L };
+        var result = await service.ExecuteMarketMakerOrdersAsync(nonexistentBotId);
 
         Assert.False(result.IsSuccess);
         Assert.Equal("Список ботов пуст", result.Message);

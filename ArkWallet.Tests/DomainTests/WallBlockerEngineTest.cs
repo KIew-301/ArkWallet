@@ -6,7 +6,7 @@ public class WallBlockerEngineTest
 {
     private static readonly decimal[] TestPrices = [100m, 1000m, 123.45m];
 
-    public static IEnumerable<object[]> TestPricesData => TestPrices.Select(p => new object[] { p });
+    public static TheoryData<decimal> TestPricesData => new(TestPrices);
 
     [Theory]
     [MemberData(nameof(TestPricesData))]

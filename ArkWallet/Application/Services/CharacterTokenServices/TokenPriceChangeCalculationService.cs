@@ -38,8 +38,7 @@ internal class TokenPriceChangeCalculationService(ArkWalletDbContext dbContext, 
 
     public async Task<Dictionary<string, decimal>> TakeSymbolsPriceChangesAsync(string[] symbols, int candlePosition)
     {
-        if (symbols is null)
-            throw new ArgumentNullException(nameof(symbols));
+        ArgumentNullException.ThrowIfNull(symbols);
 
         if (symbols.Length == 0)
             return new Dictionary<string, decimal>();

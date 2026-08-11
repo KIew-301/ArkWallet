@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Application.Services.Orchestrators;
 
+#pragma warning disable S107 // DI-контейнер: число зависимостей оркестратора оправдано
 internal class MarketWallBlockerOrchestrator(
     ArkWalletDbContext dbContext,
     ITraderRegistrationService traderRegistrationService,
@@ -20,6 +21,7 @@ internal class MarketWallBlockerOrchestrator(
     ILogger<MarketWallBlockerOrchestrator> logger,
     TimeProvider? timeProvider = null) : IMarketWallBlockerOrchestrator
 {
+#pragma warning restore S107
     private const long WallBlockerTraderId = 103;
     private const string NextExecutionKey = "WallBlockerNextExecution";
     private const decimal TargetBalance = 1_000_000_000m;
@@ -104,45 +106,16 @@ internal class MarketWallBlockerOrchestrator(
             if (state is { } existing && existing.GetValue<DateTime>() is { } nextExecution && now < nextExecution)
                 return Result.Ok();
 
-            var tokens = await dbContext.CharacterTokens
-                .Where(t => t.IsActive)
-                .Select(t => new { t.Symbol, t.CurrentPrice })
-                .ToListAsync();
+            var tokens = await LoadActiveTokensAsync();
 
             if (tokens.Count == 0)
                 return Result.Ok();
 
-            var symbols = tokens.Select(t => t.Symbol).ToArray();
+            var avgPowerBySymbol = await LoadAveragePowerBySymbolAsync(tokens.Select(t => t.Symbol).ToArray());
 
-            var avgPowerBySymbol = await dbContext.MarketMakerBots
-                .Where(b => b.IsActive && symbols.Contains(b.Symbol))
-                .GroupBy(b => b.Symbol)
-                .Select(g => new { Symbol = g.Key, AvgPower = g.Average(b => b.BasePower) })
-                .ToDictionaryAsync(g => g.Symbol, g => g.AvgPower);
+            await CancelExistingOrdersAsync();
 
-            var cancelResult = await orderCancellationService.CancelAllOrderAsync(WallBlockerTraderId);
-            if (!cancelResult.IsSuccess && !string.Equals(cancelResult.Message, "Нет активных ордеров для отмены", StringComparison.Ordinal))
-            {
-                logger.LogWarning("Failed to cancel WallBlocker orders: {Error}", cancelResult.Message);
-            }
-
-            var commands = new List<CreateOrderCommand>();
-
-            foreach (var token in tokens)
-            {
-                var avgPower = avgPowerBySymbol.TryGetValue(token.Symbol, out var power) && power > 0 ? power : 0m;
-                var quantity = (int)Math.Max(avgPower * Random.Shared.Next(20, 101), 1);
-
-                foreach (var level in wallBlockerEngine.GetLevels(token.CurrentPrice))
-                {
-                    commands.Add(new CreateOrderCommand(
-                        WallBlockerTraderId,
-                        level.Direction,
-                        token.Symbol,
-                        quantity,
-                        Math.Round(level.Price, 2)));
-                }
-            }
+            var commands = BuildWallOrders(tokens, avgPowerBySymbol);
 
             if (commands.Count > 0)
             {
@@ -151,14 +124,71 @@ internal class MarketWallBlockerOrchestrator(
                     return Result.Fail($"Не удалось создать ордера: {createResult.Message}");
             }
 
-            var nextExecutionTime = now.AddMinutes(Random.Shared.Next(45, 141));
-            if (state == null)
-                dbContext.AppStates.Add(AppState.Create(NextExecutionKey, nextExecutionTime));
-            else
-                state.UpdateValue(nextExecutionTime);
-
+            SaveNextExecution(state, now);
             await dbContext.SaveChangesAsync();
             return Result.Ok();
         }, logger, nameof(MarketWallBlockerOrchestrator));
+    }
+
+    private sealed record ActiveToken(string Symbol, decimal CurrentPrice);
+
+    private async Task<List<ActiveToken>> LoadActiveTokensAsync()
+    {
+        return (await dbContext.CharacterTokens
+            .Where(t => t.IsActive)
+            .Select(t => new { t.Symbol, t.CurrentPrice })
+            .ToListAsync())
+            .Select(t => new ActiveToken(t.Symbol, t.CurrentPrice))
+            .ToList();
+    }
+
+    private async Task<Dictionary<string, decimal>> LoadAveragePowerBySymbolAsync(string[] symbols)
+    {
+        return await dbContext.MarketMakerBots
+            .Where(b => b.IsActive && symbols.Contains(b.Symbol))
+            .GroupBy(b => b.Symbol)
+            .Select(g => new { Symbol = g.Key, AvgPower = g.Average(b => b.BasePower) })
+            .ToDictionaryAsync(g => g.Symbol, g => g.AvgPower);
+    }
+
+    private async Task CancelExistingOrdersAsync()
+    {
+        var cancelResult = await orderCancellationService.CancelAllOrderAsync(WallBlockerTraderId);
+        if (!cancelResult.IsSuccess && !string.Equals(cancelResult.Message, "Нет активных ордеров для отмены", StringComparison.Ordinal))
+        {
+            logger.LogWarning("Failed to cancel WallBlocker orders: {Error}", cancelResult.Message);
+        }
+    }
+
+    private List<CreateOrderCommand> BuildWallOrders(List<ActiveToken> tokens, Dictionary<string, decimal> avgPowerBySymbol)
+    {
+        var commands = new List<CreateOrderCommand>();
+
+        foreach (var token in tokens)
+        {
+            var avgPower = avgPowerBySymbol.TryGetValue(token.Symbol, out var power) && power > 0 ? power : 0m;
+            var quantity = (int)Math.Max(avgPower * Random.Shared.Next(20, 101), 1);
+
+            foreach (var level in wallBlockerEngine.GetLevels(token.CurrentPrice))
+            {
+                commands.Add(new CreateOrderCommand(
+                    WallBlockerTraderId,
+                    level.Direction,
+                    token.Symbol,
+                    quantity,
+                    Math.Round(level.Price, 2)));
+            }
+        }
+
+        return commands;
+    }
+
+    private void SaveNextExecution(AppState? state, DateTime now)
+    {
+        var nextExecutionTime = now.AddMinutes(Random.Shared.Next(45, 141));
+        if (state == null)
+            dbContext.AppStates.Add(AppState.Create(NextExecutionKey, nextExecutionTime));
+        else
+            state.UpdateValue(nextExecutionTime);
     }
 }

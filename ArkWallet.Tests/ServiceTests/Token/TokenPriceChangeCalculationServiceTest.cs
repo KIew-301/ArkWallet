@@ -156,7 +156,8 @@ public class TokenPriceChangeCalculationServiceTest
         await HelpMethods.CreatePriceCandle(db, "ZZZ", 500m, timeProvider.Now.AddMinutes(-2).UtcDateTime);
         await HelpMethods.CreatePriceCandle(db, "ZZZ", 1000m, timeProvider.Now.AddMinutes(-1).UtcDateTime);
 
-        var result = await service.TakeSymbolsPriceChangesAsync(new[] { "ZZZ" }, 1);
+        var symbols = new[] { "ZZZ" };
+        var result = await service.TakeSymbolsPriceChangesAsync(symbols, 1);
 
         Assert.True(result.TryGetValue("ZZZ", out var percent));
         Assert.Equal(100m, percent);
@@ -179,7 +180,8 @@ public class TokenPriceChangeCalculationServiceTest
         await HelpMethods.CreatePriceCandle(db, "ZZZ", 600m, timeProvider.Now.AddMinutes(-2).UtcDateTime);
         await HelpMethods.CreatePriceCandle(db, "ZZZ", 900m, timeProvider.Now.AddMinutes(-1).UtcDateTime);
 
-        var result = await service.TakeSymbolsPriceChangesAsync(new[] { "ZZZ" }, candlePosition);
+        var symbols = new[] { "ZZZ" };
+        var result = await service.TakeSymbolsPriceChangesAsync(symbols, candlePosition);
 
         Assert.True(result.TryGetValue("ZZZ", out var percent));
         Assert.Equal(expected, percent, precision: 2);
@@ -202,7 +204,8 @@ public class TokenPriceChangeCalculationServiceTest
         await HelpMethods.CreatePriceCandle(db, "YYY", 300m, timeProvider.Now.AddMinutes(-2).UtcDateTime);
         await HelpMethods.CreatePriceCandle(db, "YYY", 100m, timeProvider.Now.AddMinutes(-1).UtcDateTime);
 
-        var result = await service.TakeSymbolsPriceChangesAsync(new[] { "ZZZ", "YYY" }, 1);
+        var symbols = new[] { "ZZZ", "YYY" };
+        var result = await service.TakeSymbolsPriceChangesAsync(symbols, 1);
 
         Assert.Equal(100m, result["ZZZ"]);
         Assert.Equal(-66.67m, result["YYY"], precision: 2);
@@ -221,7 +224,8 @@ public class TokenPriceChangeCalculationServiceTest
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.CreatePriceCandle(db, "ZZZ", 1000m, timeProvider.Now.AddMinutes(-1).UtcDateTime);
 
-        var result = await service.TakeSymbolsPriceChangesAsync(new[] { "ZZZ" }, 1);
+        var symbols = new[] { "ZZZ" };
+        var result = await service.TakeSymbolsPriceChangesAsync(symbols, 1);
 
         Assert.Empty(result);
     }
@@ -253,7 +257,9 @@ public class TokenPriceChangeCalculationServiceTest
 
         await HelpMethods.CreateToken(db, "ZZZ");
 
+        var symbols = new[] { "ZZZ" };
+
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
-            () => service.TakeSymbolsPriceChangesAsync(new[] { "ZZZ" }, 0));
+            () => service.TakeSymbolsPriceChangesAsync(symbols, 0));
     }
 }

@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Application.Services.Orchestrators;
 
+#pragma warning disable S107 // DI-контейнер: число зависимостей оркестратора оправдано
 internal class MarketMakerOrchestrator(
     ArkWalletDbContext dbContext,
     IMarketMakerBotRegistrationService botRegistrationService,
@@ -25,6 +26,7 @@ internal class MarketMakerOrchestrator(
     ILogger<MarketMakerOrchestrator> logger,
     TimeProvider? timeProvider = null) : IMarketMakerOrchestrator
 {
+#pragma warning restore S107
     private static readonly long[] TraderIds = [101L, 102L];
     public async Task<Result> EnsureBotsRegisteredAsync()
     {

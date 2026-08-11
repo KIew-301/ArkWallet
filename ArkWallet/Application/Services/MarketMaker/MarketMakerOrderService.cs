@@ -90,7 +90,7 @@ internal class MarketMakerOrderService(
         }, logger, nameof(MarketMakerOrderService));
     }
 
-    private CreateOrderCommand BuildOrderCommand(MarketMakerBot bot, CharacterToken token)
+    private static CreateOrderCommand BuildOrderCommand(MarketMakerBot bot, CharacterToken token)
     {
         var isBuyer = bot.Role == BotRole.Buyer;
         var deviation = 0.2m;
