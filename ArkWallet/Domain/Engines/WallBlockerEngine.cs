@@ -20,6 +20,7 @@ internal class WallBlockerEngine
     private const decimal StepOffsetMin = 0.02m;
     private const decimal StepOffsetMax = 0.10m;
 
+#pragma warning disable S2325, CA1822 // Экземплярный метод: движок инжектится через DI (как FixedGridEngine)
     public List<WallBlockerLevel> GetLevels(decimal currentPrice)
     {
         if (currentPrice <= 0)
@@ -51,6 +52,7 @@ internal class WallBlockerEngine
 
         return levels;
     }
+#pragma warning restore S2325, CA1822
 
     private static decimal NextPercent(decimal min, decimal max)
     {
