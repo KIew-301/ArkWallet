@@ -187,7 +187,9 @@ internal static class ScenarioBodies
             NullLogger<OrderCreationService>.Instance);
 
         var marketMakerOrderService = new MarketMakerOrderService(
-            db, orderCreationService, NullLogger<MarketMakerOrderService>.Instance);
+            db,
+            orderCreationService,
+            NullLogger<MarketMakerOrderService>.Instance);
 
         return new MarketMakerOrchestrator(
             db,

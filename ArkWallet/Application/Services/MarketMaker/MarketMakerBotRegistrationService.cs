@@ -13,7 +13,8 @@ using static Result<MarketMakerBotRegistrationData>;
 internal class MarketMakerBotRegistrationService(
     ArkWalletDbContext dbContext,
     ITraderRegistrationService traderRegistrationService,
-    ILogger<MarketMakerBotRegistrationService> logger) : IMarketMakerBotRegistrationService
+    ILogger<MarketMakerBotRegistrationService> logger,
+    TimeProvider? timeProvider = null) : IMarketMakerBotRegistrationService
 {
     public async Task<Result<MarketMakerBotRegistrationData>> RegisterBotAsync(int telegramFakeId, string symbol, BotRole botRole, decimal initialPower = 50)
     {
@@ -32,7 +33,7 @@ internal class MarketMakerBotRegistrationService(
             if (!registrationResult.IsSuccess && registrationResult.Message != "Пользователь уже существует")
                 return Fail($"Не удалось зарегистрировать трейдера: {registrationResult.Message}");
 
-            var bot = MarketMakerBot.Create(telegramFakeId, symbol, botRole, initialPower);
+            var bot = MarketMakerBot.Create(telegramFakeId, symbol, botRole, initialPower, timeProvider);
 
             await dbContext.MarketMakerBots.AddAsync(bot);
             await dbContext.SaveChangesAsync();

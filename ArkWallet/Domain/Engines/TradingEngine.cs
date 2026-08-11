@@ -5,7 +5,7 @@ using ArkWallet.Domain.ValueObjects;
 
 namespace ArkWallet.Domain.Engines
 {
-    internal class TradingEngine
+    internal class TradingEngine(TimeProvider? timeProvider = null)
     {
         private readonly Dictionary<string, OrderBook> _orderBooks = new();
 
@@ -212,7 +212,7 @@ namespace ArkWallet.Domain.Engines
                 CharacterTokenId = order.CharacterTokenId,
                 Price = price,
                 Quantity = quantity,
-                ExecutedAt = DateTime.UtcNow
+                ExecutedAt = (timeProvider ?? TimeProvider.System).GetUtcNow().UtcDateTime
             };
         }
 
