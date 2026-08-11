@@ -52,7 +52,7 @@ internal class WallBlockerEngine
         return levels;
     }
 
-    private decimal NextPercent(decimal min, decimal max)
+    private static decimal NextPercent(decimal min, decimal max)
     {
         var next = RandomNumberGenerator.GetInt32(0, 1_000_000_001);
         return min + (max - min) * next / 1_000_000_000m;
