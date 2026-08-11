@@ -13,6 +13,6 @@ public interface IMiningMachineSlotSellingService
     /// </summary>
     /// <param name="traderId">Идентификатор трейдера</param>
     /// <param name="miningMachineSlotId">Идентификатор слота</param>
-    /// <returns>Результат с количеством собранных токенов</returns>
-    Task<Result<int>> SellMachineAsync(long traderId, long miningMachineSlotId);
+    /// <returns>Результат с символом токена и количеством собранных токенов</returns>
+    Task<Result<MiningTokenCollectionResult>> SellMachineAsync(long traderId, long miningMachineSlotId);
 }

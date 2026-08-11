@@ -3,6 +3,7 @@ using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Contracts.Decorators;
 using ArkWallet.Application.Contracts.Leaders;
 using ArkWallet.Application.Contracts.MarketMaker;
+using ArkWallet.Application.Contracts.MiningMachineServices;
 using ArkWallet.Application.Contracts.Orchestrators;
 using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Contracts.PortfolioServices;
@@ -13,6 +14,7 @@ using ArkWallet.Application.Contracts.TradeServices;
 using ArkWallet.Application.Services.CharacterTokenServices;
 using ArkWallet.Application.Services.Leaders;
 using ArkWallet.Application.Services.MarketMaker;
+using ArkWallet.Application.Services.MiningMachineServices;
 using ArkWallet.Application.Services.Orchestrators;
 using ArkWallet.Application.Services.Other;
 using ArkWallet.Application.Services.PortfolioServices;
@@ -256,6 +258,7 @@ class Program
         services.AddScoped<FixedGridEngine>();
         services.AddScoped<MarketMakerGridEngine>();
         services.AddScoped<WallBlockerEngine>();
+        services.AddScoped<MiningEngine>();
 
         // Telegram Bot
         services.AddSingleton<TelegramBot>();
@@ -317,6 +320,25 @@ class Program
 
         // MarketWallBlocker
         services.AddScoped<IMarketWallBlockerOrchestrator, MarketWallBlockerOrchestrator>();
+
+        // MiningMachineServices
+        services.AddScoped<IMiningMachineCreationService, MiningMachineCreationService>();
+        services.AddScoped<IMiningMachineRuleCreationService, MiningMachineRuleCreationService>();
+        services.AddScoped<IMiningMachineSlotBuyingService, MiningMachineSlotBuyingService>();
+        services.AddScoped<IMiningMachineSlotSwitchingService, MiningMachineSlotSwitchingService>();
+        services.AddScoped<IMiningMachineSlotCalculationService, MiningMachineSlotCalculationService>();
+        services.AddScoped<IMiningMachineSlotSellingService, MiningMachineSlotSellingService>();
+        services.AddScoped<IMiningMachineQueryService, MiningMachineQueryService>();
+        services.AddScoped<IMiningMachineSlotQueryService, MiningMachineSlotQueryService>();
+        services.AddScoped<IMiningMachineSlotTakingTokenService, MiningMachineSlotTakingTokenService>();
+        services.AddScoped<IMiningGlobalRuleQueryService, MiningGlobalRuleQueryService>();
+        services.AddScoped<IMiningGlobalRuleCreationService, MiningGlobalRuleCreationService>();
+
+        // MiningMachineOrchestrators
+        services.AddScoped<IMiningMachineCreationOrchestrator, MiningMachineCreationOrchestrator>();
+        services.AddScoped<IMiningMachineSlotTakingTokenOrchestrator, MiningMachineSlotTakingTokenOrchestrator>();
+        services.AddScoped<IMiningMachineSlotSwitchingOrchestrator, MiningMachineSlotSwitchingOrchestrator>();
+        services.AddScoped<IMiningMachineSlotSellingOrchestrator, MiningMachineSlotSellingOrchestrator>();
 
         // Trade Services
         services.AddScoped<ITradeQueryService, TradeQueryService>();
