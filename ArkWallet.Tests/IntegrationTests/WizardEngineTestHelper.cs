@@ -2,6 +2,7 @@ using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Contracts.Decorators;
 using ArkWallet.Application.Contracts.Leaders;
 using ArkWallet.Application.Contracts.MarketMaker;
+using ArkWallet.Application.Contracts.MiningMachineServices;
 using ArkWallet.Application.Contracts.Orchestrators;
 using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Contracts.PortfolioServices;
@@ -56,6 +57,20 @@ internal static class WizardEngineTestHelper
         var messageSender = new Mock<IMessageSender>();
         var metricsSnapshotService = new Mock<IMetricsSnapshotService>();
 
+        var miningGlobalRuleQueryService = new Mock<IMiningGlobalRuleQueryService>();
+        var miningMachineQueryService = new Mock<IMiningMachineQueryService>();
+        var miningMachineSlotQueryService = new Mock<IMiningMachineSlotQueryService>();
+        var miningMachineSlotBuyingService = new Mock<IMiningMachineSlotBuyingService>();
+        var miningMachineCreationService = new Mock<IMiningMachineCreationService>();
+        var miningMachineRuleCreationService = new Mock<IMiningMachineRuleCreationService>();
+        var miningMachineDeletionService = new Mock<IMiningMachineDeletionService>();
+        var miningMachineRuleDeletionService = new Mock<IMiningMachineRuleDeletionService>();
+        var miningGlobalRuleUpdateService = new Mock<IMiningGlobalRuleUpdateService>();
+        var appStateQueryService = new Mock<IAppStateQueryService>();
+        var miningMachineSlotSwitchingOrchestrator = new Mock<IMiningMachineSlotSwitchingOrchestrator>();
+        var miningMachineSlotTakingTokenOrchestrator = new Mock<IMiningMachineSlotTakingTokenOrchestrator>();
+        var miningMachineSlotSellingOrchestrator = new Mock<IMiningMachineSlotSellingOrchestrator>();
+
         var configuration = new Mock<IConfiguration>();
         configuration.Setup(c => c["Telegram:AdminId:Main"]).Returns("999999");
 
@@ -98,6 +113,19 @@ internal static class WizardEngineTestHelper
             questionDecorator.Object,
             buttonDecorator.Object,
             metricsSnapshotService.Object,
+            miningGlobalRuleQueryService.Object,
+            miningMachineQueryService.Object,
+            miningMachineSlotQueryService.Object,
+            miningMachineSlotBuyingService.Object,
+            miningMachineCreationService.Object,
+            miningMachineRuleCreationService.Object,
+            miningMachineDeletionService.Object,
+            miningMachineRuleDeletionService.Object,
+            miningGlobalRuleUpdateService.Object,
+            appStateQueryService.Object,
+            miningMachineSlotSwitchingOrchestrator.Object,
+            miningMachineSlotTakingTokenOrchestrator.Object,
+            miningMachineSlotSellingOrchestrator.Object,
             config
         );
 
@@ -126,7 +154,20 @@ internal static class WizardEngineTestHelper
             TokenService = tokenService,
             TradingVolume = tradingVolumeService,
             MessageSender = messageSender,
-            Configuration = configuration
+            Configuration = configuration,
+            MiningGlobalRuleQuery = miningGlobalRuleQueryService,
+            MiningMachineQuery = miningMachineQueryService,
+            MiningMachineSlotQuery = miningMachineSlotQueryService,
+            MiningMachineSlotBuying = miningMachineSlotBuyingService,
+            MiningMachineCreation = miningMachineCreationService,
+            MiningMachineRuleCreation = miningMachineRuleCreationService,
+            MiningMachineDeletion = miningMachineDeletionService,
+            MiningMachineRuleDeletion = miningMachineRuleDeletionService,
+            MiningGlobalRuleUpdate = miningGlobalRuleUpdateService,
+            AppStateQuery = appStateQueryService,
+            MiningMachineSlotSwitchingOrchestrator = miningMachineSlotSwitchingOrchestrator,
+            MiningMachineSlotTakingTokenOrchestrator = miningMachineSlotTakingTokenOrchestrator,
+            MiningMachineSlotSellingOrchestrator = miningMachineSlotSellingOrchestrator
         };
     }
 }
@@ -157,4 +198,17 @@ internal class ServiceMocks
     public Mock<ITradingVolumeService> TradingVolume { get; init; } = null!;
     public Mock<IMessageSender> MessageSender { get; init; } = null!;
     public Mock<IConfiguration> Configuration { get; init; } = null!;
+    public Mock<IMiningGlobalRuleQueryService> MiningGlobalRuleQuery { get; init; } = null!;
+    public Mock<IMiningMachineQueryService> MiningMachineQuery { get; init; } = null!;
+    public Mock<IMiningMachineSlotQueryService> MiningMachineSlotQuery { get; init; } = null!;
+    public Mock<IMiningMachineSlotBuyingService> MiningMachineSlotBuying { get; init; } = null!;
+    public Mock<IMiningMachineCreationService> MiningMachineCreation { get; init; } = null!;
+    public Mock<IMiningMachineRuleCreationService> MiningMachineRuleCreation { get; init; } = null!;
+    public Mock<IMiningMachineDeletionService> MiningMachineDeletion { get; init; } = null!;
+    public Mock<IMiningMachineRuleDeletionService> MiningMachineRuleDeletion { get; init; } = null!;
+    public Mock<IMiningGlobalRuleUpdateService> MiningGlobalRuleUpdate { get; init; } = null!;
+    public Mock<IAppStateQueryService> AppStateQuery { get; init; } = null!;
+    public Mock<IMiningMachineSlotSwitchingOrchestrator> MiningMachineSlotSwitchingOrchestrator { get; init; } = null!;
+    public Mock<IMiningMachineSlotTakingTokenOrchestrator> MiningMachineSlotTakingTokenOrchestrator { get; init; } = null!;
+    public Mock<IMiningMachineSlotSellingOrchestrator> MiningMachineSlotSellingOrchestrator { get; init; } = null!;
 }
