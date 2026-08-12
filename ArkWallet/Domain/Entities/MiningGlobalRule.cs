@@ -49,6 +49,18 @@ internal class MiningGlobalRule
         FutureCoefficient = newFutureCoefficient;
     }
 
+    /// <summary>Обновляет коэффициенты токена напрямую (текущий и будущий)</summary>
+    public void UpdateCoefficients(decimal currentCoefficient, decimal futureCoefficient)
+    {
+        if (currentCoefficient <= 0)
+            throw new DomainException("Текущий коэффициент должен быть больше нуля");
+        if (futureCoefficient <= 0)
+            throw new DomainException("Будущий коэффициент должен быть больше нуля");
+
+        CurrentCoefficient = currentCoefficient;
+        FutureCoefficient = futureCoefficient;
+    }
+
     public void UpdateBaseMiningSpeed(decimal baseMiningSpeed)
     {
         if (baseMiningSpeed <= 0)
