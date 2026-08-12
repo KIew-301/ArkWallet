@@ -3,6 +3,7 @@ using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Contracts.Decorators;
 using ArkWallet.Application.Contracts.Leaders;
 using ArkWallet.Application.Contracts.MarketMaker;
+using ArkWallet.Application.Contracts.MiningMachineServices;
 using ArkWallet.Application.Contracts.Orchestrators;
 using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Contracts.PortfolioServices;
@@ -68,6 +69,23 @@ namespace ArkWallet.Infrastructure.Wizard
         // STATS
         private readonly ITradingVolumeService _tradingVolumeService;
 
+        // MINING SERVICES
+        private readonly IMiningGlobalRuleQueryService _miningGlobalRuleQueryService;
+        private readonly IMiningMachineQueryService _miningMachineQueryService;
+        private readonly IMiningMachineSlotQueryService _miningMachineSlotQueryService;
+        private readonly IMiningMachineSlotBuyingService _miningMachineSlotBuyingService;
+        private readonly IMiningMachineCreationService _miningMachineCreationService;
+        private readonly IMiningMachineRuleCreationService _miningMachineRuleCreationService;
+        private readonly IMiningMachineDeletionService _miningMachineDeletionService;
+        private readonly IMiningMachineRuleDeletionService _miningMachineRuleDeletionService;
+        private readonly IMiningGlobalRuleUpdateService _miningGlobalRuleUpdateService;
+        private readonly IAppStateQueryService _appStateQueryService;
+
+        // MINING ORCHESTRATORS
+        private readonly IMiningMachineSlotSwitchingOrchestrator _miningMachineSlotSwitchingOrchestrator;
+        private readonly IMiningMachineSlotTakingTokenOrchestrator _miningMachineSlotTakingTokenOrchestrator;
+        private readonly IMiningMachineSlotSellingOrchestrator _miningMachineSlotSellingOrchestrator;
+
         // BROADCAST
         private readonly IMessageSender _messageSender;
 
@@ -107,6 +125,19 @@ namespace ArkWallet.Infrastructure.Wizard
             IQuestionDecorator questionDecorator,
             IButtonDecorator buttonDecorator,
             IMetricsSnapshotService metricsSnapshotService,
+            IMiningGlobalRuleQueryService miningGlobalRuleQueryService,
+            IMiningMachineQueryService miningMachineQueryService,
+            IMiningMachineSlotQueryService miningMachineSlotQueryService,
+            IMiningMachineSlotBuyingService miningMachineSlotBuyingService,
+            IMiningMachineCreationService miningMachineCreationService,
+            IMiningMachineRuleCreationService miningMachineRuleCreationService,
+            IMiningMachineDeletionService miningMachineDeletionService,
+            IMiningMachineRuleDeletionService miningMachineRuleDeletionService,
+            IMiningGlobalRuleUpdateService miningGlobalRuleUpdateService,
+            IAppStateQueryService appStateQueryService,
+            IMiningMachineSlotSwitchingOrchestrator miningMachineSlotSwitchingOrchestrator,
+            IMiningMachineSlotTakingTokenOrchestrator miningMachineSlotTakingTokenOrchestrator,
+            IMiningMachineSlotSellingOrchestrator miningMachineSlotSellingOrchestrator,
             WizardConfiguration config
             )
         {
@@ -138,6 +169,19 @@ namespace ArkWallet.Infrastructure.Wizard
             _questionDecorator = questionDecorator;
             _buttonDecorator = buttonDecorator;
             _metricsSnapshotService = metricsSnapshotService;
+            _miningGlobalRuleQueryService = miningGlobalRuleQueryService;
+            _miningMachineQueryService = miningMachineQueryService;
+            _miningMachineSlotQueryService = miningMachineSlotQueryService;
+            _miningMachineSlotBuyingService = miningMachineSlotBuyingService;
+            _miningMachineCreationService = miningMachineCreationService;
+            _miningMachineRuleCreationService = miningMachineRuleCreationService;
+            _miningMachineDeletionService = miningMachineDeletionService;
+            _miningMachineRuleDeletionService = miningMachineRuleDeletionService;
+            _miningGlobalRuleUpdateService = miningGlobalRuleUpdateService;
+            _appStateQueryService = appStateQueryService;
+            _miningMachineSlotSwitchingOrchestrator = miningMachineSlotSwitchingOrchestrator;
+            _miningMachineSlotTakingTokenOrchestrator = miningMachineSlotTakingTokenOrchestrator;
+            _miningMachineSlotSellingOrchestrator = miningMachineSlotSellingOrchestrator;
             _config = config;
 
             ConfigureHandlers();
@@ -167,6 +211,18 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/get_orders"][0].Handler = HandleGetOrders;
             _config.Commands["/get_trades"][0].Handler = HandleSetTradesLimit;
             _config.Commands["/get_tops"][0].Handler = HandleSetTopsLimit;
+            _config.Commands["/mining_rules"][0].Handler = HandleGetMiningRules;
+            _config.Commands["/mining_machines"][0].Handler = HandleGetMiningMachines;
+            _config.Commands["/mining_slots"][0].Handler = HandleGetMiningSlots;
+            _config.Commands["/mining_buy"][0].Handler = HandleMiningBuySelectMachine;
+            _config.Commands["/mining_buy"][1].Handler = HandleMiningBuyConfirm;
+            _config.Commands["/mining_switch"][0].Handler = HandleMiningSwitchSelectSlot;
+            _config.Commands["/mining_switch"][1].Handler = HandleMiningSwitchSelectToken;
+            _config.Commands["/mining_switch"][2].Handler = HandleMiningSwitchConfirm;
+            _config.Commands["/mining_take"][0].Handler = HandleMiningTakeSelectSlot;
+            _config.Commands["/mining_take"][1].Handler = HandleMiningTakeConfirm;
+            _config.Commands["/mining_sell"][0].Handler = HandleMiningSellSelectSlot;
+            _config.Commands["/mining_sell"][1].Handler = HandleMiningSellConfirm;
         }
 
         public async Task<WizardResult> ProcessInput(long userId, string input)

@@ -282,6 +282,123 @@ namespace ArkWallet.Entities.Configurations
             {
                 new() { Name = "request", OneStep = true }
             };
+
+            Commands["/admin_help_mining"] = new List<WizardStep>
+            {
+                new() { Name = "request", OneStep = true }
+            };
+
+            Commands["/admin_mining_create_machine"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send JSON to create a mining machine:\n\n" +
+                        "{\n" +
+                        "  \"name\": \"SM-01\",\n" +
+                        "  \"type\": \"SMAI\",\n" +
+                        "  \"switchingTime\": 10,\n" +
+                        "  \"reusability\": 50,\n" +
+                        "  \"isActiveForSale\": true,\n" +
+                        "  \"cost\": 10000,\n" +
+                        "  \"image\": \"https://example.com/image.png\"\n" +
+                        "}"
+                }
+            };
+
+            Commands["/admin_mining_create_rule"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send JSON to create a mining rule (machine-token pair):\n\n" +
+                        "{\n" +
+                        "  \"miningMachineId\": 1,\n" +
+                        "  \"characterTokenId\": \"ARK_001\",\n" +
+                        "  \"miningCoefficient\": 1.5\n" +
+                        "}"
+                }
+            };
+
+            Commands["/admin_mining_delete_machine"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_id",
+                    Question = "Enter mining machine Id to delete:"
+                },
+                new()
+                {
+                    Name = "confirm_delete",
+                    Question = "Are you sure you want to PERMANENTLY delete this machine and its rules?",
+                    Buttons = new List<QuickButton>
+                    {
+                        new() { Text = "✅ Yes, delete", Value = "confirm" },
+                        new() { Text = "❌ No, cancel", Value = "cancel" }
+                    }
+                }
+            };
+
+            Commands["/admin_mining_deactivate_machine"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_id",
+                    Question = "Enter mining machine Id to deactivate:"
+                },
+                new()
+                {
+                    Name = "confirm_deactivate",
+                    Question = "Are you sure you want to deactivate this machine? It will no longer be available for purchase.",
+                    Buttons = new List<QuickButton>
+                    {
+                        new() { Text = "✅ Yes, deactivate", Value = "confirm" },
+                        new() { Text = "❌ No, cancel", Value = "cancel" }
+                    }
+                }
+            };
+
+            Commands["/admin_mining_delete_rule"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_id",
+                    Question = "Enter mining rule Id to delete:"
+                },
+                new()
+                {
+                    Name = "confirm_delete",
+                    Question = "Are you sure you want to delete this mining rule?",
+                    Buttons = new List<QuickButton>
+                    {
+                        new() { Text = "✅ Yes, delete", Value = "confirm" },
+                        new() { Text = "❌ No, cancel", Value = "cancel" }
+                    }
+                }
+            };
+
+            Commands["/admin_mining_update_global_rule"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send JSON to update global mining rule (symbol required, others optional):\n\n" +
+                        "{\n" +
+                        "  \"symbol\": \"ARK_001\",\n" +
+                        "  \"currentCoefficient\": 1.05,\n" +
+                        "  \"futureCoefficient\": 0.95,\n" +
+                        "  \"baseMiningSpeed\": 50\n" +
+                        "}"
+                }
+            };
+
+            Commands["/admin_mining_app_state"] = new List<WizardStep>
+            {
+                new() { Name = "request", OneStep = true }
+            };
         }
     }
 }
