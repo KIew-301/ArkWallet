@@ -42,6 +42,6 @@ namespace ArkWallet.Presentation.DTOs
     /// <summary>
     /// Запрос на снятие токенов с одной машины
     /// </summary>
-    /// <param name="MiningMachineId">Идентификатор слота машины</param>
-    public record TakeMiningTokensRequest(long MiningMachineId);
+    /// <param name="MiningMachineSlotId">Идентификатор слота машины</param>
+    public record TakeMiningTokensRequest(long MiningMachineSlotId);
 }

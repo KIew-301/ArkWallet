@@ -14,13 +14,13 @@ internal class MiningMachineSlotTakingTokenOrchestrator(
     IPortfolioUpdatingService portfolioUpdatingService,
     ILogger<MiningMachineSlotTakingTokenOrchestrator> logger) : IMiningMachineSlotTakingTokenOrchestrator
 {
-    public async Task<Result> TakeTokensFromMachineAsync(long traderId, long miningMachineId)
+    public async Task<Result> TakeTokensFromMachineAsync(long traderId, long miningMachineSlotId)
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             return await TransactionHandler.ExecuteAsync(dbContext, async () =>
             {
-                var result = await takingTokenService.TakeTokensFromMachineAsync(traderId, miningMachineId);
+                var result = await takingTokenService.TakeTokensFromMachineAsync(traderId, miningMachineSlotId);
                 if (!result.IsSuccess)
                     return Fail(result.Message);
                 if (!result.TryGetData(out var collection))

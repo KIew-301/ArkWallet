@@ -12,7 +12,7 @@ internal class MiningMachineSlotTakingTokenService(
     ArkWalletDbContext dbContext,
     ILogger<MiningMachineSlotTakingTokenService> logger) : IMiningMachineSlotTakingTokenService
 {
-    public async Task<Result<MiningTokenCollectionResult>> TakeTokensFromMachineAsync(long traderId, long miningMachineId)
+    public async Task<Result<MiningTokenCollectionResult>> TakeTokensFromMachineAsync(long traderId, long miningMachineSlotId)
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
@@ -24,7 +24,7 @@ internal class MiningMachineSlotTakingTokenService(
                 if (trader == null)
                     return Fail("Трейдера не существует");
 
-                var slot = await dbContext.MiningMachineSlots.FirstOrDefaultAsync(s => s.Id == miningMachineId);
+                var slot = await dbContext.MiningMachineSlots.FirstOrDefaultAsync(s => s.Id == miningMachineSlotId);
                 if (slot == null)
                     return Fail("Слота не существует");
                 if (slot.TraderId != traderId)

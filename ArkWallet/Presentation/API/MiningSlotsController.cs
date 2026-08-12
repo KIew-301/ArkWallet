@@ -119,7 +119,7 @@ public class MiningSlotsController(
         if (!TryGetTraderId(out var traderId))
             return Unauthorized();
 
-        var result = await takingTokenOrchestrator.TakeTokensFromMachineAsync(traderId, request.MiningMachineId);
+        var result = await takingTokenOrchestrator.TakeTokensFromMachineAsync(traderId, request.MiningMachineSlotId);
 
         if (!result.IsSuccess)
             return BadRequest(result.Message);

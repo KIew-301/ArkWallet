@@ -11,7 +11,7 @@ public interface IMiningMachineSlotTakingTokenOrchestrator
     /// <summary>
     /// Снимает собранные токены с одной машины и добавляет их в портфель трейдера
     /// </summary>
-    Task<Result> TakeTokensFromMachineAsync(long traderId, long miningMachineId);
+    Task<Result> TakeTokensFromMachineAsync(long traderId, long miningMachineSlotId);
 
     /// <summary>
     /// Снимает собранные токены со всех машин трейдера и добавляет их в портфель

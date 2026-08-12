@@ -11,9 +11,9 @@ public interface IMiningMachineSlotTakingTokenService
     /// Снимает собранные токены с одной машины трейдера (только целую часть)
     /// </summary>
     /// <param name="traderId">Идентификатор трейдера</param>
-    /// <param name="miningMachineId">Идентификатор слота машины</param>
+    /// <param name="miningMachineSlotId">Идентификатор слота машины</param>
     /// <returns>Результат со снятыми токенами</returns>
-    Task<Result<MiningTokenCollectionResult>> TakeTokensFromMachineAsync(long traderId, long miningMachineId);
+    Task<Result<MiningTokenCollectionResult>> TakeTokensFromMachineAsync(long traderId, long miningMachineSlotId);
 
     /// <summary>
     /// Снимает собранные токены со всех машин трейдера (только целую часть)
