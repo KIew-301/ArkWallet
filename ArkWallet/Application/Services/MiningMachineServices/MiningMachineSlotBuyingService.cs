@@ -37,16 +37,16 @@ internal class MiningMachineSlotBuyingService(
                 if (slotsCount >= MiningEngine.MaxMachinesPerTrader)
                     return Fail($"Нельзя купить больше {MiningEngine.MaxMachinesPerTrader} машин");
 
-                var price = machine.GetSellingPrice();
-                if (!trader.CanAfford(price))
+                var resalePrice = machine.GetSellingPrice();
+                if (!trader.CanAfford(machine.Cost))
                     return Fail("Недостаточно средств для покупки машины");
 
                 var now = (timeProvider ?? TimeProvider.System).GetUtcNow().UtcDateTime;
 
-                var slot = MiningMachineSlot.Create(traderId, machineId, price, now);
+                var slot = MiningMachineSlot.Create(traderId, machineId, resalePrice, now);
                 await dbContext.MiningMachineSlots.AddAsync(slot);
 
-                trader.AddToBalance(-price);
+                trader.AddToBalance(-machine.Cost);
                 trader.MarkDirty();
                 await dbContext.SaveChangesAsync();
 
