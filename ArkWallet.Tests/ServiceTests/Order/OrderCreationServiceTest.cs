@@ -449,4 +449,27 @@ public class OrderCreationServiceTest
         Assert.NotNull(order);
         Assert.Equal(92m, order.AverageExecutePrice);
     }
+
+    [Theory]
+    [InlineData("КУПИТЬ")]
+    [InlineData(" Купить ")]
+    [InlineData("ПРОДАТЬ")]
+    [InlineData(" Продать ")]
+    public async Task ProcessOrderAsync_UppercaseAndTrimmedDirection_IsAccepted(string direction)
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
+
+        var isBuy = direction.Contains("КУП") || direction.Contains("Куп");
+        var result = await HelpMethods.PlaceOrder(
+            db, 101, direction, "ZZZ", 5, isBuy ? 10 : 100);
+
+        Assert.True(result.IsSuccess, $"Order failed: {result.Message}");
+        Assert.True(result.TryGetData(out var data), result.Message);
+        Assert.Equal(isBuy ? OrderType.Buy : OrderType.Sell, data.Order.Direction);
+    }
 }

@@ -91,7 +91,7 @@ internal class OrderCreationService(
 
     private async Task<TradingContext> PrepareSingleTradingContextAsync(CreateOrderCommand command)
     {
-        var orderType = command.Direction.Equals("купить", StringComparison.CurrentCultureIgnoreCase)
+        var orderType = OrderValidationService.NormalizeDirection(command.Direction) == OrderDirections.Buy
             ? OrderType.Buy
             : OrderType.Sell;
 
@@ -164,7 +164,7 @@ internal class OrderCreationService(
         var orders = new List<TradeOrder>();
         foreach (var command in commandList)
         {
-            var orderType = command.Direction.Equals("купить", StringComparison.CurrentCultureIgnoreCase)
+            var orderType = OrderValidationService.NormalizeDirection(command.Direction) == OrderDirections.Buy
                 ? OrderType.Buy
                 : OrderType.Sell;
 

@@ -11,10 +11,24 @@ namespace ArkWallet.Application.Services.TradeOrderServices
         {
             if (string.IsNullOrEmpty(direction))
                 return new ValidationResult(false, "Некорректный ответ - пустая строка");
-            if (direction != OrderDirections.Buy && direction != OrderDirections.Sell)
+            if (NormalizeDirection(direction) == null)
                 return new ValidationResult(false, "Необходимо выбрать КУПИТЬ или ПРОДАТЬ");
 
             return new ValidationResult(true);
+        }
+
+        public static string? NormalizeDirection(string? direction)
+        {
+            if (string.IsNullOrWhiteSpace(direction))
+                return null;
+
+            var trimmed = direction.Trim();
+            if (trimmed.Equals(OrderDirections.Buy, StringComparison.CurrentCultureIgnoreCase))
+                return OrderDirections.Buy;
+            if (trimmed.Equals(OrderDirections.Sell, StringComparison.CurrentCultureIgnoreCase))
+                return OrderDirections.Sell;
+
+            return null;
         }
 
         public async Task<ValidationResult> ValidateOrderCancellationAsync(long traderId, string orderId)
@@ -51,7 +65,7 @@ namespace ArkWallet.Application.Services.TradeOrderServices
 
         public async Task<ValidationResult> ValidateTokenAsync(long traderId, string symbol, string direction)
         {
-            if (direction == OrderDirections.Buy)
+            if (NormalizeDirection(direction) == OrderDirections.Buy)
                 return new ValidationResult(true);
 
             var item = await dbContext.PortfolioItems
@@ -65,7 +79,7 @@ namespace ArkWallet.Application.Services.TradeOrderServices
 
         public async Task<ValidationResult> ValidateOrderCreationAsync(long traderId, string symbol, string direction, int quantity, decimal price)
         {
-            if (direction == OrderDirections.Buy)
+            if (NormalizeDirection(direction) == OrderDirections.Buy)
             {
                 var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
                 decimal totalCost = quantity * price;
@@ -108,7 +122,7 @@ namespace ArkWallet.Application.Services.TradeOrderServices
 
         public async Task<ValidationResult> ValidateTokensAsync(long traderId, IReadOnlyCollection<string> symbols, string direction)
         {
-            if (direction == OrderDirections.Buy)
+            if (NormalizeDirection(direction) == OrderDirections.Buy)
                 return ValidationResult.Success();
 
             var distinctSymbols = symbols.Distinct().ToList();
@@ -145,7 +159,7 @@ namespace ArkWallet.Application.Services.TradeOrderServices
             }
 
             var sellerGroups = requests
-                .Where(r => r.Direction == OrderDirections.Sell)
+                .Where(r => NormalizeDirection(r.Direction) == OrderDirections.Sell)
                 .GroupBy(r => (r.TraderId, r.Symbol))
                 .Select(g => g.Key)
                 .ToList();
