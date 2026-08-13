@@ -15,6 +15,8 @@ internal class MiningMachineRuleDeletionService(ArkWalletDbContext dbContext, IL
         {
             return await TransactionHandler.ExecuteAsync(dbContext, async () =>
             {
+                await dbContext.LockMiningMachineRulesAsync([ruleId]);
+
                 var rule = await dbContext.MiningMachineRules
                     .FirstOrDefaultAsync(r => r.Id == ruleId);
 

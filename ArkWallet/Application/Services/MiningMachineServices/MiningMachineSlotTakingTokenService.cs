@@ -19,6 +19,7 @@ internal class MiningMachineSlotTakingTokenService(
             return await TransactionHandler.ExecuteAsync(dbContext, async () =>
             {
                 await dbContext.LockTradersAsync([traderId]);
+                await dbContext.LockMiningMachineSlotsAsync([miningMachineSlotId]);
 
                 var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
                 if (trader == null)
@@ -51,6 +52,13 @@ internal class MiningMachineSlotTakingTokenService(
                 var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
                 if (trader == null)
                     return Result<List<MiningTokenCollectionResult>>.Fail("Трейдера не существует");
+
+                var slotIds = await dbContext.MiningMachineSlots
+                    .Where(s => s.TraderId == traderId && s.Status != MiningMachineSlotStatus.Sold)
+                    .Select(s => s.Id)
+                    .ToListAsync();
+
+                await dbContext.LockMiningMachineSlotsAsync(slotIds);
 
                 var slots = await dbContext.MiningMachineSlots
                     .Where(s => s.TraderId == traderId && s.Status != MiningMachineSlotStatus.Sold)

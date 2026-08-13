@@ -22,21 +22,26 @@ internal class MiningGlobalRuleUpdateService(ArkWalletDbContext dbContext, ILogg
             if (currentCoefficient is null ^ futureCoefficient is null)
                 return Fail("Коэффициенты задаются парой: текущий и будущий");
 
-            var rule = await dbContext.MiningGlobalRules
-                .FirstOrDefaultAsync(r => r.TokenId == symbol);
+            return await TransactionHandler.ExecuteAsync(dbContext, async () =>
+            {
+                await dbContext.LockMiningGlobalRuleAsync(symbol);
 
-            if (rule is null)
-                return Fail($"Глобальное правило для токена '{symbol}' не найдено");
+                var rule = await dbContext.MiningGlobalRules
+                    .FirstOrDefaultAsync(r => r.TokenId == symbol);
 
-            if (currentCoefficient.HasValue)
-                rule.UpdateCoefficients(currentCoefficient.Value, futureCoefficient!.Value);
+                if (rule is null)
+                    return Fail($"Глобальное правило для токена '{symbol}' не найдено");
 
-            if (baseMiningSpeed.HasValue)
-                rule.UpdateBaseMiningSpeed(baseMiningSpeed.Value);
+                if (currentCoefficient.HasValue)
+                    rule.UpdateCoefficients(currentCoefficient.Value, futureCoefficient!.Value);
 
-            await dbContext.SaveChangesAsync();
+                if (baseMiningSpeed.HasValue)
+                    rule.UpdateBaseMiningSpeed(baseMiningSpeed.Value);
 
-            return Ok();
+                await dbContext.SaveChangesAsync();
+
+                return Ok();
+            });
         }, logger, nameof(MiningGlobalRuleUpdateService));
     }
 }

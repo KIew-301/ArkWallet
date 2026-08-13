@@ -20,6 +20,7 @@ internal class MiningMachineSlotSwitchingService(
             return await TransactionHandler.ExecuteAsync(dbContext, async () =>
             {
                 await dbContext.LockTradersAsync([traderId]);
+                await dbContext.LockMiningMachineSlotsAsync([miningMachineSlotId]);
 
                 var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
                 if (trader == null)
@@ -70,6 +71,8 @@ internal class MiningMachineSlotSwitchingService(
         {
             return await TransactionHandler.ExecuteAsync(dbContext, async () =>
             {
+                await dbContext.LockSwitchingMiningMachineSlotsAsync();
+
                 var now = (timeProvider ?? TimeProvider.System).GetUtcNow().UtcDateTime;
 
                 var switchingSlots = await dbContext.MiningMachineSlots

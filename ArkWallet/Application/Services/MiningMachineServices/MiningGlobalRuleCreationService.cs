@@ -19,6 +19,8 @@ internal class MiningGlobalRuleCreationService(
         {
             return await TransactionHandler.ExecuteAsync(dbContext, async () =>
             {
+                await dbContext.LockMiningGlobalRulesAsync();
+
                 var tokens = await dbContext.CharacterTokens
                     .Where(t => t.IsActive && t.CurrentPrice > 0)
                     .ToListAsync();

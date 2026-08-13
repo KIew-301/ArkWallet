@@ -22,6 +22,8 @@ internal class MiningMachineSlotCalculationService(
 
             return await TransactionHandler.ExecuteAsync(dbContext, async () =>
             {
+                await dbContext.LockActiveMiningMachineSlotsAsync();
+
                 var slots = await dbContext.MiningMachineSlots
                     .Include(s => s.MiningGlobalRule)
                     .Include(s => s.MachineRule)

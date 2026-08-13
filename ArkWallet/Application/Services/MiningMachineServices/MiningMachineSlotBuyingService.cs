@@ -21,6 +21,7 @@ internal class MiningMachineSlotBuyingService(
             return await TransactionHandler.ExecuteAsync(dbContext, async () =>
             {
                 await dbContext.LockTradersAsync([traderId]);
+                await dbContext.LockMiningMachinesAsync([machineId]);
 
                 var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
                 if (trader == null)

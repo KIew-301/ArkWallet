@@ -15,6 +15,8 @@ internal class MiningMachineDeletionService(ArkWalletDbContext dbContext, ILogge
         {
             return await TransactionHandler.ExecuteAsync(dbContext, async () =>
             {
+                await dbContext.LockMiningMachinesAsync([machineId]);
+
                 var machine = await dbContext.MiningMachines
                     .FirstOrDefaultAsync(m => m.Id == machineId);
 
@@ -43,19 +45,24 @@ internal class MiningMachineDeletionService(ArkWalletDbContext dbContext, ILogge
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            var machine = await dbContext.MiningMachines
-                .FirstOrDefaultAsync(m => m.Id == machineId);
+            return await TransactionHandler.ExecuteAsync(dbContext, async () =>
+            {
+                await dbContext.LockMiningMachinesAsync([machineId]);
 
-            if (machine is null)
-                return Result.Fail($"Майнинг-машина с Id '{machineId}' не найдена");
+                var machine = await dbContext.MiningMachines
+                    .FirstOrDefaultAsync(m => m.Id == machineId);
 
-            if (!machine.IsActiveForSale)
-                return Result.Fail($"Майнинг-машина с Id '{machineId}' уже деактивирована");
+                if (machine is null)
+                    return Result.Fail($"Майнинг-машина с Id '{machineId}' не найдена");
 
-            machine.SetActiveForSale(false);
-            await dbContext.SaveChangesAsync();
+                if (!machine.IsActiveForSale)
+                    return Result.Fail($"Майнинг-машина с Id '{machineId}' уже деактивирована");
 
-            return Result.Ok();
+                machine.SetActiveForSale(false);
+                await dbContext.SaveChangesAsync();
+
+                return Result.Ok();
+            });
         }, logger, nameof(MiningMachineDeletionService));
     }
 }

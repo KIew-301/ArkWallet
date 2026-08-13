@@ -98,6 +98,121 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
     }
 
     [SkippableFact]
+    public async Task MiningSlotLock_BlocksConcurrentWriter_UntilReleased()
+    {
+        await using (var db = CreateContext())
+            await db.Database.EnsureCreatedAsync();
+
+        long slotId;
+        await using (var seed = CreateContext())
+        {
+            await HelpMethods.RegisterTrader(seed, 201);
+
+            var machine = MiningMachine.Create("SM-01", MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz");
+            seed.MiningMachines.Add(machine);
+            await seed.SaveChangesAsync();
+
+            var slot = MiningMachineSlot.Create(201, machine.Id, 1200, DateTime.UtcNow);
+            seed.MiningMachineSlots.Add(slot);
+            await seed.SaveChangesAsync();
+
+            slotId = slot.Id;
+        }
+
+        await using var holder = CreateContext();
+        await using var waiter = CreateContext();
+
+        await using var holderTx = await holder.Database.BeginTransactionAsync();
+        await holder.LockMiningMachineSlotsAsync([slotId]);
+
+        await using var waiterTx = await waiter.Database.BeginTransactionAsync();
+        await waiter.Database.ExecuteSqlRawAsync("SET LOCAL lock_timeout = '300ms'");
+
+        var blocked = await Assert.ThrowsAsync<PostgresException>(
+            () => waiter.LockMiningMachineSlotsAsync([slotId]));
+        Assert.Equal("55P03", blocked.SqlState);
+
+        await waiterTx.RollbackAsync();
+        await holderTx.CommitAsync();
+
+        await using var waiterTx2 = await waiter.Database.BeginTransactionAsync();
+        await waiter.LockMiningMachineSlotsAsync([slotId]);
+        await waiterTx2.CommitAsync();
+    }
+
+    [SkippableFact]
+    public async Task ActiveMiningSlotLock_BlocksConcurrentWorker_UntilReleased()
+    {
+        await using (var db = CreateContext())
+            await db.Database.EnsureCreatedAsync();
+
+        await using (var seed = CreateContext())
+        {
+            await HelpMethods.RegisterTrader(seed, 301);
+
+            var machine = MiningMachine.Create("SM-02", MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz");
+            seed.MiningMachines.Add(machine);
+            await seed.SaveChangesAsync();
+
+            var slot = MiningMachineSlot.Create(301, machine.Id, 1200, DateTime.UtcNow);
+            seed.MiningMachineSlots.Add(slot);
+            await seed.SaveChangesAsync();
+
+            await seed.Database.ExecuteSqlRawAsync(
+                "UPDATE \"MiningMachineSlots\" SET \"Status\" = 'Active' WHERE \"Id\" = {0}", slot.Id);
+        }
+
+        await using var holder = CreateContext();
+        await using var waiter = CreateContext();
+
+        await using var holderTx = await holder.Database.BeginTransactionAsync();
+        await holder.LockActiveMiningMachineSlotsAsync();
+
+        await using var waiterTx = await waiter.Database.BeginTransactionAsync();
+        await waiter.Database.ExecuteSqlRawAsync("SET LOCAL lock_timeout = '300ms'");
+
+        var blocked = await Assert.ThrowsAsync<PostgresException>(
+            () => waiter.LockActiveMiningMachineSlotsAsync());
+        Assert.Equal("55P03", blocked.SqlState);
+
+        await waiterTx.RollbackAsync();
+        await holderTx.CommitAsync();
+    }
+
+    [SkippableFact]
+    public async Task MiningMachineLock_BlocksConcurrentWriter_UntilReleased()
+    {
+        await using (var db = CreateContext())
+            await db.Database.EnsureCreatedAsync();
+
+        long machineId;
+        await using (var seed = CreateContext())
+        {
+            var machine = MiningMachine.Create("SM-03", MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz");
+            seed.MiningMachines.Add(machine);
+            await seed.SaveChangesAsync();
+
+            machineId = machine.Id;
+        }
+
+        await using var holder = CreateContext();
+        await using var waiter = CreateContext();
+
+        await using var holderTx = await holder.Database.BeginTransactionAsync();
+        await holder.LockMiningMachinesAsync([machineId]);
+
+        await using var waiterTx = await waiter.Database.BeginTransactionAsync();
+        await waiter.Database.ExecuteSqlRawAsync("SET LOCAL lock_timeout = '300ms'");
+
+        var blocked = await Assert.ThrowsAsync<PostgresException>(
+            () => waiter.LockMiningMachinesAsync([machineId]));
+        Assert.Equal("55P03", blocked.SqlState);
+
+        await waiterTx.RollbackAsync();
+        await holderTx.CommitAsync();
+    }
+
+    [SkippableFact]
     public async Task ConcurrentBuyers_DoNotDoubleFillSellerOrder()
     {
         await using (var db = CreateContext())
