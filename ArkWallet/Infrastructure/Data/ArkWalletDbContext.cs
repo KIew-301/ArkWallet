@@ -31,6 +31,7 @@ internal class ArkWalletDbContext : DbContext
         modelBuilder.Entity<MiningMachine>(machine =>
         {
             machine.Property(m => m.Type).HasConversion<string>();
+            machine.HasIndex(m => m.Name).IsUnique();
             machine.HasMany(m => m.MiningMachineRules)
                 .WithOne(r => r.MiningMachine)
                 .HasForeignKey(r => r.MiningMachineId)

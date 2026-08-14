@@ -505,5 +505,42 @@ BEGIN
     VALUES ('20260811202309_MiningSystem', '9.0.10');
     END IF;
 END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260814120000_MiningMachineEfficiency') THEN
+    ALTER TABLE "MiningMachines" ADD "Efficiency" TEXT NOT NULL DEFAULT '1';
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "pg_indexes" WHERE "indexname" = 'IX_MiningMachines_Name') THEN
+    CREATE UNIQUE INDEX "IX_MiningMachines_Name" ON "MiningMachines" ("Name");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260814120000_MiningMachineEfficiency') THEN
+    INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+    VALUES ('20260814120000_MiningMachineEfficiency', '9.0.10');
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260814092807_MiningGlobalRuleBaseTokenMiningSpeed') THEN
+    ALTER TABLE "MiningGlobalRules" RENAME COLUMN "BaseMiningSpeed" TO "BaseTokenMiningSpeed";
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260814092807_MiningGlobalRuleBaseTokenMiningSpeed') THEN
+    INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+    VALUES ('20260814092807_MiningGlobalRuleBaseTokenMiningSpeed', '9.0.10');
+    END IF;
+END $EF$;
 COMMIT;
 

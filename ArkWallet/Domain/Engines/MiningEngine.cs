@@ -26,40 +26,45 @@ internal class MiningEngine
     public const int MaxMachinesPerTrader = 10;
     public const decimal MinCoefficient = 0.9m;
     public const decimal MaxCoefficient = 1.1m;
-    public const decimal DefaultBaseMiningSpeedDivisor = 50m;
+    public const decimal DefaultBaseTokenMiningSpeedDivisor = 50m;
+    public const decimal EffectiveMiningCoefficientMin = 0.85m;
+    public const decimal EffectiveMiningCoefficientMax = 1m;
+    public const decimal StableMiningCoefficientMin = 0.65m;
+    public const decimal StableMiningCoefficientMax = 0.85m;
 
 #pragma warning disable S2325, CA1822 // Экземплярный метод: движок инжектится через DI (как FixedGridEngine)
-    /// <summary>Прибыль за период: глобальный коэффициент * коэффициент машины * время * базовая скорость</summary>
+    /// <summary>Прибыль за период: глобальный коэффициент токена * коэффициент майнинга токена машиной * производительность машины * время * базовая скорость добычи токена</summary>
     public decimal CalculateCash(
-        decimal ruleCoeff,
-        decimal machineCoeff,
+        decimal tokenCoeff,
+        decimal machineTokenCoeff,
+        decimal machineEfficiency,
         decimal timingCoeff,
-        decimal baseMiningSpeed)
+        decimal baseTokenMiningSpeed)
     {
         if (timingCoeff <= 0)
             throw new DomainException("Коэффициент времени должен быть больше нуля");
 
-        return ruleCoeff * machineCoeff * timingCoeff * baseMiningSpeed;
+        return tokenCoeff * machineTokenCoeff * machineEfficiency * timingCoeff * baseTokenMiningSpeed;
     }
 
     /// <summary>Скорость майнинга: глобальный коэффициент * коэффициент машины * базовая скорость</summary>
     public decimal CalculateMiningSpeed(
         decimal ruleCoeff,
         decimal machineCoeff,
-        decimal baseMiningSpeed)
-        => ruleCoeff * machineCoeff * baseMiningSpeed;
+        decimal baseTokenMiningSpeed)
+        => ruleCoeff * machineCoeff * baseTokenMiningSpeed;
 
     /// <summary>Прибыль: скорость майнинга * текущая цена токена</summary>
     public decimal CalculateProfit(decimal miningSpeed, decimal currentPrice)
         => miningSpeed * currentPrice;
 
-    /// <summary>Базовая прибыль: базовая скорость майнинга * текущая цена токена</summary>
-    public decimal CalculateBaseProfit(decimal baseMiningSpeed, decimal currentPrice)
-        => baseMiningSpeed * currentPrice;
+    /// <summary>Базовая прибыль: базовая скорость добычи токена * текущая цена токена</summary>
+    public decimal CalculateBaseProfit(decimal baseTokenMiningSpeed, decimal currentPrice)
+        => baseTokenMiningSpeed * currentPrice;
 
-    /// <summary>Базовая скорость майнинга: константа / текущая цена токена</summary>
-    public decimal CalculateBaseMiningSpeed(decimal currentPrice)
-        => DefaultBaseMiningSpeedDivisor / currentPrice;
+    /// <summary>Базовая скорость добычи токена: константа / текущая цена токена</summary>
+    public decimal CalculateBaseTokenMiningSpeed(decimal currentPrice)
+        => DefaultBaseTokenMiningSpeedDivisor / currentPrice;
 
     /// <summary>
     /// Процент завершения переключения. Для не-switching слотов всегда 100,

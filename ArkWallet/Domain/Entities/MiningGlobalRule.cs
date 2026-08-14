@@ -3,7 +3,7 @@ using ArkWallet.Domain.Exceptions;
 namespace ArkWallet.Domain.Entities;
 
 /// <summary>
-/// Глобальное правило майнинга токена: коэффициенты и базовая скорость добычи
+/// Глобальное правило майнинга токена: коэффициенты и базовая скорость добычи токена
 /// </summary>
 internal class MiningGlobalRule
 {
@@ -11,7 +11,7 @@ internal class MiningGlobalRule
     public string TokenId { get; private set; } = string.Empty;
     public decimal CurrentCoefficient { get; private set; }
     public decimal FutureCoefficient { get; private set; }
-    public decimal BaseMiningSpeed { get; private set; }
+    public decimal BaseTokenMiningSpeed { get; private set; }
 
     public virtual CharacterToken? CharacterToken { get; set; }
 
@@ -19,7 +19,7 @@ internal class MiningGlobalRule
         string tokenId,
         decimal currentCoefficient,
         decimal futureCoefficient,
-        decimal baseMiningSpeed)
+        decimal baseTokenMiningSpeed)
     {
         if (string.IsNullOrWhiteSpace(tokenId))
             throw new DomainException("Токен не указан");
@@ -27,7 +27,7 @@ internal class MiningGlobalRule
             throw new DomainException("Текущий коэффициент должен быть больше нуля");
         if (futureCoefficient <= 0)
             throw new DomainException("Будущий коэффициент должен быть больше нуля");
-        if (baseMiningSpeed <= 0)
+        if (baseTokenMiningSpeed <= 0)
             throw new DomainException("Базовая скорость должна быть больше нуля");
 
         return new MiningGlobalRule
@@ -35,7 +35,7 @@ internal class MiningGlobalRule
             TokenId = tokenId,
             CurrentCoefficient = currentCoefficient,
             FutureCoefficient = futureCoefficient,
-            BaseMiningSpeed = baseMiningSpeed
+            BaseTokenMiningSpeed = baseTokenMiningSpeed
         };
     }
 
@@ -61,11 +61,11 @@ internal class MiningGlobalRule
         FutureCoefficient = futureCoefficient;
     }
 
-    public void UpdateBaseMiningSpeed(decimal baseMiningSpeed)
+    public void UpdateBaseTokenMiningSpeed(decimal baseTokenMiningSpeed)
     {
-        if (baseMiningSpeed <= 0)
+        if (baseTokenMiningSpeed <= 0)
             throw new DomainException("Базовая скорость должна быть больше нуля");
 
-        BaseMiningSpeed = baseMiningSpeed;
+        BaseTokenMiningSpeed = baseTokenMiningSpeed;
     }
 }

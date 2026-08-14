@@ -29,6 +29,7 @@ internal class MiningMachine
     public decimal Reusability { get; private set; }
     public bool IsActiveForSale { get; private set; }
     public decimal Cost { get; private set; }
+    public decimal Efficiency { get; private set; }
     public string Image { get; private set; } = string.Empty;
 
     public virtual ICollection<MiningMachineRule> MiningMachineRules { get; set; } = new List<MiningMachineRule>();
@@ -40,7 +41,8 @@ internal class MiningMachine
         decimal reusability,
         bool isActiveForSale,
         decimal cost,
-        string image)
+        string image,
+        decimal efficiency)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new DomainException("Название машины не может быть пустым");
@@ -52,6 +54,8 @@ internal class MiningMachine
             throw new DomainException("Цена машины должна быть больше нуля");
         if (string.IsNullOrWhiteSpace(image))
             throw new DomainException("Ссылка на изображение не может быть пустой");
+        if (efficiency <= 0)
+            throw new DomainException("Коэффициент производительности должен быть больше нуля");
 
         return new MiningMachine
         {
@@ -61,6 +65,7 @@ internal class MiningMachine
             Reusability = reusability,
             IsActiveForSale = isActiveForSale,
             Cost = cost,
+            Efficiency = efficiency,
             Image = image
         };
     }

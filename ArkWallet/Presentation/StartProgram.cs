@@ -378,9 +378,11 @@ class Program
                 "Reusability" numeric NOT NULL,
                 "IsActiveForSale" boolean NOT NULL,
                 "Cost" numeric NOT NULL,
+                "Efficiency" numeric NOT NULL DEFAULT 1,
                 "Image" text NOT NULL,
                 CONSTRAINT "PK_MiningMachines" PRIMARY KEY ("Id")
             );
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_MiningMachines_Name" ON "MiningMachines" ("Name");
             """;
 
         const string miningMachineRules = """
@@ -405,7 +407,7 @@ class Program
                 "TokenId" text NOT NULL,
                 "CurrentCoefficient" numeric NOT NULL,
                 "FutureCoefficient" numeric NOT NULL,
-                "BaseMiningSpeed" numeric NOT NULL,
+                "BaseTokenMiningSpeed" numeric NOT NULL,
                 CONSTRAINT "PK_MiningGlobalRules" PRIMARY KEY ("Id"),
                 CONSTRAINT "FK_MiningGlobalRules_CharacterTokens_TokenId"
                     FOREIGN KEY ("TokenId") REFERENCES "CharacterTokens" ("Symbol") ON DELETE RESTRICT
