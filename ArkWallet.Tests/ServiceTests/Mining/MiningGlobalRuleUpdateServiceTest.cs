@@ -78,11 +78,11 @@ public class MiningGlobalRuleUpdateServiceTest
         var rule = await db.MiningGlobalRules.FirstAsync(r => r.TokenId == "ZZZ");
         Assert.Equal(1.5m, rule.CurrentCoefficient);
         Assert.Equal(1.3m, rule.FutureCoefficient);
-        Assert.Equal(50m, rule.BaseMiningSpeed);
+        Assert.Equal(50m, rule.BaseTokenMiningSpeed);
     }
 
     [Fact]
-    public async Task UpdateRuleAsync_UpdateBaseMiningSpeed_Updates()
+    public async Task UpdateRuleAsync_UpdateBaseTokenMiningSpeed_Updates()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
         await CreateGlobalRule(db);
@@ -93,7 +93,7 @@ public class MiningGlobalRuleUpdateServiceTest
         var rule = await db.MiningGlobalRules.FirstAsync(r => r.TokenId == "ZZZ");
         Assert.Equal(1m, rule.CurrentCoefficient);
         Assert.Equal(1.2m, rule.FutureCoefficient);
-        Assert.Equal(75m, rule.BaseMiningSpeed);
+        Assert.Equal(75m, rule.BaseTokenMiningSpeed);
     }
 
     [Fact]
@@ -108,6 +108,6 @@ public class MiningGlobalRuleUpdateServiceTest
         var rule = await db.MiningGlobalRules.FirstAsync(r => r.TokenId == "ZZZ");
         Assert.Equal(2m, rule.CurrentCoefficient);
         Assert.Equal(1.8m, rule.FutureCoefficient);
-        Assert.Equal(100m, rule.BaseMiningSpeed);
+        Assert.Equal(100m, rule.BaseTokenMiningSpeed);
     }
 }

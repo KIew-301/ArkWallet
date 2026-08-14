@@ -16,7 +16,7 @@ public class MiningMachineRuleCreationServiceTest
     private static async Task<MiningMachine> CreateMachineAsync(ArkWalletDbContext db, string name = "SM-01")
     {
         var machine = MiningMachine.Create(
-            name, MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz");
+            name, MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz", 1m);
         db.MiningMachines.Add(machine);
         await db.SaveChangesAsync();
         return machine;

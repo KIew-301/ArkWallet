@@ -12,7 +12,7 @@ public class MiningMachineRuleDeletionServiceTest
     private static async Task<(long MachineId, long RuleId)> CreateMachineWithRule(ArkWalletDbContext db, string symbol = "ZZZ")
     {
         await HelpMethods.CreateToken(db, symbol);
-        var machine = MiningMachine.Create("SM-01", MiningMachineType.SMAI, 10, 50, true, 1000, "img.zzz");
+        var machine = MiningMachine.Create("SM-01", MiningMachineType.SMAI, 10, 50, true, 1000, "img.zzz", 1m);
         db.MiningMachines.Add(machine);
         await db.SaveChangesAsync();
 

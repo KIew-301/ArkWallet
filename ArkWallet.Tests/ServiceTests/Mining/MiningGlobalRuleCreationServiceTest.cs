@@ -45,10 +45,10 @@ public class MiningGlobalRuleCreationServiceTest
         }
 
         var aaa = rules.Single(r => r.TokenId == "AAA");
-        Assert.Equal(0.5m, aaa.BaseMiningSpeed);
+        Assert.Equal(0.5m, aaa.BaseTokenMiningSpeed);
 
         var bbb = rules.Single(r => r.TokenId == "BBB");
-        Assert.Equal(1m, bbb.BaseMiningSpeed);
+        Assert.Equal(1m, bbb.BaseTokenMiningSpeed);
     }
 
     [Fact]
@@ -66,7 +66,7 @@ public class MiningGlobalRuleCreationServiceTest
         var rule = await db.MiningGlobalRules.SingleAsync();
         Assert.Equal(1.1m, rule.CurrentCoefficient);
         Assert.InRange(rule.FutureCoefficient, MiningEngine.MinCoefficient, MiningEngine.MaxCoefficient);
-        Assert.Equal(0.5m, rule.BaseMiningSpeed);
+        Assert.Equal(0.5m, rule.BaseTokenMiningSpeed);
     }
 
     [Fact]

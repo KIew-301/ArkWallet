@@ -18,7 +18,7 @@ public class MiningMachineSlotQueryServiceTest
         ArkWalletDbContext db, string name = "SM-01", params (string Symbol, decimal Coefficient)[] rules)
     {
         var machine = MiningMachine.Create(
-            name, MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz");
+            name, MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz", 1m);
         foreach (var (symbol, coefficient) in rules)
             machine.MiningMachineRules.Add(MiningMachineRule.Create(0, symbol, coefficient));
         db.MiningMachines.Add(machine);
@@ -74,6 +74,49 @@ public class MiningMachineSlotQueryServiceTest
         Assert.Equal("AAA", data.ActiveTokenMiningData.Symbol);
         Assert.Equal(16m, data.ActiveTokenMiningData.MiningSpeed);
         Assert.Equal(1600m, data.ActiveTokenMiningData.Profit);
+    }
+
+    [Fact]
+    public async Task TakeSlotsByTraderAsync_SplitsTokensByCoefficient_ActiveTokenInNeitherGroup()
+    {
+        await using var db = await DbTest.CreateInitializedDbContextAsync();
+        var trader = await HelpMethods.RegisterTrader(db, 111);
+        Assert.True(trader.IsSuccess, trader.Message);
+
+        await CreateTokenAsync(db, "AAA", price: 100);
+        await CreateTokenAsync(db, "BBB", price: 100);
+        await CreateTokenAsync(db, "CCC", price: 100);
+        var machine = await CreateMachineAsync(db, name: "SM-01",
+            ("AAA", 0.9m), ("BBB", 1m), ("CCC", 0.8m));
+        db.MiningGlobalRules.Add(MiningGlobalRule.Create("AAA", 4m, 4m, 2m));
+        db.MiningGlobalRules.Add(MiningGlobalRule.Create("BBB", 4m, 4m, 2m));
+        db.MiningGlobalRules.Add(MiningGlobalRule.Create("CCC", 1m, 1m, 1m));
+        await db.SaveChangesAsync();
+        var machineRuleId = machine.MiningMachineRules.Single(r => r.CharacterTokenId == "AAA").Id;
+        var globalRuleId = db.MiningGlobalRules.Single(r => r.TokenId == "AAA").Id;
+
+        var slot = MiningMachineSlot.Create(
+            111, machine.Id, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        slot.SwitchTargetToken(111, "AAA", machineRuleId, globalRuleId, 10, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        slot.CompleteSwitching();
+        db.MiningMachineSlots.Add(slot);
+        await db.SaveChangesAsync();
+
+        var result = await CreateService(db).TakeSlotsByTraderAsync(111);
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.True(result.TryGetData(out var slots));
+        var data = Assert.Single(slots);
+
+        Assert.Equal("AAA", data.ActiveTokenMiningData.Symbol);
+        Assert.DoesNotContain(data.EffectiveTokensMiningData, d => d.Symbol == "AAA");
+        Assert.DoesNotContain(data.StableTokensMiningData, d => d.Symbol == "AAA");
+
+        var effective = Assert.Single(data.EffectiveTokensMiningData);
+        Assert.Equal("BBB", effective.Symbol);
+
+        var stable = Assert.Single(data.StableTokensMiningData);
+        Assert.Equal("CCC", stable.Symbol);
     }
 
     [Fact]

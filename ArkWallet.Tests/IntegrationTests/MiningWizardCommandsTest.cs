@@ -29,11 +29,12 @@ public class MiningWizardCommandsTest
     private void SetupMachines(List<MiningMachineData>? machines = null)
     {
         _m.MiningMachineQuery
-            .Setup(s => s.TakeActiveForSaleMachinesAsync())
+            .Setup(s => s.TakeActiveForSaleMachinesAsync(It.IsAny<long>()))
             .ReturnsAsync(Result<List<MiningMachineData>>.Ok(machines ?? new List<MiningMachineData>
             {
                 new(1, "SM-01", "SMAI", 150m, 10, 50, 10000m,
-                    new List<TokensMiningData> { TokenData("ARK_001", 250m) })
+                    new List<TokensMiningData> { TokenData("ARK_001", 250m) },
+                    new List<TokensMiningData>())
             }));
     }
 
@@ -45,6 +46,7 @@ public class MiningWizardCommandsTest
             {
                 new(5, "SM-01", "SMAI", "Active", 12.5m, 0m, 10, 5000m,
                     new ActiveTokenMiningData(string.Empty, "ARK_001", 5m, 250m),
+                    new List<TokensMiningData>(),
                     new List<TokensMiningData>())
             }));
     }
@@ -58,7 +60,7 @@ public class MiningWizardCommandsTest
     {
         _m.MiningGlobalRuleQuery
             .Setup(s => s.TakeRulesAsync())
-            .ReturnsAsync(Result<List<TokensMiningRules>>.Ok(new List<TokensMiningRules>()));
+            .ReturnsAsync(Result<List<TokensMiningRuleData>>.Ok(new List<TokensMiningRuleData>()));
 
         var result = await _engine.ProcessInput(UserId, "/mining_rules");
 
@@ -70,10 +72,10 @@ public class MiningWizardCommandsTest
     {
         _m.MiningGlobalRuleQuery
             .Setup(s => s.TakeRulesAsync())
-            .ReturnsAsync(Result<List<TokensMiningRules>>.Ok(new List<TokensMiningRules>
+            .ReturnsAsync(Result<List<TokensMiningRuleData>>.Ok(new List<TokensMiningRuleData>
             {
                 new(new TokenInfoDto("ARK_001", "Ark Knight", 100m),
-                    MiningStatus.Profitable, MiningStatus.Stable, 50m, 5000m)
+                    "Profitable", "Stable", 50m, 5000m)
             }));
 
         var result = await _engine.ProcessInput(UserId, "/mining_rules");
@@ -515,7 +517,7 @@ public class MiningWizardCommandsTest
         await _engine.ProcessInput(UserId, "/admin_mining_update_global_rule");
 
         var result = await _engine.ProcessInput(UserId,
-            "{\"symbol\":\"ARK_001\",\"currentCoefficient\":1.05,\"futureCoefficient\":0.95,\"baseMiningSpeed\":50}");
+            "{\"symbol\":\"ARK_001\",\"currentCoefficient\":1.05,\"futureCoefficient\":0.95,\"baseTokenMiningSpeed\":50}");
 
         Assert.Equal("Global rule for ARK_001 updated.", result.Message);
     }

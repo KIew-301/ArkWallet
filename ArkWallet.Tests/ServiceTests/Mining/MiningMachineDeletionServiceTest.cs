@@ -11,7 +11,7 @@ public class MiningMachineDeletionServiceTest
 {
     private static async Task<long> CreateMachine(ArkWalletDbContext db, bool isActiveForSale = true)
     {
-        var machine = MiningMachine.Create("SM-01", MiningMachineType.SMAI, 10, 50, isActiveForSale, 1000, "img.zzz");
+        var machine = MiningMachine.Create("SM-01", MiningMachineType.SMAI, 10, 50, isActiveForSale, 1000, "img.zzz", 1m);
         db.MiningMachines.Add(machine);
         await db.SaveChangesAsync();
         return machine.Id;

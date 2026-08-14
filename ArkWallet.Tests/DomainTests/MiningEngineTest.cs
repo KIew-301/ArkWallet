@@ -10,9 +10,17 @@ public class MiningEngineTest
     [Fact]
     public void CalculateCash_MultipliesAllCoefficients()
     {
-        var result = _engine.CalculateCash(4m, 2m, 3m, 2m);
+        var result = _engine.CalculateCash(4m, 2m, 1m, 3m, 2m);
 
         Assert.Equal(48m, result);
+    }
+
+    [Fact]
+    public void CalculateCash_MachineEfficiency_MultipliesResult()
+    {
+        var result = _engine.CalculateCash(4m, 2m, 1.5m, 3m, 2m);
+
+        Assert.Equal(72m, result);
     }
 
     [Theory]
@@ -21,7 +29,7 @@ public class MiningEngineTest
     [InlineData(-5.5)]
     public void CalculateCash_TimingCoeffNotPositive_Throws(decimal timingCoeff)
     {
-        var exception = Assert.Throws<DomainException>(() => _engine.CalculateCash(1m, 1m, timingCoeff, 1m));
+        var exception = Assert.Throws<DomainException>(() => _engine.CalculateCash(1m, 1m, 1m, timingCoeff, 1m));
         Assert.Contains("больше нуля", exception.Message);
     }
 
@@ -50,9 +58,9 @@ public class MiningEngineTest
     }
 
     [Fact]
-    public void CalculateBaseMiningSpeed_DividesConstantByPrice()
+    public void CalculateBaseTokenMiningSpeed_DividesConstantByPrice()
     {
-        var result = _engine.CalculateBaseMiningSpeed(50m);
+        var result = _engine.CalculateBaseTokenMiningSpeed(50m);
 
         Assert.Equal(1m, result);
     }
@@ -61,9 +69,9 @@ public class MiningEngineTest
     [InlineData(10, 5)]
     [InlineData(100, 0.5)]
     [InlineData(200, 0.25)]
-    public void CalculateBaseMiningSpeed_DecreasesAsPriceGrows(int price, decimal expectedSpeed)
+    public void CalculateBaseTokenMiningSpeed_DecreasesAsPriceGrows(int price, decimal expectedSpeed)
     {
-        var result = _engine.CalculateBaseMiningSpeed(price);
+        var result = _engine.CalculateBaseTokenMiningSpeed(price);
 
         Assert.Equal(expectedSpeed, result);
     }

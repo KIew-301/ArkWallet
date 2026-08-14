@@ -108,7 +108,7 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
         {
             await HelpMethods.RegisterTrader(seed, 201);
 
-            var machine = MiningMachine.Create("SM-01", MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz");
+            var machine = MiningMachine.Create("SM-01", MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz", 1m);
             seed.MiningMachines.Add(machine);
             await seed.SaveChangesAsync();
 
@@ -150,7 +150,7 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
         {
             await HelpMethods.RegisterTrader(seed, 301);
 
-            var machine = MiningMachine.Create("SM-02", MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz");
+            var machine = MiningMachine.Create("SM-02", MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz", 1m);
             seed.MiningMachines.Add(machine);
             await seed.SaveChangesAsync();
 
@@ -188,7 +188,7 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
         long machineId;
         await using (var seed = CreateContext())
         {
-            var machine = MiningMachine.Create("SM-03", MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz");
+            var machine = MiningMachine.Create("SM-03", MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz", 1m);
             seed.MiningMachines.Add(machine);
             await seed.SaveChangesAsync();
 

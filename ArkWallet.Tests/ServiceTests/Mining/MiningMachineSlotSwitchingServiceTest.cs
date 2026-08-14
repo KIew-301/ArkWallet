@@ -21,7 +21,7 @@ public class MiningMachineSlotSwitchingServiceTest
         var token = await db.CharacterTokens.SingleAsync(t => t.Symbol == symbol);
 
         var machine = MiningMachine.Create(
-            machineName, MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz");
+            machineName, MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz", 1m);
         machine.MiningMachineRules.Add(MiningMachineRule.Create(0, symbol, 1.5m));
         db.MiningMachines.Add(machine);
         await db.SaveChangesAsync();
@@ -127,7 +127,7 @@ public class MiningMachineSlotSwitchingServiceTest
         var tokenResult = await HelpMethods.CreateToken(db, "AAA");
         Assert.True(tokenResult.IsSuccess, tokenResult.Message);
 
-        var machine = MiningMachine.Create("SM-01", MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz");
+        var machine = MiningMachine.Create("SM-01", MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz", 1m);
         machine.MiningMachineRules.Add(MiningMachineRule.Create(0, "AAA", 1m));
         db.MiningMachines.Add(machine);
         await db.SaveChangesAsync();
@@ -164,7 +164,7 @@ public class MiningMachineSlotSwitchingServiceTest
         var tokenResult = await HelpMethods.CreateToken(db, "AAA");
         Assert.True(tokenResult.IsSuccess, tokenResult.Message);
 
-        var machine = MiningMachine.Create("SM-01", MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz");
+        var machine = MiningMachine.Create("SM-01", MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz", 1m);
         db.MiningMachines.Add(machine);
         await db.SaveChangesAsync();
         var globalRule = await CreateGlobalRuleAsync(db, "AAA");

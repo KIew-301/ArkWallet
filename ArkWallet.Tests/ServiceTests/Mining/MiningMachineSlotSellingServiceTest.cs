@@ -17,7 +17,7 @@ public class MiningMachineSlotSellingServiceTest
         ArkWalletDbContext db, long traderId, long? ownerId = null, decimal cost = 400)
     {
         var machine = MiningMachine.Create(
-            "SM-01", MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz");
+            "SM-01", MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz", 1m);
         db.MiningMachines.Add(machine);
         await db.SaveChangesAsync();
 
@@ -64,7 +64,7 @@ public class MiningMachineSlotSellingServiceTest
         var tokenResult = await HelpMethods.CreateToken(db, "AAA");
         Assert.True(tokenResult.IsSuccess, tokenResult.Message);
 
-        var machine = MiningMachine.Create("SM-01", MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz");
+        var machine = MiningMachine.Create("SM-01", MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz", 1m);
         var machineRule = MiningMachineRule.Create(0, "AAA", 1.5m);
         machine.MiningMachineRules.Add(machineRule);
         db.MiningMachines.Add(machine);

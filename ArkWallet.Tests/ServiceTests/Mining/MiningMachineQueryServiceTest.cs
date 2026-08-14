@@ -28,7 +28,7 @@ public class MiningMachineQueryServiceTest
         params (string Symbol, decimal Coefficient)[] rules)
     {
         var machine = MiningMachine.Create(
-            name, MiningMachineType.SMAI, 10, 80, isActiveForSale, cost, "img.zzz");
+            name, MiningMachineType.SMAI, 10, 80, isActiveForSale, cost, "img.zzz", 1m);
         foreach (var (symbol, coefficient) in rules)
             machine.MiningMachineRules.Add(MiningMachineRule.Create(0, symbol, coefficient));
         return machine;
@@ -43,11 +43,11 @@ public class MiningMachineQueryServiceTest
         var globalRule = MiningGlobalRule.Create("AAA", 4m, 4m, 2m);
         db.MiningGlobalRules.Add(globalRule);
 
-        var machine = CreateMachine("SM-01", 1000, rules: ("AAA", 2m));
+        var machine = CreateMachine("SM-01", 1000, rules: ("AAA", 1m));
         db.MiningMachines.Add(machine);
         await db.SaveChangesAsync();
 
-        var result = await CreateService(db).TakeActiveForSaleMachinesAsync();
+        var result = await CreateService(db).TakeActiveForSaleMachinesAsync(0);
 
         Assert.True(result.IsSuccess, result.Message);
         Assert.True(result.TryGetData(out var machines));
@@ -59,40 +59,48 @@ public class MiningMachineQueryServiceTest
         Assert.Equal(80m, data.Reusability);
         Assert.Equal(1000m, data.Cost);
 
-        var tokenData = Assert.Single(data.TokensMiningData);
+        var tokenData = Assert.Single(data.EffectiveTokensMiningData);
         Assert.Equal("AAA", tokenData.Symbol);
-        Assert.Equal(16m, tokenData.MiningSpeed);
-        Assert.Equal(1600m, tokenData.Profit);
-        Assert.Equal(1600m, data.MaxProfit);
+        Assert.Equal(8m, tokenData.MiningSpeed);
+        Assert.Equal(800m, tokenData.Profit);
+        Assert.Empty(data.StableTokensMiningData);
+        Assert.Equal(800m, data.MaxProfit);
     }
 
     [Fact]
-    public async Task TakeActiveForSaleMachinesAsync_MaxProfitIsMaxAcrossTokens_AndSortedByProfitDesc()
+    public async Task TakeActiveForSaleMachinesAsync_SplitsTokensByCoefficient_AndMaxProfitAcrossGroups()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
         await CreateTokenAsync(db, "AAA", price: 100);
         await CreateTokenAsync(db, "BBB", price: 50);
+        await CreateTokenAsync(db, "CCC", price: 100);
 
         db.MiningGlobalRules.Add(MiningGlobalRule.Create("AAA", 4m, 4m, 2m));
         db.MiningGlobalRules.Add(MiningGlobalRule.Create("BBB", 1m, 1m, 1m));
+        db.MiningGlobalRules.Add(MiningGlobalRule.Create("CCC", 4m, 4m, 2m));
 
         var machine = CreateMachine("SM-01", 1000, true,
-            ("AAA", 2m), ("BBB", 10m));
+            ("AAA", 1m), ("BBB", 0.8m), ("CCC", 2m));
         db.MiningMachines.Add(machine);
         await db.SaveChangesAsync();
 
-        var result = await CreateService(db).TakeActiveForSaleMachinesAsync();
+        var result = await CreateService(db).TakeActiveForSaleMachinesAsync(0);
 
         Assert.True(result.IsSuccess, result.Message);
         Assert.True(result.TryGetData(out var machines));
         var data = Assert.Single(machines);
 
-        var bySymbol = data.TokensMiningData.ToDictionary(d => d.Symbol);
-        Assert.Equal(500m, bySymbol["BBB"].Profit);
-        Assert.Equal(1600m, bySymbol["AAA"].Profit);
-        Assert.Equal(1600m, data.MaxProfit);
-        Assert.Equal("AAA", data.TokensMiningData[0].Symbol);
-        Assert.Equal("BBB", data.TokensMiningData[1].Symbol);
+        var effective = Assert.Single(data.EffectiveTokensMiningData);
+        Assert.Equal("AAA", effective.Symbol);
+        Assert.Equal(800m, effective.Profit);
+
+        var stable = Assert.Single(data.StableTokensMiningData);
+        Assert.Equal("BBB", stable.Symbol);
+        Assert.Equal(40m, stable.Profit);
+
+        Assert.DoesNotContain(data.EffectiveTokensMiningData, d => d.Symbol == "CCC");
+        Assert.DoesNotContain(data.StableTokensMiningData, d => d.Symbol == "CCC");
+        Assert.Equal(800m, data.MaxProfit);
     }
 
     [Fact]
@@ -105,7 +113,7 @@ public class MiningMachineQueryServiceTest
             CreateMachine("VIP", 700));
         await db.SaveChangesAsync();
 
-        var result = await CreateService(db).TakeActiveForSaleMachinesAsync();
+        var result = await CreateService(db).TakeActiveForSaleMachinesAsync(0);
 
         Assert.True(result.IsSuccess, result.Message);
         Assert.True(result.TryGetData(out var machines));
@@ -119,7 +127,7 @@ public class MiningMachineQueryServiceTest
         db.MiningMachines.Add(CreateMachine("INACTIVE", 100, isActiveForSale: false));
         await db.SaveChangesAsync();
 
-        var result = await CreateService(db).TakeActiveForSaleMachinesAsync();
+        var result = await CreateService(db).TakeActiveForSaleMachinesAsync(0);
 
         Assert.True(result.IsSuccess, result.Message);
         Assert.True(result.TryGetData(out var machines));
@@ -133,12 +141,13 @@ public class MiningMachineQueryServiceTest
         db.MiningMachines.Add(CreateMachine("SM-01", 1000));
         await db.SaveChangesAsync();
 
-        var result = await CreateService(db).TakeActiveForSaleMachinesAsync();
+        var result = await CreateService(db).TakeActiveForSaleMachinesAsync(0);
 
         Assert.True(result.IsSuccess, result.Message);
         Assert.True(result.TryGetData(out var machines));
         var data = Assert.Single(machines);
-        Assert.Empty(data.TokensMiningData);
+        Assert.Empty(data.EffectiveTokensMiningData);
+        Assert.Empty(data.StableTokensMiningData);
         Assert.Equal(0m, data.MaxProfit);
     }
 
@@ -147,10 +156,60 @@ public class MiningMachineQueryServiceTest
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
 
-        var result = await CreateService(db).TakeActiveForSaleMachinesAsync();
+        var result = await CreateService(db).TakeActiveForSaleMachinesAsync(0);
 
         Assert.True(result.IsSuccess, result.Message);
         Assert.True(result.TryGetData(out var machines));
         Assert.Empty(machines);
+    }
+
+    [Fact]
+    public async Task TakeActiveForSaleMachinesAsync_OwnedMachines_AreExcluded()
+    {
+        await using var db = await DbTest.CreateInitializedDbContextAsync();
+        var trader = await HelpMethods.RegisterTrader(db, 111);
+        Assert.True(trader.IsSuccess, trader.Message);
+
+        db.MiningMachines.AddRange(
+            CreateMachine("OWNED", 100),
+            CreateMachine("FREE", 200));
+        await db.SaveChangesAsync();
+
+        var owned = await db.MiningMachines.SingleAsync(m => m.Name == "OWNED");
+        db.MiningMachineSlots.Add(MiningMachineSlot.Create(
+            111, owned.Id, 80, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)));
+        await db.SaveChangesAsync();
+
+        var result = await CreateService(db).TakeActiveForSaleMachinesAsync(111);
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.True(result.TryGetData(out var machines));
+        var data = Assert.Single(machines);
+        Assert.Equal("FREE", data.Name);
+    }
+
+    [Fact]
+    public async Task TakeActiveForSaleMachinesAsync_SoldMachine_IsNotExcluded()
+    {
+        await using var db = await DbTest.CreateInitializedDbContextAsync();
+        var trader = await HelpMethods.RegisterTrader(db, 111);
+        Assert.True(trader.IsSuccess, trader.Message);
+
+        db.MiningMachines.Add(CreateMachine("SOLD", 100));
+        await db.SaveChangesAsync();
+
+        var machine = await db.MiningMachines.SingleAsync(m => m.Name == "SOLD");
+        var slot = MiningMachineSlot.Create(
+            111, machine.Id, 80, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        slot.Sell(111, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        db.MiningMachineSlots.Add(slot);
+        await db.SaveChangesAsync();
+
+        var result = await CreateService(db).TakeActiveForSaleMachinesAsync(111);
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.True(result.TryGetData(out var machines));
+        var data = Assert.Single(machines);
+        Assert.Equal("SOLD", data.Name);
     }
 }

@@ -41,7 +41,7 @@ public class MiningGlobalRuleQueryServiceTest
         Assert.Equal("AAA", rule.TokenInfo.Symbol);
         Assert.Equal("Token", rule.TokenInfo.Name);
         Assert.Equal(100m, rule.TokenInfo.CurrentPrice);
-        Assert.Equal(2m, rule.BaseMiningSpeed);
+        Assert.Equal(2m, rule.BaseTokenMiningSpeed);
         Assert.Equal(200m, rule.BaseProfit);
     }
 
@@ -56,7 +56,7 @@ public class MiningGlobalRuleQueryServiceTest
         Assert.True(result.IsSuccess, result.Message);
         Assert.True(result.TryGetData(out var rules));
         var rule = Assert.Single(rules);
-        Assert.Equal(0m, rule.BaseMiningSpeed);
+        Assert.Equal(0m, rule.BaseTokenMiningSpeed);
         Assert.Equal(0m, rule.BaseProfit);
     }
 
@@ -97,9 +97,9 @@ public class MiningGlobalRuleQueryServiceTest
         Assert.True(result.TryGetData(out var rules));
         var bySymbol = rules.ToDictionary(r => r.TokenInfo.Symbol);
 
-        Assert.Equal(MiningStatus.Unprofitable, bySymbol["AAA"].CurrentStatus);
-        Assert.Equal(MiningStatus.Stable, bySymbol["BBB"].CurrentStatus);
-        Assert.Equal(MiningStatus.Profitable, bySymbol["CCC"].CurrentStatus);
+        Assert.Equal(nameof(MiningStatus.Unprofitable), bySymbol["AAA"].CurrentMiningStatus);
+        Assert.Equal(nameof(MiningStatus.Stable), bySymbol["BBB"].CurrentMiningStatus);
+        Assert.Equal(nameof(MiningStatus.Profitable), bySymbol["CCC"].CurrentMiningStatus);
     }
 
     [Fact]

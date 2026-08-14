@@ -20,6 +20,7 @@ public class MiningMachineCreationOrchestratorTest
             true,
             1000,
             "img.zzz",
+            1m,
             withRules
                 ? [new MiningMachineRuleCreationCommand(0, "AAA", 1.5m)]
                 : null);

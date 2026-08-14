@@ -21,8 +21,9 @@ public class MiningMachineCreationServiceTest
         bool isActiveForSale = true,
         decimal cost = 1000,
         string image = "img.zzz",
+        decimal efficiency = 1,
         List<MiningMachineRuleCreationCommand>? rules = null) =>
-        new(name, type, switchingTime, reusability, isActiveForSale, cost, image, rules);
+        new(name, type, switchingTime, reusability, isActiveForSale, cost, image, efficiency, rules);
 
     [Fact]
     public async Task CreateMachineAsync_AllFields_ReturnsSuccess()
@@ -102,6 +103,34 @@ public class MiningMachineCreationServiceTest
     }
 
     [Theory]
+    [InlineData(0)]
+    [InlineData(-10)]
+    public async Task CreateMachineAsync_InvalidEfficiency_ReturnsFail(decimal efficiency)
+    {
+        await using var db = await DbTest.CreateInitializedDbContextAsync();
+
+        var result = await CreateService(db).CreateMachineAsync(BuildCommand(efficiency: efficiency));
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("больше нуля", result.Message);
+    }
+
+    [Fact]
+    public async Task CreateMachineAsync_DuplicateName_ReturnsFail()
+    {
+        await using var db = await DbTest.CreateInitializedDbContextAsync();
+
+        var first = await CreateService(db).CreateMachineAsync(BuildCommand());
+        Assert.True(first.IsSuccess, first.Message);
+
+        var duplicate = await CreateService(db).CreateMachineAsync(BuildCommand());
+
+        Assert.False(duplicate.IsSuccess);
+        Assert.Contains("уже существует", duplicate.Message);
+        Assert.Equal(1, await db.MiningMachines.CountAsync());
+    }
+
+    [Theory]
     [InlineData("")]
     [InlineData("   ")]
     public async Task CreateMachineAsync_EmptyImage_ReturnsFail(string image)
@@ -150,6 +179,35 @@ public class MiningMachineCreationServiceTest
         Assert.True(result.TryGetData(out var data));
         Assert.Equal(2, data.Count);
         Assert.Equal(2, await db.MiningMachines.CountAsync());
+    }
+
+    [Fact]
+    public async Task CreateMachinesAsync_DuplicateNameInBatch_ReturnsFail()
+    {
+        await using var db = await DbTest.CreateInitializedDbContextAsync();
+
+        var result = await CreateService(db).CreateMachinesAsync(
+            new[] { BuildCommand(name: "M1"), BuildCommand(name: "M1") });
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("уже существуют", result.Message);
+        Assert.Empty(await db.MiningMachines.ToListAsync());
+    }
+
+    [Fact]
+    public async Task CreateMachinesAsync_ExistingNameInDb_ReturnsFail()
+    {
+        await using var db = await DbTest.CreateInitializedDbContextAsync();
+
+        var first = await CreateService(db).CreateMachineAsync(BuildCommand(name: "M1"));
+        Assert.True(first.IsSuccess, first.Message);
+
+        var result = await CreateService(db).CreateMachinesAsync(
+            new[] { BuildCommand(name: "M1"), BuildCommand(name: "M2") });
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("уже существуют", result.Message);
+        Assert.Equal(1, await db.MiningMachines.CountAsync());
     }
 
     [Fact]

@@ -20,7 +20,7 @@ public class MiningMachineSlotBuyingServiceTest
         bool isActiveForSale = true)
     {
         var machine = MiningMachine.Create(
-            name, MiningMachineType.SMAI, 10, reusability, isActiveForSale, cost, "img.zzz");
+            name, MiningMachineType.SMAI, 10, reusability, isActiveForSale, cost, "img.zzz", 1m);
         db.MiningMachines.Add(machine);
         return machine;
     }
@@ -76,17 +76,20 @@ public class MiningMachineSlotBuyingServiceTest
         Assert.True(trader.IsSuccess, trader.Message);
         await HelpMethods.GiveMoney(db, 111, 1000000);
 
-        var machine = CreateMachine(db, cost: 100);
+        for (var i = 0; i < 11; i++)
+            CreateMachine(db, name: $"SM-{i:00}", cost: 100);
         await db.SaveChangesAsync();
 
         var service = CreateService(db);
         for (var i = 0; i < 10; i++)
         {
+            var machine = await db.MiningMachines.SingleAsync(m => m.Name == $"SM-{i:00}");
             var result = await service.BuyMachineAsync(111, machine.Id);
             Assert.True(result.IsSuccess, $"Purchase #{i}: {result.Message}");
         }
 
-        var eleventh = await service.BuyMachineAsync(111, machine.Id);
+        var eleventhMachine = await db.MiningMachines.SingleAsync(m => m.Name == "SM-10");
+        var eleventh = await service.BuyMachineAsync(111, eleventhMachine.Id);
 
         Assert.False(eleventh.IsSuccess);
         Assert.Contains("10", eleventh.Message);
@@ -101,12 +104,14 @@ public class MiningMachineSlotBuyingServiceTest
         Assert.True(trader.IsSuccess, trader.Message);
         await HelpMethods.GiveMoney(db, 111, 1000000);
 
-        var machine = CreateMachine(db, cost: 100);
+        for (var i = 0; i < 11; i++)
+            CreateMachine(db, name: $"SM-{i:00}", cost: 100);
         await db.SaveChangesAsync();
 
         var service = CreateService(db);
         for (var i = 0; i < 10; i++)
         {
+            var machine = await db.MiningMachines.SingleAsync(m => m.Name == $"SM-{i:00}");
             var result = await service.BuyMachineAsync(111, machine.Id);
             Assert.True(result.IsSuccess, result.Message);
         }
@@ -115,10 +120,32 @@ public class MiningMachineSlotBuyingServiceTest
         soldSlot.Sell(111, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         await db.SaveChangesAsync();
 
-        var afterSell = await service.BuyMachineAsync(111, machine.Id);
+        var afterSell = await service.BuyMachineAsync(111, (await db.MiningMachines.SingleAsync(m => m.Name == "SM-10")).Id);
 
         Assert.True(afterSell.IsSuccess, afterSell.Message);
         Assert.Equal(10, await db.MiningMachineSlots.CountAsync(s => s.TraderId == 111 && s.Status != MiningMachineSlotStatus.Sold));
+    }
+
+    [Fact]
+    public async Task BuyMachineAsync_AlreadyOwned_ReturnsFail()
+    {
+        await using var db = await DbTest.CreateInitializedDbContextAsync();
+        var trader = await HelpMethods.RegisterTrader(db, 111);
+        Assert.True(trader.IsSuccess, trader.Message);
+        await HelpMethods.GiveMoney(db, 111, 10000);
+
+        var machine = CreateMachine(db, cost: 100);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var first = await service.BuyMachineAsync(111, machine.Id);
+        Assert.True(first.IsSuccess, first.Message);
+
+        var second = await service.BuyMachineAsync(111, machine.Id);
+
+        Assert.False(second.IsSuccess);
+        Assert.Contains("уже есть такая машина", second.Message);
+        Assert.Single(await db.MiningMachineSlots.Where(s => s.TraderId == 111).ToListAsync());
     }
 
     [Fact]

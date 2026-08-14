@@ -19,18 +19,20 @@ public class MiningMachineSlotCalculationServiceTest
         string symbol = "AAA",
         decimal globalCoefficient = 4m,
         decimal machineCoefficient = 2m,
-        decimal baseMiningSpeed = 2m)
+        decimal BaseTokenMiningSpeed = 2m,
+        decimal machineEfficiency = 1m,
+        string machineName = "SM-01")
     {
         var tokenResult = await HelpMethods.CreateToken(db, symbol);
         Assert.True(tokenResult.IsSuccess, tokenResult.Message);
 
         var machine = MiningMachine.Create(
-            "SM-01", MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz");
+            machineName, MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz", machineEfficiency);
         var machineRule = MiningMachineRule.Create(0, symbol, machineCoefficient);
         machine.MiningMachineRules.Add(machineRule);
         db.MiningMachines.Add(machine);
 
-        var globalRule = MiningGlobalRule.Create(symbol, globalCoefficient, globalCoefficient, baseMiningSpeed);
+        var globalRule = MiningGlobalRule.Create(symbol, globalCoefficient, globalCoefficient, BaseTokenMiningSpeed);
         db.MiningGlobalRules.Add(globalRule);
         await db.SaveChangesAsync();
 
@@ -63,14 +65,33 @@ public class MiningMachineSlotCalculationServiceTest
     }
 
     [Fact]
+    public async Task TakeTokensOnMachinesAsync_MachineEfficiency_MultipliesTokens()
+    {
+        await using var db = await DbTest.CreateInitializedDbContextAsync();
+        var trader = await HelpMethods.RegisterTrader(db, 111);
+        Assert.True(trader.IsSuccess, trader.Message);
+
+        await CreateActiveSlotAsync(db, 111, machineEfficiency: 1.5m);
+
+        var result = await CreateService(db).TakeTokensOnMachinesAsync(3m);
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.True(result.TryGetData(out var processed));
+        Assert.Equal(1, processed);
+
+        var slot = await db.MiningMachineSlots.SingleAsync();
+        Assert.Equal(72m, slot.TokensAmountCollected);
+    }
+
+    [Fact]
     public async Task TakeTokensOnMachinesAsync_MultipleSlots_AccumulatesTokens()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
         var trader = await HelpMethods.RegisterTrader(db, 111);
         Assert.True(trader.IsSuccess, trader.Message);
 
-        await CreateActiveSlotAsync(db, 111, "AAA");
-        await CreateActiveSlotAsync(db, 111, "BBB");
+        await CreateActiveSlotAsync(db, 111, "AAA", machineName: "SM-01");
+        await CreateActiveSlotAsync(db, 111, "BBB", machineName: "SM-02");
 
         var result = await CreateService(db).TakeTokensOnMachinesAsync(1m);
 
@@ -117,7 +138,7 @@ public class MiningMachineSlotCalculationServiceTest
 
         var tokenResult = await HelpMethods.CreateToken(db, "AAA");
         Assert.True(tokenResult.IsSuccess, tokenResult.Message);
-        var machine = MiningMachine.Create("SM-01", MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz");
+        var machine = MiningMachine.Create("SM-01", MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz", 1m);
         var machineRule = MiningMachineRule.Create(0, "AAA", 2m);
         machine.MiningMachineRules.Add(machineRule);
         db.MiningMachines.Add(machine);
