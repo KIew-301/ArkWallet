@@ -3,6 +3,7 @@ using ArkWallet.Presentation.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics.CodeAnalysis;
+using System.Security.Claims;
 
 namespace ArkWallet.Presentation.API;
 
@@ -28,7 +29,10 @@ public class MiningMachinesController(IMiningMachineQueryService miningMachineQu
     [HttpGet("machine")]
     public async Task<IActionResult> GetMachines()
     {
-        var result = await miningMachineQueryService.TakeActiveForSaleMachinesAsync();
+        if (!long.TryParse(User?.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var traderId))
+            return Unauthorized();
+
+        var result = await miningMachineQueryService.TakeActiveForSaleMachinesAsync(traderId);
 
         if (!result.TryGetData(out var data))
             return BadRequest(result.Message);

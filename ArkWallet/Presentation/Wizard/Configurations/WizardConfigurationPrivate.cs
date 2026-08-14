@@ -390,7 +390,7 @@ namespace ArkWallet.Entities.Configurations
                         "  \"symbol\": \"ARK_001\",\n" +
                         "  \"currentCoefficient\": 1.05,\n" +
                         "  \"futureCoefficient\": 0.95,\n" +
-                        "  \"baseMiningSpeed\": 50\n" +
+                        "  \"baseTokenMiningSpeed\": 50\n" +
                         "}"
                 }
             };

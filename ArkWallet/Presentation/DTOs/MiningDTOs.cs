@@ -6,7 +6,7 @@ namespace ArkWallet.Presentation.DTOs
     /// Ответ с глобальными правилами майнинга токенов
     /// </summary>
     /// <param name="Rules">Массив правил майнинга</param>
-    public record GetMiningRulesResponse(TokensMiningRules[] Rules);
+    public record GetMiningRulesResponse(TokensMiningRuleData[] Rules);
 
     /// <summary>
     /// Ответ со списком майнинг-машин

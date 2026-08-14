@@ -110,7 +110,7 @@ namespace ArkWallet.Infrastructure.Wizard
             "6) /admin_mining_update_global_rule\n" +
             "   Updates token global mining rule (symbol required, others optional).\n" +
             "   JSON: { \"symbol\": \"ARK_001\", \"currentCoefficient\": 1.05,\n" +
-            "           \"futureCoefficient\": 0.95, \"baseMiningSpeed\": 50 }\n" +
+            "           \"futureCoefficient\": 0.95, \"baseTokenMiningSpeed\": 50 }\n" +
             "   Coefficients are set as a pair (both or none).\n\n" +
             "7) /admin_mining_app_state\n" +
             "   Shows all service state records (AppState).";
@@ -1042,12 +1042,12 @@ namespace ArkWallet.Infrastructure.Wizard
                 decimal? futureCoefficient = rawData.TryGetValue("futureCoefficient", out var futureObj) && futureObj != null
                     ? Convert.ToDecimal(futureObj)
                     : null;
-                decimal? baseMiningSpeed = rawData.TryGetValue("baseMiningSpeed", out var speedObj) && speedObj != null
+                decimal? baseTokenMiningSpeed = rawData.TryGetValue("baseTokenMiningSpeed", out var speedObj) && speedObj != null
                     ? Convert.ToDecimal(speedObj)
                     : null;
 
                 var result = await _miningGlobalRuleUpdateService.UpdateRuleAsync(
-                    symbol, currentCoefficient, futureCoefficient, baseMiningSpeed);
+                    symbol, currentCoefficient, futureCoefficient, baseTokenMiningSpeed);
 
                 return result.IsSuccess
                     ? StepResult.Ok("completed", $"Global rule for {symbol} updated.")

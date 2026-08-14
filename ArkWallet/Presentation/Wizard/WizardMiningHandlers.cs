@@ -23,10 +23,10 @@ namespace ArkWallet.Infrastructure.Wizard
 
             foreach (var rule in rules)
             {
-                lines.Add($"{GetMiningStatusEmoji(rule.CurrentStatus)} {rule.TokenInfo.Symbol} ({rule.TokenInfo.Name})");
-                lines.Add($"   Текущий статус: {GetMiningStatusText(rule.CurrentStatus)}");
-                lines.Add($"   Будущий статус: {GetMiningStatusText(rule.FutureStatus)}");
-                lines.Add($"   Базовая скорость: {rule.BaseMiningSpeed:F2} ток/мин");
+                lines.Add($"{GetMiningStatusEmoji(rule.CurrentMiningStatus)} {rule.TokenInfo.Symbol} ({rule.TokenInfo.Name})");
+                lines.Add($"   Текущий статус: {GetMiningStatusText(rule.CurrentMiningStatus)}");
+                lines.Add($"   Будущий статус: {GetMiningStatusText(rule.FutureMiningStatus)}");
+                lines.Add($"   Базовая скорость: {rule.BaseTokenMiningSpeed:F2} ток/мин");
                 lines.Add($"   Базовая прибыль: {rule.BaseProfit:F2}{Descriptor.CurrencySymbol}");
                 lines.Add("");
             }
@@ -43,7 +43,7 @@ namespace ArkWallet.Infrastructure.Wizard
 
         public async Task<StepResult> HandleGetMiningMachines(UserSession session, string input)
         {
-            var machinesResult = await _miningMachineQueryService.TakeActiveForSaleMachinesAsync();
+            var machinesResult = await _miningMachineQueryService.TakeActiveForSaleMachinesAsync(session.Id);
 
             if (!machinesResult.TryGetData(out var machines) || machines.Count == 0)
                 return StepResult.Ok("completed", "Машины для покупки не найдены.");
@@ -56,11 +56,10 @@ namespace ArkWallet.Infrastructure.Wizard
                 lines.Add($"   Id: {machine.Id} | Цена: {machine.Cost:F2}{Descriptor.CurrencySymbol} | Возврат: {machine.Reusability}%");
                 lines.Add($"   Переключение: {machine.SwitchingTime} мин | Макс. прибыль: {machine.MaxProfit:F2}{Descriptor.CurrencySymbol}");
 
-                if (machine.TokensMiningData.Count > 0)
-                {
-                    var tokens = string.Join(", ", machine.TokensMiningData.Select(t => $"{t.Symbol} ({t.Profit:F2}{Descriptor.CurrencySymbol})"));
-                    lines.Add($"   Токены: {tokens}");
-                }
+                if (machine.EffectiveTokensMiningData.Count > 0)
+                    lines.Add($"   Эффективные токены: {string.Join(", ", machine.EffectiveTokensMiningData.Select(t => $"{t.Symbol} ({t.Profit:F2}{Descriptor.CurrencySymbol})"))}");
+                if (machine.StableTokensMiningData.Count > 0)
+                    lines.Add($"   Стабильные токены: {string.Join(", ", machine.StableTokensMiningData.Select(t => $"{t.Symbol} ({t.Profit:F2}{Descriptor.CurrencySymbol})"))}");
 
                 lines.Add("");
             }
@@ -116,7 +115,7 @@ namespace ArkWallet.Infrastructure.Wizard
             if (!long.TryParse(input, out var machineId))
                 return StepResult.Error("Введите корректный идентификатор машины.");
 
-            var machinesResult = await _miningMachineQueryService.TakeActiveForSaleMachinesAsync();
+            var machinesResult = await _miningMachineQueryService.TakeActiveForSaleMachinesAsync(session.Id);
 
             if (!machinesResult.TryGetData(out var machines))
                 return StepResult.Error(machinesResult.Message ?? "Не удалось получить список машин.");
@@ -263,17 +262,17 @@ namespace ArkWallet.Infrastructure.Wizard
             return null;
         }
 
-        private static string GetMiningStatusEmoji(MiningStatus status) => status switch
+        private static string GetMiningStatusEmoji(string status) => status switch
         {
-            MiningStatus.Profitable => "🟢",
-            MiningStatus.Stable => "🟡",
+            nameof(MiningStatus.Profitable) => "🟢",
+            nameof(MiningStatus.Stable) => "🟡",
             _ => "🔴"
         };
 
-        private static string GetMiningStatusText(MiningStatus status) => status switch
+        private static string GetMiningStatusText(string status) => status switch
         {
-            MiningStatus.Profitable => "Прибыльный",
-            MiningStatus.Stable => "Стабильный",
+            nameof(MiningStatus.Profitable) => "Прибыльный",
+            nameof(MiningStatus.Stable) => "Стабильный",
             _ => "Убыточный"
         };
 
