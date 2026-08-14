@@ -30,12 +30,12 @@ internal class MiningGlobalRuleCreationService(
 
                 foreach (var token in tokens)
                 {
-                    var baseMiningSpeed = miningEngine.CalculateBaseMiningSpeed(token.CurrentPrice);
+                    var baseTokenMiningSpeed = miningEngine.CalculateBaseTokenMiningSpeed(token.CurrentPrice);
 
                     if (rulesByToken.TryGetValue(token.Symbol, out var rule))
                     {
                         rule.AdvanceCoefficient(miningEngine.NextCoefficient());
-                        rule.UpdateBaseMiningSpeed(baseMiningSpeed);
+                        rule.UpdateBaseTokenMiningSpeed(baseTokenMiningSpeed);
                     }
                     else
                     {
@@ -43,7 +43,7 @@ internal class MiningGlobalRuleCreationService(
                             token.Symbol,
                             miningEngine.NextCoefficient(),
                             miningEngine.NextCoefficient(),
-                            baseMiningSpeed);
+                            baseTokenMiningSpeed);
                         await dbContext.MiningGlobalRules.AddAsync(newRule);
                     }
                 }

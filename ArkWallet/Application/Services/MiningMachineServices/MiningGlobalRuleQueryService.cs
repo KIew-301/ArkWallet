@@ -14,7 +14,7 @@ internal class MiningGlobalRuleQueryService(
     MiningEngine miningEngine,
     ILogger<MiningGlobalRuleQueryService> logger) : IMiningGlobalRuleQueryService
 {
-    public async Task<Result<List<TokensMiningRules>>> TakeRulesAsync()
+    public async Task<Result<List<TokensMiningRuleData>>> TakeRulesAsync()
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
@@ -24,14 +24,14 @@ internal class MiningGlobalRuleQueryService(
                 .ToListAsync();
 
             if (tokens.Count == 0)
-                return Result<List<TokensMiningRules>>.Ok([]);
+                return Result<List<TokensMiningRuleData>>.Ok([]);
 
             var rules = await dbContext.MiningGlobalRules.AsNoTracking().ToListAsync();
             var rulesByToken = rules.ToDictionary(r => r.TokenId);
 
             var baseProfits = tokens
                 .Select(t => miningEngine.CalculateBaseProfit(
-                    rulesByToken.GetValueOrDefault(t.Symbol)?.BaseMiningSpeed ?? 0m,
+                    rulesByToken.GetValueOrDefault(t.Symbol)?.BaseTokenMiningSpeed ?? 0m,
                     t.CurrentPrice))
                 .ToArray();
 
@@ -48,21 +48,21 @@ internal class MiningGlobalRuleQueryService(
                 .Select(token =>
                 {
                     var rule = rulesByToken.GetValueOrDefault(token.Symbol);
-                    var baseMiningSpeed = rule?.BaseMiningSpeed ?? 0m;
-                    var baseProfit = miningEngine.CalculateBaseProfit(baseMiningSpeed, token.CurrentPrice);
+                    var baseTokenMiningSpeed = rule?.BaseTokenMiningSpeed ?? 0m;
+                    var baseProfit = miningEngine.CalculateBaseProfit(baseTokenMiningSpeed, token.CurrentPrice);
                     var futureCoefficient = rule?.FutureCoefficient ?? 1m;
 
-                    return new TokensMiningRules(
+                    return new TokensMiningRuleData(
                         TokenInfoDto.FromEntity(token)!,
-                        miningEngine.CalculateStatus(baseProfit, minBaseProfit, maxBaseProfit),
-                        miningEngine.CalculateStatus(futureCoefficient, minFuture, maxFuture),
-                        baseMiningSpeed,
+                        miningEngine.CalculateStatus(baseProfit, minBaseProfit, maxBaseProfit).ToString(),
+                        miningEngine.CalculateStatus(futureCoefficient, minFuture, maxFuture).ToString(),
+                        baseTokenMiningSpeed,
                         baseProfit);
                 })
                 .OrderByDescending(r => r.BaseProfit)
                 .ToList();
 
-            return Result<List<TokensMiningRules>>.Ok(result);
+            return Result<List<TokensMiningRuleData>>.Ok(result);
         }, logger, nameof(MiningGlobalRuleQueryService));
     }
 }

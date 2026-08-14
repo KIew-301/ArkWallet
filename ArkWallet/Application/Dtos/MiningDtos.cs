@@ -1,5 +1,3 @@
-using ArkWallet.Domain.Engines;
-
 namespace ArkWallet.Application.Dtos
 {
     /// <summary>
@@ -42,7 +40,8 @@ namespace ArkWallet.Application.Dtos
     /// <param name="SwitchingTime">Время переключения в минутах</param>
     /// <param name="Reusability">Процент возврата</param>
     /// <param name="Cost">Цена покупки</param>
-    /// <param name="TokensMiningData">Данные майнинга по токенам</param>
+    /// <param name="EffectiveTokensMiningData">Данные майнинга по эффективным токенам (коэффициент машины 0.85–1)</param>
+    /// <param name="StableTokensMiningData">Данные майнинга по стабильным токенам (коэффициент машины 0.65–0.85)</param>
     public record MiningMachineData(
         long Id,
         string Name,
@@ -51,7 +50,8 @@ namespace ArkWallet.Application.Dtos
         int SwitchingTime,
         decimal Reusability,
         decimal Cost,
-        List<TokensMiningData> TokensMiningData);
+        List<TokensMiningData> EffectiveTokensMiningData,
+        List<TokensMiningData> StableTokensMiningData);
 
     /// <summary>
     /// Данные слота майнинг-машины трейдера
@@ -64,8 +64,9 @@ namespace ArkWallet.Application.Dtos
     /// <param name="SwitchingPercent">Процент завершения переключения</param>
     /// <param name="SwitchingTime">Время переключения в минутах</param>
     /// <param name="Cost">Цена продажи слота</param>
-    /// <param name="ActiveTokenMiningData">Данные активного токена</param>
-    /// <param name="TokensMiningData">Данные майнинга по остальным токенам</param>
+    /// <param name="ActiveTokenMiningData">Данные активного токена (не входит в группы)</param>
+    /// <param name="EffectiveTokensMiningData">Данные майнинга по эффективным токенам (коэффициент машины 0.85–1)</param>
+    /// <param name="StableTokensMiningData">Данные майнинга по стабильным токенам (коэффициент машины 0.65–0.85)</param>
     public record MiningMachineSlotData(
         long Id,
         string Name,
@@ -76,20 +77,21 @@ namespace ArkWallet.Application.Dtos
         int SwitchingTime,
         decimal Cost,
         ActiveTokenMiningData ActiveTokenMiningData,
-        List<TokensMiningData> TokensMiningData);
+        List<TokensMiningData> EffectiveTokensMiningData,
+        List<TokensMiningData> StableTokensMiningData);
 
     /// <summary>
     /// Глобальное правило майнинга токена
     /// </summary>
     /// <param name="TokenInfo">Информация о токене</param>
-    /// <param name="CurrentStatus">Текущий статус прибыльности</param>
-    /// <param name="FutureStatus">Будущий статус прибыльности</param>
-    /// <param name="BaseMiningSpeed">Базовая скорость майнинга</param>
+    /// <param name="CurrentMiningStatus">Текущий статус прибыльности (строкой)</param>
+    /// <param name="FutureMiningStatus">Будущий статус прибыльности (строкой)</param>
+    /// <param name="BaseTokenMiningSpeed">Базовая скорость добычи токена</param>
     /// <param name="BaseProfit">Базовая прибыль (скорость * текущая цена)</param>
-    public record TokensMiningRules(
+    public record TokensMiningRuleData(
         TokenInfoDto TokenInfo,
-        MiningStatus CurrentStatus,
-        MiningStatus FutureStatus,
-        decimal BaseMiningSpeed,
+        string CurrentMiningStatus,
+        string FutureMiningStatus,
+        decimal BaseTokenMiningSpeed,
         decimal BaseProfit);
 }

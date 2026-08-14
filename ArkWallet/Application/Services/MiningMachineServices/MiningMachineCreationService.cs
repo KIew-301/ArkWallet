@@ -3,6 +3,7 @@ using ArkWallet.Application.Contracts.MiningMachineServices;
 using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.Exceptions;
 using ArkWallet.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Application.Services.MiningMachineServices;
@@ -14,22 +15,30 @@ internal class MiningMachineCreationService(ArkWalletDbContext dbContext, ILogge
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            if (command == null)
-                return Fail("Команда на создание некорректна");
+            return await TransactionHandler.ExecuteAsync(dbContext, async () =>
+            {
+                if (command == null)
+                    return Fail("Команда на создание некорректна");
 
-            var machine = MiningMachine.Create(
-                command.Name,
-                ParseType(command.Type),
-                command.SwitchingTime,
-                command.Reusability,
-                command.IsActiveForSale,
-                command.Cost,
-                command.Image);
+                var nameExists = await dbContext.MiningMachines.AnyAsync(m => m.Name == command.Name);
+                if (nameExists)
+                    return Fail("Машина с таким названием уже существует");
 
-            await dbContext.MiningMachines.AddAsync(machine);
-            await dbContext.SaveChangesAsync();
+                var machine = MiningMachine.Create(
+                    command.Name,
+                    ParseType(command.Type),
+                    command.SwitchingTime,
+                    command.Reusability,
+                    command.IsActiveForSale,
+                    command.Cost,
+                    command.Image,
+                    command.Efficiency);
 
-            return Ok(new(machine.Id, machine.Name));
+                await dbContext.MiningMachines.AddAsync(machine);
+                await dbContext.SaveChangesAsync();
+
+                return Ok(new(machine.Id, machine.Name));
+            });
         }, logger, nameof(MiningMachineCreationService));
     }
 
@@ -37,26 +46,44 @@ internal class MiningMachineCreationService(ArkWalletDbContext dbContext, ILogge
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            var commandList = commands?.ToList();
-            if (commandList == null || commandList.Count == 0)
-                return Result<List<MiningMachineCreationData>>.Ok([]);
+            return await TransactionHandler.ExecuteAsync(dbContext, async () =>
+            {
+                var commandList = commands?.ToList();
+                if (commandList == null || commandList.Count == 0)
+                    return Result<List<MiningMachineCreationData>>.Ok([]);
 
-            var machines = commandList
-                .Select(c => MiningMachine.Create(
-                    c.Name,
-                    ParseType(c.Type),
-                    c.SwitchingTime,
-                    c.Reusability,
-                    c.IsActiveForSale,
-                    c.Cost,
-                    c.Image))
-                .ToList();
+                var existingNames = await dbContext.MiningMachines
+                    .Where(m => commandList.Select(c => c.Name).Contains(m.Name))
+                    .Select(m => m.Name)
+                    .ToListAsync();
+                var duplicateInBatch = commandList
+                    .GroupBy(c => c.Name)
+                    .Where(g => g.Count() > 1)
+                    .Select(g => g.Key)
+                    .ToArray();
+                var conflicts = existingNames.Concat(duplicateInBatch).Distinct().ToArray();
+                if (conflicts.Length > 0)
+                    return Result<List<MiningMachineCreationData>>.Fail(
+                        $"Машины с названиями уже существуют: {string.Join(", ", conflicts)}");
 
-            await dbContext.MiningMachines.AddRangeAsync(machines);
-            await dbContext.SaveChangesAsync();
+                var machines = commandList
+                    .Select(c => MiningMachine.Create(
+                        c.Name,
+                        ParseType(c.Type),
+                        c.SwitchingTime,
+                        c.Reusability,
+                        c.IsActiveForSale,
+                        c.Cost,
+                        c.Image,
+                        c.Efficiency))
+                    .ToList();
 
-            return Result<List<MiningMachineCreationData>>.Ok(
-                machines.Select(m => new MiningMachineCreationData(m.Id, m.Name)).ToList());
+                await dbContext.MiningMachines.AddRangeAsync(machines);
+                await dbContext.SaveChangesAsync();
+
+                return Result<List<MiningMachineCreationData>>.Ok(
+                    machines.Select(m => new MiningMachineCreationData(m.Id, m.Name)).ToList());
+            });
         }, logger, nameof(MiningMachineCreationService));
     }
 

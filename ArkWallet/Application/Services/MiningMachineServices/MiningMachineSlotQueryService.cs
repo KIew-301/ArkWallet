@@ -80,7 +80,7 @@ internal class MiningMachineSlotQueryService(
             var miningSpeed = miningEngine.CalculateMiningSpeed(
                 globalRule?.CurrentCoefficient ?? 1m,
                 machineRule?.MiningCoefficient ?? 0m,
-                globalRule?.BaseMiningSpeed ?? 0m);
+                globalRule?.BaseTokenMiningSpeed ?? 0m);
             var profit = miningEngine.CalculateProfit(miningSpeed, activeTokenEntity.CurrentPrice);
 
             activeToken = new ActiveTokenMiningData(
@@ -90,7 +90,8 @@ internal class MiningMachineSlotQueryService(
                 profit);
         }
 
-        var tokensMiningData = new List<TokensMiningData>();
+        var effective = new List<TokensMiningData>();
+        var stable = new List<TokensMiningData>();
         foreach (var rule in slot.MiningMachine?.MiningMachineRules ?? [])
         {
             if (rule.CharacterTokenId == slot.TokenId)
@@ -102,10 +103,20 @@ internal class MiningMachineSlotQueryService(
             var miningSpeed = miningEngine.CalculateMiningSpeed(
                 globalRule?.CurrentCoefficient ?? 1m,
                 rule.MiningCoefficient,
-                globalRule?.BaseMiningSpeed ?? 0m);
+                globalRule?.BaseTokenMiningSpeed ?? 0m);
             var profit = miningEngine.CalculateProfit(miningSpeed, token.CurrentPrice);
+            var tokenData = new TokensMiningData(token.IconUrl, token.Symbol, miningSpeed, profit);
 
-            tokensMiningData.Add(new(token.IconUrl, token.Symbol, miningSpeed, profit));
+            if (rule.MiningCoefficient >= MiningEngine.EffectiveMiningCoefficientMin
+                && rule.MiningCoefficient <= MiningEngine.EffectiveMiningCoefficientMax)
+            {
+                effective.Add(tokenData);
+            }
+            else if (rule.MiningCoefficient >= MiningEngine.StableMiningCoefficientMin
+                && rule.MiningCoefficient < MiningEngine.StableMiningCoefficientMax)
+            {
+                stable.Add(tokenData);
+            }
         }
 
         return new MiningMachineSlotData(
@@ -118,6 +129,7 @@ internal class MiningMachineSlotQueryService(
             slot.MiningMachine?.SwitchingTime ?? 0,
             slot.Cost,
             activeToken,
-            tokensMiningData.OrderByDescending(d => d.Profit).ToList());
+            effective.OrderByDescending(d => d.Profit).ToList(),
+            stable.OrderByDescending(d => d.Profit).ToList());
     }
 }

@@ -14,13 +14,20 @@ internal class MiningMachineQueryService(
     MiningEngine miningEngine,
     ILogger<MiningMachineQueryService> logger) : IMiningMachineQueryService
 {
-    public async Task<Result<List<MiningMachineData>>> TakeActiveForSaleMachinesAsync()
+    public async Task<Result<List<MiningMachineData>>> TakeActiveForSaleMachinesAsync(long traderId)
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
+            var ownedMachineIds = await dbContext.MiningMachineSlots
+                .AsNoTracking()
+                .Where(s => s.TraderId == traderId && s.Status != MiningMachineSlotStatus.Sold)
+                .Select(s => s.MiningMachineId)
+                .Distinct()
+                .ToArrayAsync();
+
             var machines = await dbContext.MiningMachines
                 .AsNoTracking()
-                .Where(m => m.IsActiveForSale)
+                .Where(m => m.IsActiveForSale && !ownedMachineIds.Contains(m.Id))
                 .Include(m => m.MiningMachineRules)
                 .ToListAsync();
 
@@ -57,7 +64,8 @@ internal class MiningMachineQueryService(
         Dictionary<string, CharacterToken> tokens,
         Dictionary<string, MiningGlobalRule> globalRules)
     {
-        var tokensMiningData = new List<TokensMiningData>();
+        var effective = new List<TokensMiningData>();
+        var stable = new List<TokensMiningData>();
         foreach (var rule in machine.MiningMachineRules)
         {
             if (!tokens.TryGetValue(rule.CharacterTokenId, out var token))
@@ -67,20 +75,35 @@ internal class MiningMachineQueryService(
             var miningSpeed = miningEngine.CalculateMiningSpeed(
                 globalRule?.CurrentCoefficient ?? 1m,
                 rule.MiningCoefficient,
-                globalRule?.BaseMiningSpeed ?? 0m);
+                globalRule?.BaseTokenMiningSpeed ?? 0m);
             var profit = miningEngine.CalculateProfit(miningSpeed, token.CurrentPrice);
+            var tokenData = new TokensMiningData(token.IconUrl, token.Symbol, miningSpeed, profit);
 
-            tokensMiningData.Add(new(token.IconUrl, token.Symbol, miningSpeed, profit));
+            if (rule.MiningCoefficient >= MiningEngine.EffectiveMiningCoefficientMin
+                && rule.MiningCoefficient <= MiningEngine.EffectiveMiningCoefficientMax)
+            {
+                effective.Add(tokenData);
+            }
+            else if (rule.MiningCoefficient >= MiningEngine.StableMiningCoefficientMin
+                && rule.MiningCoefficient < MiningEngine.StableMiningCoefficientMax)
+            {
+                stable.Add(tokenData);
+            }
         }
+
+        var effectiveSorted = effective.OrderByDescending(d => d.Profit).ToList();
+        var stableSorted = stable.OrderByDescending(d => d.Profit).ToList();
+        var maxProfit = effectiveSorted.Concat(stableSorted).Select(d => d.Profit).DefaultIfEmpty(0m).Max();
 
         return new MiningMachineData(
             machine.Id,
             machine.Name,
             machine.Type.ToString(),
-            tokensMiningData.Count > 0 ? tokensMiningData.Max(d => d.Profit) : 0m,
+            maxProfit,
             machine.SwitchingTime,
             machine.Reusability,
             machine.Cost,
-            tokensMiningData.OrderByDescending(d => d.Profit).ToList());
+            effectiveSorted,
+            stableSorted);
     }
 }

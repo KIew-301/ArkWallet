@@ -9,14 +9,14 @@ using static Result;
 
 internal class MiningGlobalRuleUpdateService(ArkWalletDbContext dbContext, ILogger<MiningGlobalRuleUpdateService> logger) : IMiningGlobalRuleUpdateService
 {
-    public async Task<Result> UpdateRuleAsync(string symbol, decimal? currentCoefficient, decimal? futureCoefficient, decimal? baseMiningSpeed)
+    public async Task<Result> UpdateRuleAsync(string symbol, decimal? currentCoefficient, decimal? futureCoefficient, decimal? baseTokenMiningSpeed)
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             if (string.IsNullOrWhiteSpace(symbol))
                 return Fail("Требуется символ токена");
 
-            if (currentCoefficient is null && futureCoefficient is null && baseMiningSpeed is null)
+            if (currentCoefficient is null && futureCoefficient is null && baseTokenMiningSpeed is null)
                 return Fail("Не указаны параметры для обновления");
 
             if (currentCoefficient is null ^ futureCoefficient is null)
@@ -35,8 +35,8 @@ internal class MiningGlobalRuleUpdateService(ArkWalletDbContext dbContext, ILogg
                 if (currentCoefficient.HasValue)
                     rule.UpdateCoefficients(currentCoefficient.Value, futureCoefficient!.Value);
 
-                if (baseMiningSpeed.HasValue)
-                    rule.UpdateBaseMiningSpeed(baseMiningSpeed.Value);
+                if (baseTokenMiningSpeed.HasValue)
+                    rule.UpdateBaseTokenMiningSpeed(baseTokenMiningSpeed.Value);
 
                 await dbContext.SaveChangesAsync();
 

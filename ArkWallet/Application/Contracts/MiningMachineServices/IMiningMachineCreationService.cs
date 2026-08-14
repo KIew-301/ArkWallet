@@ -30,6 +30,7 @@ public interface IMiningMachineCreationService
 /// <param name="IsActiveForSale">Доступна ли для покупки</param>
 /// <param name="Cost">Цена покупки</param>
 /// <param name="Image">Ссылка на изображение</param>
+/// <param name="Efficiency">Коэффициент производительности машины</param>
 /// <param name="Rules">Правила майнинга для машины</param>
 public record MiningMachineCreationCommand(
     string Name,
@@ -39,6 +40,7 @@ public record MiningMachineCreationCommand(
     bool IsActiveForSale,
     decimal Cost,
     string Image,
+    decimal Efficiency,
     List<MiningMachineRuleCreationCommand>? Rules = null);
 
 /// <summary>

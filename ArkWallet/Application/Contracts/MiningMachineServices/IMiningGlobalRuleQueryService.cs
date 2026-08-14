@@ -12,5 +12,5 @@ public interface IMiningGlobalRuleQueryService
     /// Получает данные токенов и их глобальных правил майнинга со статусами
     /// </summary>
     /// <returns>Результат со списком правил, отсортированных по базовой прибыли от большего к меньшему</returns>
-    Task<Result<List<TokensMiningRules>>> TakeRulesAsync();
+    Task<Result<List<TokensMiningRuleData>>> TakeRulesAsync();
 }

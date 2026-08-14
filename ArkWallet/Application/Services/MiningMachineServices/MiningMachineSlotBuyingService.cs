@@ -33,6 +33,11 @@ internal class MiningMachineSlotBuyingService(
                 if (!machine.IsActiveForSale)
                     return Fail("Машина недоступна для покупки");
 
+                var alreadyOwned = await dbContext.MiningMachineSlots.AnyAsync(s =>
+                    s.TraderId == traderId && s.MiningMachineId == machineId && s.Status != MiningMachineSlotStatus.Sold);
+                if (alreadyOwned)
+                    return Fail("У вас уже есть такая машина");
+
                 var slotsCount = await dbContext.MiningMachineSlots.CountAsync(s =>
                     s.TraderId == traderId && s.Status != MiningMachineSlotStatus.Sold);
                 if (slotsCount >= MiningEngine.MaxMachinesPerTrader)
