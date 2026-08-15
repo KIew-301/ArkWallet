@@ -62,7 +62,9 @@ internal static class WizardEngineTestHelper
         var miningMachineSlotQueryService = new Mock<IMiningMachineSlotQueryService>();
         var miningMachineSlotBuyingService = new Mock<IMiningMachineSlotBuyingService>();
         var miningMachineCreationService = new Mock<IMiningMachineCreationService>();
+        var miningMachineUpdateService = new Mock<IMiningMachineUpdateService>();
         var miningMachineRuleCreationService = new Mock<IMiningMachineRuleCreationService>();
+        var miningMachineRuleUpdateService = new Mock<IMiningMachineRuleUpdateService>();
         var miningMachineDeletionService = new Mock<IMiningMachineDeletionService>();
         var miningMachineRuleDeletionService = new Mock<IMiningMachineRuleDeletionService>();
         var miningGlobalRuleUpdateService = new Mock<IMiningGlobalRuleUpdateService>();
@@ -121,6 +123,8 @@ internal static class WizardEngineTestHelper
             miningMachineRuleCreationService.Object,
             miningMachineDeletionService.Object,
             miningMachineRuleDeletionService.Object,
+            miningMachineUpdateService.Object,
+            miningMachineRuleUpdateService.Object,
             miningGlobalRuleUpdateService.Object,
             appStateQueryService.Object,
             miningMachineSlotSwitchingOrchestrator.Object,
@@ -160,7 +164,9 @@ internal static class WizardEngineTestHelper
             MiningMachineSlotQuery = miningMachineSlotQueryService,
             MiningMachineSlotBuying = miningMachineSlotBuyingService,
             MiningMachineCreation = miningMachineCreationService,
+            MiningMachineUpdate = miningMachineUpdateService,
             MiningMachineRuleCreation = miningMachineRuleCreationService,
+            MiningMachineRuleUpdate = miningMachineRuleUpdateService,
             MiningMachineDeletion = miningMachineDeletionService,
             MiningMachineRuleDeletion = miningMachineRuleDeletionService,
             MiningGlobalRuleUpdate = miningGlobalRuleUpdateService,
@@ -203,7 +209,9 @@ internal class ServiceMocks
     public Mock<IMiningMachineSlotQueryService> MiningMachineSlotQuery { get; init; } = null!;
     public Mock<IMiningMachineSlotBuyingService> MiningMachineSlotBuying { get; init; } = null!;
     public Mock<IMiningMachineCreationService> MiningMachineCreation { get; init; } = null!;
+    public Mock<IMiningMachineUpdateService> MiningMachineUpdate { get; init; } = null!;
     public Mock<IMiningMachineRuleCreationService> MiningMachineRuleCreation { get; init; } = null!;
+    public Mock<IMiningMachineRuleUpdateService> MiningMachineRuleUpdate { get; init; } = null!;
     public Mock<IMiningMachineDeletionService> MiningMachineDeletion { get; init; } = null!;
     public Mock<IMiningMachineRuleDeletionService> MiningMachineRuleDeletion { get; init; } = null!;
     public Mock<IMiningGlobalRuleUpdateService> MiningGlobalRuleUpdate { get; init; } = null!;

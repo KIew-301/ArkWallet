@@ -294,15 +294,34 @@ namespace ArkWallet.Entities.Configurations
                 {
                     Name = "set_options",
                     Question =
-                        "Send JSON to create a mining machine:\n\n" +
+                        "Send JSON to create a mining machine (name and cost are generated automatically):\n\n" +
                         "{\n" +
-                        "  \"name\": \"SM-01\",\n" +
                         "  \"type\": \"SMAI\",\n" +
                         "  \"switchingTime\": 10,\n" +
                         "  \"reusability\": 50,\n" +
                         "  \"isActiveForSale\": true,\n" +
-                        "  \"cost\": 10000,\n" +
+                        "  \"efficiency\": 1.0,\n" +
                         "  \"image\": \"https://example.com/image.png\"\n" +
+                        "}"
+                }
+            };
+
+            Commands["/admin_mining_update_machine"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send JSON to update a mining machine (machineId required, others optional,\n" +
+                        "name and cost are regenerated automatically):\n\n" +
+                        "{\n" +
+                        "  \"machineId\": 1,\n" +
+                        "  \"type\": \"MGC\",\n" +
+                        "  \"switchingTime\": 30,\n" +
+                        "  \"reusability\": 60,\n" +
+                        "  \"isActiveForSale\": true,\n" +
+                        "  \"efficiency\": 0.5,\n" +
+                        "  \"image\": \"https://example.com/new-image.png\"\n" +
                         "}"
                 }
             };
@@ -317,7 +336,22 @@ namespace ArkWallet.Entities.Configurations
                         "{\n" +
                         "  \"miningMachineId\": 1,\n" +
                         "  \"characterTokenId\": \"ARK_001\",\n" +
-                        "  \"miningCoefficient\": 1.5\n" +
+                        "  \"miningCoefficient\": 0.9\n" +
+                        "}"
+                }
+            };
+
+            Commands["/admin_mining_update_rule"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send JSON to update a mining rule (machine name and cost are\n" +
+                        "regenerated automatically):\n\n" +
+                        "{\n" +
+                        "  \"miningRuleId\": 1,\n" +
+                        "  \"miningCoefficient\": 0.9\n" +
                         "}"
                 }
             };

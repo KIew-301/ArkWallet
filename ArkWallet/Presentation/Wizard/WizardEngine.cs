@@ -78,6 +78,8 @@ namespace ArkWallet.Infrastructure.Wizard
         private readonly IMiningMachineRuleCreationService _miningMachineRuleCreationService;
         private readonly IMiningMachineDeletionService _miningMachineDeletionService;
         private readonly IMiningMachineRuleDeletionService _miningMachineRuleDeletionService;
+        private readonly IMiningMachineUpdateService _miningMachineUpdateService;
+        private readonly IMiningMachineRuleUpdateService _miningMachineRuleUpdateService;
         private readonly IMiningGlobalRuleUpdateService _miningGlobalRuleUpdateService;
         private readonly IAppStateQueryService _appStateQueryService;
 
@@ -133,6 +135,8 @@ namespace ArkWallet.Infrastructure.Wizard
             IMiningMachineRuleCreationService miningMachineRuleCreationService,
             IMiningMachineDeletionService miningMachineDeletionService,
             IMiningMachineRuleDeletionService miningMachineRuleDeletionService,
+            IMiningMachineUpdateService miningMachineUpdateService,
+            IMiningMachineRuleUpdateService miningMachineRuleUpdateService,
             IMiningGlobalRuleUpdateService miningGlobalRuleUpdateService,
             IAppStateQueryService appStateQueryService,
             IMiningMachineSlotSwitchingOrchestrator miningMachineSlotSwitchingOrchestrator,
@@ -177,6 +181,8 @@ namespace ArkWallet.Infrastructure.Wizard
             _miningMachineRuleCreationService = miningMachineRuleCreationService;
             _miningMachineDeletionService = miningMachineDeletionService;
             _miningMachineRuleDeletionService = miningMachineRuleDeletionService;
+            _miningMachineUpdateService = miningMachineUpdateService;
+            _miningMachineRuleUpdateService = miningMachineRuleUpdateService;
             _miningGlobalRuleUpdateService = miningGlobalRuleUpdateService;
             _appStateQueryService = appStateQueryService;
             _miningMachineSlotSwitchingOrchestrator = miningMachineSlotSwitchingOrchestrator;

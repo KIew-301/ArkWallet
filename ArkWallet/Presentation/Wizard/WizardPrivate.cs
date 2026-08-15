@@ -93,26 +93,37 @@ namespace ArkWallet.Infrastructure.Wizard
             "Mining commands:\n\n" +
             "1) /admin_mining_create_machine\n" +
             "   Creates a new mining machine (rules are added separately).\n" +
-            "   JSON: { \"name\": \"SM-01\", \"type\": \"SMAI\", \"switchingTime\": 10,\n" +
-            "           \"reusability\": 50, \"isActiveForSale\": true, \"cost\": 10000,\n" +
-            "           \"image\": \"https://example.com/image.png\" }\n\n" +
-            "2) /admin_mining_create_rule\n" +
+            "   Name and cost are generated automatically.\n" +
+            "   JSON: { \"type\": \"SMAI\", \"switchingTime\": 10,\n" +
+            "           \"reusability\": 50, \"isActiveForSale\": true,\n" +
+            "           \"efficiency\": 1.0, \"image\": \"https://example.com/image.png\" }\n\n" +
+            "2) /admin_mining_update_machine\n" +
+            "   Updates a mining machine (machineId required, others optional).\n" +
+            "   Name and cost are regenerated automatically.\n" +
+            "   JSON: { \"machineId\": 1, \"type\": \"MGC\", \"switchingTime\": 30,\n" +
+            "           \"reusability\": 60, \"isActiveForSale\": true,\n" +
+            "           \"efficiency\": 0.5, \"image\": \"https://example.com/image.png\" }\n" +
+            "   null = keep current value\n\n" +
+            "3) /admin_mining_create_rule\n" +
             "   Creates a mining rule (machine-token pair).\n" +
             "   JSON: { \"miningMachineId\": 1, \"characterTokenId\": \"ARK_001\",\n" +
-            "           \"miningCoefficient\": 1.5 }\n\n" +
-            "3) /admin_mining_delete_machine\n" +
+            "           \"miningCoefficient\": 0.9 }\n\n" +
+            "4) /admin_mining_update_rule\n" +
+            "   Updates a mining rule coefficient.\n" +
+            "   JSON: { \"miningRuleId\": 1, \"miningCoefficient\": 0.9 }\n\n" +
+            "5) /admin_mining_delete_machine\n" +
             "   Permanently deletes a machine and its rules (fails if slots exist).\n" +
             "   Enter machine Id, then confirm.\n\n" +
-            "4) /admin_mining_deactivate_machine\n" +
+            "6) /admin_mining_deactivate_machine\n" +
             "   Deactivates a machine (IsActiveForSale = false). Enter Id, then confirm.\n\n" +
-            "5) /admin_mining_delete_rule\n" +
+            "7) /admin_mining_delete_rule\n" +
             "   Deletes a mining rule (fails if used by a slot). Enter Id, then confirm.\n\n" +
-            "6) /admin_mining_update_global_rule\n" +
+            "8) /admin_mining_update_global_rule\n" +
             "   Updates token global mining rule (symbol required, others optional).\n" +
             "   JSON: { \"symbol\": \"ARK_001\", \"currentCoefficient\": 1.05,\n" +
             "           \"futureCoefficient\": 0.95, \"baseTokenMiningSpeed\": 50 }\n" +
             "   Coefficients are set as a pair (both or none).\n\n" +
-            "7) /admin_mining_app_state\n" +
+            "9) /admin_mining_app_state\n" +
             "   Shows all service state records (AppState).";
 
         private void ConfigureAdditionHandlers()
@@ -145,7 +156,9 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/admin_metrics"][0].Handler = AdminHandleMetrics;
             _config.Commands["/admin_help_mining"][0].Handler = AdminHandleHelpMining;
             _config.Commands["/admin_mining_create_machine"][0].Handler = AdminHandleMiningCreateMachine;
+            _config.Commands["/admin_mining_update_machine"][0].Handler = AdminHandleMiningUpdateMachine;
             _config.Commands["/admin_mining_create_rule"][0].Handler = AdminHandleMiningCreateRule;
+            _config.Commands["/admin_mining_update_rule"][0].Handler = AdminHandleMiningUpdateRule;
             _config.Commands["/admin_mining_delete_machine"][0].Handler = AdminHandleMiningDeleteMachineSetId;
             _config.Commands["/admin_mining_delete_machine"][1].Handler = AdminHandleMiningDeleteMachineConfirm;
             _config.Commands["/admin_mining_deactivate_machine"][0].Handler = AdminHandleMiningDeactivateMachineSetId;
@@ -925,6 +938,55 @@ namespace ArkWallet.Infrastructure.Wizard
             }
         }
 
+        private async Task<StepResult> AdminHandleMiningUpdateMachine(UserSession session, string input)
+        {
+            try
+            {
+                var rawData = JsonConvert.DeserializeObject<Dictionary<string, object>>(input,
+                    new JsonSerializerSettings { FloatParseHandling = FloatParseHandling.Decimal });
+                if (rawData == null)
+                    return StepResult.Error("Invalid JSON input");
+
+                if (!rawData.TryGetValue("machineId", out var machineIdObj) || machineIdObj == null)
+                    return StepResult.Error("Field \"machineId\" is required.");
+
+                long machineId = Convert.ToInt64(machineIdObj);
+
+                string? type = rawData.TryGetValue("type", out var typeObj) && typeObj != null
+                    ? typeObj.ToString()
+                    : null;
+                int? switchingTime = rawData.TryGetValue("switchingTime", out var switchObj) && switchObj != null
+                    ? Convert.ToInt32(switchObj)
+                    : null;
+                decimal? reusability = rawData.TryGetValue("reusability", out var reuseObj) && reuseObj != null
+                    ? Convert.ToDecimal(reuseObj)
+                    : null;
+                bool? isActiveForSale = rawData.TryGetValue("isActiveForSale", out var activeObj) && activeObj != null
+                    ? Convert.ToBoolean(activeObj)
+                    : null;
+                string? image = rawData.TryGetValue("image", out var imageObj) && imageObj != null
+                    ? imageObj.ToString()
+                    : null;
+                decimal? efficiency = rawData.TryGetValue("efficiency", out var effObj) && effObj != null
+                    ? Convert.ToDecimal(effObj)
+                    : null;
+
+                var command = new MiningMachineUpdateCommand(
+                    machineId, type, switchingTime, reusability, isActiveForSale, image, efficiency);
+
+                var result = await _miningMachineUpdateService.UpdateMachineAsync(command);
+
+                return result.IsSuccess
+                    ? StepResult.Ok("completed", $"Machine {machineId} updated.")
+                    : StepResult.Error(result.Message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.StackTrace);
+                return StepResult.Error($"Error: {ex.Message}");
+            }
+        }
+
         private async Task<StepResult> AdminHandleMiningCreateRule(UserSession session, string input)
         {
             try
@@ -945,6 +1007,37 @@ namespace ArkWallet.Infrastructure.Wizard
 
                 return result.TryGetData(out var ruleId)
                     ? StepResult.Ok("completed", $"Rule created (Id: {ruleId}).")
+                    : StepResult.Error(result.Message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.StackTrace);
+                return StepResult.Error($"Error: {ex.Message}");
+            }
+        }
+
+        private async Task<StepResult> AdminHandleMiningUpdateRule(UserSession session, string input)
+        {
+            try
+            {
+                var rawData = JsonConvert.DeserializeObject<Dictionary<string, object>>(input,
+                    new JsonSerializerSettings { FloatParseHandling = FloatParseHandling.Decimal });
+                if (rawData == null)
+                    return StepResult.Error("Invalid JSON input");
+
+                if (!rawData.TryGetValue("miningRuleId", out var ruleIdObj) || ruleIdObj == null)
+                    return StepResult.Error("Field \"miningRuleId\" is required.");
+                if (!rawData.TryGetValue("miningCoefficient", out var coeffObj) || coeffObj == null)
+                    return StepResult.Error("Field \"miningCoefficient\" is required.");
+
+                long miningRuleId = Convert.ToInt64(ruleIdObj);
+                decimal miningCoefficient = Convert.ToDecimal(coeffObj);
+
+                var command = new MiningMachineRuleUpdateCommand(miningRuleId, miningCoefficient);
+                var result = await _miningMachineRuleUpdateService.UpdateRuleAsync(command);
+
+                return result.IsSuccess
+                    ? StepResult.Ok("completed", $"Rule {miningRuleId} updated.")
                     : StepResult.Error(result.Message);
             }
             catch (Exception ex)
