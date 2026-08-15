@@ -468,8 +468,8 @@ class Program
                 ON "MiningMachineSlotRules" ("CharacterTokenId");
             """;
 
-        // ╨Ф╨╛╨▓╨╡╨┤╨╡╨╜╨╕╨╡ ╤Б╤Г╤Й╨╡╤Б╤В╨▓╤Г╤О╤Й╨╡╨╣ ╨С╨Ф ╨┤╨╛ ╨╜╨╛╨▓╨╛╨╣ ╤Б╤Е╨╡╨╝╤Л: ╨┤╨╛╨▒╨░╨▓╨╗╤П╨╡╨╝ ╨║╨╛╨┐╨╕╤А╤Г╨╡╨╝╤Л╨╡ ╤Е╨░╤А╨░╨║╤В╨╡╤А╨╕╤Б╤В╨╕╨║╨╕ ╤Б╨╗╨╛╤В╨░,
-        // ╨┐╨╡╤А╨╡╨╜╨╛╤Б╨╕╨╝ ╨┤╨░╨╜╨╜╤Л╨╡ ╨╕╨╖ ╨║╨░╤В╨░╨╗╨╛╨│╨░ ╨╝╨░╤И╨╕╨╜ ╨╕ ╨┐╨╡╤А╨╡╨╜╨╛╤Б╨╕╨╝ ╨┐╤А╨░╨▓╨╕╨╗╨░, ╨╖╨░╤В╨╡╨╝ ╤Г╨┤╨░╨╗╤П╨╡╨╝ ╤Б╤В╨░╤А╤Л╨╡ ╤Б╤Б╤Л╨╗╨║╨╕.
+        // Доведение существующей БД до новой схемы: добавляем копируемые характеристики слота,
+        // переносим данные из каталога машин и переносим правила, затем удаляем старые ссылки.
         const string miningMachineSlotsMigration = """
             ALTER TABLE "MiningMachineSlots" ADD COLUMN IF NOT EXISTS "Name" text NOT NULL DEFAULT '';
             ALTER TABLE "MiningMachineSlots" ADD COLUMN IF NOT EXISTS "Type" text NOT NULL DEFAULT '';
