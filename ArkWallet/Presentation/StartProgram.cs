@@ -33,6 +33,7 @@ using ArkWallet.Infrastructure.Wizard;
 using ArkWallet.Presentation.Health;
 using ArkWallet.Presentation.Wizard;
 using ArkWallet.Telegram;
+using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
@@ -254,6 +255,10 @@ class Program
 
     private static void RegisterServices(IServiceCollection services)
     {
+        // MediatR
+        services.AddMediatR(cfg =>
+            cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+
         // DbContext
         services.AddDbContext<ArkWalletDbContext>();
 
