@@ -13,15 +13,15 @@ public class MiningMachineSlotTakingTokenServiceTest
         new(db, NullLogger<MiningMachineSlotTakingTokenService>.Instance);
 
     private static async Task<MiningMachineSlot> CreateSlotAsync(
-        ArkWalletDbContext db, long traderId, long? ownerId = null, decimal collected = 0, string machineName = "SM-01")
+        ArkWalletDbContext db, long traderId, long? ownerId = null, decimal collected = 0, decimal machineEfficiency = 1m)
     {
         var machine = MiningMachine.Create(
-            machineName, MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz", 1m);
+            MiningMachineType.SMAI, 10, 80, true, "img.zzz", machineEfficiency);
         db.MiningMachines.Add(machine);
         await db.SaveChangesAsync();
 
         var slot = MiningMachineSlot.Create(
-            ownerId ?? traderId, machine.Id, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+            ownerId ?? traderId, machine, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         if (collected > 0)
             slot.AddTokens(collected);
         db.MiningMachineSlots.Add(slot);
@@ -34,13 +34,12 @@ public class MiningMachineSlotTakingTokenServiceTest
         var tokenResult = await HelpMethods.CreateToken(db, symbol);
         Assert.True(tokenResult.IsSuccess, tokenResult.Message);
 
-        var machineRule = MiningMachineRule.Create(slot.MiningMachineId, symbol, 1.5m);
-        db.MiningMachineRules.Add(machineRule);
+        slot.MiningMachineSlotRules.Add(MiningMachineSlotRule.Create(symbol, 0.9m));
         var globalRule = MiningGlobalRule.Create(symbol, 1m, 1m, 1m);
         db.MiningGlobalRules.Add(globalRule);
         await db.SaveChangesAsync();
 
-        slot.SwitchTargetToken(slot.TraderId, symbol, machineRule.Id, globalRule.Id, 10, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        slot.SwitchTargetToken(slot.TraderId, symbol, globalRule.Id, 10, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         slot.CompleteSwitching();
         await db.SaveChangesAsync();
     }
@@ -136,8 +135,8 @@ public class MiningMachineSlotTakingTokenServiceTest
         var trader = await HelpMethods.RegisterTrader(db, 111);
         Assert.True(trader.IsSuccess, trader.Message);
 
-        var slotA = await CreateSlotAsync(db, 111, collected: 2.5m, machineName: "SM-01");
-        var slotB = await CreateSlotAsync(db, 111, collected: 1.25m, machineName: "SM-02");
+        var slotA = await CreateSlotAsync(db, 111, collected: 2.5m);
+        var slotB = await CreateSlotAsync(db, 111, collected: 1.25m, machineEfficiency: 1.5m);
         await MakeSlotActiveAsync(db, slotA, "AAA");
         await MakeSlotActiveAsync(db, slotB, "BBB");
 

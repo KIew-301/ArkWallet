@@ -11,7 +11,7 @@ public class MiningMachineDeletionServiceTest
 {
     private static async Task<long> CreateMachine(ArkWalletDbContext db, bool isActiveForSale = true)
     {
-        var machine = MiningMachine.Create("SM-01", MiningMachineType.SMAI, 10, 50, isActiveForSale, 1000, "img.zzz", 1m);
+        var machine = MiningMachine.Create(MiningMachineType.SMAI, 10, 50, isActiveForSale, "img.zzz", 1m);
         db.MiningMachines.Add(machine);
         await db.SaveChangesAsync();
         return machine.Id;
@@ -36,7 +36,7 @@ public class MiningMachineDeletionServiceTest
         await HelpMethods.CreateToken(db, "ZZZ");
         var machineId = await CreateMachine(db);
 
-        var rule = MiningMachineRule.Create(machineId, "ZZZ", 1.5m);
+        var rule = MiningMachineRule.Create(machineId, "ZZZ", 0.9m);
         db.MiningMachineRules.Add(rule);
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
@@ -51,23 +51,21 @@ public class MiningMachineDeletionServiceTest
     }
 
     [Fact]
-    public async Task DeleteMachineAsync_MachineWithSlots_ReturnsFail()
+    public async Task DeleteMachineAsync_MachineWithSlots_DeletesMachineKeepsSlots()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
         await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
         var machineId = await CreateMachine(db);
 
-        var rule = MiningMachineRule.Create(machineId, "ZZZ", 1.5m);
-        db.MiningMachineRules.Add(rule);
-        await db.SaveChangesAsync();
+        var machine = await db.MiningMachines.FindAsync(machineId);
 
         var globalRule = MiningGlobalRule.Create("ZZZ", 1m, 1.2m, 50m);
         db.MiningGlobalRules.Add(globalRule);
         await db.SaveChangesAsync();
 
-        var slot = MiningMachineSlot.Create(1001, machineId, 500m, DateTime.UtcNow);
-        slot.SwitchTargetToken(1001, "ZZZ", rule.Id, globalRule.Id, 10, DateTime.UtcNow);
+        var slot = MiningMachineSlot.Create(1001, machine!, 500m, DateTime.UtcNow);
+        slot.SwitchTargetToken(1001, "ZZZ", globalRule.Id, 10, DateTime.UtcNow);
         db.MiningMachineSlots.Add(slot);
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
@@ -76,10 +74,10 @@ public class MiningMachineDeletionServiceTest
 
         var result = await service.DeleteMachineAsync(machineId);
 
-        Assert.False(result.IsSuccess);
-        Assert.Contains("существуют её слоты", result.Message);
-        Assert.NotNull(await db.MiningMachines.FindAsync(machineId));
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.Null(await db.MiningMachines.FindAsync(machineId));
         Assert.NotNull(await db.MiningMachineSlots.FindAsync(slot.Id));
+        Assert.Equal("ZZZ", (await db.MiningMachineSlots.FindAsync(slot.Id))!.TokenId);
     }
 
     [Fact]

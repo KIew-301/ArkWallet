@@ -14,15 +14,15 @@ public class MiningMachineSlotSwitchingServiceTest
         new(db, NullLogger<MiningMachineSlotSwitchingService>.Instance, timeProvider);
 
     private static async Task<(MiningMachine machine, CharacterToken token)> CreateMachineWithRuleAsync(
-        ArkWalletDbContext db, string symbol = "AAA", string machineName = "SM-01")
+        ArkWalletDbContext db, string symbol = "AAA", decimal machineEfficiency = 1m)
     {
         var tokenResult = await HelpMethods.CreateToken(db, symbol);
         Assert.True(tokenResult.IsSuccess, tokenResult.Message);
         var token = await db.CharacterTokens.SingleAsync(t => t.Symbol == symbol);
 
         var machine = MiningMachine.Create(
-            machineName, MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz", 1m);
-        machine.MiningMachineRules.Add(MiningMachineRule.Create(0, symbol, 1.5m));
+            MiningMachineType.SMAI, 10, 80, true, "img.zzz", machineEfficiency);
+        machine.MiningMachineRules.Add(MiningMachineRule.Create(0, symbol, 0.9m));
         db.MiningMachines.Add(machine);
         await db.SaveChangesAsync();
         return (machine, token);
@@ -37,9 +37,9 @@ public class MiningMachineSlotSwitchingServiceTest
     }
 
     private static async Task<MiningMachineSlot> CreateSlotAsync(
-        ArkWalletDbContext db, long traderId, long machineId, long globalRuleId)
+        ArkWalletDbContext db, long traderId, MiningMachine machine, long globalRuleId)
     {
-        var slot = MiningMachineSlot.Create(traderId, machineId, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var slot = MiningMachineSlot.Create(traderId, machine, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         db.MiningMachineSlots.Add(slot);
         await db.SaveChangesAsync();
         return slot;
@@ -54,7 +54,7 @@ public class MiningMachineSlotSwitchingServiceTest
 
         var (machine, _) = await CreateMachineWithRuleAsync(db);
         var globalRule = await CreateGlobalRuleAsync(db, "AAA");
-        var slot = await CreateSlotAsync(db, 111, machine.Id, globalRule.Id);
+        var slot = await CreateSlotAsync(db, 111, machine, globalRule.Id);
 
         var timeProvider = new TestTimeProvider();
         var result = await CreateService(db, timeProvider).SwitchTargetTokenAsync(111, slot.Id, "AAA");
@@ -67,7 +67,6 @@ public class MiningMachineSlotSwitchingServiceTest
         var updated = await db.MiningMachineSlots.FindAsync(slot.Id);
         Assert.Equal(MiningMachineSlotStatus.Switching, updated!.Status);
         Assert.Equal("AAA", updated.TokenId);
-        Assert.NotNull(updated.MachineRuleId);
         Assert.Equal(globalRule.Id, updated.MiningGlobalRuleId);
         Assert.Equal(timeProvider.Now.DateTime, updated.StartSwitchingDateTime);
         Assert.Equal(timeProvider.Now.DateTime.AddMinutes(10), updated.EndSwitchingDateTime);
@@ -80,12 +79,11 @@ public class MiningMachineSlotSwitchingServiceTest
         var trader = await HelpMethods.RegisterTrader(db, 111);
         Assert.True(trader.IsSuccess, trader.Message);
 
-        var (machine, _) = await CreateMachineWithRuleAsync(db, machineName: "SM-02");
+        var (machine, _) = await CreateMachineWithRuleAsync(db, machineEfficiency: 1.5m);
         var globalRule = await CreateGlobalRuleAsync(db, "AAA");
-        var slot = await CreateSlotAsync(db, 111, machine.Id, globalRule.Id);
+        var slot = await CreateSlotAsync(db, 111, machine, globalRule.Id);
         slot.AddTokens(2.75m);
-        var machineRuleId = machine.MiningMachineRules.Single(r => r.CharacterTokenId == "AAA").Id;
-        slot.SwitchTargetToken(111, "AAA", machineRuleId, globalRule.Id, 10, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        slot.SwitchTargetToken(111, "AAA", globalRule.Id, 10, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         slot.CompleteSwitching();
         await db.SaveChangesAsync();
 
@@ -109,7 +107,7 @@ public class MiningMachineSlotSwitchingServiceTest
 
         var (machine, _) = await CreateMachineWithRuleAsync(db);
         var globalRule = await CreateGlobalRuleAsync(db, "AAA");
-        var slot = await CreateSlotAsync(db, 111, machine.Id, globalRule.Id);
+        var slot = await CreateSlotAsync(db, 111, machine, globalRule.Id);
 
         var result = await CreateService(db).SwitchTargetTokenAsync(999, slot.Id, "AAA");
 
@@ -127,12 +125,12 @@ public class MiningMachineSlotSwitchingServiceTest
         var tokenResult = await HelpMethods.CreateToken(db, "AAA");
         Assert.True(tokenResult.IsSuccess, tokenResult.Message);
 
-        var machine = MiningMachine.Create("SM-01", MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz", 1m);
+        var machine = MiningMachine.Create(MiningMachineType.SMAI, 10, 80, true, "img.zzz", 1m);
         machine.MiningMachineRules.Add(MiningMachineRule.Create(0, "AAA", 1m));
         db.MiningMachines.Add(machine);
         await db.SaveChangesAsync();
         var globalRule = await CreateGlobalRuleAsync(db, "AAA");
-        var slot = await CreateSlotAsync(db, 111, machine.Id, globalRule.Id);
+        var slot = await CreateSlotAsync(db, 111, machine, globalRule.Id);
 
         var result = await CreateService(db).SwitchTargetTokenAsync(111, slot.Id, "UNKNOWN");
 
@@ -164,11 +162,11 @@ public class MiningMachineSlotSwitchingServiceTest
         var tokenResult = await HelpMethods.CreateToken(db, "AAA");
         Assert.True(tokenResult.IsSuccess, tokenResult.Message);
 
-        var machine = MiningMachine.Create("SM-01", MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz", 1m);
+        var machine = MiningMachine.Create(MiningMachineType.SMAI, 10, 80, true, "img.zzz", 1m);
         db.MiningMachines.Add(machine);
         await db.SaveChangesAsync();
         var globalRule = await CreateGlobalRuleAsync(db, "AAA");
-        var slot = await CreateSlotAsync(db, 111, machine.Id, globalRule.Id);
+        var slot = await CreateSlotAsync(db, 111, machine, globalRule.Id);
 
         var result = await CreateService(db).SwitchTargetTokenAsync(111, slot.Id, "AAA");
 
@@ -184,7 +182,7 @@ public class MiningMachineSlotSwitchingServiceTest
         Assert.True(trader.IsSuccess, trader.Message);
 
         var (machine, _) = await CreateMachineWithRuleAsync(db);
-        var slot = MiningMachineSlot.Create(111, machine.Id, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var slot = MiningMachineSlot.Create(111, machine, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         db.MiningMachineSlots.Add(slot);
         await db.SaveChangesAsync();
 
@@ -205,7 +203,7 @@ public class MiningMachineSlotSwitchingServiceTest
 
         var (machine, _) = await CreateMachineWithRuleAsync(db);
         var globalRule = await CreateGlobalRuleAsync(db, "AAA");
-        var slot = await CreateSlotAsync(db, 222, machine.Id, globalRule.Id);
+        var slot = await CreateSlotAsync(db, 222, machine, globalRule.Id);
 
         var result = await CreateService(db).SwitchTargetTokenAsync(111, slot.Id, "AAA");
 
@@ -226,8 +224,8 @@ public class MiningMachineSlotSwitchingServiceTest
         var timeProvider = new TestTimeProvider();
         var service = CreateService(db, timeProvider);
 
-        var slot1 = await CreateSlotAsync(db, 111, machine.Id, globalRule.Id);
-        var slot2 = await CreateSlotAsync(db, 111, machine.Id, globalRule.Id);
+        var slot1 = await CreateSlotAsync(db, 111, machine, globalRule.Id);
+        var slot2 = await CreateSlotAsync(db, 111, machine, globalRule.Id);
         await service.SwitchTargetTokenAsync(111, slot1.Id, "AAA");
         await service.SwitchTargetTokenAsync(111, slot2.Id, "AAA");
 
@@ -257,7 +255,7 @@ public class MiningMachineSlotSwitchingServiceTest
         var timeProvider = new TestTimeProvider();
         var service = CreateService(db, timeProvider);
 
-        var slot = await CreateSlotAsync(db, 111, machine.Id, globalRule.Id);
+        var slot = await CreateSlotAsync(db, 111, machine, globalRule.Id);
         await service.SwitchTargetTokenAsync(111, slot.Id, "AAA");
 
         timeProvider.SkipInSeconds(5 * 60);

@@ -12,11 +12,11 @@ public class MiningMachineRuleDeletionServiceTest
     private static async Task<(long MachineId, long RuleId)> CreateMachineWithRule(ArkWalletDbContext db, string symbol = "ZZZ")
     {
         await HelpMethods.CreateToken(db, symbol);
-        var machine = MiningMachine.Create("SM-01", MiningMachineType.SMAI, 10, 50, true, 1000, "img.zzz", 1m);
+        var machine = MiningMachine.Create(MiningMachineType.SMAI, 10, 50, true, "img.zzz", 1m);
         db.MiningMachines.Add(machine);
         await db.SaveChangesAsync();
 
-        var rule = MiningMachineRule.Create(machine.Id, symbol, 1.5m);
+        var rule = MiningMachineRule.Create(machine.Id, symbol, 0.9m);
         db.MiningMachineRules.Add(rule);
         await db.SaveChangesAsync();
 
@@ -50,7 +50,7 @@ public class MiningMachineRuleDeletionServiceTest
     }
 
     [Fact]
-    public async Task DeleteRuleAsync_RuleInUseBySlot_ReturnsFail()
+    public async Task DeleteRuleAsync_RuleCopiedToSlot_DeletesCatalogRuleKeepsSlotRule()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
         await HelpMethods.RegisterTrader(db, 1001);
@@ -60,8 +60,11 @@ public class MiningMachineRuleDeletionServiceTest
         db.MiningGlobalRules.Add(globalRule);
         await db.SaveChangesAsync();
 
-        var slot = MiningMachineSlot.Create(1001, machineId, 500m, DateTime.UtcNow);
-        slot.SwitchTargetToken(1001, "ZZZ", ruleId, globalRule.Id, 10, DateTime.UtcNow);
+        var machine = await db.MiningMachines
+            .Include(m => m.MiningMachineRules)
+            .SingleAsync(m => m.Id == machineId);
+
+        var slot = MiningMachineSlot.Create(1001, machine, 500m, DateTime.UtcNow);
         db.MiningMachineSlots.Add(slot);
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
@@ -70,8 +73,11 @@ public class MiningMachineRuleDeletionServiceTest
 
         var result = await service.DeleteRuleAsync(ruleId);
 
-        Assert.False(result.IsSuccess);
-        Assert.Contains("используемое слотом", result.Message);
-        Assert.NotNull(await db.MiningMachineRules.FindAsync(ruleId));
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.Null(await db.MiningMachineRules.FindAsync(ruleId));
+        var slotRule = await db.MiningMachineSlotRules
+            .SingleAsync(r => r.MiningMachineSlotId == slot.Id);
+        Assert.Equal("ZZZ", slotRule.CharacterTokenId);
+        Assert.Equal(0.9m, slotRule.MiningCoefficient);
     }
 }

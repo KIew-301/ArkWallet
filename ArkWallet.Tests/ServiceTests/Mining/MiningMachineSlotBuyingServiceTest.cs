@@ -12,15 +12,17 @@ public class MiningMachineSlotBuyingServiceTest
     private static MiningMachineSlotBuyingService CreateService(ArkWalletDbContext db) =>
         new(db, NullLogger<MiningMachineSlotBuyingService>.Instance);
 
+    private static readonly decimal[] CategoryEfficiencies =
+        [0.003m, 0.006m, 0.011m, 0.018m, 0.033m, 0.046m, 0.084m, 0.157m, 0.373m, 0.763m, 1.476m];
+
     private static MiningMachine CreateMachine(
         ArkWalletDbContext db,
-        string name = "SM-01",
-        decimal cost = 1000,
+        decimal efficiency = 1m,
         decimal reusability = 80,
         bool isActiveForSale = true)
     {
         var machine = MiningMachine.Create(
-            name, MiningMachineType.SMAI, 10, reusability, isActiveForSale, cost, "img.zzz", 1m);
+            MiningMachineType.SMAI, 10, reusability, isActiveForSale, "img.zzz", efficiency);
         db.MiningMachines.Add(machine);
         return machine;
     }
@@ -31,10 +33,10 @@ public class MiningMachineSlotBuyingServiceTest
         await using var db = await DbTest.CreateInitializedDbContextAsync();
         var trader = await HelpMethods.RegisterTrader(db, 111);
         Assert.True(trader.IsSuccess, trader.Message);
-        await HelpMethods.GiveMoney(db, 111, 1000);
 
-        var machine = CreateMachine(db, cost: 550, reusability: 80);
+        var machine = CreateMachine(db, reusability: 80);
         await db.SaveChangesAsync();
+        await HelpMethods.GiveMoney(db, 111, machine.Cost + 1000);
 
         var result = await CreateService(db).BuyMachineAsync(111, machine.Id);
 
@@ -42,13 +44,49 @@ public class MiningMachineSlotBuyingServiceTest
         Assert.True(result.TryGetData(out var slotId));
 
         var traderEntity = await HelpMethods.GetTrader(db, 111);
-        Assert.Equal(1450m, traderEntity!.Balance);
+        Assert.Equal(2000m, traderEntity!.Balance);
 
         var slot = await db.MiningMachineSlots.FindAsync(slotId);
         Assert.NotNull(slot);
-        Assert.Equal(machine.Id, slot!.MiningMachineId);
-        Assert.Equal(440m, slot.Cost);
+        Assert.Equal(machine.Name, slot!.Name);
+        Assert.Equal(machine.Type, slot.Type);
+        Assert.Equal(machine.SwitchingTime, slot.SwitchingTime);
+        Assert.Equal(machine.Efficiency, slot.Efficiency);
+        Assert.Equal(machine.Image, slot.Image);
+        Assert.Equal(machine.GetSellingPrice(), slot.Cost);
         Assert.Equal(MiningMachineSlotStatus.Passive, slot.Status);
+        Assert.Empty(await db.MiningMachineSlotRules.Where(r => r.MiningMachineSlotId == slot.Id).ToListAsync());
+    }
+
+    [Fact]
+    public async Task BuyMachineAsync_WithRules_CopiesRulesToSlot()
+    {
+        await using var db = await DbTest.CreateInitializedDbContextAsync();
+        var trader = await HelpMethods.RegisterTrader(db, 111);
+        Assert.True(trader.IsSuccess, trader.Message);
+
+        await HelpMethods.CreateToken(db, "AAA");
+        await HelpMethods.CreateToken(db, "BBB");
+
+        var machine = MiningMachine.Create(MiningMachineType.MGC, 30, 80, true, "img.zzz", 0.5m);
+        machine.MiningMachineRules.Add(MiningMachineRule.Create(0, "AAA", 0.9m));
+        machine.MiningMachineRules.Add(MiningMachineRule.Create(0, "BBB", 0.7m));
+        db.MiningMachines.Add(machine);
+        await db.SaveChangesAsync();
+        await HelpMethods.GiveMoney(db, 111, machine.Cost + 1000);
+
+        var result = await CreateService(db).BuyMachineAsync(111, machine.Id);
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.True(result.TryGetData(out var slotId));
+
+        var rules = await db.MiningMachineSlotRules
+            .Where(r => r.MiningMachineSlotId == slotId)
+            .OrderBy(r => r.CharacterTokenId)
+            .ToListAsync();
+        Assert.Collection(rules,
+            r => { Assert.Equal("AAA", r.CharacterTokenId); Assert.Equal(0.9m, r.MiningCoefficient); },
+            r => { Assert.Equal("BBB", r.CharacterTokenId); Assert.Equal(0.7m, r.MiningCoefficient); });
     }
 
     [Fact]
@@ -59,7 +97,7 @@ public class MiningMachineSlotBuyingServiceTest
         Assert.True(trader.IsSuccess, trader.Message);
         await HelpMethods.GiveMoney(db, 111, 300);
 
-        var machine = CreateMachine(db, cost: 2000);
+        var machine = CreateMachine(db);
         await db.SaveChangesAsync();
 
         var result = await CreateService(db).BuyMachineAsync(111, machine.Id);
@@ -74,22 +112,21 @@ public class MiningMachineSlotBuyingServiceTest
         await using var db = await DbTest.CreateInitializedDbContextAsync();
         var trader = await HelpMethods.RegisterTrader(db, 111);
         Assert.True(trader.IsSuccess, trader.Message);
-        await HelpMethods.GiveMoney(db, 111, 1000000);
+        await HelpMethods.GiveMoney(db, 111, 100000000);
 
+        var machines = new List<MiningMachine>();
         for (var i = 0; i < 11; i++)
-            CreateMachine(db, name: $"SM-{i:00}", cost: 100);
+            machines.Add(CreateMachine(db, efficiency: CategoryEfficiencies[i]));
         await db.SaveChangesAsync();
 
         var service = CreateService(db);
         for (var i = 0; i < 10; i++)
         {
-            var machine = await db.MiningMachines.SingleAsync(m => m.Name == $"SM-{i:00}");
-            var result = await service.BuyMachineAsync(111, machine.Id);
+            var result = await service.BuyMachineAsync(111, machines[i].Id);
             Assert.True(result.IsSuccess, $"Purchase #{i}: {result.Message}");
         }
 
-        var eleventhMachine = await db.MiningMachines.SingleAsync(m => m.Name == "SM-10");
-        var eleventh = await service.BuyMachineAsync(111, eleventhMachine.Id);
+        var eleventh = await service.BuyMachineAsync(111, machines[10].Id);
 
         Assert.False(eleventh.IsSuccess);
         Assert.Contains("10", eleventh.Message);
@@ -102,17 +139,17 @@ public class MiningMachineSlotBuyingServiceTest
         await using var db = await DbTest.CreateInitializedDbContextAsync();
         var trader = await HelpMethods.RegisterTrader(db, 111);
         Assert.True(trader.IsSuccess, trader.Message);
-        await HelpMethods.GiveMoney(db, 111, 1000000);
+        await HelpMethods.GiveMoney(db, 111, 100000000);
 
+        var machines = new List<MiningMachine>();
         for (var i = 0; i < 11; i++)
-            CreateMachine(db, name: $"SM-{i:00}", cost: 100);
+            machines.Add(CreateMachine(db, efficiency: CategoryEfficiencies[i]));
         await db.SaveChangesAsync();
 
         var service = CreateService(db);
         for (var i = 0; i < 10; i++)
         {
-            var machine = await db.MiningMachines.SingleAsync(m => m.Name == $"SM-{i:00}");
-            var result = await service.BuyMachineAsync(111, machine.Id);
+            var result = await service.BuyMachineAsync(111, machines[i].Id);
             Assert.True(result.IsSuccess, result.Message);
         }
 
@@ -120,7 +157,7 @@ public class MiningMachineSlotBuyingServiceTest
         soldSlot.Sell(111, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         await db.SaveChangesAsync();
 
-        var afterSell = await service.BuyMachineAsync(111, (await db.MiningMachines.SingleAsync(m => m.Name == "SM-10")).Id);
+        var afterSell = await service.BuyMachineAsync(111, machines[10].Id);
 
         Assert.True(afterSell.IsSuccess, afterSell.Message);
         Assert.Equal(10, await db.MiningMachineSlots.CountAsync(s => s.TraderId == 111 && s.Status != MiningMachineSlotStatus.Sold));
@@ -134,7 +171,7 @@ public class MiningMachineSlotBuyingServiceTest
         Assert.True(trader.IsSuccess, trader.Message);
         await HelpMethods.GiveMoney(db, 111, 10000);
 
-        var machine = CreateMachine(db, cost: 100);
+        var machine = CreateMachine(db, efficiency: 0.003m);
         await db.SaveChangesAsync();
 
         var service = CreateService(db);
@@ -200,7 +237,7 @@ public class MiningMachineSlotBuyingServiceTest
         Assert.True(trader.IsSuccess, trader.Message);
         await HelpMethods.GiveMoney(db, 111, 300);
 
-        var machine = CreateMachine(db, cost: 2000);
+        var machine = CreateMachine(db);
         await db.SaveChangesAsync();
 
         await CreateService(db).BuyMachineAsync(111, machine.Id);

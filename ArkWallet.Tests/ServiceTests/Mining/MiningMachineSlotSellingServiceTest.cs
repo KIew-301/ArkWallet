@@ -17,12 +17,12 @@ public class MiningMachineSlotSellingServiceTest
         ArkWalletDbContext db, long traderId, long? ownerId = null, decimal cost = 400)
     {
         var machine = MiningMachine.Create(
-            "SM-01", MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz", 1m);
+            MiningMachineType.SMAI, 10, 80, true, "img.zzz", 1m);
         db.MiningMachines.Add(machine);
         await db.SaveChangesAsync();
 
         var slot = MiningMachineSlot.Create(
-            ownerId ?? traderId, machine.Id, cost, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+            ownerId ?? traderId, machine, cost, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         db.MiningMachineSlots.Add(slot);
         await db.SaveChangesAsync();
         return slot;
@@ -64,8 +64,8 @@ public class MiningMachineSlotSellingServiceTest
         var tokenResult = await HelpMethods.CreateToken(db, "AAA");
         Assert.True(tokenResult.IsSuccess, tokenResult.Message);
 
-        var machine = MiningMachine.Create("SM-01", MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz", 1m);
-        var machineRule = MiningMachineRule.Create(0, "AAA", 1.5m);
+        var machine = MiningMachine.Create(MiningMachineType.SMAI, 10, 80, true, "img.zzz", 1m);
+        var machineRule = MiningMachineRule.Create(0, "AAA", 0.9m);
         machine.MiningMachineRules.Add(machineRule);
         db.MiningMachines.Add(machine);
 
@@ -73,8 +73,8 @@ public class MiningMachineSlotSellingServiceTest
         db.MiningGlobalRules.Add(globalRule);
         await db.SaveChangesAsync();
 
-        var slot = MiningMachineSlot.Create(111, machine.Id, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-        slot.SwitchTargetToken(111, "AAA", machineRule.Id, globalRule.Id, 10, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var slot = MiningMachineSlot.Create(111, machine, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        slot.SwitchTargetToken(111, "AAA", globalRule.Id, 10, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         slot.CompleteSwitching();
         slot.AddTokens(2.75m);
         db.MiningMachineSlots.Add(slot);

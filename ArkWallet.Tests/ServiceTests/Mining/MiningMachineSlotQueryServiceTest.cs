@@ -15,10 +15,10 @@ public class MiningMachineSlotQueryServiceTest
         new(db, new MiningEngine(), NullLogger<MiningMachineSlotQueryService>.Instance, timeProvider);
 
     private static async Task<MiningMachine> CreateMachineAsync(
-        ArkWalletDbContext db, string name = "SM-01", params (string Symbol, decimal Coefficient)[] rules)
+        ArkWalletDbContext db, params (string Symbol, decimal Coefficient)[] rules)
     {
         var machine = MiningMachine.Create(
-            name, MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz", 1m);
+            MiningMachineType.SMAI, 10, 80, true, "img.zzz", 1m);
         foreach (var (symbol, coefficient) in rules)
             machine.MiningMachineRules.Add(MiningMachineRule.Create(0, symbol, coefficient));
         db.MiningMachines.Add(machine);
@@ -42,15 +42,14 @@ public class MiningMachineSlotQueryServiceTest
         Assert.True(trader.IsSuccess, trader.Message);
 
         await CreateTokenAsync(db, "AAA", price: 100);
-        var machine = await CreateMachineAsync(db, rules: ("AAA", 2m));
+        var machine = await CreateMachineAsync(db, rules: ("AAA", 1m));
         var globalRule = MiningGlobalRule.Create("AAA", 4m, 4m, 2m);
         db.MiningGlobalRules.Add(globalRule);
         await db.SaveChangesAsync();
-        var machineRuleId = machine.MiningMachineRules.Single(r => r.CharacterTokenId == "AAA").Id;
 
         var slot = MiningMachineSlot.Create(
-            111, machine.Id, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-        slot.SwitchTargetToken(111, "AAA", machineRuleId, globalRule.Id, 10, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+            111, machine, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        slot.SwitchTargetToken(111, "AAA", globalRule.Id, 10, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         slot.CompleteSwitching();
         slot.AddTokens(5.5m);
         db.MiningMachineSlots.Add(slot);
@@ -63,7 +62,7 @@ public class MiningMachineSlotQueryServiceTest
         Assert.True(result.TryGetData(out var slots));
         var data = Assert.Single(slots);
         Assert.Equal(slot.Id, data.Id);
-        Assert.Equal("SM-01", data.Name);
+        Assert.Equal(machine.Name, data.Name);
         Assert.Equal("SMAI", data.Type);
         Assert.Equal("Active", data.Status);
         Assert.Equal(5.5m, data.TokensAmountCollected);
@@ -72,8 +71,8 @@ public class MiningMachineSlotQueryServiceTest
         Assert.Equal(400m, data.Cost);
 
         Assert.Equal("AAA", data.ActiveTokenMiningData.Symbol);
-        Assert.Equal(16m, data.ActiveTokenMiningData.MiningSpeed);
-        Assert.Equal(1600m, data.ActiveTokenMiningData.Profit);
+        Assert.Equal(8m, data.ActiveTokenMiningData.MiningSpeed);
+        Assert.Equal(800m, data.ActiveTokenMiningData.Profit);
     }
 
     [Fact]
@@ -86,18 +85,17 @@ public class MiningMachineSlotQueryServiceTest
         await CreateTokenAsync(db, "AAA", price: 100);
         await CreateTokenAsync(db, "BBB", price: 100);
         await CreateTokenAsync(db, "CCC", price: 100);
-        var machine = await CreateMachineAsync(db, name: "SM-01",
+        var machine = await CreateMachineAsync(db,
             ("AAA", 0.9m), ("BBB", 1m), ("CCC", 0.8m));
         db.MiningGlobalRules.Add(MiningGlobalRule.Create("AAA", 4m, 4m, 2m));
         db.MiningGlobalRules.Add(MiningGlobalRule.Create("BBB", 4m, 4m, 2m));
         db.MiningGlobalRules.Add(MiningGlobalRule.Create("CCC", 1m, 1m, 1m));
         await db.SaveChangesAsync();
-        var machineRuleId = machine.MiningMachineRules.Single(r => r.CharacterTokenId == "AAA").Id;
         var globalRuleId = db.MiningGlobalRules.Single(r => r.TokenId == "AAA").Id;
 
         var slot = MiningMachineSlot.Create(
-            111, machine.Id, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-        slot.SwitchTargetToken(111, "AAA", machineRuleId, globalRuleId, 10, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+            111, machine, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        slot.SwitchTargetToken(111, "AAA", globalRuleId, 10, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         slot.CompleteSwitching();
         db.MiningMachineSlots.Add(slot);
         await db.SaveChangesAsync();
@@ -128,7 +126,7 @@ public class MiningMachineSlotQueryServiceTest
 
         var machine = await CreateMachineAsync(db);
         var slot = MiningMachineSlot.Create(
-            111, machine.Id, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+            111, machine, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         db.MiningMachineSlots.Add(slot);
         await db.SaveChangesAsync();
 
@@ -150,16 +148,15 @@ public class MiningMachineSlotQueryServiceTest
         Assert.True(trader.IsSuccess, trader.Message);
 
         await CreateTokenAsync(db, "AAA");
-        var machine = await CreateMachineAsync(db, rules: ("AAA", 2m));
+        var machine = await CreateMachineAsync(db, rules: ("AAA", 1m));
         var globalRule = MiningGlobalRule.Create("AAA", 4m, 4m, 2m);
         db.MiningGlobalRules.Add(globalRule);
         await db.SaveChangesAsync();
-        var machineRuleId = machine.MiningMachineRules.Single(r => r.CharacterTokenId == "AAA").Id;
 
         var slot = MiningMachineSlot.Create(
-            111, machine.Id, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+            111, machine, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         slot.SwitchTargetToken(
-            111, "AAA", machineRuleId, globalRule.Id, 10,
+            111, "AAA", globalRule.Id, 10,
             new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMinutes(-2));
         db.MiningMachineSlots.Add(slot);
         await db.SaveChangesAsync();
@@ -181,8 +178,8 @@ public class MiningMachineSlotQueryServiceTest
         Assert.True(trader.IsSuccess, trader.Message);
 
         var machine = await CreateMachineAsync(db);
-        var older = MiningMachineSlot.Create(111, machine.Id, 400, new DateTime(2025, 12, 1, 0, 0, 0, DateTimeKind.Utc));
-        var newer = MiningMachineSlot.Create(111, machine.Id, 500, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var older = MiningMachineSlot.Create(111, machine, 400, new DateTime(2025, 12, 1, 0, 0, 0, DateTimeKind.Utc));
+        var newer = MiningMachineSlot.Create(111, machine, 500, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         db.MiningMachineSlots.AddRange(older, newer);
         await db.SaveChangesAsync();
 
@@ -201,9 +198,9 @@ public class MiningMachineSlotQueryServiceTest
         Assert.True(trader.IsSuccess, trader.Message);
 
         var machine = await CreateMachineAsync(db);
-        var sold = MiningMachineSlot.Create(111, machine.Id, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var sold = MiningMachineSlot.Create(111, machine, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         sold.Sell(111, new DateTime(2026, 1, 2, 0, 0, 0, DateTimeKind.Utc));
-        var active = MiningMachineSlot.Create(111, machine.Id, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var active = MiningMachineSlot.Create(111, machine, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         db.MiningMachineSlots.AddRange(sold, active);
         await db.SaveChangesAsync();
 
@@ -225,7 +222,7 @@ public class MiningMachineSlotQueryServiceTest
         Assert.True(otherTrader.IsSuccess, otherTrader.Message);
 
         var machine = await CreateMachineAsync(db);
-        var otherSlot = MiningMachineSlot.Create(222, machine.Id, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var otherSlot = MiningMachineSlot.Create(222, machine, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         db.MiningMachineSlots.Add(otherSlot);
         await db.SaveChangesAsync();
 
