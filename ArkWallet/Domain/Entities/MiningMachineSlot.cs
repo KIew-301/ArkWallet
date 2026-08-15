@@ -21,15 +21,19 @@ public enum MiningMachineSlotStatus
 }
 
 /// <summary>
-/// Слот майнинг-машины, принадлежащий трейдеру
+/// Слот майнинг-машины, принадлежащий трейдеру.
+/// При покупке копирует характеристики каталогной машины и не зависит от неё.
 /// </summary>
 internal class MiningMachineSlot
 {
     public long Id { get; private set; }
     public long TraderId { get; private set; }
-    public long MiningMachineId { get; private set; }
+    public string Name { get; private set; } = string.Empty;
+    public MiningMachineType Type { get; private set; }
+    public int SwitchingTime { get; private set; }
+    public decimal Efficiency { get; private set; }
+    public string Image { get; private set; } = string.Empty;
     public string? TokenId { get; private set; }
-    public long? MachineRuleId { get; private set; }
     public long? MiningGlobalRuleId { get; private set; }
     public MiningMachineSlotStatus Status { get; private set; }
     public DateTime? StartSwitchingDateTime { get; private set; }
@@ -39,34 +43,41 @@ internal class MiningMachineSlot
     public DateTime CreatedAt { get; private set; }
     public DateTime? SoldAt { get; private set; }
 
-    public virtual MiningMachine? MiningMachine { get; set; }
-    public virtual MiningMachineRule? MachineRule { get; set; }
+    public virtual ICollection<MiningMachineSlotRule> MiningMachineSlotRules { get; set; } = new List<MiningMachineSlotRule>();
     public virtual MiningGlobalRule? MiningGlobalRule { get; set; }
     public virtual CharacterToken? Token { get; set; }
 
-    public static MiningMachineSlot Create(long traderId, long miningMachineId, decimal cost, DateTime createdAt)
+    public static MiningMachineSlot Create(long traderId, MiningMachine machine, decimal cost, DateTime createdAt)
     {
         if (cost <= 0)
             throw new DomainException("Цена продажи должна быть больше нуля");
 
-        return new MiningMachineSlot
+        var slot = new MiningMachineSlot
         {
             TraderId = traderId,
-            MiningMachineId = miningMachineId,
+            Name = machine.Name,
+            Type = machine.Type,
+            SwitchingTime = machine.SwitchingTime,
+            Efficiency = machine.Efficiency,
+            Image = machine.Image,
             Status = MiningMachineSlotStatus.Passive,
             Cost = cost,
             CreatedAt = createdAt
         };
+
+        foreach (var rule in machine.MiningMachineRules)
+            slot.MiningMachineSlotRules.Add(MiningMachineSlotRule.Copy(rule));
+
+        return slot;
     }
 
     /// <summary>
-    /// Запускает переключение слота на другой токен. Токен и правила фиксируются сразу,
+    /// Запускает переключение слота на другой токен. Токен и глобальное правило фиксируются сразу,
     /// но майнинг начнётся только после завершения переключения.
     /// </summary>
     public void SwitchTargetToken(
         long traderId,
         string symbol,
-        long machineRuleId,
         long globalRuleId,
         int switchingTime,
         DateTime now)
@@ -77,7 +88,6 @@ internal class MiningMachineSlot
             throw new DomainException("Машина уже продана");
 
         TokenId = symbol;
-        MachineRuleId = machineRuleId;
         MiningGlobalRuleId = globalRuleId;
         StartSwitchingDateTime = now;
         EndSwitchingDateTime = now.AddMinutes(switchingTime);

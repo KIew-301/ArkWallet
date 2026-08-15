@@ -17,6 +17,7 @@ internal class ArkWalletDbContext : DbContext
     public DbSet<MiningMachine> MiningMachines { get; set; }
     public DbSet<MiningMachineRule> MiningMachineRules { get; set; }
     public DbSet<MiningMachineSlot> MiningMachineSlots { get; set; }
+    public DbSet<MiningMachineSlotRule> MiningMachineSlotRules { get; set; }
     public DbSet<MiningGlobalRule> MiningGlobalRules { get; set; }
 
     public ArkWalletDbContext(DbContextOptions<ArkWalletDbContext> options) : base(options)
@@ -50,16 +51,13 @@ internal class ArkWalletDbContext : DbContext
         modelBuilder.Entity<MiningMachineSlot>(slot =>
         {
             slot.Property(s => s.Status).HasConversion<string>();
+            slot.Property(s => s.Type).HasConversion<string>();
             slot.HasIndex(s => s.TraderId);
             slot.HasIndex(s => s.Status);
-            slot.HasOne(s => s.MiningMachine)
-                .WithMany()
-                .HasForeignKey(s => s.MiningMachineId)
-                .OnDelete(DeleteBehavior.Restrict);
-            slot.HasOne(s => s.MachineRule)
-                .WithMany()
-                .HasForeignKey(s => s.MachineRuleId)
-                .OnDelete(DeleteBehavior.Restrict);
+            slot.HasMany(s => s.MiningMachineSlotRules)
+                .WithOne(r => r.MiningMachineSlot)
+                .HasForeignKey(r => r.MiningMachineSlotId)
+                .OnDelete(DeleteBehavior.Cascade);
             slot.HasOne(s => s.MiningGlobalRule)
                 .WithMany()
                 .HasForeignKey(s => s.MiningGlobalRuleId)
@@ -71,6 +69,15 @@ internal class ArkWalletDbContext : DbContext
             slot.HasOne<Trader>()
                 .WithMany()
                 .HasForeignKey(s => s.TraderId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<MiningMachineSlotRule>(rule =>
+        {
+            rule.HasIndex(r => new { r.MiningMachineSlotId, r.CharacterTokenId }).IsUnique();
+            rule.HasOne(r => r.CharacterToken)
+                .WithMany()
+                .HasForeignKey(r => r.CharacterTokenId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
