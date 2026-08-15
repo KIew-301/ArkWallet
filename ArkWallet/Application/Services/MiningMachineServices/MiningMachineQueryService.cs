@@ -18,16 +18,16 @@ internal class MiningMachineQueryService(
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            var ownedMachineIds = await dbContext.MiningMachineSlots
+            var ownedMachineNames = await dbContext.MiningMachineSlots
                 .AsNoTracking()
                 .Where(s => s.TraderId == traderId && s.Status != MiningMachineSlotStatus.Sold)
-                .Select(s => s.MiningMachineId)
+                .Select(s => s.Name)
                 .Distinct()
                 .ToArrayAsync();
 
             var machines = await dbContext.MiningMachines
                 .AsNoTracking()
-                .Where(m => m.IsActiveForSale && !ownedMachineIds.Contains(m.Id))
+                .Where(m => m.IsActiveForSale && !ownedMachineNames.Contains(m.Name))
                 .Include(m => m.MiningMachineRules)
                 .ToListAsync();
 

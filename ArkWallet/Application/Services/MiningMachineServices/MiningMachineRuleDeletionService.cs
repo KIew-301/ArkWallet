@@ -23,14 +23,10 @@ internal class MiningMachineRuleDeletionService(ArkWalletDbContext dbContext, IL
                 if (rule is null)
                     return Fail($"Правило майнинга с Id '{ruleId}' не найдено");
 
-                var inUse = await dbContext.MiningMachineSlots
-                    .AnyAsync(s => s.MachineRuleId == ruleId);
-
-                if (inUse)
-                    return Fail("Нельзя удалить правило, используемое слотом машины");
-
                 dbContext.MiningMachineRules.Remove(rule);
                 await dbContext.SaveChangesAsync();
+
+                await MiningMachineRecomputeHelper.RecomputeMachinesAsync(dbContext, [rule.MiningMachineId]);
 
                 return Ok();
             });

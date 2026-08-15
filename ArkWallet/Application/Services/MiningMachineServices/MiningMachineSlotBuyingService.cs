@@ -27,14 +27,16 @@ internal class MiningMachineSlotBuyingService(
                 if (trader == null)
                     return Fail("Трейдера не существует");
 
-                var machine = await dbContext.MiningMachines.FirstOrDefaultAsync(m => m.Id == machineId);
+                var machine = await dbContext.MiningMachines
+                    .Include(m => m.MiningMachineRules)
+                    .FirstOrDefaultAsync(m => m.Id == machineId);
                 if (machine == null)
                     return Fail("Машины не существует");
                 if (!machine.IsActiveForSale)
                     return Fail("Машина недоступна для покупки");
 
                 var alreadyOwned = await dbContext.MiningMachineSlots.AnyAsync(s =>
-                    s.TraderId == traderId && s.MiningMachineId == machineId && s.Status != MiningMachineSlotStatus.Sold);
+                    s.TraderId == traderId && s.Name == machine.Name && s.Status != MiningMachineSlotStatus.Sold);
                 if (alreadyOwned)
                     return Fail("У вас уже есть такая машина");
 
@@ -49,7 +51,7 @@ internal class MiningMachineSlotBuyingService(
 
                 var now = (timeProvider ?? TimeProvider.System).GetUtcNow().UtcDateTime;
 
-                var slot = MiningMachineSlot.Create(traderId, machineId, resalePrice, now);
+                var slot = MiningMachineSlot.Create(traderId, machine, resalePrice, now);
                 await dbContext.MiningMachineSlots.AddAsync(slot);
 
                 trader.AddToBalance(-machine.Cost);

@@ -23,12 +23,6 @@ internal class MiningMachineDeletionService(ArkWalletDbContext dbContext, ILogge
                 if (machine is null)
                     return Fail($"Майнинг-машина с Id '{machineId}' не найдена");
 
-                var hasSlots = await dbContext.MiningMachineSlots
-                    .AnyAsync(s => s.MiningMachineId == machineId);
-
-                if (hasSlots)
-                    return Fail("Нельзя удалить машину, пока существуют её слоты");
-
                 await dbContext.MiningMachineRules
                     .Where(r => r.MiningMachineId == machineId)
                     .ExecuteDeleteAsync();

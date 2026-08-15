@@ -25,22 +25,26 @@ internal class MiningMachineSlotCalculationService(
                 await dbContext.LockActiveMiningMachineSlotsAsync();
 
                 var slots = await dbContext.MiningMachineSlots
-                    .Include(s => s.MiningMachine)
+                    .Include(s => s.MiningMachineSlotRules)
                     .Include(s => s.MiningGlobalRule)
-                    .Include(s => s.MachineRule)
                     .Where(s => s.Status == MiningMachineSlotStatus.Active)
                     .ToListAsync();
 
                 var processed = 0;
                 foreach (var slot in slots)
                 {
-                    if (slot.MiningGlobalRule == null || slot.MachineRule == null)
+                    if (slot.MiningGlobalRule == null)
+                        continue;
+
+                    var machineRule = slot.MiningMachineSlotRules
+                        .FirstOrDefault(r => r.CharacterTokenId == slot.TokenId);
+                    if (machineRule == null)
                         continue;
 
                     var cash = miningEngine.CalculateCash(
                         slot.MiningGlobalRule.CurrentCoefficient,
-                        slot.MachineRule.MiningCoefficient,
-                        slot.MiningMachine?.Efficiency ?? 1m,
+                        machineRule.MiningCoefficient,
+                        slot.Efficiency,
                         timingCoeff,
                         slot.MiningGlobalRule.BaseTokenMiningSpeed);
 

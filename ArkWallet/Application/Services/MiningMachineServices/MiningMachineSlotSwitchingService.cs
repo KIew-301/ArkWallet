@@ -31,13 +31,12 @@ internal class MiningMachineSlotSwitchingService(
                     return Fail("Токена не существует");
 
                 var slot = await dbContext.MiningMachineSlots
-                    .Include(s => s.MiningMachine)
-                    .ThenInclude(m => m!.MiningMachineRules)
+                    .Include(s => s.MiningMachineSlotRules)
                     .FirstOrDefaultAsync(s => s.Id == miningMachineSlotId);
                 if (slot == null)
                     return Fail("Слота не существует");
 
-                var machineRule = slot.MiningMachine?.MiningMachineRules
+                var machineRule = slot.MiningMachineSlotRules
                     .FirstOrDefault(r => r.CharacterTokenId == symbol);
                 if (machineRule == null)
                     return Fail("Правила для такой связки машины и токена не существует");
@@ -53,9 +52,8 @@ internal class MiningMachineSlotSwitchingService(
                 slot.SwitchTargetToken(
                     traderId,
                     symbol,
-                    machineRule.Id,
                     globalRule.Id,
-                    slot.MiningMachine!.SwitchingTime,
+                    slot.SwitchingTime,
                     now);
 
                 await dbContext.SaveChangesAsync();

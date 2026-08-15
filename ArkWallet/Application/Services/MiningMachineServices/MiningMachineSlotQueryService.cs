@@ -24,9 +24,7 @@ internal class MiningMachineSlotQueryService(
             var slots = await dbContext.MiningMachineSlots
                 .AsNoTracking()
                 .Where(s => s.TraderId == traderId && s.Status != MiningMachineSlotStatus.Sold)
-                .Include(s => s.MiningMachine)
-                .ThenInclude(m => m!.MiningMachineRules)
-                .Include(s => s.MachineRule)
+                .Include(s => s.MiningMachineSlotRules)
                 .Include(s => s.MiningGlobalRule)
                 .Include(s => s.Token)
                 .ToListAsync();
@@ -35,7 +33,7 @@ internal class MiningMachineSlotQueryService(
                 return Result<List<MiningMachineSlotData>>.Ok([]);
 
             var tokenIds = slots
-                .SelectMany(s => s.MiningMachine?.MiningMachineRules ?? [])
+                .SelectMany(s => s.MiningMachineSlotRules)
                 .Select(r => r.CharacterTokenId)
                 .Concat(slots.Where(s => s.TokenId != null).Select(s => s.TokenId!))
                 .Distinct()
@@ -72,8 +70,8 @@ internal class MiningMachineSlotQueryService(
         var activeToken = ActiveTokenMiningData.Empty();
         if (slot.TokenId != null && tokens.TryGetValue(slot.TokenId, out var activeTokenEntity))
         {
-            var machineRule = slot.MachineRule
-                ?? slot.MiningMachine?.MiningMachineRules.FirstOrDefault(r => r.CharacterTokenId == slot.TokenId);
+            var machineRule = slot.MiningMachineSlotRules
+                .FirstOrDefault(r => r.CharacterTokenId == slot.TokenId);
             var globalRule = slot.MiningGlobalRule
                 ?? globalRules.GetValueOrDefault(slot.TokenId);
 
@@ -92,7 +90,7 @@ internal class MiningMachineSlotQueryService(
 
         var effective = new List<TokensMiningData>();
         var stable = new List<TokensMiningData>();
-        foreach (var rule in slot.MiningMachine?.MiningMachineRules ?? [])
+        foreach (var rule in slot.MiningMachineSlotRules)
         {
             if (rule.CharacterTokenId == slot.TokenId)
                 continue;
@@ -121,12 +119,12 @@ internal class MiningMachineSlotQueryService(
 
         return new MiningMachineSlotData(
             slot.Id,
-            slot.MiningMachine?.Name ?? string.Empty,
-            slot.MiningMachine?.Type.ToString() ?? string.Empty,
+            slot.Name,
+            slot.Type.ToString(),
             slot.Status.ToString(),
             slot.TokensAmountCollected,
             switchingPercent,
-            slot.MiningMachine?.SwitchingTime ?? 0,
+            slot.SwitchingTime,
             slot.Cost,
             activeToken,
             effective.OrderByDescending(d => d.Profit).ToList(),
