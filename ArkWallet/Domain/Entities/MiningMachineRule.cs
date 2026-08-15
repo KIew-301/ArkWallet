@@ -15,12 +15,14 @@ internal class MiningMachineRule
     public virtual MiningMachine? MiningMachine { get; set; }
     public virtual CharacterToken? CharacterToken { get; set; }
 
+    private const decimal MinMiningCoefficient = 0.65m;
+    private const decimal MaxMiningCoefficient = 1m;
+
     public static MiningMachineRule Create(long miningMachineId, string characterTokenId, decimal miningCoefficient)
     {
         if (string.IsNullOrWhiteSpace(characterTokenId))
             throw new DomainException("Токен не указан");
-        if (miningCoefficient <= 0)
-            throw new DomainException("Коэффициент майнинга должен быть больше нуля");
+        ValidateCoefficient(miningCoefficient);
 
         return new MiningMachineRule
         {
@@ -32,8 +34,13 @@ internal class MiningMachineRule
 
     public void UpdateCoefficient(decimal miningCoefficient)
     {
-        if (miningCoefficient <= 0)
-            throw new DomainException("Коэффициент майнинга должен быть больше нуля");
+        ValidateCoefficient(miningCoefficient);
         MiningCoefficient = miningCoefficient;
+    }
+
+    private static void ValidateCoefficient(decimal miningCoefficient)
+    {
+        if (miningCoefficient < MinMiningCoefficient || miningCoefficient > MaxMiningCoefficient)
+            throw new DomainException($"Коэффициент майнинга должен быть от {MinMiningCoefficient} до {MaxMiningCoefficient}");
     }
 }

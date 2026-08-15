@@ -14,16 +14,14 @@ public class MiningMachineCreationServiceTest
         new(db, NullLogger<MiningMachineCreationService>.Instance);
 
     private static MiningMachineCreationCommand BuildCommand(
-        string name = "SM-01",
         string type = "SMAI",
         int switchingTime = 10,
         decimal reusability = 80,
         bool isActiveForSale = true,
-        decimal cost = 1000,
         string image = "img.zzz",
         decimal efficiency = 1,
         List<MiningMachineRuleCreationCommand>? rules = null) =>
-        new(name, type, switchingTime, reusability, isActiveForSale, cost, image, efficiency, rules);
+        new(type, switchingTime, reusability, isActiveForSale, image, efficiency, rules);
 
     [Fact]
     public async Task CreateMachineAsync_AllFields_ReturnsSuccess()
@@ -35,8 +33,9 @@ public class MiningMachineCreationServiceTest
         Assert.True(result.IsSuccess, result.Message);
         Assert.True(result.TryGetData(out var data));
         Assert.True(data.Id > 0);
-        Assert.Equal("SM-01", data.Name);
-        Assert.NotNull(await db.MiningMachines.FindAsync(data.Id));
+        var machine = await db.MiningMachines.FindAsync(data.Id);
+        Assert.NotNull(machine);
+        Assert.Equal(machine!.Name, data.Name);
     }
 
     [Fact]
@@ -51,19 +50,6 @@ public class MiningMachineCreationServiceTest
     }
 
     [Theory]
-    [InlineData("")]
-    [InlineData("   ")]
-    public async Task CreateMachineAsync_EmptyName_ReturnsFail(string name)
-    {
-        await using var db = await DbTest.CreateInitializedDbContextAsync();
-
-        var result = await CreateService(db).CreateMachineAsync(BuildCommand(name: name));
-
-        Assert.False(result.IsSuccess);
-        Assert.Contains("пустым", result.Message);
-    }
-
-    [Theory]
     [InlineData(0)]
     [InlineData(-5)]
     public async Task CreateMachineAsync_InvalidSwitchingTime_ReturnsFail(int switchingTime)
@@ -73,7 +59,7 @@ public class MiningMachineCreationServiceTest
         var result = await CreateService(db).CreateMachineAsync(BuildCommand(switchingTime: switchingTime));
 
         Assert.False(result.IsSuccess);
-        Assert.Contains("больше нуля", result.Message);
+        Assert.Contains("Время переключения", result.Message);
     }
 
     [Theory]
@@ -86,20 +72,7 @@ public class MiningMachineCreationServiceTest
         var result = await CreateService(db).CreateMachineAsync(BuildCommand(reusability: reusability));
 
         Assert.False(result.IsSuccess);
-        Assert.Contains("от 0 до 100", result.Message);
-    }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-10)]
-    public async Task CreateMachineAsync_InvalidCost_ReturnsFail(decimal cost)
-    {
-        await using var db = await DbTest.CreateInitializedDbContextAsync();
-
-        var result = await CreateService(db).CreateMachineAsync(BuildCommand(cost: cost));
-
-        Assert.False(result.IsSuccess);
-        Assert.Contains("больше нуля", result.Message);
+        Assert.Contains("Переиспользуемость", result.Message);
     }
 
     [Theory]
@@ -112,7 +85,7 @@ public class MiningMachineCreationServiceTest
         var result = await CreateService(db).CreateMachineAsync(BuildCommand(efficiency: efficiency));
 
         Assert.False(result.IsSuccess);
-        Assert.Contains("больше нуля", result.Message);
+        Assert.Contains("Коэффициент производительности", result.Message);
     }
 
     [Fact]
@@ -173,7 +146,7 @@ public class MiningMachineCreationServiceTest
         await using var db = await DbTest.CreateInitializedDbContextAsync();
 
         var result = await CreateService(db).CreateMachinesAsync(
-            new[] { BuildCommand(name: "M1"), BuildCommand(name: "M2") });
+            new[] { BuildCommand(efficiency: 1m), BuildCommand(efficiency: 1.5m) });
 
         Assert.True(result.IsSuccess, result.Message);
         Assert.True(result.TryGetData(out var data));
@@ -187,7 +160,7 @@ public class MiningMachineCreationServiceTest
         await using var db = await DbTest.CreateInitializedDbContextAsync();
 
         var result = await CreateService(db).CreateMachinesAsync(
-            new[] { BuildCommand(name: "M1"), BuildCommand(name: "M1") });
+            new[] { BuildCommand(), BuildCommand() });
 
         Assert.False(result.IsSuccess);
         Assert.Contains("уже существуют", result.Message);
@@ -199,11 +172,11 @@ public class MiningMachineCreationServiceTest
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
 
-        var first = await CreateService(db).CreateMachineAsync(BuildCommand(name: "M1"));
+        var first = await CreateService(db).CreateMachineAsync(BuildCommand());
         Assert.True(first.IsSuccess, first.Message);
 
         var result = await CreateService(db).CreateMachinesAsync(
-            new[] { BuildCommand(name: "M1"), BuildCommand(name: "M2") });
+            new[] { BuildCommand(), BuildCommand(efficiency: 1.5m) });
 
         Assert.False(result.IsSuccess);
         Assert.Contains("уже существуют", result.Message);

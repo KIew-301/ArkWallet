@@ -21,24 +21,21 @@ public interface IMiningMachineCreationService
 }
 
 /// <summary>
-/// Команда создания майнинг-машины с её правилами
+/// Команда создания майнинг-машины с её правилами.
+/// Имя и стоимость не задаются — они вычисляются автоматически.
 /// </summary>
-/// <param name="Name">Название машины</param>
 /// <param name="Type">Тип машины (SMAI, MGC, BMP)</param>
 /// <param name="SwitchingTime">Время переключения в минутах</param>
 /// <param name="Reusability">Процент возврата от цены покупки</param>
 /// <param name="IsActiveForSale">Доступна ли для покупки</param>
-/// <param name="Cost">Цена покупки</param>
 /// <param name="Image">Ссылка на изображение</param>
 /// <param name="Efficiency">Коэффициент производительности машины</param>
 /// <param name="Rules">Правила майнинга для машины</param>
 public record MiningMachineCreationCommand(
-    string Name,
     string Type,
     int SwitchingTime,
     decimal Reusability,
     bool IsActiveForSale,
-    decimal Cost,
     string Image,
     decimal Efficiency,
     List<MiningMachineRuleCreationCommand>? Rules = null);

@@ -45,6 +45,8 @@ internal class MiningMachineRuleCreationService(ArkWalletDbContext dbContext, IL
                 await dbContext.MiningMachineRules.AddAsync(rule);
                 await dbContext.SaveChangesAsync();
 
+                await MiningMachineRecomputeHelper.RecomputeMachinesAsync(dbContext, [command.MiningMachineId]);
+
                 return Ok(rule.Id);
             });
         }, logger, nameof(MiningMachineRuleCreationService));
@@ -114,6 +116,8 @@ internal class MiningMachineRuleCreationService(ArkWalletDbContext dbContext, IL
 
                 await dbContext.MiningMachineRules.AddRangeAsync(rules);
                 await dbContext.SaveChangesAsync();
+
+                await MiningMachineRecomputeHelper.RecomputeMachinesAsync(dbContext, machineIds);
 
                 return Result<List<long>>.Ok(rules.Select(r => r.Id).ToList());
             });

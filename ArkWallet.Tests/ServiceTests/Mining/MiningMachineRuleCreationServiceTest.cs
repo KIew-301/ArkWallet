@@ -13,10 +13,10 @@ public class MiningMachineRuleCreationServiceTest
     private static MiningMachineRuleCreationService CreateService(ArkWalletDbContext db) =>
         new(db, NullLogger<MiningMachineRuleCreationService>.Instance);
 
-    private static async Task<MiningMachine> CreateMachineAsync(ArkWalletDbContext db, string name = "SM-01")
+    private static async Task<MiningMachine> CreateMachineAsync(ArkWalletDbContext db)
     {
         var machine = MiningMachine.Create(
-            name, MiningMachineType.SMAI, 10, 80, true, 1000, "img.zzz", 1m);
+            MiningMachineType.SMAI, 10, 80, true, "img.zzz", 1m);
         db.MiningMachines.Add(machine);
         await db.SaveChangesAsync();
         return machine;
@@ -40,7 +40,7 @@ public class MiningMachineRuleCreationServiceTest
         await CreateTokenAsync(db, "AAA");
 
         var result = await CreateService(db).CreateRuleAsync(
-            BuildCommand(machine.Id, "AAA", 1.2m));
+            BuildCommand(machine.Id, "AAA", 0.9m));
 
         Assert.True(result.IsSuccess, result.Message);
         Assert.True(result.TryGetData(out var ruleId));
@@ -48,7 +48,7 @@ public class MiningMachineRuleCreationServiceTest
         var rule = await db.MiningMachineRules.FindAsync(ruleId);
         Assert.Equal(machine.Id, rule!.MiningMachineId);
         Assert.Equal("AAA", rule.CharacterTokenId);
-        Assert.Equal(1.2m, rule.MiningCoefficient);
+        Assert.Equal(0.9m, rule.MiningCoefficient);
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public class MiningMachineRuleCreationServiceTest
         var service = CreateService(db);
         var first = await service.CreateRuleAsync(BuildCommand(machine.Id, "AAA", 1m));
 
-        var result = await service.CreateRuleAsync(BuildCommand(machine.Id, "AAA", 2m));
+        var result = await service.CreateRuleAsync(BuildCommand(machine.Id, "AAA", 0.8m));
 
         Assert.True(first.IsSuccess, first.Message);
         Assert.False(result.IsSuccess);
@@ -103,7 +103,7 @@ public class MiningMachineRuleCreationServiceTest
             BuildCommand(machine.Id, "AAA", 0m));
 
         Assert.False(result.IsSuccess);
-        Assert.Contains("больше нуля", result.Message);
+        Assert.Contains("от 0,65 до 1", result.Message);
     }
 
     [Fact]
@@ -144,7 +144,7 @@ public class MiningMachineRuleCreationServiceTest
             new[]
             {
                 BuildCommand(machine.Id, "AAA", 1m),
-                BuildCommand(machine.Id, "BBB", 1.5m)
+                BuildCommand(machine.Id, "BBB", 0.8m)
             });
 
         Assert.True(result.IsSuccess, result.Message);
@@ -166,7 +166,7 @@ public class MiningMachineRuleCreationServiceTest
             new[]
             {
                 BuildCommand(machine.Id, "BBB", 1m),
-                BuildCommand(machine.Id, "AAA", 2m)
+                BuildCommand(machine.Id, "AAA", 0.8m)
             });
 
         Assert.True(first.IsSuccess, first.Message);

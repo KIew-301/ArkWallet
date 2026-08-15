@@ -13,12 +13,10 @@ public class MiningMachineCreationOrchestratorTest
 {
     private static MiningMachineCreationCommand BuildCommand(bool withRules = true) =>
         new(
-            "SM-01",
             "SMAI",
             10,
             80,
             true,
-            1000,
             "img.zzz",
             1m,
             withRules

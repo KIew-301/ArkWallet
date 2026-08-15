@@ -327,7 +327,9 @@ class Program
 
         // MiningMachineServices
         services.AddScoped<IMiningMachineCreationService, MiningMachineCreationService>();
+        services.AddScoped<IMiningMachineUpdateService, MiningMachineUpdateService>();
         services.AddScoped<IMiningMachineRuleCreationService, MiningMachineRuleCreationService>();
+        services.AddScoped<IMiningMachineRuleUpdateService, MiningMachineRuleUpdateService>();
         services.AddScoped<IMiningMachineSlotBuyingService, MiningMachineSlotBuyingService>();
         services.AddScoped<IMiningMachineSlotSwitchingService, MiningMachineSlotSwitchingService>();
         services.AddScoped<IMiningMachineSlotCalculationService, MiningMachineSlotCalculationService>();
