@@ -417,7 +417,8 @@ public class MiningWizardCommandsTest
 
         var result = await _engine.ProcessInput(UserId, "not json");
 
-        Assert.Equal("Ошибка на стороне сервера", result.Message);
+        Assert.StartsWith("Error: ", result.Message);
+        Assert.NotEqual("Ошибка на стороне сервера", result.Message);
         Assert.NotNull(start.Message);
     }
 
@@ -529,7 +530,8 @@ public class MiningWizardCommandsTest
 
         var result = await _engine.ProcessInput(UserId, "{not valid json");
 
-        Assert.Equal("Ошибка на стороне сервера", result.Message);
+        Assert.StartsWith("Error: ", result.Message);
+        Assert.NotEqual("Ошибка на стороне сервера", result.Message);
     }
 
     [Fact]

@@ -1286,7 +1286,7 @@ public class UserWizardCommandsTest : IDisposable
         var result = await _engine.ProcessInput(UserId, "/admin_get_ids");
 
         Assert.NotNull(result.Message);
-        Assert.Contains("Ошибка", result.Message);
+        Assert.Equal("Failed to get trader list.", result.Message);
     }
 
     [Fact]
@@ -1341,7 +1341,7 @@ public class UserWizardCommandsTest : IDisposable
         var result = await _engine.ProcessInput(UserId, "[]");
 
         Assert.NotNull(result.Message);
-        Assert.Equal("Ошибка на стороне сервера", result.Message);
+        Assert.Equal("Expected a JSON array with at least one token.", result.Message);
     }
 
     [Fact]
@@ -1364,7 +1364,7 @@ public class UserWizardCommandsTest : IDisposable
         var result = await _engine.ProcessInput(UserId, "NOPE");
 
         Assert.NotNull(result.Message);
-        Assert.Equal("Ошибка на стороне сервера", result.Message);
+        Assert.Equal("Token not found. Check the symbol and try again.", result.Message);
     }
 
     [Fact]

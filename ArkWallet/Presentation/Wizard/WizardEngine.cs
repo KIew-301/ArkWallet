@@ -372,7 +372,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 {
                     _logger.LogWarning("Wizard OneStep handler error for user {UserId}, command {Command}: {Error}",
                         userId, command, result.Message);
-                    return new WizardResult { Message = ServerErrorMessage };
+                    return new WizardResult { Message = ErrorMessageFor(command, result.Message) };
                 }
 
                 return new WizardResult { Message = result.Message ?? "Готово!", Buttons = result.Buttons, SentFilePath = result.SentFilePath };
@@ -390,7 +390,7 @@ namespace ArkWallet.Infrastructure.Wizard
             {
                 _logger.LogWarning("Wizard step error for user {UserId}, command {Command}, step {Step}: {Error}",
                     userId, session.CurrentCommand, session.CurrentStep, result.Message);
-                return new WizardResult { Message = ServerErrorMessage, Buttons = currentStep.Buttons };
+                return new WizardResult { Message = ErrorMessageFor(session.CurrentCommand, result.Message), Buttons = currentStep.Buttons };
             }
 
             if (result.NextStep == "completed")
@@ -417,7 +417,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 {
                     _logger.LogWarning("Wizard OneStep handler error for user {UserId}, command {Command}, step {Step}: {Error}",
                         userId, session.CurrentCommand, result.NextStep, oneStepResult.Message);
-                    return new WizardResult { Message = ServerErrorMessage };
+                    return new WizardResult { Message = ErrorMessageFor(session.CurrentCommand, oneStepResult.Message) };
                 }
 
                 return new WizardResult { Message = oneStepResult.Message ?? "Готово!", Buttons = oneStepResult.Buttons, SentFilePath = oneStepResult.SentFilePath };
@@ -428,5 +428,13 @@ namespace ArkWallet.Infrastructure.Wizard
 
             return new WizardResult { Message = question, Buttons = buttons };
         }
+
+        /// <summary>
+        /// Для admin-команд показывает конкретное описание ошибки, для остальных — общее сообщение.
+        /// </summary>
+        private static string ErrorMessageFor(string command, string? error)
+            => command.StartsWith("/admin", StringComparison.OrdinalIgnoreCase)
+                ? error ?? ServerErrorMessage
+                : ServerErrorMessage;
     }
 }
