@@ -1,6 +1,7 @@
 ﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
+using TradingOrder = ArkWallet.Domain.TradingContext.Order;
 
 namespace ArkWallet.Application.Dtos
 {
@@ -40,6 +41,24 @@ namespace ArkWallet.Application.Dtos
                 order.Quantity,
                 order.Price,
                 order.Status,
+                order.CreatedAt,
+                order.AverageExecutePrice
+                );
+        }
+
+        internal static OrderDto FromAggregate(TradingOrder order, long traderId)
+        {
+            if (order == null)
+                throw new Exception("Невозможно создать DTO из пустого ордера");
+
+            return new(
+                order.Id,
+                (OrderType)(int)order.Type,
+                traderId,
+                order.TokenSymbol,
+                order.Quantity,
+                order.Price,
+                (OrderStatus)(int)order.Status,
                 order.CreatedAt,
                 order.AverageExecutePrice
                 );

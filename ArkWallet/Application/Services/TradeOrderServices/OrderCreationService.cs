@@ -1,13 +1,14 @@
 ﻿using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Dtos;
+using ArkWallet.Domain.Common;
 using ArkWallet.Domain.Engines;
-using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Domain.TradingContext;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Records = global::ArkWallet.Domain.Entities;
+using ValueObjects = global::ArkWallet.Domain.ValueObjects;
 
 namespace ArkWallet.Application.Services.TradeOrderServices;
 
@@ -15,7 +16,7 @@ internal class OrderCreationService(
     ArkWalletDbContext dbContext,
     TradingEngine tradingEngine,
     IOrderValidationService orderValidationService,
-    ITokenPriceCandleUpdateService tokenPriceCandleUpdateService,
+    IEventPublisher eventPublisher,
     ITaskDispatcher taskDispatcher,
     ILogger<OrderCreationService> logger) : IOrderCreationService
 {
@@ -26,16 +27,16 @@ internal class OrderCreationService(
             return await TransactionHandler.ExecuteAsync(dbContext, async () =>
             {
                 var context = await PrepareSingleTradingContextAsync(command);
-                tradingEngine.ProcessOrder(context);
 
-                var saveResult = await SaveChangesAsync(context);
-                if (!saveResult.IsSuccess)
-                    return Result<OrderCreationData>.Fail(saveResult.Message);
+                await tradingEngine.ProcessOrder(context);
+
+                SyncTradersAndPortfolios(context);
+                await dbContext.SaveChangesAsync();
 
                 await NotifyAsync(context);
 
                 var order = context.NewOrders[0];
-                return Result<OrderCreationData>.Ok(new(order.IsFilled(), OrderDto.FromEntity(order)));
+                return Result<OrderCreationData>.Ok(new(order.IsFilled(), OrderDto.FromAggregate(order, order.TraderId)));
             });
         }, logger, nameof(OrderCreationService));
     }
@@ -62,10 +63,8 @@ internal class OrderCreationService(
 
                 foreach (var context in allContexts)
                 {
-                    var saveResult = await SaveChangesAsync(context);
-                    if (!saveResult.IsSuccess)
-                        return Result<List<OrderCreationData>>.Fail(saveResult.Message);
-
+                    SyncTradersAndPortfolios(context);
+                    await dbContext.SaveChangesAsync();
                     await NotifyAsync(context);
                 }
 
@@ -80,22 +79,45 @@ internal class OrderCreationService(
         List<OrderCreationData> allResults)
     {
         var context = await PrepareGroupTradingContextAsync(groupCommands);
-        tradingEngine.ProcessOrders(context);
+
+        await tradingEngine.ProcessOrders(context);
+
         allContexts.Add(context);
 
         foreach (var order in context.NewOrders)
         {
-            allResults.Add(new(order.IsFilled(), OrderDto.FromEntity(order)));
+            allResults.Add(new(order.IsFilled(), OrderDto.FromAggregate(order, order.TraderId)));
+        }
+    }
+
+    private void SyncTradersAndPortfolios(TradingContext context)
+    {
+        foreach (var trader in context.Traders.Values)
+        {
+            var trackedTrader = dbContext.Traders.Local.FirstOrDefault(t => t.TelegramId == trader.Id);
+            if (trackedTrader != null)
+                TradingContextMapper.ApplyTo(trackedTrader, trader);
+
+            foreach (var item in trader.Portfolio)
+            {
+                var trackedItem = dbContext.PortfolioItems.Local
+                    .FirstOrDefault(p => p.Id == item.Id);
+
+                if (trackedItem is null)
+                    dbContext.PortfolioItems.Add(TradingContextMapper.ToPortfolio(trader.Id, item));
+                else
+                    TradingContextMapper.ApplyTo(trackedItem, item);
+            }
         }
     }
 
     private async Task<TradingContext> PrepareSingleTradingContextAsync(CreateOrderCommand command)
     {
         var orderType = OrderValidationService.NormalizeDirection(command.Direction) == OrderDirections.Buy
-            ? OrderType.Buy
-            : OrderType.Sell;
+            ? ValueObjects.OrderType.Buy
+            : ValueObjects.OrderType.Sell;
 
-        var order = TradeOrder.Create(orderType, command.Symbol, command.TraderId, command.Price, command.Quantity);
+        var order = Records.TradeOrder.Create(orderType, command.Symbol, command.TraderId, command.Price, command.Quantity);
 
         var takerIds = await GetTakerIdsForMatchingAsync(order);
 
@@ -109,44 +131,25 @@ internal class OrderCreationService(
 
         var activeOrders = await GetActiveOrdersForMatchingAsync(order);
 
-        var trader = await dbContext.Traders.FindAsync(command.TraderId);
-
-        if (trader == null)
-            throw new InvalidOperationException("Пользователя не существует");
-
         var validationResult = await orderValidationService.ValidateFullOrderAsync(command);
         if (!validationResult.IsValid)
             throw new InvalidOperationException(validationResult.Message);
 
-        if (order.IsLong() && trader.Balance < order.GetReservedBalance())
-            throw new InvalidOperationException("Недостаточно средств для выставления ордера");
+        if (await dbContext.Traders.FindAsync(command.TraderId) == null)
+            throw new InvalidOperationException("Пользователя не существует");
 
         var traders = await GetTradersForOrderAsync(activeOrders, order.TraderTelegramId);
 
-        var traderIds = traders.Keys.ToList();
-        if (!traderIds.Contains(order.TraderTelegramId))
-            traderIds.Add(order.TraderTelegramId);
+        var portfolios = await GetPortfoliosForTradersAsync(order.CharacterTokenId, traders.Keys);
 
-        var portfolios = await GetPortfoliosForTradersAsync(order.CharacterTokenId, traderIds);
-
-        if (order.IsShort())
-        {
-            if (!portfolios.TryGetValue(trader.TelegramId, out var portfolio))
-                throw new InvalidOperationException("У вас нет токенов для продажи");
-
-            if (portfolio.Quantity < order.Quantity)
-                throw new InvalidOperationException($"Недостаточно токенов. Доступно: {portfolio.Quantity}, нужно: {order.Quantity}");
-        }
-
-        return new TradingContext
-        {
-            NewOrders = new List<TradeOrder> { order },
-            ExistingOrders = activeOrders.ToList(),
-            Traders = traders,
-            Portfolios = portfolios,
-            Token = token,
-            AllTrades = new List<Trade>()
-        };
+        return await BuildTradingContext(
+            new[] { command },
+            order.IsLong(),
+            traders,
+            activeOrders,
+            portfolios,
+            token,
+            eventPublisher);
     }
 
     private async Task<TradingContext> PrepareGroupTradingContextAsync(IEnumerable<CreateOrderCommand> commands)
@@ -161,14 +164,14 @@ internal class OrderCreationService(
         if (!validationResult.IsValid)
             throw new InvalidOperationException(validationResult.Message);
 
-        var orders = new List<TradeOrder>();
+        var orders = new List<Records.TradeOrder>();
         foreach (var command in commandList)
         {
             var orderType = OrderValidationService.NormalizeDirection(command.Direction) == OrderDirections.Buy
-                ? OrderType.Buy
-                : OrderType.Sell;
+                ? ValueObjects.OrderType.Buy
+                : ValueObjects.OrderType.Sell;
 
-            orders.Add(TradeOrder.Create(orderType, command.Symbol, command.TraderId, command.Price, command.Quantity));
+            orders.Add(Records.TradeOrder.Create(orderType, command.Symbol, command.TraderId, command.Price, command.Quantity));
         }
 
         var isBuy = orders[0].IsLong();
@@ -179,7 +182,8 @@ internal class OrderCreationService(
 
         var takerIds = await GetTakerIdsForMatchingAsync(targetOrder);
 
-        await dbContext.LockTradersAsync(takerIds.Append(firstCommand.TraderId));
+        var lockTraderIds = takerIds.Concat(commandList.Select(c => c.TraderId)).Distinct().ToArray();
+        await dbContext.LockTradersAsync(lockTraderIds);
         await dbContext.LockTokenAsync(targetOrder.CharacterTokenId);
 
         var token = await dbContext.CharacterTokens.FindAsync(firstCommand.Symbol)
@@ -190,81 +194,132 @@ internal class OrderCreationService(
         var trader = await dbContext.Traders.FindAsync(firstCommand.TraderId)
             ?? throw new InvalidOperationException("Пользователя не существует");
 
-        if (isBuy)
+        var traders = await GetTradersForOrderAsync(activeOrders, trader.TelegramId);
+
+        foreach (var command in commandList)
         {
-            var totalReserved = orders.Sum(o => o.GetReservedBalance());
-            if (trader.Balance < totalReserved)
-                throw new InvalidOperationException("Недостаточно средств для выставления ордеров");
+            if (traders.ContainsKey(command.TraderId))
+                continue;
+
+            var commandTrader = await dbContext.Traders.FindAsync(command.TraderId)
+                ?? throw new InvalidOperationException("Пользователя не существует");
+            traders[command.TraderId] = commandTrader;
         }
 
-        var traders = await GetTradersForOrderAsync(activeOrders, trader.TelegramId);
         var portfolios = await GetPortfoliosForTradersAsync(targetOrder.CharacterTokenId, traders.Keys);
 
-        if (!isBuy)
+        return await BuildTradingContext(
+            commandList,
+            isBuy,
+            traders,
+            activeOrders,
+            portfolios,
+            token,
+            eventPublisher);
+    }
+
+    private static async Task<TradingContext> BuildTradingContext(
+        IReadOnlyCollection<CreateOrderCommand> commands,
+        bool isBuy,
+        Dictionary<long, Records.Trader> oldTraders,
+        Records.TradeOrder[] activeOrders,
+        Dictionary<long, Records.PortfolioItem> oldPortfolios,
+        Records.CharacterToken oldToken,
+        IEventPublisher eventPublisher)
+    {
+        var context = new TradingContext
         {
-            var totalQuantity = orders.Sum(o => o.Quantity);
-            if (!portfolios.TryGetValue(trader.TelegramId, out var portfolio) || portfolio.Quantity < totalQuantity)
-                throw new InvalidOperationException("Недостаточно токенов для создания ордеров");
+            Token = TradingContextMapper.ToToken(oldToken),
+            EventPublisher = eventPublisher,
+        };
+        context.Token.SetEventPublisher(eventPublisher);
+
+        var traderIds = commands.Select(c => c.TraderId)
+            .Concat(activeOrders.Select(o => o.TraderTelegramId))
+            .Distinct();
+
+        foreach (var traderId in traderIds)
+        {
+            if (!oldTraders.TryGetValue(traderId, out var oldTrader))
+                throw new InvalidOperationException("Трейдер не найден");
+
+            var trader = TradingContextMapper.ToTrader(oldTrader);
+            trader.SetEventPublisher(eventPublisher);
+            context.Traders[traderId] = trader;
+
+            if (oldPortfolios.TryGetValue(traderId, out var oldPortfolio))
+                trader.AttachPortfolio(TradingContextMapper.ToPortfolioItem(oldPortfolio));
         }
 
-        var sortedOrders = isBuy
-            ? orders.OrderBy(o => o.Price).ToList()
-            : orders.OrderByDescending(o => o.Price).ToList();
-
-        return new TradingContext
+        foreach (var oldOrder in activeOrders)
         {
-            NewOrders = sortedOrders,
-            ExistingOrders = activeOrders.ToList(),
-            Traders = traders,
-            Portfolios = portfolios,
-            Token = token,
-            AllTrades = new List<Trade>()
-        };
+            var order = TradingContextMapper.ToOrder(oldOrder);
+            order.SetEventPublisher(eventPublisher);
+            context.ExistingOrders.Add(order);
+
+            if (context.Traders.TryGetValue(oldOrder.TraderTelegramId, out var owner))
+                owner.AttachOrder(order);
+        }
+
+        var orderType = isBuy ? OrderType.Buy : OrderType.Sell;
+
+        var placedOrders = new List<Order>();
+        foreach (var command in commands)
+        {
+            var trader = context.Traders[command.TraderId];
+            placedOrders.Add(await trader.PlaceOrder(orderType, command.Symbol, command.Price, command.Quantity));
+        }
+
+        context.NewOrders = isBuy
+            ? placedOrders.OrderBy(o => o.Price).ToList()
+            : placedOrders.OrderByDescending(o => o.Price).ToList();
+
+        return context;
     }
 
-    private async Task<TradeOrder[]> GetActiveOrdersForMatchingAsync(TradeOrder order)
+    private async Task<Records.TradeOrder[]> GetActiveOrdersForMatchingAsync(Records.TradeOrder order)
     {
         return order.IsLong()
             ? await dbContext.TradeOrders
                 .Where(o => o.CharacterTokenId == order.CharacterTokenId &&
-                           o.Status == OrderStatus.Active &&
-                           o.Type == OrderType.Sell &&
+                           o.Status == ValueObjects.OrderStatus.Active &&
+                           o.Type == ValueObjects.OrderType.Sell &&
                            o.Price <= order.Price)
                 .ToArrayAsync()
             : await dbContext.TradeOrders
                 .Where(o => o.CharacterTokenId == order.CharacterTokenId &&
-                           o.Status == OrderStatus.Active &&
-                           o.Type == OrderType.Buy &&
+                           o.Status == ValueObjects.OrderStatus.Active &&
+                           o.Type == ValueObjects.OrderType.Buy &&
                            o.Price >= order.Price)
                 .ToArrayAsync();
     }
 
-    private async Task<long[]> GetTakerIdsForMatchingAsync(TradeOrder order)
+    private async Task<long[]> GetTakerIdsForMatchingAsync(Records.TradeOrder order)
     {
         return order.IsLong()
             ? await dbContext.TradeOrders
                 .Where(o => o.CharacterTokenId == order.CharacterTokenId &&
-                           o.Status == OrderStatus.Active &&
-                           o.Type == OrderType.Sell &&
+                           o.Status == ValueObjects.OrderStatus.Active &&
+                           o.Type == ValueObjects.OrderType.Sell &&
                            o.Price <= order.Price)
                 .Select(o => o.TraderTelegramId)
                 .Distinct()
                 .ToArrayAsync()
             : await dbContext.TradeOrders
                 .Where(o => o.CharacterTokenId == order.CharacterTokenId &&
-                           o.Status == OrderStatus.Active &&
-                           o.Type == OrderType.Buy &&
+                           o.Status == ValueObjects.OrderStatus.Active &&
+                           o.Type == ValueObjects.OrderType.Buy &&
                            o.Price >= order.Price)
                 .Select(o => o.TraderTelegramId)
                 .Distinct()
                 .ToArrayAsync();
     }
 
-    private async Task<Dictionary<long, Trader>> GetTradersForOrderAsync(TradeOrder[] activeOrders, long newOrderTraderId)
+    private async Task<Dictionary<long, Records.Trader>> GetTradersForOrderAsync(Records.TradeOrder[] activeOrders, long newOrderTraderId)
     {
         var traderIds = activeOrders.Select(o => o.TraderTelegramId).Append(newOrderTraderId).Distinct().ToHashSet();
 
-        var traders = new Dictionary<long, Trader>();
+        var traders = new Dictionary<long, Records.Trader>();
         foreach (var traderId in traderIds)
         {
             var tracked = dbContext.Traders.Local.FirstOrDefault(t => t.TelegramId == traderId);
@@ -283,11 +338,11 @@ internal class OrderCreationService(
         return traders;
     }
 
-    private async Task<Dictionary<long, PortfolioItem>> GetPortfoliosForTradersAsync(string symbol, IEnumerable<long> traderIds)
+    private async Task<Dictionary<long, Records.PortfolioItem>> GetPortfoliosForTradersAsync(string symbol, IEnumerable<long> traderIds)
     {
         var ids = traderIds.Distinct().ToHashSet();
 
-        var portfolios = new Dictionary<long, PortfolioItem>();
+        var portfolios = new Dictionary<long, Records.PortfolioItem>();
         foreach (var traderId in ids)
         {
             var tracked = dbContext.PortfolioItems.Local
@@ -309,90 +364,34 @@ internal class OrderCreationService(
         return portfolios;
     }
 
-    private async Task<Result> SaveChangesAsync(TradingContext context)
-    {
-        var stageResult = await StageChangesAsync(context);
-        if (!stageResult.IsSuccess)
-            return stageResult;
-
-        await dbContext.SaveChangesAsync();
-        return Result.Ok();
-    }
-
-    private async Task<Result> StageChangesAsync(TradingContext context)
-    {
-        return await ServiceErrorHandler.ExecuteAsync(async () =>
-        {
-            StageOrders(dbContext, context);
-            await StageTradesAndTradersAsync(dbContext, context);
-            await StagePortfoliosAsync(dbContext, context);
-            StageTokens(dbContext, context);
-            return await UpdateTokenPriceIfNeededAsync(context);
-        }, logger, nameof(OrderCreationService));
-    }
-
-    private static void StageOrders(ArkWalletDbContext dbContext, TradingContext context)
-    {
-        if (context.NewOrdersToAdd.Count > 0)
-            dbContext.TradeOrders.AddRange(context.NewOrdersToAdd);
-
-        var modifiedOrders = context.ModifiedOrders
-            .Where(o => !context.NewOrdersToAdd.Contains(o))
-            .ToList();
-
-        if (modifiedOrders.Count > 0)
-            dbContext.TradeOrders.UpdateRange(modifiedOrders);
-    }
-
-    private static async Task StageTradesAndTradersAsync(ArkWalletDbContext dbContext, TradingContext context)
-    {
-        if (context.NewTradesToAdd.Count > 0)
-            await dbContext.Trades.AddRangeAsync(context.NewTradesToAdd);
-
-        if (context.ModifiedTraders.Count > 0)
-            dbContext.Traders.UpdateRange(context.ModifiedTraders);
-    }
-
-    private static async Task StagePortfoliosAsync(ArkWalletDbContext dbContext, TradingContext context)
-    {
-        if (context.NewPortfoliosToAdd.Count > 0)
-            await dbContext.PortfolioItems.AddRangeAsync(context.NewPortfoliosToAdd);
-
-        var modifiedPortfolios = context.ModifiedPortfolios
-            .Where(p => !context.NewPortfoliosToAdd.Contains(p))
-            .ToList();
-
-        if (modifiedPortfolios.Count > 0)
-            dbContext.PortfolioItems.UpdateRange(modifiedPortfolios);
-    }
-
-    private static void StageTokens(ArkWalletDbContext dbContext, TradingContext context)
-    {
-        if (context.ModifiedTokens.Count > 0)
-            dbContext.CharacterTokens.UpdateRange(context.ModifiedTokens);
-    }
-
-    private async Task<Result> UpdateTokenPriceIfNeededAsync(TradingContext context)
-    {
-        if (context.AllTrades.Count == 0)
-            return Result.Ok();
-
-        var result = await tokenPriceCandleUpdateService
-            .UpdateTokenPriceCandleAsync(context.Token.Symbol, context.AllTrades[^1].Price);
-
-        return result.IsSuccess ? Result.Ok() : Result.Fail(result.Message);
-    }
-
     private async Task NotifyAsync(TradingContext context)
     {
-        var ordersToNotify = context.ExistingOrders.Where(o => o.Status == OrderStatus.Filled).ToList();
-        var filledOrders = context.NewOrders.Where(o => o.IsFilled()).ToList();
-        ordersToNotify.AddRange(filledOrders);
+        var ordersToNotify = new List<Records.TradeOrder>();
+
+        foreach (var order in context.ExistingOrders.Where(o => o.Status == OrderStatus.Filled))
+        {
+            var tracked = dbContext.TradeOrders.Local.FirstOrDefault(o => o.Id == order.Id);
+            if (tracked != null)
+                ordersToNotify.Add(tracked);
+        }
+
+        foreach (var order in context.NewOrders.Where(o => o.IsFilled()))
+        {
+            var tracked = dbContext.TradeOrders.Local.FirstOrDefault(o => o.Id == order.Id);
+            if (tracked != null)
+                ordersToNotify.Add(tracked);
+        }
 
         if (ordersToNotify.Count > 0)
         {
+            var traders = context.Traders.Values
+                .Select(t => dbContext.Traders.Local.FirstOrDefault(tr => tr.TelegramId == t.Id))
+                .Where(tr => tr != null)
+                .Select(tr => tr!)
+                .ToList();
+
             await taskDispatcher.SendTaskAsync("notification",
-                NotificationEvent.FromOrderList(ordersToNotify, context.Traders.Values.ToList(), logger));
+                NotificationEvent.FromOrderList(ordersToNotify, traders, logger));
         }
     }
 }

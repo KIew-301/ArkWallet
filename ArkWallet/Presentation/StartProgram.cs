@@ -24,6 +24,7 @@ using ArkWallet.Application.Services.TraderServices;
 using ArkWallet.Application.Services.TradeServices;
 using ArkWallet.Application.Services.Wizard;
 using ArkWallet.Application.Workers;
+using ArkWallet.Domain.Common;
 using ArkWallet.Domain.Engines;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Entities.Configurations;
@@ -268,6 +269,9 @@ class Program
         services.AddScoped<MarketMakerGridEngine>();
         services.AddScoped<WallBlockerEngine>();
         services.AddScoped<MiningEngine>();
+
+        // Domain Events
+        services.AddScoped<IEventPublisher, MediatREventPublisher>();
 
         // Telegram Bot
         services.AddSingleton<TelegramBot>();

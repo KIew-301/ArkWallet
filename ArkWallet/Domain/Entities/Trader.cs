@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ArkWallet.Domain.Entities
 {
@@ -17,12 +16,6 @@ namespace ArkWallet.Domain.Entities
         public bool CanAfford(decimal amount)
             => Balance >= amount;
 
-        // Необходимость обновления в БД
-        [NotMapped]
-        public bool IsDirty { get; private set; }
-
-        public void MarkDirty() => IsDirty = true;
-        public void MarkClean() => IsDirty = false;
         public void AddToBalance(decimal amount) => Balance += amount;
 
         public static Trader Create(long telegramId, string? username)

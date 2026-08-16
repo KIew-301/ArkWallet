@@ -244,7 +244,6 @@ internal class MarketMakerOrchestrator(
                 if (trader.Balance < 1_000_000_000m)
                 {
                     trader.AddToBalance(1_000_000_000m - trader.Balance);
-                    trader.MarkDirty();
                     await dbContext.SaveChangesAsync();
                     logger.LogInformation("Trader {TraderId} balance replenished", traderId);
                 }

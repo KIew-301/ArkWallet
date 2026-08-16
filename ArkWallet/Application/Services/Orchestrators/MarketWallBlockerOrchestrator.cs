@@ -67,7 +67,6 @@ internal class MarketWallBlockerOrchestrator(
                 if (trader.Balance < TargetBalance)
                 {
                     trader.AddToBalance(TargetBalance - trader.Balance);
-                    trader.MarkDirty();
                     await dbContext.SaveChangesAsync();
                     logger.LogInformation("WallBlocker trader {TraderId} balance replenished", WallBlockerTraderId);
                 }

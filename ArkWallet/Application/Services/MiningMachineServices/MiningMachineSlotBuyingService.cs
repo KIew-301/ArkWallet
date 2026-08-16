@@ -55,7 +55,6 @@ internal class MiningMachineSlotBuyingService(
                 await dbContext.MiningMachineSlots.AddAsync(slot);
 
                 trader.AddToBalance(-machine.Cost);
-                trader.MarkDirty();
                 await dbContext.SaveChangesAsync();
 
                 return Ok(slot.Id);
