@@ -63,46 +63,6 @@ namespace ArkWallet.Application.Services.TradeOrderServices
             return new ValidationResult(true);
         }
 
-        public async Task<ValidationResult> ValidateTokenAsync(long traderId, string symbol, string direction)
-        {
-            if (NormalizeDirection(direction) == OrderDirections.Buy)
-                return new ValidationResult(true);
-
-            var item = await dbContext.PortfolioItems
-                .FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
-
-            if (item == null)
-                return new ValidationResult(false, "Пользователь не обладает данным токеном");
-
-            return new ValidationResult(true);
-        }
-
-        public async Task<ValidationResult> ValidateOrderCreationAsync(long traderId, string symbol, string direction, int quantity, decimal price)
-        {
-            if (NormalizeDirection(direction) == OrderDirections.Buy)
-            {
-                var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
-                decimal totalCost = quantity * price;
-
-                if (trader.Balance < totalCost)
-                    return new ValidationResult(false,
-                        $"Не хватает средств (необходимо {totalCost}, доступно {trader.Balance})");
-            }
-            else
-            {
-                var item = await dbContext.PortfolioItems
-                    .FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
-
-                int stock = item.Quantity;
-
-                if (stock < quantity)
-                    return new ValidationResult(false,
-                        $"Не хватает токенов для продажи (необходимо {quantity}, доступно {stock})");
-            }
-
-            return new ValidationResult(true);
-        }
-
         public async Task<ValidationResult> ValidateFullOrderAsync(CreateOrderCommand request)
         {
             var priceValidationResult = ValidatePrice(request.Price);
@@ -113,33 +73,7 @@ namespace ArkWallet.Application.Services.TradeOrderServices
             if (!quantityValidationResult.IsValid)
                 return ValidationResult.Failed(quantityValidationResult.Message);
 
-            var tokenValidationResult = await ValidateTokenAsync(request.TraderId, request.Symbol, request.Direction);
-            if (!tokenValidationResult.IsValid)
-                return ValidationResult.Failed(tokenValidationResult.Message);
-
             return ValidationResult.Success();
-        }
-
-        public async Task<ValidationResult> ValidateTokensAsync(long traderId, IReadOnlyCollection<string> symbols, string direction)
-        {
-            if (NormalizeDirection(direction) == OrderDirections.Buy)
-                return ValidationResult.Success();
-
-            var distinctSymbols = symbols.Distinct().ToList();
-            if (distinctSymbols.Count == 0)
-                return ValidationResult.Success();
-
-            var ownedSymbols = await dbContext.PortfolioItems
-                .Where(p => p.TraderTelegramId == traderId && distinctSymbols.Contains(p.CharacterTokenId))
-                .Select(p => p.CharacterTokenId)
-                .ToListAsync();
-
-            var ownedSet = ownedSymbols.ToHashSet();
-            var missingSymbol = distinctSymbols.FirstOrDefault(s => !ownedSet.Contains(s));
-
-            return missingSymbol == null
-                ? ValidationResult.Success()
-                : ValidationResult.Failed($"Пользователь не обладает токеном {missingSymbol}");
         }
 
         public async Task<ValidationResult> ValidateFullOrdersAsync(IReadOnlyCollection<CreateOrderCommand> requests)
@@ -156,21 +90,6 @@ namespace ArkWallet.Application.Services.TradeOrderServices
                 var quantityValidationResult = ValidateQuantity(request.Quantity);
                 if (!quantityValidationResult.IsValid)
                     return ValidationResult.Failed(quantityValidationResult.Message);
-            }
-
-            var sellerGroups = requests
-                .Where(r => NormalizeDirection(r.Direction) == OrderDirections.Sell)
-                .GroupBy(r => (r.TraderId, r.Symbol))
-                .Select(g => g.Key)
-                .ToList();
-
-            foreach (var (traderId, symbol) in sellerGroups)
-            {
-                var tokenValidationResult = await ValidateTokensAsync(
-                    traderId, new[] { symbol }, OrderDirections.Sell);
-
-                if (!tokenValidationResult.IsValid)
-                    return ValidationResult.Failed(tokenValidationResult.Message);
             }
 
             return ValidationResult.Success();

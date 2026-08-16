@@ -38,17 +38,6 @@ namespace ArkWallet.Infrastructure.Wizard
 
         private async Task<StepResult> HandleSetToken(UserSession session, string input)
         {
-            string direction = session.Data["set_direction"].ToString();
-
-            var validation = await _orderValidationService.ValidateTokenAsync(
-                session.Id,
-                input,
-                direction
-            );
-
-            if (!validation.IsValid)
-                return StepResult.Error(validation.Message);
-
             session.Data.Add(session.CurrentStep, input.ToUpper());
             return StepResult.Ok("set_quantity");
         }
@@ -87,14 +76,6 @@ namespace ArkWallet.Infrastructure.Wizard
 
             if (!validation.IsValid)
                 return StepResult.Error(validation.Message);
-
-            validation = await _orderValidationService.ValidateOrderCreationAsync(
-                session.Id,
-                symbol,
-                direction,
-                quantity,
-                price
-            );
 
             var command = new CreateOrderCommand(
                 session.Id,
