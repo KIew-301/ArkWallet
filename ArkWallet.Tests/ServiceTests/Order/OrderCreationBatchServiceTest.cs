@@ -5,6 +5,7 @@ using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Services.CharacterTokenServices;
 using ArkWallet.Application.Services.TradeOrderServices;
 using ArkWallet.Domain.Engines;
+using ArkWallet.Infrastructure;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Tests.HelpTools;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -23,14 +24,16 @@ public class OrderCreationBatchServiceTest
 
     private static OrderCreationService CreateService(ArkWalletDbContext db)
     {
+        var candleUpdateService = new TokenPriceCandleUpdateService(
+            db,
+            TimeProvider.System,
+            NullLogger<TokenPriceCandleUpdateService>.Instance);
+
         return new OrderCreationService(
             db,
             new TradingEngine(),
             new OrderValidationService(db),
-            new TokenPriceCandleUpdateService(
-                db,
-                TimeProvider.System,
-                NullLogger<TokenPriceCandleUpdateService>.Instance),
+            new MediatREventPublisher(TestMediatorFactory.Create(db, candleUpdateService)),
             new Mock<ITaskDispatcher>().Object,
             NullLogger<OrderCreationService>.Instance);
     }
@@ -124,7 +127,7 @@ public class OrderCreationBatchServiceTest
         });
 
         Assert.False(result.IsSuccess);
-        Assert.Contains("Недостаточно средств", result.Message);
+        Assert.Contains("Insufficient balance", result.Message);
     }
 
     [Fact]
@@ -145,7 +148,7 @@ public class OrderCreationBatchServiceTest
         var result = await service.CreateOrdersAsync(commands);
 
         Assert.False(result.IsSuccess);
-        Assert.Contains("Недостаточно токенов", result.Message);
+        Assert.Contains("Not enough tokens in portfolio", result.Message);
     }
 
     [Fact]
@@ -181,7 +184,7 @@ public class OrderCreationBatchServiceTest
         var result = await service.CreateOrderAsync(new CreateOrderCommand(101, "продать", "ZZZ", 2, 100));
 
         Assert.False(result.IsSuccess);
-        Assert.Contains("не обладает", result.Message);
+        Assert.Contains("No portfolio item", result.Message);
     }
 
     [Fact]
@@ -204,7 +207,7 @@ public class OrderCreationBatchServiceTest
             db,
             new TradingEngine(),
             new OrderValidationService(db),
-            candleService.Object,
+            new MediatREventPublisher(TestMediatorFactory.Create(db, candleService.Object)),
             new Mock<ITaskDispatcher>().Object,
             NullLogger<OrderCreationService>.Instance);
 

@@ -8,6 +8,7 @@ using ArkWallet.Application.Services.TraderServices;
 using ArkWallet.Domain.Engines;
 using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Infrastructure;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.SimulationTests.HelpTools;
 using Microsoft.EntityFrameworkCore;
@@ -120,7 +121,7 @@ public class MarketMakerSimulationTest
             db,
             new TradingEngine(timeProvider),
             new OrderValidationService(db),
-            candleUpdateService,
+            new MediatREventPublisher(TestMediatorFactory.Create(db, candleUpdateService)),
             mockTaskDispatcher.Object,
             NullLogger<OrderCreationService>.Instance);
 
@@ -154,7 +155,7 @@ public class MarketMakerSimulationTest
             db,
             new TradingEngine(timeProvider),
             new OrderValidationService(db),
-            candleUpdateService,
+            new MediatREventPublisher(TestMediatorFactory.Create(db, candleUpdateService)),
             mockTaskDispatcher.Object,
             NullLogger<OrderCreationService>.Instance);
 

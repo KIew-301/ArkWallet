@@ -45,7 +45,7 @@ public class OrderCreationEdgeCaseTests
         var result = await HelpMethods.PlaceOrder(db, 101, "\u043A\u0443\u043F\u0438\u0442\u044C", "ZZZ", 5, 10000);
 
         Assert.False(result.IsSuccess);
-        Assert.Contains("\u041D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u043E\u0447\u043D\u043E \u0441\u0440\u0435\u0434\u0441\u0442\u0432", result.Message);
+        Assert.Contains("Insufficient balance", result.Message);
     }
 
     [Fact]
@@ -61,6 +61,6 @@ public class OrderCreationEdgeCaseTests
         var result = await HelpMethods.PlaceOrder(db, 101, "\u043F\u0440\u043E\u0434\u0430\u0442\u044C", "ZZZ", 5, 100);
 
         Assert.False(result.IsSuccess);
-        Assert.Contains("\u041D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u043E\u0447\u043D\u043E \u0442\u043E\u043A\u0435\u043D\u043E\u0432", result.Message);
+        Assert.Contains("Not enough tokens in portfolio", result.Message);
     }
 }

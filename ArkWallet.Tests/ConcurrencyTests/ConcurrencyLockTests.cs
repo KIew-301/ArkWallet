@@ -5,6 +5,7 @@ using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Services.TradeOrderServices;
 using ArkWallet.Domain.Engines;
 using ArkWallet.Domain.Entities;
+using ArkWallet.Infrastructure;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Tests.HelpTools;
 using Microsoft.EntityFrameworkCore;
@@ -296,6 +297,12 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
             .ReturnsAsync(new Result(true, "Success"));
         var logger = NullLogger<OrderCreationService>.Instance;
 
-        return new OrderCreationService(db, engine, validator.Object, candle.Object, dispatcher.Object, logger);
+        return new OrderCreationService(
+            db,
+            engine,
+            validator.Object,
+            new MediatREventPublisher(TestMediatorFactory.Create(db, candle.Object)),
+            dispatcher.Object,
+            logger);
     }
 }

@@ -9,6 +9,7 @@ using ArkWallet.Application.Services.TraderServices;
 using ArkWallet.Domain.Engines;
 using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Infrastructure;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -96,7 +97,13 @@ internal class HelpMethods
 
         var logger = NullLogger<OrderCreationService>.Instance;
 
-        var service = new OrderCreationService(db, engine, mockValidator.Object, tokenPriceCandleUpdateService, mockTaskDispatcher.Object, logger);
+        var service = new OrderCreationService(
+            db,
+            engine,
+            mockValidator.Object,
+            new MediatREventPublisher(TestMediatorFactory.Create(db, tokenPriceCandleUpdateService)),
+            mockTaskDispatcher.Object,
+            logger);
         return await service.CreateOrderAsync(new CreateOrderCommand(traderId, direction, symbol, quantity, price));
     }
 

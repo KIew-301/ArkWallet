@@ -223,17 +223,11 @@ public class UserWizardCommandsTest : IDisposable
             .Setup(s => s.GetTokenInfoAsync("ZZZ"))
             .ReturnsAsync(Result<TokenInfo>.Ok(new TokenInfo("ZZZ", "Zero", 100m, "", "")));
         _m.OrderValidation
-            .Setup(s => s.ValidateTokenAsync(UserId, "zzz", "купить"))
-            .ReturnsAsync(new ValidationResult(true));
-        _m.OrderValidation
             .Setup(s => s.ValidateQuantity(5))
             .Returns(new ValidationResult(true));
         _m.OrderValidation
             .Setup(s => s.ValidatePrice(100m))
             .Returns(new ValidationResult(true));
-        _m.OrderValidation
-            .Setup(s => s.ValidateOrderCreationAsync(UserId, "ZZZ", "купить", 5, 100m))
-            .ReturnsAsync(new ValidationResult(true));
 
         var orderDto = new OrderDto("order-1", Domain.ValueObjects.OrderType.Buy, UserId, "ZZZ", 5, 100m,
             Domain.ValueObjects.OrderStatus.Active, DateTime.UtcNow);
@@ -270,17 +264,11 @@ public class UserWizardCommandsTest : IDisposable
             .Setup(s => s.GetTokenInfoAsync("ZZZ"))
             .ReturnsAsync(Result<TokenInfo>.Ok(new TokenInfo("ZZZ", "Zero", 150m, "", "")));
         _m.OrderValidation
-            .Setup(s => s.ValidateTokenAsync(UserId, "ZZZ", "продать"))
-            .ReturnsAsync(new ValidationResult(true));
-        _m.OrderValidation
             .Setup(s => s.ValidateQuantity(10))
             .Returns(new ValidationResult(true));
         _m.OrderValidation
             .Setup(s => s.ValidatePrice(150m))
             .Returns(new ValidationResult(true));
-        _m.OrderValidation
-            .Setup(s => s.ValidateOrderCreationAsync(UserId, "ZZZ", "продать", 10, 150m))
-            .ReturnsAsync(new ValidationResult(true));
 
         var orderDto = new OrderDto("order-2", Domain.ValueObjects.OrderType.Sell, UserId, "ZZZ", 10, 150m,
             Domain.ValueObjects.OrderStatus.Active, DateTime.UtcNow);
@@ -324,9 +312,6 @@ public class UserWizardCommandsTest : IDisposable
         _m.TokenQuery
             .Setup(s => s.GetTokenInfoAsync("ZZZ"))
             .ReturnsAsync(Result<TokenInfo>.Ok(new TokenInfo("ZZZ", "Zero", 100m, "", "")));
-        _m.OrderValidation
-            .Setup(s => s.ValidateTokenAsync(UserId, "zzz", "купить"))
-            .ReturnsAsync(new ValidationResult(true));
 
         await _engine.ProcessInput(UserId, "/place_order");
         await _engine.ProcessInput(UserId, "Купить");
@@ -347,10 +332,10 @@ public class UserWizardCommandsTest : IDisposable
             .Setup(s => s.GetTokenInfoAsync("ZZZ"))
             .ReturnsAsync(Result<TokenInfo>.Ok(new TokenInfo("ZZZ", "Zero", 100m, "", "")));
         _m.OrderValidation
-            .Setup(s => s.ValidateTokenAsync(UserId, "zzz", "купить"))
-            .ReturnsAsync(new ValidationResult(true));
-        _m.OrderValidation
             .Setup(s => s.ValidateQuantity(5))
+            .Returns(new ValidationResult(true));
+        _m.OrderValidation
+            .Setup(s => s.ValidatePrice(100m))
             .Returns(new ValidationResult(true));
 
         await _engine.ProcessInput(UserId, "/place_order");

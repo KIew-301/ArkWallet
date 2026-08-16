@@ -49,18 +49,6 @@ public class PortfolioItemTest
     }
 
     [Fact]
-    public void MarkDirty_ThenClean_TogglesIsDirty()
-    {
-        var item = CreateItem();
-
-        item.MarkDirty();
-        Assert.True(item.IsDirty);
-
-        item.MarkClean();
-        Assert.False(item.IsDirty);
-    }
-
-    [Fact]
     public void GetTotalValue_ReturnsQuantityTimesPrice()
     {
         var item = CreateItem(quantity: 50, price: 20m);
@@ -96,7 +84,6 @@ public class PortfolioItemTest
 
         Assert.Equal(20, item.Quantity);
         Assert.Equal(15m, item.AverageBuyPrice); // (10*10 + 10*20) / 20
-        Assert.True(item.IsDirty);
     }
 
     [Fact]
@@ -117,7 +104,6 @@ public class PortfolioItemTest
         Assert.Equal(70, item.Quantity);
         Assert.Equal(30, item.ReserveQuantity);
         Assert.Equal(12m, item.AverageReservePrice);
-        Assert.True(item.IsDirty);
     }
 
     [Fact]
@@ -188,7 +174,6 @@ public class PortfolioItemTest
         item.RemoveTokens(30, 10m);
 
         Assert.Equal(70, item.Quantity);
-        Assert.True(item.IsDirty);
     }
 
     [Fact]
