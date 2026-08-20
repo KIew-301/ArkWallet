@@ -171,6 +171,39 @@ internal class HelpMethods
             .Where(s => s.TraderId == traderId)
             .ToArrayAsync();
 
+    private static int _slotCounter;
+
+    private static readonly decimal[] SlotEfficiencies = [0.004m, 0.008m, 0.015m, 0.025m, 0.04m, 0.06m, 0.12m, 0.25m, 0.5m, 1m, 2m];
+    private static readonly decimal[] SlotReusabilities = [45m, 55m, 65m, 75m, 85m, 92m];
+
+    public static async Task<MiningMachineSlot> CreateMiningSlot(
+        ArkWalletDbContext db,
+        long traderId,
+        decimal cost,
+        MiningMachineSlotStatus status = MiningMachineSlotStatus.Passive)
+    {
+        var counter = Interlocked.Increment(ref _slotCounter);
+        var idx = counter - 1;
+        var efficiency = SlotEfficiencies[idx % SlotEfficiencies.Length];
+        var reusability = SlotReusabilities[idx / SlotEfficiencies.Length % SlotReusabilities.Length];
+        var machine = MiningMachine.Create(MiningMachineType.SMAI, 10, reusability, true, $"img_{counter}.zzz", efficiency);
+        db.MiningMachines.Add(machine);
+        await db.SaveChangesAsync();
+
+        var slot = MiningMachineSlot.Create(traderId, machine, cost, DateTime.UtcNow);
+        db.MiningMachineSlots.Add(slot);
+        await db.SaveChangesAsync();
+
+        if (status != MiningMachineSlotStatus.Passive)
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "UPDATE \"MiningMachineSlots\" SET \"Status\" = {0} WHERE \"Id\" = {1}",
+                status.ToString(), slot.Id);
+        }
+
+        return slot;
+    }
+
     public static async Task CreatePriceCandle(ArkWalletDbContext db, string symbol, decimal price, DateTime timestamp)
     {
         var candle = PriceCandle.CreateNew(symbol, price, timestamp);

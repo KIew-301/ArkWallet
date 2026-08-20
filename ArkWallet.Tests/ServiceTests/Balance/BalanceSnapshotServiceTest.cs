@@ -1,4 +1,5 @@
 ﻿using ArkWallet.Application.Services.TraderServices;
+using ArkWallet.Domain.Entities;
 using ArkWallet.Tests.HelpTools;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -161,5 +162,145 @@ public class BalanceSnapshotServiceTest
         Assert.True(result.IsSuccess, result.Message);
         Assert.True(result.TryGetData(out var data));
         Assert.Empty(data);
+    }
+
+    [Fact]
+    public async Task TakeSnapshot_WithActiveMiningSlots_IncludesSlotCostInTotalBalance()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateMiningSlot(db, 101, 500, MiningMachineSlotStatus.Active);
+
+        var result = await HelpMethods.TakeBalanceSnapshot(db, 101);
+
+        Assert.True(result.TryGetData(out var data));
+        Assert.Equal(1500m, data.totalBalance);
+    }
+
+    [Fact]
+    public async Task TakeSnapshot_WithPassiveMiningSlots_IncludesSlotCostInTotalBalance()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateMiningSlot(db, 101, 300, MiningMachineSlotStatus.Passive);
+
+        var result = await HelpMethods.TakeBalanceSnapshot(db, 101);
+
+        Assert.True(result.TryGetData(out var data));
+        Assert.Equal(1300m, data.totalBalance);
+    }
+
+    [Fact]
+    public async Task TakeSnapshot_WithSwitchingMiningSlots_IncludesSlotCostInTotalBalance()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateMiningSlot(db, 101, 700, MiningMachineSlotStatus.Switching);
+
+        var result = await HelpMethods.TakeBalanceSnapshot(db, 101);
+
+        Assert.True(result.TryGetData(out var data));
+        Assert.Equal(1700m, data.totalBalance);
+    }
+
+    [Fact]
+    public async Task TakeSnapshot_WithSoldMiningSlots_ExcludesSlotCostFromTotalBalance()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateMiningSlot(db, 101, 500, MiningMachineSlotStatus.Sold);
+
+        var result = await HelpMethods.TakeBalanceSnapshot(db, 101);
+
+        Assert.True(result.TryGetData(out var data));
+        Assert.Equal(1000m, data.totalBalance);
+    }
+
+    [Fact]
+    public async Task TakeSnapshot_WithMixedMiningSlots_SumsOnlyNonSold()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateMiningSlot(db, 101, 200, MiningMachineSlotStatus.Active);
+        await HelpMethods.CreateMiningSlot(db, 101, 300, MiningMachineSlotStatus.Passive);
+        await HelpMethods.CreateMiningSlot(db, 101, 400, MiningMachineSlotStatus.Sold);
+        await HelpMethods.CreateMiningSlot(db, 101, 500, MiningMachineSlotStatus.Active);
+
+        var result = await HelpMethods.TakeBalanceSnapshot(db, 101);
+
+        Assert.True(result.TryGetData(out var data));
+        Assert.Equal(2000m, data.totalBalance);
+    }
+
+    [Fact]
+    public async Task TakeSnapshot_WithMiningSlotsAndOrders_SumsAllComponents()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
+        await HelpMethods.CreateMiningSlot(db, 101, 600, MiningMachineSlotStatus.Active);
+
+        var result = await HelpMethods.TakeBalanceSnapshot(db, 101);
+
+        Assert.True(result.TryGetData(out var data));
+        Assert.Equal(1000m, data.mainBalance);
+        Assert.Equal(0m, data.longOrderReserve);
+        Assert.Equal(0m, data.shortOrderReserve);
+        Assert.Equal(100000m, data.balanceInTokens);
+        Assert.Equal(600m, data.totalBalance - data.mainBalance - data.balanceInTokens);
+        Assert.Equal(101600m, data.totalBalance);
+    }
+
+    [Fact]
+    public async Task TakeTotalTraderBalanceSnapshots_MultipleTraders_IncludesMiningSlots()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.CreateMiningSlot(db, 101, 300, MiningMachineSlotStatus.Active);
+        await HelpMethods.CreateMiningSlot(db, 102, 700, MiningMachineSlotStatus.Active);
+
+        var service = new BalanceSnapshotService(db, NullLogger<BalanceSnapshotService>.Instance);
+        var result = await service.TakeTotalTraderBalanceSnapshotsAsync(TraderIds);
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.True(result.TryGetData(out var data));
+        Assert.Equal(1300m, data[101L].totalBalance);
+        Assert.Equal(1700m, data[102L].totalBalance);
+    }
+
+    [Fact]
+    public async Task TakeTotalTraderBalanceSnapshots_MultipleTraders_SoldSlotsExcluded()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.CreateMiningSlot(db, 101, 500, MiningMachineSlotStatus.Sold);
+        await HelpMethods.CreateMiningSlot(db, 102, 500, MiningMachineSlotStatus.Active);
+
+        var service = new BalanceSnapshotService(db, NullLogger<BalanceSnapshotService>.Instance);
+        var result = await service.TakeTotalTraderBalanceSnapshotsAsync(TraderIds);
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.True(result.TryGetData(out var data));
+        Assert.Equal(1000m, data[101L].totalBalance);
+        Assert.Equal(1500m, data[102L].totalBalance);
     }
 }

@@ -116,8 +116,8 @@ public class MiningWizardCommandsTest
         Assert.Contains("🏭 Майнинг-машины в продаже", msg);
         Assert.Contains("SM-01", msg);
         Assert.Contains("ARK_001", msg);
-        Assert.Contains("/mining_buy", msg);
-        Assert.Contains("🔄 Обновить", result.Buttons?.First().Text ?? string.Empty);
+        Assert.Contains(result.Buttons!, b => b.Value!.StartsWith("/mining_buy"));
+        Assert.Contains("🔄 Обновить", result.Buttons?.Last().Text ?? string.Empty);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -147,7 +147,7 @@ public class MiningWizardCommandsTest
         Assert.Contains("SM-01", msg);
         Assert.Contains("ARK_001", msg);
         Assert.Contains("12,50", msg);
-        Assert.Contains("🔄 Обновить", result.Buttons?.First().Text ?? string.Empty);
+        Assert.Contains("🔄 Обновить", result.Buttons?.Last().Text ?? string.Empty);
     }
 
     // ═══════════════════════════════════════════════════════════

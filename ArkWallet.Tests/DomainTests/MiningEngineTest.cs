@@ -36,9 +36,9 @@ public class MiningEngineTest
     [Fact]
     public void CalculateMiningSpeed_MultipliesCoefficients()
     {
-        var result = _engine.CalculateMiningSpeed(4m, 2m, 5m);
+        var result = _engine.CalculateMiningSpeed(4m, 2m, 5m, 2m);
 
-        Assert.Equal(40m, result);
+        Assert.Equal(80m, result);
     }
 
     [Fact]
