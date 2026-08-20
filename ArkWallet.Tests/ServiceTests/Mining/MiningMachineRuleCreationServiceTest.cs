@@ -103,7 +103,7 @@ public class MiningMachineRuleCreationServiceTest
             BuildCommand(machine.Id, "AAA", 0m));
 
         Assert.False(result.IsSuccess);
-        Assert.Contains("от 0,65 до 1", result.Message);
+        Assert.Contains($"от {0.65m} до {1}", result.Message);
     }
 
     [Fact]

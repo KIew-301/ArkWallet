@@ -86,7 +86,7 @@ public class MiningWizardCommandsTest
         Assert.Contains("ARK_001", msg);
         Assert.Contains("Прибыльный", msg);
         Assert.Contains("Стабильный", msg);
-        Assert.Contains("50,00", msg);
+        Assert.Contains($"{50m:F2}", msg);
         Assert.Contains("🔄 Обновить", result.Buttons?.First().Text ?? string.Empty);
     }
 
@@ -146,7 +146,7 @@ public class MiningWizardCommandsTest
         Assert.Contains("🛠 Ваши майнинг-машины", msg);
         Assert.Contains("SM-01", msg);
         Assert.Contains("ARK_001", msg);
-        Assert.Contains("12,50", msg);
+        Assert.Contains($"{12.50m:F2}", msg);
         Assert.Contains("🔄 Обновить", result.Buttons?.Last().Text ?? string.Empty);
     }
 
