@@ -332,12 +332,20 @@ namespace ArkWallet.Entities.Configurations
                 {
                     Name = "set_options",
                     Question =
-                        "Send JSON to create a mining rule (machine-token pair):\n\n" +
-                        "{\n" +
-                        "  \"miningMachineId\": 1,\n" +
-                        "  \"characterTokenId\": \"ARK_001\",\n" +
-                        "  \"miningCoefficient\": 0.9\n" +
-                        "}"
+                        "Send JSON array to create mining rules (machine-token pairs).\n" +
+                        "Single object or array both supported:\n\n" +
+                        "[\n" +
+                        "  {\n" +
+                        "    \"miningMachineId\": 1,\n" +
+                        "    \"characterTokenId\": \"ARK_001\",\n" +
+                        "    \"miningCoefficient\": 0.9\n" +
+                        "  },\n" +
+                        "  {\n" +
+                        "    \"miningMachineId\": 2,\n" +
+                        "    \"characterTokenId\": \"ARK_002\",\n" +
+                        "    \"miningCoefficient\": 0.7\n" +
+                        "  }\n" +
+                        "]"
                 }
             };
 

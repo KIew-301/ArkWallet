@@ -1,5 +1,6 @@
 ﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Contracts.Decorators;
+using ArkWallet.Application.Contracts.MiningMachineServices;
 using ArkWallet.Application.Contracts.SuggestionServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Domain.ValueObjects;
@@ -8,7 +9,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace ArkWallet.Presentation.Wizard
 {
     [ExcludeFromCodeCoverage(Justification = "UI-декоратор: форматирование кнопок для Telegram-интерфейса. Не содержит бизнес-логики.")]
-    internal class ButtonDecorator(IOrderQueryService orderQueryService, IPriceSuggestionService priceSuggestionService, IQuantitySuggestionService quantitySuggestionService, ITokenQueryService tokenQueryService) : IButtonDecorator
+    internal class ButtonDecorator(IOrderQueryService orderQueryService, IPriceSuggestionService priceSuggestionService, IQuantitySuggestionService quantitySuggestionService, ITokenQueryService tokenQueryService, IMiningMachineQueryService miningMachineQueryService, IMiningMachineSlotQueryService miningMachineSlotQueryService) : IButtonDecorator
     {
         public async Task<List<QuickButton>> DecorateButtonsAsync(string stepName, List<QuickButton> baseKeyword, UserSession session)
         {
@@ -44,6 +45,27 @@ namespace ArkWallet.Presentation.Wizard
                 "/admin_bots_activity" => stepName switch
                 {
                     "select_token" => await DecorateTokenQuestion(),
+                    _ => baseKeyword
+                },
+                "/mining_buy" => stepName switch
+                {
+                    "select_machine" => await DecorateMiningBuyMachines(session),
+                    _ => baseKeyword
+                },
+                "/mining_take" => stepName switch
+                {
+                    "select_slot" => await DecorateMiningSlots(session),
+                    _ => baseKeyword
+                },
+                "/mining_sell" => stepName switch
+                {
+                    "select_slot" => await DecorateMiningSlots(session),
+                    _ => baseKeyword
+                },
+                "/mining_switch" => stepName switch
+                {
+                    "select_slot" => await DecorateMiningSlots(session),
+                    "select_token" => await DecorateMiningSwitchTokens(session),
                     _ => baseKeyword
                 },
                 _ => baseKeyword
@@ -133,6 +155,59 @@ namespace ArkWallet.Presentation.Wizard
             }
 
             return baseKeyword;
+        }
+
+        private async Task<List<QuickButton>> DecorateMiningBuyMachines(UserSession session)
+        {
+            var result = await miningMachineQueryService.TakeActiveForSaleMachinesAsync(session.Id);
+
+            if (!result.TryGetData(out var machines))
+                return [];
+
+            return machines.Select(m => new QuickButton
+            {
+                Text = $"{m.Name} — {m.Cost:F2}{Descriptor.CurrencySymbol}",
+                Value = m.Id.ToString()
+            }).ToList();
+        }
+
+        private async Task<List<QuickButton>> DecorateMiningSlots(UserSession session)
+        {
+            var result = await miningMachineSlotQueryService.TakeSlotsByTraderAsync(session.Id);
+
+            if (!result.TryGetData(out var slots))
+                return [];
+
+            return slots.Select(s => new QuickButton
+            {
+                Text = $"{s.Name} ({s.TokensAmountCollected:F2} ток.)",
+                Value = s.Id.ToString()
+            }).ToList();
+        }
+
+        private async Task<List<QuickButton>> DecorateMiningSwitchTokens(UserSession session)
+        {
+            if (!session.Data.TryGetValue("mining_slot_id", out var slotIdObj) || slotIdObj is not long slotId)
+                return [];
+
+            var result = await miningMachineSlotQueryService.TakeSlotsByTraderAsync(session.Id);
+
+            if (!result.TryGetData(out var slots))
+                return [];
+
+            var slot = slots.FirstOrDefault(s => s.Id == slotId);
+            if (slot is null)
+                return [];
+
+            var buttons = new List<QuickButton>();
+
+            foreach (var t in slot.EffectiveTokensMiningData)
+                buttons.Add(new() { Text = $"{t.Symbol} +{t.Profit:F4}{Descriptor.CurrencySymbol}/мин", Value = t.Symbol });
+
+            foreach (var t in slot.StableTokensMiningData)
+                buttons.Add(new() { Text = $"{t.Symbol} +{t.Profit:F4}{Descriptor.CurrencySymbol}/мин", Value = t.Symbol });
+
+            return buttons;
         }
     }
 }

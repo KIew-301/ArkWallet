@@ -991,7 +991,25 @@ namespace ArkWallet.Infrastructure.Wizard
         {
             try
             {
-                var rawData = JsonConvert.DeserializeObject<Dictionary<string, object>>(input,
+                var trimmed = input.Trim();
+
+                if (trimmed.StartsWith('['))
+                {
+                    var commands = JsonConvert.DeserializeObject<List<MiningMachineRuleCreationCommand>>(trimmed,
+                        new JsonSerializerSettings { FloatParseHandling = FloatParseHandling.Decimal });
+
+                    if (commands == null || commands.Count == 0)
+                        return StepResult.Error("No valid rules found in JSON array.");
+
+                    var result = await _miningMachineRuleCreationService.CreateRulesAsync(commands);
+
+                    if (!result.TryGetData(out var ids))
+                        return StepResult.Error(result.Message);
+
+                    return StepResult.Ok("completed", $"Created {ids.Count} rules (Ids: {string.Join(", ", ids)}).");
+                }
+
+                var rawData = JsonConvert.DeserializeObject<Dictionary<string, object>>(trimmed,
                     new JsonSerializerSettings { FloatParseHandling = FloatParseHandling.Decimal });
                 if (rawData == null)
                     return StepResult.Error("Invalid JSON input");
@@ -1003,11 +1021,11 @@ namespace ArkWallet.Infrastructure.Wizard
                 if (command == null)
                     return StepResult.Error("Failed to parse rule creation data");
 
-                var result = await _miningMachineRuleCreationService.CreateRuleAsync(command);
+                var singleResult = await _miningMachineRuleCreationService.CreateRuleAsync(command);
 
-                return result.TryGetData(out var ruleId)
+                return singleResult.TryGetData(out var ruleId)
                     ? StepResult.Ok("completed", $"Rule created (Id: {ruleId}).")
-                    : StepResult.Error(result.Message);
+                    : StepResult.Error(singleResult.Message);
             }
             catch (Exception ex)
             {

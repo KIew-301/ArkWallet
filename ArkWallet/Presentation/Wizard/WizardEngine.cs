@@ -220,6 +220,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/mining_rules"][0].Handler = HandleGetMiningRules;
             _config.Commands["/mining_machines"][0].Handler = HandleGetMiningMachines;
             _config.Commands["/mining_slots"][0].Handler = HandleGetMiningSlots;
+            _config.Commands["/mining_take_all"][0].Handler = HandleMiningTakeAll;
             _config.Commands["/mining_buy"][0].Handler = HandleMiningBuySelectMachine;
             _config.Commands["/mining_buy"][1].Handler = HandleMiningBuyConfirm;
             _config.Commands["/mining_switch"][0].Handler = HandleMiningSwitchSelectSlot;
@@ -283,6 +284,33 @@ namespace ArkWallet.Infrastructure.Wizard
                     }
                 }
 
+                if (input.StartsWith("/mining_buy "))
+                {
+                    var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                    {
+                        return await HandleQuickMiningBuy(userId, parts[1]);
+                    }
+                }
+
+                if (input.StartsWith("/mining_take "))
+                {
+                    var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                    {
+                        return await HandleQuickMiningTake(userId, parts[1]);
+                    }
+                }
+
+                if (input.StartsWith("/mining_sell "))
+                {
+                    var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                    {
+                        return await HandleQuickMiningSell(userId, parts[1]);
+                    }
+                }
+
                 if (_config.Commands.ContainsKey(input))
                 {
                     return await StartCommand(userId, input);
@@ -313,7 +341,10 @@ namespace ArkWallet.Infrastructure.Wizard
                 || input.StartsWith("/get_trades ")
                 || input.StartsWith("/get_tops ")
                 || input.StartsWith("/admin_bots_activity ")
-                || input.StartsWith("/admin_stats "))
+                || input.StartsWith("/admin_stats ")
+                || input.StartsWith("/mining_buy ")
+                || input.StartsWith("/mining_take ")
+                || input.StartsWith("/mining_sell "))
             {
                 return input.Split(' ', 2)[0];
             }

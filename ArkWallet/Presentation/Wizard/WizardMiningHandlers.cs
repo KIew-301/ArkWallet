@@ -57,19 +57,19 @@ namespace ArkWallet.Infrastructure.Wizard
                 lines.Add($"   Переключение: {machine.SwitchingTime} мин | Макс. прибыль: {machine.MaxProfit:F2}{Descriptor.CurrencySymbol}");
 
                 if (machine.EffectiveTokensMiningData.Count > 0)
-                    lines.Add($"   Эффективные токены: {string.Join(", ", machine.EffectiveTokensMiningData.Select(t => $"{t.Symbol} ({t.Profit:F2}{Descriptor.CurrencySymbol})"))}");
+                    lines.Add($"   Эффективные токены: {string.Join(", ", machine.EffectiveTokensMiningData.Select(t => $"{t.Symbol} ({t.Profit:F4}{Descriptor.CurrencySymbol})"))}");
                 if (machine.StableTokensMiningData.Count > 0)
-                    lines.Add($"   Стабильные токены: {string.Join(", ", machine.StableTokensMiningData.Select(t => $"{t.Symbol} ({t.Profit:F2}{Descriptor.CurrencySymbol})"))}");
+                    lines.Add($"   Стабильные токены: {string.Join(", ", machine.StableTokensMiningData.Select(t => $"{t.Symbol} ({t.Profit:F4}{Descriptor.CurrencySymbol})"))}");
 
                 lines.Add("");
             }
 
-            lines.Add("Для покупки введите /mining_buy.");
+            var buttons = new List<QuickButton>();
 
-            var buttons = new List<QuickButton>
-            {
-                new() { Text = RefreshButtonText, Value = "/mining_machines" }
-            };
+            foreach (var machine in machines)
+                buttons.Add(new() { Text = $"🛒 {machine.Name}", Value = $"/mining_buy {machine.Id}" });
+
+            buttons.Add(new() { Text = RefreshButtonText, Value = "/mining_machines" });
 
             var result = StepResult.Ok("completed", string.Join("\n", lines));
             result.Buttons = buttons;
@@ -97,13 +97,26 @@ namespace ArkWallet.Infrastructure.Wizard
                 lines.Add($"   Активный токен: {activeSymbol}");
                 lines.Add($"   Переключение: {slot.SwitchingPercent:F0}%");
                 lines.Add($"   Цена продажи: {slot.Cost:F2}{Descriptor.CurrencySymbol}");
+                if (slot.ActiveTokenMiningData.Symbol != null)
+                {
+                    lines.Add($"   Скорость: {slot.ActiveTokenMiningData.MiningSpeed:F4} ток/мин");
+                    lines.Add($"   Прибыль: {slot.ActiveTokenMiningData.Profit:F2}{Descriptor.CurrencySymbol}/мин");
+                }
                 lines.Add("");
             }
 
             var buttons = new List<QuickButton>
             {
-                new() { Text = RefreshButtonText, Value = "/mining_slots" }
+                new() { Text = "🪙 Собрать со всех", Value = "/mining_take_all" }
             };
+
+            foreach (var slot in slots)
+            {
+                var emoji = GetSlotStatusEmoji(slot.Status);
+                buttons.Add(new() { Text = $"{emoji} {slot.Name}", Value = $"/mining_take {slot.Id}" });
+            }
+
+            buttons.Add(new() { Text = RefreshButtonText, Value = "/mining_slots" });
 
             var result = StepResult.Ok("completed", string.Join("\n", lines));
             result.Buttons = buttons;
@@ -262,6 +275,78 @@ namespace ArkWallet.Infrastructure.Wizard
             return null;
         }
 
+        public async Task<StepResult> HandleMiningBuyQuickPath(UserSession session, string machineIdStr)
+        {
+            if (!long.TryParse(machineIdStr, out var machineId))
+                return StepResult.Error("Введите корректный идентификатор машины.");
+
+            var machinesResult = await _miningMachineQueryService.TakeActiveForSaleMachinesAsync(session.Id);
+
+            if (!machinesResult.TryGetData(out var machines))
+                return StepResult.Error(machinesResult.Message ?? "Не удалось получить список машин.");
+
+            var machine = machines.FirstOrDefault(m => m.Id == machineId);
+            if (machine is null)
+                return StepResult.Error("Машина не найдена в списке доступных для покупки.");
+
+            session.Data[MiningMachineIdDataKey] = machineId;
+            session.Data[MiningMachineNameDataKey] = machine.Name;
+
+            return StepResult.Ok("confirm_buy",
+                $"Выбранная машина: {machine.Name} ({machine.Type})\n" +
+                $"Цена: {machine.Cost:F2}{Descriptor.CurrencySymbol}\n" +
+                $"Возврат: {machine.Reusability}%");
+        }
+
+        public async Task<StepResult> HandleMiningTakeQuickPath(UserSession session, string slotIdStr)
+        {
+            if (!long.TryParse(slotIdStr, out var slotId))
+                return StepResult.Error("Введите корректный идентификатор слота.");
+
+            var slotsResult = await _miningMachineSlotQueryService.TakeSlotsByTraderAsync(session.Id);
+
+            if (!slotsResult.TryGetData(out var slots))
+                return StepResult.Error(slotsResult.Message ?? "Не удалось получить список слотов.");
+
+            var slot = slots.FirstOrDefault(s => s.Id == slotId);
+            if (slot is null)
+                return StepResult.Error("Слот не найден.");
+
+            session.Data[MiningSlotIdDataKey] = slotId;
+            session.Data[MiningSlotNameDataKey] = slot.Name;
+
+            return StepResult.Ok("confirm_take", $"Собрать токены со слота {slot.Name}?");
+        }
+
+        public async Task<StepResult> HandleMiningSellQuickPath(UserSession session, string slotIdStr)
+        {
+            if (!long.TryParse(slotIdStr, out var slotId))
+                return StepResult.Error("Введите корректный идентификатор слота.");
+
+            var slotsResult = await _miningMachineSlotQueryService.TakeSlotsByTraderAsync(session.Id);
+
+            if (!slotsResult.TryGetData(out var slots))
+                return StepResult.Error(slotsResult.Message ?? "Не удалось получить список слотов.");
+
+            var slot = slots.FirstOrDefault(s => s.Id == slotId);
+            if (slot is null)
+                return StepResult.Error("Слот не найден.");
+
+            session.Data[MiningSlotIdDataKey] = slotId;
+            session.Data[MiningSlotNameDataKey] = slot.Name;
+
+            return StepResult.Ok("confirm_sell", $"Продать {slot.Name}?");
+        }
+
+        public async Task<StepResult> HandleMiningTakeAll(UserSession session, string input)
+        {
+            var result = await _miningMachineSlotTakingTokenOrchestrator.TakeTokensFromMachinesAsync(session.Id);
+
+            return result.IsSuccess
+                ? StepResult.Ok("completed", "🪙 Токены со всех слотов собраны и зачислены в портфель.")
+                : StepResult.Error(result.Message);
+        }
+
         private static string GetMiningStatusEmoji(string status) => status switch
         {
             nameof(MiningStatus.Profitable) => "🟢",
@@ -283,5 +368,118 @@ namespace ArkWallet.Infrastructure.Wizard
             "Passive" => "⚪",
             _ => "⚫"
         };
+
+        private async Task<WizardResult> HandleQuickMiningBuy(long userId, string machineIdStr)
+        {
+            if (!long.TryParse(machineIdStr, out var machineId))
+                return new WizardResult { Message = "Некорректный идентификатор машины." };
+
+            var machinesResult = await _miningMachineQueryService.TakeActiveForSaleMachinesAsync(userId);
+            if (!machinesResult.TryGetData(out var machines))
+                return new WizardResult { Message = machinesResult.Message ?? ServerErrorMessage };
+
+            var machine = machines.FirstOrDefault(m => m.Id == machineId);
+            if (machine is null)
+                return new WizardResult { Message = "Машина не найдена в списке доступных для покупки." };
+
+            var session = new UserSession
+            {
+                Id = userId,
+                CurrentCommand = "/mining_buy",
+                CurrentStep = "confirm_buy"
+            };
+            session.Data[MiningMachineIdDataKey] = machineId;
+            session.Data[MiningMachineNameDataKey] = machine.Name;
+            _sessionStore.Set(userId, session);
+
+            var confirmButtons = new List<QuickButton>
+            {
+                new() { Text = "✅ Да, купить", Value = "confirm" },
+                new() { Text = "❌ Нет, отменить", Value = "cancel" }
+            };
+
+            return new WizardResult
+            {
+                Message = $"Выбранная машина: {machine.Name} ({machine.Type})\n" +
+                          $"Цена: {machine.Cost:F2}{Descriptor.CurrencySymbol}\n" +
+                          $"Возврат: {machine.Reusability}%\n\n" +
+                          "Подтвердите покупку:",
+                Buttons = confirmButtons
+            };
+        }
+
+        private async Task<WizardResult> HandleQuickMiningTake(long userId, string slotIdStr)
+        {
+            if (!long.TryParse(slotIdStr, out var slotId))
+                return new WizardResult { Message = "Некорректный идентификатор слота." };
+
+            var slotsResult = await _miningMachineSlotQueryService.TakeSlotsByTraderAsync(userId);
+            if (!slotsResult.TryGetData(out var slots))
+                return new WizardResult { Message = slotsResult.Message ?? ServerErrorMessage };
+
+            var slot = slots.FirstOrDefault(s => s.Id == slotId);
+            if (slot is null)
+                return new WizardResult { Message = "Слот не найден." };
+
+            var session = new UserSession
+            {
+                Id = userId,
+                CurrentCommand = "/mining_take",
+                CurrentStep = "confirm_take"
+            };
+            session.Data[MiningSlotIdDataKey] = slotId;
+            session.Data[MiningSlotNameDataKey] = slot.Name;
+            _sessionStore.Set(userId, session);
+
+            var confirmButtons = new List<QuickButton>
+            {
+                new() { Text = "✅ Да, снять", Value = "confirm" },
+                new() { Text = "❌ Нет, отменить", Value = "cancel" }
+            };
+
+            return new WizardResult
+            {
+                Message = $"Собрать токены со слота {slot.Name}?\n" +
+                          $"Накоплено: {slot.TokensAmountCollected:F2} ток.",
+                Buttons = confirmButtons
+            };
+        }
+
+        private async Task<WizardResult> HandleQuickMiningSell(long userId, string slotIdStr)
+        {
+            if (!long.TryParse(slotIdStr, out var slotId))
+                return new WizardResult { Message = "Некорректный идентификатор слота." };
+
+            var slotsResult = await _miningMachineSlotQueryService.TakeSlotsByTraderAsync(userId);
+            if (!slotsResult.TryGetData(out var slots))
+                return new WizardResult { Message = slotsResult.Message ?? ServerErrorMessage };
+
+            var slot = slots.FirstOrDefault(s => s.Id == slotId);
+            if (slot is null)
+                return new WizardResult { Message = "Слот не найден." };
+
+            var session = new UserSession
+            {
+                Id = userId,
+                CurrentCommand = "/mining_sell",
+                CurrentStep = "confirm_sell"
+            };
+            session.Data[MiningSlotIdDataKey] = slotId;
+            session.Data[MiningSlotNameDataKey] = slot.Name;
+            _sessionStore.Set(userId, session);
+
+            var confirmButtons = new List<QuickButton>
+            {
+                new() { Text = "✅ Да, продать", Value = "confirm" },
+                new() { Text = "❌ Нет, отменить", Value = "cancel" }
+            };
+
+            return new WizardResult
+            {
+                Message = $"Продать {slot.Name}?\n" +
+                          $"Цена продажи: {slot.Cost:F2}{Descriptor.CurrencySymbol}",
+                Buttons = confirmButtons
+            };
+        }
     }
 }

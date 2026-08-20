@@ -263,6 +263,15 @@ namespace ArkWallet.Entities.Configurations
                 },
             };
 
+            Commands["/mining_take_all"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "request",
+                    OneStep = true
+                },
+            };
+
             steps = new List<WizardStep>
             {
                 new()
