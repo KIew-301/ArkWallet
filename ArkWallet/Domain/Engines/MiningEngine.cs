@@ -49,10 +49,11 @@ internal class MiningEngine
 
     /// <summary>Скорость майнинга: глобальный коэффициент * коэффициент машины * базовая скорость</summary>
     public decimal CalculateMiningSpeed(
-        decimal ruleCoeff,
-        decimal machineCoeff,
+        decimal tokenCoeff,
+        decimal machineTokenCoeff,
+        decimal machineEfficiency,
         decimal baseTokenMiningSpeed)
-        => ruleCoeff * machineCoeff * baseTokenMiningSpeed;
+        => tokenCoeff * machineTokenCoeff * machineEfficiency * baseTokenMiningSpeed;
 
     /// <summary>Прибыль: скорость майнинга * текущая цена токена</summary>
     public decimal CalculateProfit(decimal miningSpeed, decimal currentPrice)

@@ -3,6 +3,7 @@ using ArkWallet.Application.Contracts.MiningMachineServices;
 using ArkWallet.Application.Contracts.Orchestrators;
 using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Application.Services.Orchestrators;
@@ -60,8 +61,12 @@ internal class MiningMachineSlotTakingTokenOrchestrator(
         if (collection.TokensCollected <= 0 || string.IsNullOrEmpty(collection.Symbol))
             return Ok();
 
+        var existing = await dbContext.PortfolioItems
+            .FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == collection.Symbol);
+        var total = (existing?.Quantity ?? 0) + collection.TokensCollected;
+
         var portfolioResult = await portfolioUpdatingService
-            .CreateOrUpdatePortfolioAsync(traderId, collection.Symbol, collection.TokensCollected);
+            .CreateOrUpdatePortfolioAsync(traderId, collection.Symbol, total);
 
         return portfolioResult.IsSuccess ? Ok() : Fail(portfolioResult.Message);
     }

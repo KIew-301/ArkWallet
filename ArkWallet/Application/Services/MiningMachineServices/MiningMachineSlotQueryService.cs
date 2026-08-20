@@ -76,8 +76,9 @@ internal class MiningMachineSlotQueryService(
                 ?? globalRules.GetValueOrDefault(slot.TokenId);
 
             var miningSpeed = miningEngine.CalculateMiningSpeed(
-                globalRule?.CurrentCoefficient ?? 1m,
+                globalRule?.CurrentCoefficient ?? 0m,
                 machineRule?.MiningCoefficient ?? 0m,
+                slot?.Efficiency ?? 0m,
                 globalRule?.BaseTokenMiningSpeed ?? 0m);
             var profit = miningEngine.CalculateProfit(miningSpeed, activeTokenEntity.CurrentPrice);
 
@@ -99,8 +100,9 @@ internal class MiningMachineSlotQueryService(
 
             var globalRule = globalRules.GetValueOrDefault(token.Symbol);
             var miningSpeed = miningEngine.CalculateMiningSpeed(
-                globalRule?.CurrentCoefficient ?? 1m,
-                rule.MiningCoefficient,
+                globalRule?.CurrentCoefficient ?? 0m,
+                rule?.MiningCoefficient ?? 0m,
+                slot?.Efficiency ?? 0m,
                 globalRule?.BaseTokenMiningSpeed ?? 0m);
             var profit = miningEngine.CalculateProfit(miningSpeed, token.CurrentPrice);
             var tokenData = new TokensMiningData(token.IconUrl, token.Symbol, miningSpeed, profit);
