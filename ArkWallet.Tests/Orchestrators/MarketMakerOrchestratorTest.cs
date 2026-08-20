@@ -1,4 +1,4 @@
-п»їusing ArkWallet.Application.Common;
+using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.MarketMaker;
 using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;
@@ -387,7 +387,7 @@ public class MarketMakerOrchestratorTest
         var result = await orchestrator.UpdateAllBotsGridAsync();
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("РЎРїРёСЃРѕРє Р±РѕС‚РѕРІ РїСѓСЃС‚", result.Message);
+        Assert.Equal("Список ботов пуст", result.Message);
     }
 
     [Fact]
@@ -413,7 +413,7 @@ public class MarketMakerOrchestratorTest
         var result = await orchestrator.UpdateAllBotsGridAsync();
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("РўРѕРєРµРЅ ZZZ РЅРµ РЅР°Р№РґРµРЅ", result.Message);
+        Assert.Equal("Токен ZZZ не найден", result.Message);
     }
 
     [Fact]
@@ -512,7 +512,7 @@ public class MarketMakerOrchestratorTest
         var result = await orchestrator.ProcessBotsAsync();
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("РЎРїРёСЃРѕРє Р±РѕС‚РѕРІ РїСѓСЃС‚", result.Message);
+        Assert.Equal("Список ботов пуст", result.Message);
     }
 
     [Fact]
@@ -547,7 +547,7 @@ public class MarketMakerOrchestratorTest
 
         var mockMarketMakerOrderService = new Mock<IMarketMakerOrderService>();
         mockMarketMakerOrderService
-            .Setup(x => x.ExecuteMarketOrderAsync(It.IsAny<long>()))
+            .Setup(x => x.ExecuteMarketMakerOrdersAsync(It.IsAny<IEnumerable<long>>()))
             .ReturnsAsync(Result.Ok());
 
         var logger = NullLogger<MarketMakerOrchestrator>.Instance;
@@ -569,7 +569,7 @@ public class MarketMakerOrchestratorTest
             Times.AtLeastOnce);
 
         mockMarketMakerOrderService.Verify(
-            x => x.ExecuteMarketOrderAsync(It.IsAny<long>()),
+            x => x.ExecuteMarketMakerOrdersAsync(It.IsAny<IEnumerable<long>>()),
             Times.AtLeastOnce);
     }
 
@@ -602,7 +602,7 @@ public class MarketMakerOrchestratorTest
 
         var mockMarketMakerOrderService = new Mock<IMarketMakerOrderService>();
         mockMarketMakerOrderService
-            .Setup(x => x.ExecuteMarketOrderAsync(It.IsAny<long>()))
+            .Setup(x => x.ExecuteMarketMakerOrdersAsync(It.IsAny<IEnumerable<long>>()))
             .ReturnsAsync(Result.Fail("Market order failed"));
 
         var logger = NullLogger<MarketMakerOrchestrator>.Instance;
@@ -620,7 +620,7 @@ public class MarketMakerOrchestratorTest
         Assert.True(result.IsSuccess, result.Message);
 
         mockMarketMakerOrderService.Verify(
-            x => x.ExecuteMarketOrderAsync(It.IsAny<long>()),
+            x => x.ExecuteMarketMakerOrdersAsync(It.IsAny<IEnumerable<long>>()),
             Times.AtLeastOnce);
     }
 

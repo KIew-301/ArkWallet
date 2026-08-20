@@ -23,4 +23,17 @@ public interface IMarketMakerOrderService
     /// </para>
     /// </remarks>
     Task<Result> ExecuteMarketOrderAsync(long botId);
+
+    /// <summary>
+    /// Пакетно исполняет рыночные ордера для всех указанных ботов
+    /// </summary>
+    /// <param name="botIds">ID ботов, для которых нужно исполнить рыночные ордера</param>
+    /// <returns>Результат операции</returns>
+    /// <remarks>
+    /// <para>
+    /// За один вызов формируются и исполняются ордера сразу для всех ботов.
+    /// Неактивные и ненайденные боты пропускаются.
+    /// </para>
+    /// </remarks>
+    Task<Result> ExecuteMarketMakerOrdersAsync(IEnumerable<long> botIds);
 }

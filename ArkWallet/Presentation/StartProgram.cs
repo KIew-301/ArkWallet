@@ -190,6 +190,7 @@ class Program
         if (!isTesting)
         {
             builder.Services.AddHostedService<MarketMakerWorker>();
+            builder.Services.AddHostedService<MarketWallBlockerWorker>();
             builder.Services.AddHostedService<NotificationWorker>();
             builder.Services.AddHostedService<BalanceSavingSnapshotWorker>();
         }
@@ -254,6 +255,7 @@ class Program
         services.AddScoped<TradingEngine>();
         services.AddScoped<FixedGridEngine>();
         services.AddScoped<MarketMakerGridEngine>();
+        services.AddScoped<WallBlockerEngine>();
 
         // Telegram Bot
         services.AddSingleton<TelegramBot>();
@@ -312,6 +314,9 @@ class Program
         services.AddScoped<IMarketMakerBotQueryService, MarketMakerBotQueryService>();
         services.AddScoped<IMarketMakerOrchestrator, MarketMakerOrchestrator>();
         services.AddScoped<IMarketMakerOrderService, MarketMakerOrderService>();
+
+        // MarketWallBlocker
+        services.AddScoped<IMarketWallBlockerOrchestrator, MarketWallBlockerOrchestrator>();
 
         // Trade Services
         services.AddScoped<ITradeQueryService, TradeQueryService>();

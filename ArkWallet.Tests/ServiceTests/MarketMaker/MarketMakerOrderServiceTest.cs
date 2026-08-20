@@ -1,4 +1,4 @@
-﻿using ArkWallet.Application.Common;
+using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.MarketMaker;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Dtos;
@@ -14,6 +14,85 @@ namespace ArkWallet.Tests.ServiceTests.MarketMaker;
 
 public class MarketMakerOrderServiceTest
 {
+    [Fact]
+    public async Task ExecuteMarketMakerOrdersAsync_TwoBots_CreatesBatchOrders()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.CreateToken(db, "ZZZ", price: 100);
+        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 1_000_000);
+
+        var buyerBot = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 100);
+        var sellerBot = MarketMakerBot.Create(102, "ZZZ", BotRole.Seller, 100);
+        await db.MarketMakerBots.AddRangeAsync(buyerBot, sellerBot);
+        await db.SaveChangesAsync();
+
+        var captured = new List<CreateOrderCommand>();
+
+        var mockOrderCreationService = new Mock<IOrderCreationService>();
+        mockOrderCreationService
+            .Setup(x => x.CreateOrdersAsync(It.IsAny<IEnumerable<CreateOrderCommand>>()))
+            .Callback<IEnumerable<CreateOrderCommand>>(commands => captured.AddRange(commands))
+            .ReturnsAsync(Result<List<OrderCreationData>>.Ok(new List<OrderCreationData>()));
+
+        var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, NullLogger<MarketMakerOrderService>.Instance);
+
+        var result = await service.ExecuteMarketMakerOrdersAsync(new[] { buyerBot.Id, sellerBot.Id });
+
+        Assert.True(result.IsSuccess, result.Message);
+
+        mockOrderCreationService.Verify(
+            x => x.CreateOrdersAsync(It.IsAny<IEnumerable<CreateOrderCommand>>()),
+            Times.Once);
+
+        Assert.Equal(2, captured.Count);
+
+        var buyer = captured.Single(c => c.Direction == "купить");
+        var seller = captured.Single(c => c.Direction == "продать");
+
+        Assert.Equal(120m, buyer.Price);
+        Assert.Equal(80m, seller.Price);
+        Assert.InRange(buyer.Quantity, 50, 149);
+        Assert.InRange(seller.Quantity, 50, 149);
+    }
+
+    [Fact]
+    public async Task ExecuteMarketMakerOrdersAsync_NoActiveBots_ReturnsFail()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var mockOrderCreationService = new Mock<IOrderCreationService>();
+        var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, NullLogger<MarketMakerOrderService>.Instance);
+
+        var nonexistentBotId = new[] { 999L };
+        var result = await service.ExecuteMarketMakerOrdersAsync(nonexistentBotId);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("Список ботов пуст", result.Message);
+    }
+
+    [Fact]
+    public async Task ExecuteMarketMakerOrdersAsync_EmptyBotIds_ReturnsOk()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var mockOrderCreationService = new Mock<IOrderCreationService>();
+        var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, NullLogger<MarketMakerOrderService>.Instance);
+
+        var result = await service.ExecuteMarketMakerOrdersAsync(Array.Empty<long>());
+
+        Assert.True(result.IsSuccess, result.Message);
+
+        mockOrderCreationService.Verify(
+            x => x.CreateOrdersAsync(It.IsAny<IEnumerable<CreateOrderCommand>>()),
+            Times.Never);
+    }
+
     [Fact]
     public async Task ExecuteMarketOrderAsync_BuyerRole_ExecutesAboveCurrentPrice()
     {
@@ -43,8 +122,7 @@ public class MarketMakerOrderServiceTest
                 DateTime.UtcNow
             ))));
 
-        var logger = NullLogger<MarketMakerOrderService>.Instance;
-        var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, logger);
+        var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, NullLogger<MarketMakerOrderService>.Instance);
 
         var result = await service.ExecuteMarketOrderAsync(bot.Id);
 
@@ -84,8 +162,7 @@ public class MarketMakerOrderServiceTest
                 DateTime.UtcNow
             ))));
 
-        var logger = NullLogger<MarketMakerOrderService>.Instance;
-        var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, logger);
+        var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, NullLogger<MarketMakerOrderService>.Instance);
 
         var result = await service.ExecuteMarketOrderAsync(bot.Id);
 
@@ -103,8 +180,7 @@ public class MarketMakerOrderServiceTest
         db.Database.EnsureCreated();
 
         var mockOrderCreationService = new Mock<IOrderCreationService>();
-        var logger = NullLogger<MarketMakerOrderService>.Instance;
-        var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, logger);
+        var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, NullLogger<MarketMakerOrderService>.Instance);
 
         var result = await service.ExecuteMarketOrderAsync(101);
 
@@ -123,8 +199,7 @@ public class MarketMakerOrderServiceTest
         await db.SaveChangesAsync();
 
         var mockOrderCreationService = new Mock<IOrderCreationService>();
-        var logger = NullLogger<MarketMakerOrderService>.Instance;
-        var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, logger);
+        var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, NullLogger<MarketMakerOrderService>.Instance);
 
         var result = await service.ExecuteMarketOrderAsync(bot.Id);
 
@@ -152,8 +227,7 @@ public class MarketMakerOrderServiceTest
             .Setup(x => x.CreateOrderAsync(It.IsAny<CreateOrderCommand>()))
             .ReturnsAsync(Result<OrderCreationData>.Fail("Order creation failed"));
 
-        var logger = NullLogger<MarketMakerOrderService>.Instance;
-        var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, logger);
+        var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, NullLogger<MarketMakerOrderService>.Instance);
 
         var result = await service.ExecuteMarketOrderAsync(bot.Id);
 
@@ -179,8 +253,7 @@ public class MarketMakerOrderServiceTest
             .Setup(x => x.CreateOrderAsync(It.IsAny<CreateOrderCommand>()))
             .ThrowsAsync(new InvalidOperationException("db error"));
 
-        var logger = NullLogger<MarketMakerOrderService>.Instance;
-        var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, logger);
+        var service = new MarketMakerOrderService(db, mockOrderCreationService.Object, NullLogger<MarketMakerOrderService>.Instance);
 
         var result = await service.ExecuteMarketOrderAsync(bot.Id);
 

@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Application.Services.Orchestrators;
 
+#pragma warning disable S107 // DI-контейнер: число зависимостей оркестратора оправдано
 internal class MarketMakerOrchestrator(
     ArkWalletDbContext dbContext,
     IMarketMakerBotRegistrationService botRegistrationService,
@@ -22,8 +23,10 @@ internal class MarketMakerOrchestrator(
     IOrderCreationService orderCreationService,
     IMarketMakerOrderService marketMakerOrderService,
     MarketMakerGridEngine marketMakerGridEngine,
-    ILogger<MarketMakerOrchestrator> logger) : IMarketMakerOrchestrator
+    ILogger<MarketMakerOrchestrator> logger,
+    TimeProvider? timeProvider = null) : IMarketMakerOrchestrator
 {
+#pragma warning restore S107
     private static readonly long[] TraderIds = [101L, 102L];
     public async Task<Result> EnsureBotsRegisteredAsync()
     {
@@ -161,29 +164,31 @@ internal class MarketMakerOrchestrator(
             var tokens = await LoadTokensForBotsAsync(bots);
             await LoadActiveOrdersForBotsAsync(bots);
 
+            var now = (timeProvider ?? TimeProvider.System).GetUtcNow().UtcDateTime;
+
             foreach (var bot in bots)
             {
-                if (DateTime.UtcNow >= bot.NextPowerChange)
+                if (now >= bot.NextPowerChange)
                 {
-                    bot.UpdatePower(10, 50);
+                    bot.UpdatePower(10, 50, timeProvider);
                     logger.LogDebug("Bot {BotId} power updated to {Power}", bot.Id, bot.BasePower);
                 }
 
-                if (DateTime.UtcNow >= bot.NextRebalance || DateTime.UtcNow.Minute == 0)
+                if (now >= bot.NextRebalance || now.Minute == 0)
                 {
                     var result = await UpdateBotGridAsync(bot, tokens.GetValueOrDefault(bot.Symbol));
                     if (!result.IsSuccess)
                         return result;
 
-                    bot.UpdateRebalanced();
+                    bot.UpdateRebalanced(timeProvider);
                     logger.LogDebug("Bot {BotId} grid updated", bot.Id);
                 }
+            }
 
-                var marketOrderResult = await marketMakerOrderService.ExecuteMarketOrderAsync(bot.Id);
-                if (!marketOrderResult.IsSuccess)
-                {
-                    logger.LogWarning("Failed to execute market order for bot {BotId}: {Error}", bot.Id, marketOrderResult.Message);
-                }
+            var marketOrderResult = await marketMakerOrderService.ExecuteMarketMakerOrdersAsync(bots.Select(b => b.Id));
+            if (!marketOrderResult.IsSuccess)
+            {
+                logger.LogWarning("Failed to execute market orders: {Error}", marketOrderResult.Message);
             }
 
             await dbContext.SaveChangesAsync();

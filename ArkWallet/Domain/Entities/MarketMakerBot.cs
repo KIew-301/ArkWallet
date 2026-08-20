@@ -29,30 +29,31 @@ internal class MarketMakerBot
     /// <summary>Время создания</summary>
     public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
 
-    public static MarketMakerBot Create(long traderId, string symbol, BotRole botRole, decimal initialPower = 50)
+    public static MarketMakerBot Create(long traderId, string symbol, BotRole botRole, decimal initialPower = 50, TimeProvider? timeProvider = null)
     {
+        var utcNow = (timeProvider ?? TimeProvider.System).GetUtcNow().UtcDateTime;
         return new MarketMakerBot
         {
             TraderId = traderId,
             Symbol = symbol,
             BasePower = initialPower,
             Role = botRole,
-            NextPowerChange = DateTime.UtcNow.AddMinutes(Random.Shared.Next(2, 5)),
+            NextPowerChange = utcNow.AddMinutes(Random.Shared.Next(2, 5)),
         };
     }
 
     /// <summary>Обновляет мощность случайным образом</summary>
-    public void UpdatePower(decimal minPower, decimal maxPower)
+    public void UpdatePower(decimal minPower, decimal maxPower, TimeProvider? timeProvider = null)
     {
         var change = Random.Shared.Next(-35, 35);
         BasePower = Math.Clamp(BasePower + change, minPower, maxPower);
-        NextPowerChange = DateTime.UtcNow.AddMinutes(Random.Shared.Next(2, 5));
+        NextPowerChange = (timeProvider ?? TimeProvider.System).GetUtcNow().UtcDateTime.AddMinutes(Random.Shared.Next(2, 5));
     }
 
     /// <summary>Обновляет время обновления сетки</summary>
-    public void UpdateRebalanced()
+    public void UpdateRebalanced(TimeProvider? timeProvider = null)
     {
-        NextRebalance = DateTime.UtcNow.AddMinutes(10);
+        NextRebalance = (timeProvider ?? TimeProvider.System).GetUtcNow().UtcDateTime.AddMinutes(10);
     }
 
     /// <summary>Устанавливает роль бота</summary>

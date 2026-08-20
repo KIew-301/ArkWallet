@@ -35,4 +35,46 @@ internal class TokenPriceChangeCalculationService(ArkWalletDbContext dbContext, 
             return Ok(new TokenPriceChangesData(currentBalance, previousBalance, changeAbsolute, сhangePercent));
         }, logger, nameof(TokenPriceChangeCalculationService));
     }
+
+    public async Task<Dictionary<string, decimal>> TakeSymbolsPriceChangesAsync(string[] symbols, int candlePosition)
+    {
+        ArgumentNullException.ThrowIfNull(symbols);
+
+        if (symbols.Length == 0)
+            return new Dictionary<string, decimal>();
+
+        if (candlePosition < 1)
+            throw new ArgumentOutOfRangeException(nameof(candlePosition), "Позиция свечи должна быть больше нуля");
+
+        var result = new Dictionary<string, decimal>(symbols.Length);
+
+        var lastCandles = await dbContext.PriceCandles
+            .Where(c => symbols.Contains(c.CharacterTokenId))
+            .GroupBy(c => c.CharacterTokenId)
+            .Select(g => new { Symbol = g.Key, Last = g.OrderByDescending(c => c.Timestamp).First() })
+            .ToListAsync();
+
+        var targetCandles = await dbContext.PriceCandles
+            .Where(c => symbols.Contains(c.CharacterTokenId))
+            .GroupBy(c => c.CharacterTokenId)
+            .Select(g => new { Symbol = g.Key, Candle = g.OrderByDescending(c => c.Timestamp).Skip(candlePosition).FirstOrDefault() })
+            .ToListAsync();
+
+        var targetBySymbol = targetCandles
+            .Where(x => x.Candle is not null)
+            .ToDictionary(x => x.Symbol, x => x.Candle!);
+
+        foreach (var last in lastCandles)
+        {
+            if (!targetBySymbol.TryGetValue(last.Symbol, out var target))
+                continue;
+
+            if (target.OpenPrice == 0m)
+                continue;
+
+            result[last.Symbol] = (last.Last.ClosePrice - target.OpenPrice) / target.OpenPrice * 100m;
+        }
+
+        return result;
+    }
 }

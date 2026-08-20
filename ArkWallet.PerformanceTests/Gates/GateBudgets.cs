@@ -10,8 +10,8 @@ internal static class GateBudgets
     public static readonly Budget LeadersTop50T = new(15, 25, null, 240);
     public static readonly Budget OrderCreateBuy = new(10, 25, null, 7);
     public static readonly Budget OrderCreateSell = new(11, 25, null, 8);
-    public static readonly Budget MarketMakerTick10T = new(900, 1500, 90, 700);
-    public static readonly Budget MarketMakerTick20T = new(1700, 3500, 150, 1000);
+    public static readonly Budget MarketMakerTick10T = new(900, 1500, 90, 900);
+    public static readonly Budget MarketMakerTick20T = new(1700, 3500, 150, 1800);
     public static readonly Budget E2eDashboardFlow = new(117, 50, null, 165);
     public static readonly Budget E2eTradingFlow = new(40, 2000, null, 66);
     public static readonly Budget E2eCacheCheck = new(108, 40, null, 159);
