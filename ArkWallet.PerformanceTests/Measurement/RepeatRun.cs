@@ -2,12 +2,19 @@ namespace ArkWallet.PerformanceTests.Measurement;
 
 internal static class RepeatConfig
 {
-    public static int Repeats { get; } = Parse();
+    public static int Repeats { get; } = ParseRepeats();
+    public static string DatabaseProvider { get; } = ParseDatabaseProvider();
 
-    private static int Parse()
+    private static int ParseRepeats()
     {
         var raw = Environment.GetEnvironmentVariable("ARKWALLET_PERF_REPEAT");
         return int.TryParse(raw, out var n) && n > 0 ? n : 0;
+    }
+
+    private static string ParseDatabaseProvider()
+    {
+        var raw = Environment.GetEnvironmentVariable("ARKWALLET_PERF_DB");
+        return string.IsNullOrWhiteSpace(raw) ? "sqlite" : raw.Trim().ToLowerInvariant();
     }
 }
 
