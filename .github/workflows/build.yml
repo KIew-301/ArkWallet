@@ -52,5 +52,6 @@ jobs:
           dotnet restore ArkWallet.sln
           dotnet restore ArkWallet.sln
           dotnet build ArkWallet.sln --no-restore
+          $env:VSTEST_CONNECTION_TIMEOUT=300
           dotnet-coverage collect "dotnet test ArkWallet.Tests/ArkWallet.Tests.csproj --no-build" -f xml -o "coverage.xml"
           ${{ runner.temp }}\scanner\dotnet-sonarscanner end /d:sonar.token="$env:SONAR_TOKEN"
