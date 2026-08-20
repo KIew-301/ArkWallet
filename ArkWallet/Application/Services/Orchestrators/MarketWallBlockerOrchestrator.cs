@@ -166,10 +166,12 @@ internal class MarketWallBlockerOrchestrator(
         foreach (var token in tokens)
         {
             var avgPower = avgPowerBySymbol.TryGetValue(token.Symbol, out var power) && power > 0 ? power : 0m;
-            var quantity = (int)Math.Max(avgPower * Random.Shared.Next(20, 101), 1);
 
             foreach (var level in wallBlockerEngine.GetLevels(token.CurrentPrice))
             {
+                var spread = Random.Shared.Next(0, 41);
+                var quantity = (int)Math.Max(avgPower * Random.Shared.Next(20, 101) * (1 + spread / 100m), 1);
+
                 commands.Add(new CreateOrderCommand(
                     WallBlockerTraderId,
                     level.Direction,

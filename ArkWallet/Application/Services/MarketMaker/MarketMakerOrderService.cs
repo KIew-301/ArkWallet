@@ -50,18 +50,37 @@ internal class MarketMakerOrderService(
             if (ids.Length == 0)
                 return Ok();
 
-            var bots = await dbContext.MarketMakerBots
+            var bots = dbContext.MarketMakerBots.Local
                 .Where(b => ids.Contains(b.Id) && b.IsActive)
-                .ToListAsync();
+                .ToList();
+
+            var missingIds = ids.Except(bots.Select(b => b.Id)).ToArray();
+            if (missingIds.Length > 0)
+            {
+                var fromDb = await dbContext.MarketMakerBots
+                    .Where(b => missingIds.Contains(b.Id) && b.IsActive)
+                    .ToListAsync();
+                bots.AddRange(fromDb);
+            }
 
             if (bots.Count == 0)
                 return Result.Fail("Список ботов пуст");
 
             var symbols = bots.Select(b => b.Symbol).Distinct().ToArray();
 
-            var tokens = await dbContext.CharacterTokens
+            var tokens = dbContext.CharacterTokens.Local
                 .Where(t => symbols.Contains(t.Symbol))
-                .ToDictionaryAsync(t => t.Symbol);
+                .ToDictionary(t => t.Symbol);
+
+            var missingSymbols = symbols.Except(tokens.Keys).ToArray();
+            if (missingSymbols.Length > 0)
+            {
+                var fromDb = await dbContext.CharacterTokens
+                    .Where(t => missingSymbols.Contains(t.Symbol))
+                    .ToListAsync();
+                foreach (var t in fromDb)
+                    tokens.TryAdd(t.Symbol, t);
+            }
 
             var commands = new List<CreateOrderCommand>(bots.Count);
 

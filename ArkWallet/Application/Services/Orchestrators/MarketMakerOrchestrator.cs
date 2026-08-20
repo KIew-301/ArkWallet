@@ -136,12 +136,21 @@ internal class MarketMakerOrchestrator(
 
             var tokens = await LoadTokensForBotsAsync(bots);
             await LoadActiveOrdersForBotsAsync(bots);
+            await LoadPortfoliosForBotsAsync(bots);
+
+            var allGridCommands = new List<CreateOrderCommand>();
 
             foreach (var bot in bots)
             {
-                var result = await UpdateBotGridAsync(bot, tokens.GetValueOrDefault(bot.Symbol));
+                var gridCommands = CollectGridCommands(bot, tokens.GetValueOrDefault(bot.Symbol));
+                allGridCommands.AddRange(gridCommands);
+            }
+
+            if (allGridCommands.Count > 0)
+            {
+                var result = await orderCreationService.CreateOrdersAsync(allGridCommands);
                 if (!result.IsSuccess)
-                    return result;
+                    logger.LogWarning("Failed to create grid orders: {Error}", result.Message);
             }
 
             return Result.Ok();
@@ -163,8 +172,11 @@ internal class MarketMakerOrchestrator(
 
             var tokens = await LoadTokensForBotsAsync(bots);
             await LoadActiveOrdersForBotsAsync(bots);
+            await LoadPortfoliosForBotsAsync(bots);
 
             var now = (timeProvider ?? TimeProvider.System).GetUtcNow().UtcDateTime;
+
+            var allGridCommands = new List<CreateOrderCommand>();
 
             foreach (var bot in bots)
             {
@@ -176,13 +188,19 @@ internal class MarketMakerOrchestrator(
 
                 if (now >= bot.NextRebalance || now.Minute == 0)
                 {
-                    var result = await UpdateBotGridAsync(bot, tokens.GetValueOrDefault(bot.Symbol));
-                    if (!result.IsSuccess)
-                        return result;
+                    var gridCommands = CollectGridCommands(bot, tokens.GetValueOrDefault(bot.Symbol));
+                    allGridCommands.AddRange(gridCommands);
 
                     bot.UpdateRebalanced(timeProvider);
-                    logger.LogDebug("Bot {BotId} grid updated", bot.Id);
+                    logger.LogDebug("Bot {BotId} grid collected, {Count} commands", bot.Id, gridCommands.Count);
                 }
+            }
+
+            if (allGridCommands.Count > 0)
+            {
+                var result = await orderCreationService.CreateOrdersAsync(allGridCommands);
+                if (!result.IsSuccess)
+                    logger.LogWarning("Failed to create grid orders: {Error}", result.Message);
             }
 
             var marketOrderResult = await marketMakerOrderService.ExecuteMarketMakerOrdersAsync(bots.Select(b => b.Id));
@@ -209,6 +227,16 @@ internal class MarketMakerOrchestrator(
         var symbols = bots.Select(b => b.Symbol).Distinct().ToArray();
         await dbContext.TradeOrders
             .Where(o => symbols.Contains(o.CharacterTokenId) && o.Status == OrderStatus.Active)
+            .Include(o => o.Trader)
+            .ToListAsync();
+    }
+
+    private async Task LoadPortfoliosForBotsAsync(List<MarketMakerBot> bots)
+    {
+        var traderIds = bots.Select(b => b.TraderId).Distinct().ToArray();
+        var symbols = bots.Select(b => b.Symbol).Distinct().ToArray();
+        await dbContext.PortfolioItems
+            .Where(p => traderIds.Contains(p.TraderTelegramId) && symbols.Contains(p.CharacterTokenId))
             .ToListAsync();
     }
 
@@ -253,37 +281,23 @@ internal class MarketMakerOrchestrator(
         });
     }
 
-    private async Task<Result> UpdateBotGridAsync(MarketMakerBot bot, CharacterToken? token)
+    private List<CreateOrderCommand> CollectGridCommands(MarketMakerBot bot, CharacterToken? token)
     {
-        return await ServiceErrorHandler.ExecuteAsync(async () =>
+        if (token == null)
         {
-            if (token == null)
-            {
-                logger.LogWarning("Token {Symbol} not found", bot.Symbol);
-                return Result.Fail($"Токен {bot.Symbol} не найден");
-            }
+            logger.LogWarning("Token {Symbol} not found", bot.Symbol);
+            return new List<CreateOrderCommand>();
+        }
 
-            var existingOrders = dbContext.TradeOrders.Local
-                .Where(o => o.CharacterTokenId == bot.Symbol
-                            && o.TraderTelegramId == bot.TraderId
-                            && o.Status == OrderStatus.Active)
-                .ToList();
+        var existingOrders = dbContext.TradeOrders.Local
+            .Where(o => o.CharacterTokenId == bot.Symbol
+                        && o.TraderTelegramId == bot.TraderId
+                        && o.Status == OrderStatus.Active)
+            .ToList();
 
-            var commands = marketMakerGridEngine.GetOrdersToPlace(bot, token.CurrentPrice, existingOrders);
+        var commands = marketMakerGridEngine.GetOrdersToPlace(bot, token.CurrentPrice, existingOrders);
 
-            if (commands.Count == 0)
-            {
-                logger.LogDebug("No orders to place for bot {BotId}", bot.Id);
-                return Result.Ok();
-            }
-
-            var result = await orderCreationService.CreateOrdersAsync(commands);
-
-            if (!result.IsSuccess)
-                logger.LogWarning("Failed to create order for bot {BotId}: {Error}", bot.Id, result.Message);
-
-            logger.LogDebug("Grid updated for bot {BotId}, {Count} orders placed", bot.Id, commands.Count);
-            return Result.Ok();
-        }, logger, nameof(MarketMakerOrchestrator));
+        logger.LogDebug("Grid collected for bot {BotId}, {Count} commands", bot.Id, commands.Count);
+        return commands;
     }
 }
