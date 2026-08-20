@@ -12,12 +12,14 @@ namespace ArkWallet.Telegram
         long PAId;
         long SAId;
         long TAId;
+        HashSet<long> _allowedUserIds = new();
 
         private void LoadConfiguration(ConfigurationService configurationService)
         {
             PAId = configurationService.GetPAId();
             SAId = configurationService.GetSAId();
             TAId = configurationService.GetTAId();
+            _allowedUserIds = configurationService.GetAllowedUserIds();
         }
 
         private enum CommandListType
@@ -47,6 +49,13 @@ namespace ArkWallet.Telegram
                         new("/get_orders", "Мои активные ордера."),
                         new("/get_trades", "Мои последние сделки."),
                         new("/get_tops", "Рейтинг трейдеров."),
+                        new("/mining_rules", "Правила майнинга."),
+                        new("/mining_machines", "Майнеры на продажу."),
+                        new("/mining_slots", "Мои слоты."),
+                        new("/mining_buy", "Купить майнер."),
+                        new("/mining_switch", "Сменить токен слота."),
+                        new("/mining_take", "Забрать токены."),
+                        new("/mining_sell", "Продать слот."),
                     };
                     break;
 
@@ -71,7 +80,7 @@ namespace ArkWallet.Telegram
 
         private bool IsAuthorizedUser(long Id)
         {
-            bool result = Id == PAId || Id == SAId || Id == TAId;
+            bool result = Id == PAId || Id == SAId || Id == TAId || _allowedUserIds.Contains(Id);
             return result;
         }
 
