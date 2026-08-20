@@ -1,5 +1,6 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.TraderServices;
+using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -32,8 +33,12 @@ internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnap
 
             var tokenPrices = await LoadTokenPricesAsync(data.ActiveOrders, data.Portfolio);
 
+            var miningSlotsValue = await db.MiningMachineSlots
+                .Where(s => s.TraderId == traderTelegramId && s.Status != MiningMachineSlotStatus.Sold)
+                .SumAsync(s => s.Cost);
+
             var (totalBalance, longOrderReserve, shortOrderReserve, balanceInTokens) =
-                ComputeSnapshot(data.Balance, data.ActiveOrders, data.Portfolio, tokenPrices);
+                ComputeSnapshot(data.Balance, data.ActiveOrders, data.Portfolio, tokenPrices, miningSlotsValue);
 
             return Ok(new(traderTelegramId, totalBalance, data.Balance, longOrderReserve, shortOrderReserve, balanceInTokens, DateTime.UtcNow));
         }, logger, nameof(BalanceSnapshotService));
@@ -65,11 +70,19 @@ internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnap
                 data.SelectMany(d => d.ActiveOrders),
                 data.SelectMany(d => d.Portfolio));
 
+            var miningSlotsByTrader = await db.MiningMachineSlots
+                .Where(s => ids.Contains(s.TraderId) && s.Status != MiningMachineSlotStatus.Sold)
+                .GroupBy(s => s.TraderId)
+                .Select(g => new { TraderId = g.Key, TotalCost = g.Sum(s => s.Cost) })
+                .ToDictionaryAsync(x => x.TraderId, x => x.TotalCost);
+
             var result = new Dictionary<long, BalanceSnapshotData>();
             foreach (var trader in data)
             {
+                var miningSlotsValue = miningSlotsByTrader.GetValueOrDefault(trader.TelegramId, 0m);
+
                 var (totalBalance, longOrderReserve, shortOrderReserve, balanceInTokens) =
-                    ComputeSnapshot(trader.Balance, trader.ActiveOrders, trader.Portfolio, tokenPrices);
+                    ComputeSnapshot(trader.Balance, trader.ActiveOrders, trader.Portfolio, tokenPrices, miningSlotsValue);
 
                 result[trader.TelegramId] = new(trader.TelegramId, totalBalance, trader.Balance, longOrderReserve, shortOrderReserve, balanceInTokens, DateTime.UtcNow);
             }
@@ -101,7 +114,8 @@ internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnap
         decimal mainBalance,
         IEnumerable<OrderSnapshot> activeOrders,
         IEnumerable<PortfolioSnapshot> portfolio,
-        Dictionary<string, decimal> tokenPrices)
+        Dictionary<string, decimal> tokenPrices,
+        decimal miningSlotsValue)
     {
         var longOrderReserve = 0m;
         var shortOrderReserve = 0m;
@@ -119,7 +133,7 @@ internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnap
             if (tokenPrices.TryGetValue(item.CharacterTokenId, out var price))
                 balanceInTokens += item.Quantity * price;
 
-        return (mainBalance + longOrderReserve + shortOrderReserve + balanceInTokens,
+        return (mainBalance + longOrderReserve + shortOrderReserve + balanceInTokens + miningSlotsValue,
             longOrderReserve, shortOrderReserve, balanceInTokens);
     }
 
