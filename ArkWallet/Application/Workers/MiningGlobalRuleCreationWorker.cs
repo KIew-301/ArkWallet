@@ -28,7 +28,7 @@ internal class MiningGlobalRuleCreationWorker : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("MiningGlobalRuleCreationWorker started");
-        await RestoreLastUpdateAsync(stoppingToken);
+        _lastUpdate = await RestoreLastUpdateAsync(_serviceProvider, stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -68,15 +68,15 @@ internal class MiningGlobalRuleCreationWorker : BackgroundService
         _logger.LogInformation("MiningGlobalRuleCreationWorker stopped");
     }
 
-    private async Task RestoreLastUpdateAsync(CancellationToken stoppingToken)
+    private static async Task<DateTime> RestoreLastUpdateAsync(IServiceProvider serviceProvider, CancellationToken stoppingToken)
     {
-        using var scope = _serviceProvider.CreateScope();
+        using var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ArkWalletDbContext>();
         var state = await dbContext.AppStates.FindAsync([LastUpdateKey], stoppingToken);
-        _lastUpdate = state?.GetValue<DateTime>() ?? DateTime.MinValue;
+        return state?.GetValue<DateTime>() ?? DateTime.MinValue;
     }
 
-    private async Task SaveLastUpdateAsync(ArkWalletDbContext dbContext, DateTime now, CancellationToken stoppingToken)
+    private static async Task SaveLastUpdateAsync(ArkWalletDbContext dbContext, DateTime now, CancellationToken stoppingToken)
     {
         var state = await dbContext.AppStates.FindAsync([LastUpdateKey], stoppingToken);
         if (state == null)

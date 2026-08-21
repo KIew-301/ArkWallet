@@ -11,7 +11,7 @@ internal sealed class OrderPlacedEventHandler(ArkWalletDbContext dbContext) : IN
 {
     public Task Handle(OrderPlacedEvent notification, CancellationToken cancellationToken)
     {
-        dbContext.TradeOrders.Add(TradingContextMapper.ToOrder(notification.Order));
+        dbContext.TradeOrders.Add(TradingContextMapper.ToRecord(notification.Order));
         return Task.CompletedTask;
     }
 }

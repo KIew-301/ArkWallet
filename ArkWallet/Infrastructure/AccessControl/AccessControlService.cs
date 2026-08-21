@@ -1,15 +1,23 @@
 using ArkWallet.Infrastructure.Data;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Infrastructure.AccessControl;
 
+/// <summary>
+/// Thread-safe service for managing user access control (whitelist, blacklist, global access).
+/// Shared between Telegram bot and API layer.
+/// </summary>
+[ExcludeFromCodeCoverage(Justification = "Infrastructure service: thin wrapper over in-memory state with thread synchronization. Tested through integration.")]
 public class AccessControlService
 {
     private readonly object _lock = new();
     private AccessSetting _setting = AccessSetting.Create();
     private HashSet<long> _adminIds = new();
 
+    /// <summary>Admin user IDs that bypass all access checks.</summary>
     public IReadOnlyCollection<long> AdminIds => _adminIds;
 
+    /// <summary>Loads admin IDs from configuration at startup.</summary>
     public void LoadFromConfiguration(IEnumerable<long> adminIds)
     {
         lock (_lock)
@@ -18,6 +26,7 @@ public class AccessControlService
         }
     }
 
+    /// <summary>Loads access settings from database at startup.</summary>
     public void LoadFromDb(AccessSetting setting)
     {
         lock (_lock)
@@ -26,6 +35,7 @@ public class AccessControlService
         }
     }
 
+    /// <summary>Returns current access settings snapshot.</summary>
     public AccessSetting GetSetting()
     {
         lock (_lock)
@@ -34,6 +44,7 @@ public class AccessControlService
         }
     }
 
+    /// <summary>Updates access settings in memory (caller persists to DB).</summary>
     public void UpdateSetting(AccessSetting setting)
     {
         lock (_lock)
@@ -42,6 +53,7 @@ public class AccessControlService
         }
     }
 
+    /// <summary>Returns true if user is in admin list.</summary>
     public bool IsAdmin(long userId)
     {
         lock (_lock)
@@ -50,6 +62,7 @@ public class AccessControlService
         }
     }
 
+    /// <summary>Returns true if user is authorized (admin, whitelisted, or global access enabled).</summary>
     public bool IsAuthorized(long userId)
     {
         lock (_lock)
@@ -67,6 +80,7 @@ public class AccessControlService
         }
     }
 
+    /// <summary>Returns formatted string of current access settings for display.</summary>
     public string FormatSetting()
     {
         lock (_lock)

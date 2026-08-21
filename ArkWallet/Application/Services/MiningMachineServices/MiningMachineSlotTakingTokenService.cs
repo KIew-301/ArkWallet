@@ -53,33 +53,47 @@ internal class MiningMachineSlotTakingTokenService(
                 if (trader == null)
                     return Result<List<MiningTokenCollectionResult>>.Fail("Трейдера не существует");
 
-                var slotIds = await dbContext.MiningMachineSlots
-                    .Where(s => s.TraderId == traderId && s.Status != MiningMachineSlotStatus.Sold)
-                    .Select(s => s.Id)
-                    .ToListAsync();
+                var slots = await LoadActiveTraderSlotsAsync(traderId);
 
-                await dbContext.LockMiningMachineSlotsAsync(slotIds);
-
-                var slots = await dbContext.MiningMachineSlots
-                    .Where(s => s.TraderId == traderId && s.Status != MiningMachineSlotStatus.Sold)
-                    .ToListAsync();
-
-                var results = new List<MiningTokenCollectionResult>();
-                foreach (var slot in slots)
-                {
-                    var symbol = slot.TokenId;
-                    if (string.IsNullOrEmpty(symbol))
-                        continue;
-
-                    var collected = slot.CollectWholeTokens();
-                    if (collected > 0)
-                        results.Add(new(symbol, collected));
-                }
+                var results = CollectWholeTokens(slots);
 
                 await dbContext.SaveChangesAsync();
 
                 return Result<List<MiningTokenCollectionResult>>.Ok(results);
             });
         }, logger, nameof(MiningMachineSlotTakingTokenService));
+    }
+
+    /// <summary>Loads the trader's non-sold slots, locking them by identifier first.</summary>
+    private async Task<List<MiningMachineSlot>> LoadActiveTraderSlotsAsync(long traderId)
+    {
+        var slotIds = await dbContext.MiningMachineSlots
+            .Where(s => s.TraderId == traderId && s.Status != MiningMachineSlotStatus.Sold)
+            .Select(s => s.Id)
+            .ToListAsync();
+
+        await dbContext.LockMiningMachineSlotsAsync(slotIds);
+
+        return await dbContext.MiningMachineSlots
+            .Where(s => s.TraderId == traderId && s.Status != MiningMachineSlotStatus.Sold)
+            .ToListAsync();
+    }
+
+    /// <summary>Collects whole tokens from each slot, skipping slots without a token or without collected tokens.</summary>
+    private static List<MiningTokenCollectionResult> CollectWholeTokens(List<MiningMachineSlot> slots)
+    {
+        var results = new List<MiningTokenCollectionResult>();
+        foreach (var slot in slots)
+        {
+            var symbol = slot.TokenId;
+            if (string.IsNullOrEmpty(symbol))
+                continue;
+
+            var collected = slot.CollectWholeTokens();
+            if (collected > 0)
+                results.Add(new(symbol, collected));
+        }
+
+        return results;
     }
 }

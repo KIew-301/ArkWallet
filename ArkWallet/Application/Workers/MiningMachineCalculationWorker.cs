@@ -29,7 +29,7 @@ internal class MiningMachineCalculationWorker : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("MiningMachineCalculationWorker started");
-        await RestoreLastCalculationAsync(stoppingToken);
+        _lastCalculation = await RestoreLastCalculationAsync(_serviceProvider, stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -66,15 +66,15 @@ internal class MiningMachineCalculationWorker : BackgroundService
         _logger.LogInformation("MiningMachineCalculationWorker stopped");
     }
 
-    private async Task RestoreLastCalculationAsync(CancellationToken stoppingToken)
+    private static async Task<DateTime> RestoreLastCalculationAsync(IServiceProvider serviceProvider, CancellationToken stoppingToken)
     {
-        using var scope = _serviceProvider.CreateScope();
+        using var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ArkWalletDbContext>();
         var state = await dbContext.AppStates.FindAsync([LastCalculationKey], stoppingToken);
-        _lastCalculation = state?.GetValue<DateTime>() ?? DateTime.UtcNow;
+        return state?.GetValue<DateTime>() ?? DateTime.UtcNow;
     }
 
-    private async Task SaveLastCalculationAsync(ArkWalletDbContext dbContext, DateTime now, CancellationToken stoppingToken)
+    private static async Task SaveLastCalculationAsync(ArkWalletDbContext dbContext, DateTime now, CancellationToken stoppingToken)
     {
         var state = await dbContext.AppStates.FindAsync([LastCalculationKey], stoppingToken);
         if (state == null)

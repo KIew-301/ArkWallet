@@ -10,6 +10,8 @@ namespace ArkWallet.Tests.ServiceTests.Mining;
 
 public class MiningGlobalRuleQueryServiceTest
 {
+    private static readonly string[] ExpectedSymbolsByBaseProfit = ["AAA", "BBB"];
+
     private static MiningGlobalRuleQueryService CreateService(ArkWalletDbContext db) =>
         new(db, new MiningEngine(), NullLogger<MiningGlobalRuleQueryService>.Instance);
 
@@ -74,7 +76,7 @@ public class MiningGlobalRuleQueryServiceTest
 
         Assert.True(result.IsSuccess, result.Message);
         Assert.True(result.TryGetData(out var rules));
-        Assert.Equal(new[] { "AAA", "BBB" }, rules.Select(r => r.TokenInfo.Symbol).ToArray());
+        Assert.Equal(ExpectedSymbolsByBaseProfit, rules.Select(r => r.TokenInfo.Symbol).ToArray());
         Assert.Equal(400m, rules[0].BaseProfit);
         Assert.Equal(50m, rules[1].BaseProfit);
     }

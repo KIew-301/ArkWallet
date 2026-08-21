@@ -1,4 +1,5 @@
 using ArkWallet.Domain.Exceptions;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Domain.Entities;
 
@@ -26,6 +27,7 @@ public enum MiningMachineSlotStatus
 /// </summary>
 internal class MiningMachineSlot
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("csharpsquid", "S1144", Justification = "EF Core requires private setter for primary key")]
     public long Id { get; private set; }
     public long TraderId { get; private set; }
     public string Name { get; private set; } = string.Empty;

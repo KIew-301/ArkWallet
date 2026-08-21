@@ -85,7 +85,7 @@ internal class MiningEngine
         var elapsed = (now - start.Value).TotalMinutes;
         var total = (end.Value - start.Value).TotalMinutes;
         var percent = (decimal)(elapsed / total) * 100m;
-        return Math.Clamp((decimal)percent, 0m, 100m);
+        return Math.Clamp(percent, 0m, 100m);
     }
 
     /// <summary>

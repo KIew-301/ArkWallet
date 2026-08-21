@@ -55,7 +55,7 @@ internal static class TradingContextMapper
 
     // ---- Агрегаты контекста -> записи БД ----
 
-    internal static Records.TradeOrder ToOrder(Order source) => new()
+    internal static Records.TradeOrder ToRecord(Order source) => new()
     {
         Id = source.Id,
         Type = (ValueObjects.OrderType)(int)source.Type,
@@ -69,20 +69,6 @@ internal static class TradingContextMapper
         CreatedAt = source.CreatedAt,
         ExecutedAt = source.ExecutedAt
     };
-
-    internal static void ApplyTo(Records.TradeOrder target, Order source)
-    {
-        target.Type = (ValueObjects.OrderType)(int)source.Type;
-        target.Status = (ValueObjects.OrderStatus)(int)source.Status;
-        target.CharacterTokenId = source.TokenSymbol;
-        target.TraderTelegramId = source.TraderId;
-        target.Price = source.Price;
-        target.AverageExecutePrice = source.AverageExecutePrice;
-        target.Quantity = source.Quantity;
-        target.FilledQuantity = source.FilledQuantity;
-        target.CreatedAt = source.CreatedAt;
-        target.ExecutedAt = source.ExecutedAt;
-    }
 
     internal static Records.Trade ToTrade(Trade source) => new()
     {
@@ -107,6 +93,22 @@ internal static class TradingContextMapper
             source.AverageReservePrice);
         item.Id = source.Id;
         return item;
+    }
+
+    // ---- Синхронизация записей БД <- агрегаты контекста ----
+
+    internal static void ApplyTo(Records.TradeOrder target, Order source)
+    {
+        target.Type = (ValueObjects.OrderType)(int)source.Type;
+        target.Status = (ValueObjects.OrderStatus)(int)source.Status;
+        target.CharacterTokenId = source.TokenSymbol;
+        target.TraderTelegramId = source.TraderId;
+        target.Price = source.Price;
+        target.AverageExecutePrice = source.AverageExecutePrice;
+        target.Quantity = source.Quantity;
+        target.FilledQuantity = source.FilledQuantity;
+        target.CreatedAt = source.CreatedAt;
+        target.ExecutedAt = source.ExecutedAt;
     }
 
     internal static void ApplyTo(Records.PortfolioItem target, PortfolioItem source) => target.ApplyState(

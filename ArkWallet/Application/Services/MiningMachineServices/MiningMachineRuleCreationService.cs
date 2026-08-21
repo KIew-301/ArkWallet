@@ -67,48 +67,9 @@ internal class MiningMachineRuleCreationService(ArkWalletDbContext dbContext, IL
             {
                 await dbContext.LockMiningMachinesAsync(machineIds);
 
-                var existingMachines = await dbContext.MiningMachines
-                    .Where(m => machineIds.Contains(m.Id))
-                    .Select(m => m.Id)
-                    .ToListAsync();
-                if (existingMachines.Count != machineIds.Length)
-                    return Result<List<long>>.Fail("Одна из машин не существует");
-
-                var existingTokens = await dbContext.CharacterTokens
-                    .Where(t => symbols.Contains(t.Symbol))
-                    .Select(t => t.Symbol)
-                    .ToListAsync();
-                if (existingTokens.Count != symbols.Length)
-                    return Result<List<long>>.Fail("Один из токенов не существует");
-
-                var existingRules = await dbContext.MiningMachineRules
-                    .Where(r => machineIds.Contains(r.MiningMachineId))
-                    .ToListAsync();
-
-                var existingPairs = existingRules
-                    .Select(r => (r.MiningMachineId, r.CharacterTokenId))
-                    .ToHashSet();
-
-                var existingCountByMachine = existingRules
-                    .GroupBy(r => r.MiningMachineId)
-                    .ToDictionary(g => g.Key, g => g.Count());
-
-                var incomingCountByMachine = commandList
-                    .GroupBy(c => c.MiningMachineId)
-                    .ToDictionary(g => g.Key, g => g.Count());
-
-                var addedPairs = new HashSet<(long, string)>();
-                foreach (var command in commandList)
-                {
-                    var pair = (command.MiningMachineId, command.CharacterTokenId);
-                    if (existingPairs.Contains(pair) || !addedPairs.Add(pair))
-                        return Result<List<long>>.Fail("Правило для такой связки машины и токена уже существует");
-
-                    var totalCount = existingCountByMachine.GetValueOrDefault(command.MiningMachineId) +
-                                     incomingCountByMachine.GetValueOrDefault(command.MiningMachineId);
-                    if (totalCount > MaxRulesPerMachine)
-                        return Result<List<long>>.Fail($"Нельзя добавить больше {MaxRulesPerMachine} правил для одной машины");
-                }
+                var validationError = await ValidateRulesCreationAsync(commandList, machineIds, symbols);
+                if (validationError != null)
+                    return Result<List<long>>.Fail(validationError);
 
                 var rules = commandList
                     .Select(c => MiningMachineRule.Create(c.MiningMachineId, c.CharacterTokenId, c.MiningCoefficient))
@@ -122,5 +83,77 @@ internal class MiningMachineRuleCreationService(ArkWalletDbContext dbContext, IL
                 return Result<List<long>>.Ok(rules.Select(r => r.Id).ToList());
             });
         }, logger, nameof(MiningMachineRuleCreationService));
+    }
+
+    /// <summary>Verifies machines and tokens exist and that no duplicate rules or per-machine limits are violated.</summary>
+    private async Task<string?> ValidateRulesCreationAsync(
+        List<MiningMachineRuleCreationCommand> commandList,
+        long[] machineIds,
+        string[] symbols)
+    {
+        if (!await MachinesExistAsync(machineIds))
+            return "Одна из машин не существует";
+
+        if (!await TokensExistAsync(symbols))
+            return "Один из токенов не существует";
+
+        var existingRules = await dbContext.MiningMachineRules
+            .Where(r => machineIds.Contains(r.MiningMachineId))
+            .ToListAsync();
+
+        return ValidateNoDuplicateOrExcessiveRules(commandList, existingRules);
+    }
+
+    /// <summary>Determines whether all specified machines exist.</summary>
+    private async Task<bool> MachinesExistAsync(long[] machineIds)
+    {
+        var existingMachines = await dbContext.MiningMachines
+            .Where(m => machineIds.Contains(m.Id))
+            .Select(m => m.Id)
+            .ToListAsync();
+        return existingMachines.Count == machineIds.Length;
+    }
+
+    /// <summary>Determines whether all specified tokens exist.</summary>
+    private async Task<bool> TokensExistAsync(string[] symbols)
+    {
+        var existingTokens = await dbContext.CharacterTokens
+            .Where(t => symbols.Contains(t.Symbol))
+            .Select(t => t.Symbol)
+            .ToListAsync();
+        return existingTokens.Count == symbols.Length;
+    }
+
+    /// <summary>Checks that no machine-token pair is duplicated and no machine exceeds the maximum number of rules.</summary>
+    private static string? ValidateNoDuplicateOrExcessiveRules(
+        List<MiningMachineRuleCreationCommand> commandList,
+        List<MiningMachineRule> existingRules)
+    {
+        var existingPairs = existingRules
+            .Select(r => (r.MiningMachineId, r.CharacterTokenId))
+            .ToHashSet();
+
+        var existingCountByMachine = existingRules
+            .GroupBy(r => r.MiningMachineId)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var incomingCountByMachine = commandList
+            .GroupBy(c => c.MiningMachineId)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var addedPairs = new HashSet<(long, string)>();
+        foreach (var command in commandList)
+        {
+            var pair = (command.MiningMachineId, command.CharacterTokenId);
+            if (existingPairs.Contains(pair) || !addedPairs.Add(pair))
+                return "Правило для такой связки машины и токена уже существует";
+
+            var totalCount = existingCountByMachine.GetValueOrDefault(command.MiningMachineId) +
+                             incomingCountByMachine.GetValueOrDefault(command.MiningMachineId);
+            if (totalCount > MaxRulesPerMachine)
+                return $"Нельзя добавить больше {MaxRulesPerMachine} правил для одной машины";
+        }
+
+        return null;
     }
 }

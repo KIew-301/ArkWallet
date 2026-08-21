@@ -56,25 +56,43 @@ internal class MiningMachineCreationOrchestrator(
                 if (!machineResult.TryGetData(out var machines))
                     return Result<List<MiningMachineCreationData>>.Fail("Не удалось создать машины");
 
-                var rulesCommands = new List<MiningMachineRuleCreationCommand>();
-                for (var i = 0; i < machines.Count; i++)
-                {
-                    if (commandList[i].Rules is not { Count: > 0 } rules)
-                        continue;
-
-                    rulesCommands.AddRange(rules
-                        .Select(r => new MiningMachineRuleCreationCommand(machines[i].Id, r.CharacterTokenId, r.MiningCoefficient)));
-                }
-
-                if (rulesCommands.Count > 0)
-                {
-                    var rulesResult = await ruleCreationService.CreateRulesAsync(rulesCommands);
-                    if (!rulesResult.IsSuccess)
-                        return Result<List<MiningMachineCreationData>>.Fail(rulesResult.Message);
-                }
+                var rulesError = await CreateRulesForMachinesAsync(commandList, machines);
+                if (rulesError != null)
+                    return Result<List<MiningMachineCreationData>>.Fail(rulesError);
 
                 return Result<List<MiningMachineCreationData>>.Ok(machines);
             });
         }, logger, nameof(MiningMachineCreationOrchestrator));
+    }
+
+    /// <summary>Creates mining rules for the newly created machines and returns an error message on failure.</summary>
+    private async Task<string?> CreateRulesForMachinesAsync(
+        List<MiningMachineCreationCommand> commandList,
+        List<MiningMachineCreationData> machines)
+    {
+        var rulesCommands = BuildRuleCommands(commandList, machines);
+        if (rulesCommands.Count == 0)
+            return null;
+
+        var rulesResult = await ruleCreationService.CreateRulesAsync(rulesCommands);
+        return rulesResult.IsSuccess ? null : rulesResult.Message;
+    }
+
+    /// <summary>Maps each machine's declared rules to rule creation commands bound to the created machine identifiers.</summary>
+    private static List<MiningMachineRuleCreationCommand> BuildRuleCommands(
+        List<MiningMachineCreationCommand> commandList,
+        List<MiningMachineCreationData> machines)
+    {
+        var rulesCommands = new List<MiningMachineRuleCreationCommand>();
+        for (var i = 0; i < machines.Count; i++)
+        {
+            if (commandList[i].Rules is not { Count: > 0 } rules)
+                continue;
+
+            rulesCommands.AddRange(rules
+                .Select(r => new MiningMachineRuleCreationCommand(machines[i].Id, r.CharacterTokenId, r.MiningCoefficient)));
+        }
+
+        return rulesCommands;
     }
 }

@@ -84,10 +84,8 @@ internal class OrderCreationService(
 
         allContexts.Add(context);
 
-        foreach (var order in context.NewOrders)
-        {
-            allResults.Add(new(order.IsFilled(), OrderDto.FromAggregate(order, order.TraderId)));
-        }
+        allResults.AddRange(context.NewOrders
+            .Select(order => new OrderCreationData(order.IsFilled(), OrderDto.FromAggregate(order, order.TraderId))));
     }
 
     private void SyncTradersAndPortfolios(TradingContext context)
@@ -174,13 +172,41 @@ internal class OrderCreationService(
         if (commandList.Count == 0)
             throw new InvalidOperationException("Нет команд для обработки");
 
-        var firstCommand = commandList[0];
-
         var validationResult = await orderValidationService.ValidateFullOrdersAsync(commandList);
         if (!validationResult.IsValid)
             throw new InvalidOperationException(validationResult.Message);
 
-        var orders = new List<Records.TradeOrder>();
+        var orders = CreateOrders(commandList);
+        var isBuy = orders[0].IsLong();
+        var targetOrder = SelectTargetOrder(orders, isBuy);
+
+        var takerIds = await GetTakerIdsForMatchingAsync(targetOrder);
+
+        var lockTraderIds = takerIds.Concat(commandList.Select(c => c.TraderId)).Distinct().ToArray();
+        await dbContext.LockTradersAsync(lockTraderIds);
+        await dbContext.LockTokenAsync(targetOrder.CharacterTokenId);
+
+        var token = await GetTokenOrThrowAsync(commandList[0].Symbol);
+
+        var activeOrders = await LoadActiveCounterOrdersAsync(targetOrder, isBuy);
+
+        var traders = await LoadGroupTradersAsync(activeOrders, commandList);
+        var portfolios = await LoadGroupPortfoliosAsync(activeOrders, commandList, targetOrder.CharacterTokenId);
+
+        return await BuildTradingContext(
+            commandList,
+            isBuy,
+            traders,
+            activeOrders,
+            portfolios,
+            token,
+            eventPublisher);
+    }
+
+    /// <summary>Creates trade order aggregates from the given commands.</summary>
+    private static List<Records.TradeOrder> CreateOrders(IReadOnlyList<CreateOrderCommand> commandList)
+    {
+        var orders = new List<Records.TradeOrder>(commandList.Count);
         foreach (var command in commandList)
         {
             var orderType = OrderValidationService.NormalizeDirection(command.Direction) == OrderDirections.Buy
@@ -190,38 +216,43 @@ internal class OrderCreationService(
             orders.Add(Records.TradeOrder.Create(orderType, command.Symbol, command.TraderId, command.Price, command.Quantity));
         }
 
-        var isBuy = orders[0].IsLong();
+        return orders;
+    }
 
-        var targetOrder = isBuy
+    /// <summary>Selects the order defining matching bounds: highest priced for buys, lowest priced for sells.</summary>
+    private static Records.TradeOrder SelectTargetOrder(List<Records.TradeOrder> orders, bool isBuy)
+    {
+        return isBuy
             ? orders.OrderByDescending(o => o.Price).First()
             : orders.OrderBy(o => o.Price).First();
+    }
 
-        var takerIds = await GetTakerIdsForMatchingAsync(targetOrder);
-
-        var lockTraderIds = takerIds.Concat(commandList.Select(c => c.TraderId)).Distinct().ToArray();
-        await dbContext.LockTradersAsync(lockTraderIds);
-        await dbContext.LockTokenAsync(targetOrder.CharacterTokenId);
-
-        var token = await dbContext.CharacterTokens.FindAsync(firstCommand.Symbol)
+    /// <summary>Loads the token by symbol or throws when it does not exist.</summary>
+    private async Task<Records.CharacterToken> GetTokenOrThrowAsync(string symbol)
+    {
+        return await dbContext.CharacterTokens.FindAsync(symbol)
             ?? throw new InvalidOperationException("Токена не существует");
+    }
 
+    /// <summary>Loads active counter-orders matching the target order price for the given direction.</summary>
+    private async Task<Records.TradeOrder[]> LoadActiveCounterOrdersAsync(Records.TradeOrder targetOrder, bool isBuy)
+    {
         var counterType = isBuy ? ValueObjects.OrderType.Sell : ValueObjects.OrderType.Buy;
 
-        var activeOrders = await dbContext.TradeOrders
+        return await dbContext.TradeOrders
             .Include(o => o.Trader)
             .Where(o => o.CharacterTokenId == targetOrder.CharacterTokenId &&
                        o.Status == ValueObjects.OrderStatus.Active &&
                        o.Type == counterType &&
                        (isBuy ? o.Price <= targetOrder.Price : o.Price >= targetOrder.Price))
             .ToArrayAsync();
+    }
 
-        var traderIds = activeOrders.Select(o => o.TraderTelegramId)
-            .Concat(commandList.Select(c => c.TraderId)).Distinct().ToArray();
-
-        var portfolioItems = await dbContext.PortfolioItems
-            .Where(p => traderIds.Contains(p.TraderTelegramId) && p.CharacterTokenId == targetOrder.CharacterTokenId)
-            .ToArrayAsync();
-
+    /// <summary>Builds the trader dictionary from counter-order owners and command traders, loading missing ones.</summary>
+    private async Task<Dictionary<long, Records.Trader>> LoadGroupTradersAsync(
+        Records.TradeOrder[] activeOrders,
+        List<CreateOrderCommand> commandList)
+    {
         var traders = new Dictionary<long, Records.Trader>();
         foreach (var o in activeOrders)
             if (o.Trader != null) traders.TryAdd(o.TraderTelegramId, o.Trader);
@@ -234,16 +265,23 @@ internal class OrderCreationService(
             traders[command.TraderId] = trader;
         }
 
-        var portfolios = portfolioItems.ToDictionary(p => p.TraderTelegramId);
+        return traders;
+    }
 
-        return await BuildTradingContext(
-            commandList,
-            isBuy,
-            traders,
-            activeOrders,
-            portfolios,
-            token,
-            eventPublisher);
+    /// <summary>Loads portfolio items for all involved traders and the token.</summary>
+    private async Task<Dictionary<long, Records.PortfolioItem>> LoadGroupPortfoliosAsync(
+        Records.TradeOrder[] activeOrders,
+        List<CreateOrderCommand> commandList,
+        string characterTokenId)
+    {
+        var traderIds = activeOrders.Select(o => o.TraderTelegramId)
+            .Concat(commandList.Select(c => c.TraderId)).Distinct().ToArray();
+
+        var portfolioItems = await dbContext.PortfolioItems
+            .Where(p => traderIds.Contains(p.TraderTelegramId) && p.CharacterTokenId == characterTokenId)
+            .ToArrayAsync();
+
+        return portfolioItems.ToDictionary(p => p.TraderTelegramId);
     }
 
     private static async Task<TradingContext> BuildTradingContext(

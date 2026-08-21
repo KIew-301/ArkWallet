@@ -7,6 +7,8 @@ namespace ArkWallet.Tests.ServiceTests.Mining;
 
 public class AppStateQueryServiceTest
 {
+    private static readonly string[] ExpectedKeysOrdered = ["A", "B", "C"];
+
     [Fact]
     public async Task TakeAllAsync_NoStates_ReturnsEmpty()
     {
@@ -37,7 +39,7 @@ public class AppStateQueryServiceTest
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var states));
         Assert.Equal(3, states.Count);
-        Assert.Equal(new[] { "A", "B", "C" }, states.Select(s => s.Key));
+        Assert.Equal(ExpectedKeysOrdered, states.Select(s => s.Key));
         Assert.All(states, s => Assert.False(string.IsNullOrEmpty(s.Value)));
     }
 }
