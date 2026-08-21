@@ -1,5 +1,7 @@
 ﻿using ArkWallet.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using System.Text.Json;
 
 namespace ArkWallet.Infrastructure.Data;
 
@@ -19,6 +21,7 @@ internal class ArkWalletDbContext : DbContext
     public DbSet<MiningMachineSlot> MiningMachineSlots { get; set; }
     public DbSet<MiningMachineSlotRule> MiningMachineSlotRules { get; set; }
     public DbSet<MiningGlobalRule> MiningGlobalRules { get; set; }
+    public DbSet<AccessSetting> AccessSettings { get; set; }
 
     public ArkWalletDbContext(DbContextOptions<ArkWalletDbContext> options) : base(options)
     {
@@ -89,5 +92,30 @@ internal class ArkWalletDbContext : DbContext
                 .HasForeignKey(r => r.TokenId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
+
+        var longListComparer = new ValueComparer<List<long>>(
+            (a, b) => SequenceEqual(a, b),
+            a => a.Aggregate(0, (acc, v) => HashCode.Combine(acc, v.GetHashCode())),
+            a => a.ToList());
+
+        modelBuilder.Entity<AccessSetting>(setting =>
+        {
+            setting.Property(s => s.WhiteList)
+                .HasConversion(
+                    v => SerializeList(v),
+                    v => DeserializeList(v),
+                    longListComparer);
+            setting.Property(s => s.BlackList)
+                .HasConversion(
+                    v => SerializeList(v),
+                    v => DeserializeList(v),
+                    longListComparer);
+        });
     }
+
+    private static string SerializeList(List<long> list) => JsonSerializer.Serialize(list);
+    private static List<long> DeserializeList(string json) =>
+        JsonSerializer.Deserialize<List<long>>(json) ?? new();
+    private static bool SequenceEqual(List<long> a, List<long> b) =>
+        a is null ? b is null : b is not null && a.SequenceEqual(b);
 }

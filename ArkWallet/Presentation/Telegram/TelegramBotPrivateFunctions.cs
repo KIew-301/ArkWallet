@@ -1,5 +1,6 @@
 ﻿using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.Other;
+using ArkWallet.Infrastructure.AccessControl;
 using ArkWallet.Presentation.Telegram;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -8,18 +9,16 @@ namespace ArkWallet.Telegram
 {
     internal partial class TelegramBot : IMessageSender
     {
-        // Рабочие Id
-        long PAId;
-        long SAId;
-        long TAId;
-        HashSet<long> _allowedUserIds = new();
+        private AccessControlService _accessControl = null!;
+        private long _primaryAdminId;
 
-        private void LoadConfiguration(ConfigurationService configurationService)
+        private void LoadConfiguration(ConfigurationService configurationService, AccessControlService accessControl)
         {
-            PAId = configurationService.GetPAId();
-            SAId = configurationService.GetSAId();
-            TAId = configurationService.GetTAId();
-            _allowedUserIds = configurationService.GetAllowedUserIds();
+            _primaryAdminId = configurationService.GetPAId();
+            long SAId = configurationService.GetSAId();
+            long TAId = configurationService.GetTAId();
+            _accessControl = accessControl;
+            _accessControl.LoadFromConfiguration(new HashSet<long> { _primaryAdminId, SAId, TAId });
         }
 
         private enum CommandListType
@@ -79,10 +78,7 @@ namespace ArkWallet.Telegram
         }
 
         private bool IsAuthorizedUser(long Id)
-        {
-            bool result = Id == PAId || Id == SAId || Id == TAId || _allowedUserIds.Contains(Id);
-            return result;
-        }
+            => _accessControl.IsAuthorized(Id);
 
         public async Task SendMessageToAdmin(string message)
         {
@@ -91,7 +87,7 @@ namespace ArkWallet.Telegram
             try
             {
                 await botClient.SendMessage(
-                    chatId: PAId,
+                    chatId: _primaryAdminId,
                     text: message,
                     cancellationToken: cts.Token
                 );
@@ -146,7 +142,7 @@ namespace ArkWallet.Telegram
             }
 
             await botClient.SendMediaGroup(
-                chatId: PAId,
+                chatId: _primaryAdminId,
                 media: mediaGroup,
                 cancellationToken: cts.Token
             );
@@ -168,7 +164,7 @@ namespace ArkWallet.Telegram
                 using (var fileStream = File.OpenRead(tempFile))
                 {
                     await botClient.SendDocument(
-                        chatId: PAId,
+                        chatId: _primaryAdminId,
                         document: InputFile.FromStream(fileStream, "data.json"),
                         caption: caption,
                         cancellationToken: cts.Token

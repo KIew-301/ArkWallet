@@ -288,6 +288,11 @@ namespace ArkWallet.Entities.Configurations
                 new() { Name = "request", OneStep = true }
             };
 
+            Commands["/admin_help_access"] = new List<WizardStep>
+            {
+                new() { Name = "request", OneStep = true }
+            };
+
             Commands["/admin_mining_create_machine"] = new List<WizardStep>
             {
                 new()
@@ -440,6 +445,26 @@ namespace ArkWallet.Entities.Configurations
             Commands["/admin_mining_app_state"] = new List<WizardStep>
             {
                 new() { Name = "request", OneStep = true }
+            };
+
+            Commands["/admin_access_get"] = new List<WizardStep>
+            {
+                new() { Name = "request", OneStep = true }
+            };
+
+            Commands["/admin_access_set"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send JSON:\n\n" +
+                        "{\n" +
+                        "  \"isGlobalAccessEnabled\": true,\n" +
+                        "  \"whiteList\": [123, 456],\n" +
+                        "  \"blackList\": [789]\n" +
+                        "}"
+                }
             };
         }
     }

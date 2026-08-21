@@ -1,4 +1,5 @@
 ﻿using ArkWallet.Application.Contracts.Other;
+using ArkWallet.Infrastructure.AccessControl;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Wizard;
 using ArkWallet.Presentation.Telegram;
@@ -22,8 +23,9 @@ namespace ArkWallet.Telegram
         public async Task Start()
         {
             var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+            var accessControl = serviceProvider.GetRequiredService<AccessControlService>();
             ConfigurationService configurationService = new(configuration);
-            LoadConfiguration(configurationService);
+            LoadConfiguration(configurationService, accessControl);
             string token = configurationService.GetToken();
 
             _ = LaunchBot(token);

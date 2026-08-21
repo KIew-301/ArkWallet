@@ -7,6 +7,7 @@ using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TradeServices;
 using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Infrastructure.Data;
 using Newtonsoft.Json;
 
 namespace ArkWallet.Infrastructure.Wizard
@@ -21,7 +22,8 @@ namespace ArkWallet.Infrastructure.Wizard
             "/admin_help_trader — Trader commands\n" +
             "/admin_help_token — Token commands\n" +
             "/admin_help_other — Other commands\n" +
-            "/admin_help_mining — Mining commands";
+            "/admin_help_mining — Mining commands\n" +
+            "/admin_help_access — Access control";
 
         private const string AdminHelpTraderText =
             "Trader commands:\n\n" +
@@ -126,6 +128,16 @@ namespace ArkWallet.Infrastructure.Wizard
             "9) /admin_mining_app_state\n" +
             "   Shows all service state records (AppState).";
 
+        private const string AdminHelpAccessText =
+            "Access control commands:\n\n" +
+            "1) /admin_access_get\n" +
+            "   Shows current setting.\n\n" +
+            "2) /admin_access_set\n" +
+            "   Updates setting.\n" +
+            "   JSON: { \"isGlobalAccessEnabled\": true/false,\n" +
+            "           \"whiteList\": [123, 456],\n" +
+            "           \"blackList\": [789] }";
+
         private void ConfigureAdditionHandlers()
         {
             _config.Commands["/admin_create_token"][0].Handler = AdminHandleTokenCreate;
@@ -155,6 +167,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/admin_get_ids"][0].Handler = AdminHandleGetIds;
             _config.Commands["/admin_metrics"][0].Handler = AdminHandleMetrics;
             _config.Commands["/admin_help_mining"][0].Handler = AdminHandleHelpMining;
+            _config.Commands["/admin_help_access"][0].Handler = AdminHandleHelpAccess;
             _config.Commands["/admin_mining_create_machine"][0].Handler = AdminHandleMiningCreateMachine;
             _config.Commands["/admin_mining_update_machine"][0].Handler = AdminHandleMiningUpdateMachine;
             _config.Commands["/admin_mining_create_rule"][0].Handler = AdminHandleMiningCreateRule;
@@ -167,6 +180,8 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/admin_mining_delete_rule"][1].Handler = AdminHandleMiningDeleteRuleConfirm;
             _config.Commands["/admin_mining_update_global_rule"][0].Handler = AdminHandleMiningUpdateGlobalRule;
             _config.Commands["/admin_mining_app_state"][0].Handler = AdminHandleMiningAppState;
+            _config.Commands["/admin_access_get"][0].Handler = AdminHandleAccessGet;
+            _config.Commands["/admin_access_set"][0].Handler = AdminHandleAccessSet;
         }
 
         private Task<StepResult> AdminHandleHelp(UserSession session, string input)
@@ -909,6 +924,9 @@ namespace ArkWallet.Infrastructure.Wizard
         private Task<StepResult> AdminHandleHelpMining(UserSession session, string input)
             => Task.FromResult(StepResult.Ok("completed", AdminHelpMiningText));
 
+        private Task<StepResult> AdminHandleHelpAccess(UserSession session, string input)
+            => Task.FromResult(StepResult.Ok("completed", AdminHelpAccessText));
+
         private async Task<StepResult> AdminHandleMiningCreateMachine(UserSession session, string input)
         {
             try
@@ -1244,6 +1262,47 @@ namespace ArkWallet.Infrastructure.Wizard
             };
 
             return new WizardResult { Message = sb.ToString(), Buttons = buttons };
+        }
+
+        private Task<StepResult> AdminHandleAccessGet(UserSession session, string input)
+            => Task.FromResult(StepResult.Ok("completed", _accessControl.FormatSetting()));
+
+        private async Task<StepResult> AdminHandleAccessSet(UserSession session, string input)
+        {
+            try
+            {
+                var data = Newtonsoft.Json.Linq.JObject.Parse(input);
+                var setting = _accessControl.GetSetting();
+
+                if (data.TryGetValue("isGlobalAccessEnabled", out var token))
+                    setting.IsGlobalAccessEnabled = token.ToObject<bool>();
+
+                if (data.TryGetValue("whiteList", out var white))
+                    setting.WhiteList = white.ToObject<List<long>>();
+
+                if (data.TryGetValue("blackList", out var black))
+                    setting.BlackList = black.ToObject<List<long>>();
+
+                var existing = await _dbContext.AccessSettings.FindAsync("default");
+                if (existing != null)
+                {
+                    existing.IsGlobalAccessEnabled = setting.IsGlobalAccessEnabled;
+                    existing.WhiteList = setting.WhiteList;
+                    existing.BlackList = setting.BlackList;
+                }
+                else
+                {
+                    _dbContext.AccessSettings.Add(setting);
+                }
+                await _dbContext.SaveChangesAsync();
+
+                _accessControl.UpdateSetting(setting);
+                return StepResult.Ok("completed", "Access setting updated.\n\n" + _accessControl.FormatSetting());
+            }
+            catch (Exception ex)
+            {
+                return StepResult.Ok("completed", $"Error: {ex.Message}");
+            }
         }
     }
 }

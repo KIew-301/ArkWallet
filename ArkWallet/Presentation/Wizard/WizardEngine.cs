@@ -6,7 +6,9 @@ using ArkWallet.Application.Contracts.MarketMaker;
 using ArkWallet.Application.Contracts.MiningMachineServices;
 using ArkWallet.Application.Contracts.Orchestrators;
 using ArkWallet.Application.Contracts.Other;
+using ArkWallet.Infrastructure.AccessControl;
 using ArkWallet.Application.Contracts.PortfolioServices;
+using ArkWallet.Infrastructure.Data;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TradeServices;
 using ArkWallet.Application.Contracts.TraderServices;
@@ -98,6 +100,12 @@ namespace ArkWallet.Infrastructure.Wizard
         // OBSERVABILITY
         private readonly IMetricsSnapshotService _metricsSnapshotService;
 
+        // DB
+        private readonly ArkWalletDbContext _dbContext;
+
+        // ACCESS CONTROL
+        private readonly AccessControlService _accessControl;
+
         public WizardEngine(
             IUserSessionStore sessionStore,
             ILogger<WizardEngine> logger,
@@ -142,7 +150,9 @@ namespace ArkWallet.Infrastructure.Wizard
             IMiningMachineSlotSwitchingOrchestrator miningMachineSlotSwitchingOrchestrator,
             IMiningMachineSlotTakingTokenOrchestrator miningMachineSlotTakingTokenOrchestrator,
             IMiningMachineSlotSellingOrchestrator miningMachineSlotSellingOrchestrator,
-            WizardConfiguration config
+            WizardConfiguration config,
+            ArkWalletDbContext dbContext,
+            AccessControlService accessControl
             )
         {
             _sessionStore = sessionStore;
@@ -188,6 +198,8 @@ namespace ArkWallet.Infrastructure.Wizard
             _miningMachineSlotSwitchingOrchestrator = miningMachineSlotSwitchingOrchestrator;
             _miningMachineSlotTakingTokenOrchestrator = miningMachineSlotTakingTokenOrchestrator;
             _miningMachineSlotSellingOrchestrator = miningMachineSlotSellingOrchestrator;
+            _dbContext = dbContext;
+            _accessControl = accessControl;
             _config = config;
 
             ConfigureHandlers();

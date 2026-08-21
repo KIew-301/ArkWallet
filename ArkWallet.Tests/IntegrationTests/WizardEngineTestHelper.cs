@@ -5,6 +5,7 @@ using ArkWallet.Application.Contracts.MarketMaker;
 using ArkWallet.Application.Contracts.MiningMachineServices;
 using ArkWallet.Application.Contracts.Orchestrators;
 using ArkWallet.Application.Contracts.Other;
+using ArkWallet.Infrastructure.AccessControl;
 using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Application.Contracts.SuggestionServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;
@@ -13,7 +14,9 @@ using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Application.Services.Wizard;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Entities.Configurations;
+using ArkWallet.Infrastructure.Data;
 using ArkWallet.Infrastructure.Wizard;
+using ArkWallet.Tests.HelpTools;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -130,7 +133,9 @@ internal static class WizardEngineTestHelper
             miningMachineSlotSwitchingOrchestrator.Object,
             miningMachineSlotTakingTokenOrchestrator.Object,
             miningMachineSlotSellingOrchestrator.Object,
-            config
+            config,
+            DbTest.CreateDbContext(),
+            new AccessControlService()
         );
 
         return new ServiceMocks
