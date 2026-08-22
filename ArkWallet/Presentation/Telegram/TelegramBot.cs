@@ -15,7 +15,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 namespace ArkWallet.Telegram
 {
     [ExcludeFromCodeCoverage(Justification = "Telegram-бот: точка входа Telegram API, зависит от внешнего клиента и polling. Тестируется интеграционно.")]
-    internal partial class TelegramBot(IServiceProvider serviceProvider) : IMessageSender
+    internal partial class TelegramBot(IServiceProvider serviceProvider, ILogger<TelegramBot> logger) : IMessageSender
     {
         // Интерфейс для взаимодействия с ботом
         ITelegramBotClient botClient = null!;
@@ -137,8 +137,10 @@ namespace ArkWallet.Telegram
                     cancellationToken: cancellationToken
                 );
             }
-            catch
+            catch (Exception ex)
             {
+                logger.LogError(ex, "Error processing callback query");
+
                 await botClient.EditMessageText(
                             chatId: chatId,
                             messageId: messageId,
@@ -189,8 +191,10 @@ namespace ArkWallet.Telegram
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                logger.LogError(ex, "Error processing user input");
+
                 await botClient.SendMessage(
                     chatId: chatId,
                     text: "Ошибка в системе.",
