@@ -1,5 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-
 namespace ArkWallet.Domain.Entities;
 
 /// <summary>
@@ -8,9 +6,7 @@ namespace ArkWallet.Domain.Entities;
 /// </summary>
 internal class MiningMachineSlotRule
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("csharpsquid", "S1144", Justification = "EF Core requires private setter for primary key")]
     public long Id { get; private set; }
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("csharpsquid", "S1144", Justification = "EF Core requires private setter for primary key")]
     public long MiningMachineSlotId { get; private set; }
     public string CharacterTokenId { get; private set; } = string.Empty;
     public decimal MiningCoefficient { get; private set; }

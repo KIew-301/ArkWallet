@@ -1,5 +1,4 @@
 using ArkWallet.Domain.Exceptions;
-using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Domain.Entities;
 
@@ -8,7 +7,6 @@ namespace ArkWallet.Domain.Entities;
 /// </summary>
 internal class MiningGlobalRule
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("csharpsquid", "S1144", Justification = "EF Core requires private setter for primary key")]
     public long Id { get; private set; }
     public string TokenId { get; private set; } = string.Empty;
     public decimal CurrentCoefficient { get; private set; }

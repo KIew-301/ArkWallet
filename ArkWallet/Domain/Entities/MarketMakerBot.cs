@@ -5,9 +5,7 @@
 /// </summary>
 internal class MarketMakerBot
 {
-    #pragma warning disable CS0169 // EF Core uses private setter
     public long Id { get; private set; }
-    #pragma warning restore CS0169
     public string Symbol { get; private set; } = string.Empty;
     public long TraderId { get; private set; }
 
