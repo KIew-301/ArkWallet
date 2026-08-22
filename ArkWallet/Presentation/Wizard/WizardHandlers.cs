@@ -367,6 +367,9 @@ namespace ArkWallet.Infrastructure.Wizard
                 .Select(p => p.ToString("G").Contains('.') ? p.ToString("G").Split('.')[1].Length : 0)
                 .Max();
             maxDecPlaces = Math.Max(maxDecPlaces, 2);
+
+            if (maxDecPlaces > 6) maxDecPlaces = 6;
+
             var priceWidth = maxIntLen + 1 + maxDecPlaces;
             var priceFmt = new string('0', maxIntLen) + "." + new string('0', maxDecPlaces);
 
