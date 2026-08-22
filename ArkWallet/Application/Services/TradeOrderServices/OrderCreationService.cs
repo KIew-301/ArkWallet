@@ -56,17 +56,9 @@ internal class OrderCreationService(
                     .ToList();
 
                 var allResults = new List<OrderCreationData>();
-                var allContexts = new List<TradingContext>();
 
                 foreach (var group in groups)
-                    await ProcessGroupAsync(group, allContexts, allResults);
-
-                foreach (var context in allContexts)
-                {
-                    SyncTradersAndPortfolios(context);
-                    await dbContext.SaveChangesAsync();
-                    await NotifyAsync(context);
-                }
+                    await ProcessGroupAsync(group, allResults);
 
                 return Result<List<OrderCreationData>>.Ok(allResults);
             });
@@ -75,17 +67,19 @@ internal class OrderCreationService(
 
     private async Task ProcessGroupAsync(
         IEnumerable<CreateOrderCommand> groupCommands,
-        List<TradingContext> allContexts,
         List<OrderCreationData> allResults)
     {
         var context = await PrepareGroupTradingContextAsync(groupCommands);
 
         await tradingEngine.ProcessOrders(context);
 
-        allContexts.Add(context);
+        SyncTradersAndPortfolios(context);
+        await dbContext.SaveChangesAsync();
 
         allResults.AddRange(context.NewOrders
             .Select(order => new OrderCreationData(order.IsFilled(), OrderDto.FromAggregate(order, order.TraderId))));
+
+        await NotifyAsync(context);
     }
 
     private void SyncTradersAndPortfolios(TradingContext context)
@@ -117,10 +111,14 @@ internal class OrderCreationService(
 
         var order = Records.TradeOrder.Create(orderType, command.Symbol, command.TraderId, command.Price, command.Quantity);
 
+        await dbContext.LockTradersAsync([order.TraderTelegramId]);
+        await dbContext.LockTokenAsync(order.CharacterTokenId);
+
         var takerIds = await GetTakerIdsForMatchingAsync(order);
 
-        await dbContext.LockTradersAsync(takerIds.Append(order.TraderTelegramId));
-        await dbContext.LockTokenAsync(order.CharacterTokenId);
+        var additionalTakerIds = takerIds.Except([order.TraderTelegramId]).ToArray();
+        if (additionalTakerIds.Length > 0)
+            await dbContext.LockTradersAsync(additionalTakerIds);
 
         var token = await dbContext.CharacterTokens.FindAsync(command.Symbol)
             ?? throw new InvalidOperationException("Токена не существует");
@@ -180,11 +178,15 @@ internal class OrderCreationService(
         var isBuy = orders[0].IsLong();
         var targetOrder = SelectTargetOrder(orders, isBuy);
 
+        var commandTraderIds = commandList.Select(c => c.TraderId).Distinct().ToArray();
+        await dbContext.LockTradersAsync(commandTraderIds);
+        await dbContext.LockTokenAsync(targetOrder.CharacterTokenId);
+
         var takerIds = await GetTakerIdsForMatchingAsync(targetOrder);
 
-        var lockTraderIds = takerIds.Concat(commandList.Select(c => c.TraderId)).Distinct().ToArray();
-        await dbContext.LockTradersAsync(lockTraderIds);
-        await dbContext.LockTokenAsync(targetOrder.CharacterTokenId);
+        var additionalTakerIds = takerIds.Except(commandTraderIds).ToArray();
+        if (additionalTakerIds.Length > 0)
+            await dbContext.LockTradersAsync(additionalTakerIds);
 
         var token = await GetTokenOrThrowAsync(commandList[0].Symbol);
 
