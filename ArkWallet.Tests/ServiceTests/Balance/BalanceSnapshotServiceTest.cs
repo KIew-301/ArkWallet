@@ -303,4 +303,36 @@ public class BalanceSnapshotServiceTest
         Assert.Equal(1000m, data[101L].totalBalance);
         Assert.Equal(1500m, data[102L].totalBalance);
     }
+
+    [Fact]
+    public async Task TakeSnapshot_ComplexMatchingScenario_ReturnsCorrectBalance()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.RegisterTrader(db, 103);
+
+        await HelpMethods.CreateToken(db, "ZZZ");
+
+        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 20);
+        await HelpMethods.AddPortfolio(db, 103, "ZZZ", 30);
+        await HelpMethods.PlaceOrder(db, 102, "купить", "ZZZ", 20, 20);
+        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 20, 40);
+        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 15, 40);
+        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 15, 20);
+        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 1, 30);
+        await HelpMethods.PlaceOrder(db, 103, "продать", "ZZZ", 3, 30);
+
+        var result = await HelpMethods.TakeBalanceSnapshot(db, 102);
+
+        Assert.True(result.TryGetData(out var data));
+
+        Assert.Equal(100m, data.longOrderReserve);
+        Assert.Equal(150m, data.shortOrderReserve);
+        Assert.Equal(450m, data.balanceInTokens);
+        Assert.Equal(1200m, data.mainBalance);
+        Assert.Equal(1900m, data.totalBalance);
+    }
 }
