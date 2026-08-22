@@ -66,7 +66,6 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
                     return Result<int>.Fail("Трейдер не найден");
 
                 var orders = await dbContext.TradeOrders
-                    .AsNoTracking()
                     .Where(o => o.TraderTelegramId == traderId && o.Status == OrderStatus.Active)
                     .ToArrayAsync();
 
