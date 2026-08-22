@@ -176,7 +176,7 @@ internal class OrderCreationService(
         if (!validationResult.IsValid)
             throw new InvalidOperationException(validationResult.Message);
 
-        var orders = CreateOrders(commandList);
+        var orders = CreateOrderEntities(commandList);
         var isBuy = orders[0].IsLong();
         var targetOrder = SelectTargetOrder(orders, isBuy);
 
@@ -204,7 +204,7 @@ internal class OrderCreationService(
     }
 
     /// <summary>Creates trade order aggregates from the given commands.</summary>
-    private static List<Records.TradeOrder> CreateOrders(IReadOnlyList<CreateOrderCommand> commandList)
+    private static List<Records.TradeOrder> CreateOrderEntities(List<CreateOrderCommand> commandList)
     {
         var orders = new List<Records.TradeOrder>(commandList.Count);
         foreach (var command in commandList)
@@ -257,12 +257,24 @@ internal class OrderCreationService(
         foreach (var o in activeOrders)
             if (o.Trader != null) traders.TryAdd(o.TraderTelegramId, o.Trader);
 
-        foreach (var command in commandList)
+        var missingTraderIds = commandList
+            .Select(c => c.TraderId)
+            .Where(id => !traders.ContainsKey(id))
+            .Distinct()
+            .ToArray();
+
+        if (missingTraderIds.Length > 0)
         {
-            if (traders.ContainsKey(command.TraderId)) continue;
-            var trader = await dbContext.Traders.FindAsync(command.TraderId)
-                ?? throw new InvalidOperationException("Пользователя не существует");
-            traders[command.TraderId] = trader;
+            var loaded = await dbContext.Traders
+                .Where(t => missingTraderIds.Contains(t.TelegramId))
+                .ToDictionaryAsync(t => t.TelegramId);
+
+            foreach (var id in missingTraderIds)
+            {
+                if (!loaded.TryGetValue(id, out var trader))
+                    throw new InvalidOperationException("Пользователя не существует");
+                traders[id] = trader;
+            }
         }
 
         return traders;
