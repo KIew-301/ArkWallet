@@ -18,7 +18,6 @@ internal class MiningMachineCalculationWorker : BackgroundService
 
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<MiningMachineCalculationWorker> _logger;
-    private DateTime _lastCalculation;
 
     public MiningMachineCalculationWorker(IServiceProvider serviceProvider, ILogger<MiningMachineCalculationWorker> logger)
     {
@@ -29,7 +28,7 @@ internal class MiningMachineCalculationWorker : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("MiningMachineCalculationWorker started");
-        _lastCalculation = await RestoreLastCalculationAsync(_serviceProvider, stoppingToken);
+        var lastCalculation = await RestoreLastCalculationAsync(_serviceProvider, stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -41,7 +40,7 @@ internal class MiningMachineCalculationWorker : BackgroundService
                 var dbContext = scope.ServiceProvider.GetRequiredService<ArkWalletDbContext>();
 
                 var now = DateTime.UtcNow;
-                var timingCoeff = miningEngine.CalculateTimingCoeff(now, _lastCalculation);
+                var timingCoeff = miningEngine.CalculateTimingCoeff(now, lastCalculation);
 
                 var result = await calculationService.TakeTokensOnMachinesAsync(timingCoeff);
                 if (!result.IsSuccess)
@@ -51,7 +50,7 @@ internal class MiningMachineCalculationWorker : BackgroundService
                     continue;
                 }
 
-                _lastCalculation = now;
+                lastCalculation = now;
                 await SaveLastCalculationAsync(dbContext, now, stoppingToken);
 
                 await Task.Delay(TimeSpan.FromMinutes(IntervalMinutes), stoppingToken);

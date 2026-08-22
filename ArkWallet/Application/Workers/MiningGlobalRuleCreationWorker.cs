@@ -17,7 +17,6 @@ internal class MiningGlobalRuleCreationWorker : BackgroundService
 
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<MiningGlobalRuleCreationWorker> _logger;
-    private DateTime _lastUpdate;
 
     public MiningGlobalRuleCreationWorker(IServiceProvider serviceProvider, ILogger<MiningGlobalRuleCreationWorker> logger)
     {
@@ -28,7 +27,7 @@ internal class MiningGlobalRuleCreationWorker : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("MiningGlobalRuleCreationWorker started");
-        _lastUpdate = await RestoreLastUpdateAsync(_serviceProvider, stoppingToken);
+        var lastUpdate = await RestoreLastUpdateAsync(_serviceProvider, stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -39,7 +38,7 @@ internal class MiningGlobalRuleCreationWorker : BackgroundService
                 var dbContext = scope.ServiceProvider.GetRequiredService<ArkWalletDbContext>();
 
                 var now = DateTime.UtcNow;
-                if (now.Date <= _lastUpdate.Date)
+                if (now.Date <= lastUpdate.Date)
                 {
                     await Task.Delay(TimeSpan.FromMinutes(TickMinutes), stoppingToken);
                     continue;
@@ -53,7 +52,7 @@ internal class MiningGlobalRuleCreationWorker : BackgroundService
                     continue;
                 }
 
-                _lastUpdate = now;
+                lastUpdate = now;
                 await SaveLastUpdateAsync(dbContext, now, stoppingToken);
 
                 await Task.Delay(TimeSpan.FromMinutes(TickMinutes), stoppingToken);

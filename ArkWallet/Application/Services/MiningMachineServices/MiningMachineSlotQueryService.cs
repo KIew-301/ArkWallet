@@ -91,7 +91,7 @@ internal class MiningMachineSlotQueryService(
 
         var effective = new List<TokensMiningData>();
         var stable = new List<TokensMiningData>();
-        foreach (var rule in slot.MiningMachineSlotRules)
+        foreach (var rule in slot.MiningMachineSlotRules ?? [])
         {
             if (rule.CharacterTokenId == slot.TokenId)
                 continue;
