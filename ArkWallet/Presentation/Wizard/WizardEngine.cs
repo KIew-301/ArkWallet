@@ -86,6 +86,7 @@ namespace ArkWallet.Infrastructure.Wizard
         private readonly IAppStateQueryService _appStateQueryService;
 
         // MINING ORCHESTRATORS
+        private readonly IMiningMachineCreationOrchestrator _miningMachineCreationOrchestrator;
         private readonly IMiningMachineSlotSwitchingOrchestrator _miningMachineSlotSwitchingOrchestrator;
         private readonly IMiningMachineSlotTakingTokenOrchestrator _miningMachineSlotTakingTokenOrchestrator;
         private readonly IMiningMachineSlotSellingOrchestrator _miningMachineSlotSellingOrchestrator;
@@ -148,6 +149,7 @@ namespace ArkWallet.Infrastructure.Wizard
             IMiningGlobalRuleUpdateService miningGlobalRuleUpdateService,
             IAppStateQueryService appStateQueryService,
             IMiningMachineSlotSwitchingOrchestrator miningMachineSlotSwitchingOrchestrator,
+            IMiningMachineCreationOrchestrator miningMachineCreationOrchestrator,
             IMiningMachineSlotTakingTokenOrchestrator miningMachineSlotTakingTokenOrchestrator,
             IMiningMachineSlotSellingOrchestrator miningMachineSlotSellingOrchestrator,
             WizardConfiguration config,
@@ -196,6 +198,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _miningGlobalRuleUpdateService = miningGlobalRuleUpdateService;
             _appStateQueryService = appStateQueryService;
             _miningMachineSlotSwitchingOrchestrator = miningMachineSlotSwitchingOrchestrator;
+            _miningMachineCreationOrchestrator = miningMachineCreationOrchestrator;
             _miningMachineSlotTakingTokenOrchestrator = miningMachineSlotTakingTokenOrchestrator;
             _miningMachineSlotSellingOrchestrator = miningMachineSlotSellingOrchestrator;
             _dbContext = dbContext;
@@ -245,105 +248,123 @@ namespace ArkWallet.Infrastructure.Wizard
         }
 
         public async Task<WizardResult> ProcessInput(long userId, string input)
+            => await ProcessInputInternal(userId, input, chatType: null);
+
+        public async Task<WizardResult> ProcessInput(long userId, string input, ChatType? chatType)
+            => await ProcessInputInternal(userId, input, chatType);
+
+        private async Task<WizardResult> ProcessInputInternal(long userId, string input, ChatType? chatType)
         {
             var command = ResolveCommandName(input, userId);
             var stopwatch = Stopwatch.StartNew();
 
             try
             {
-                if (input.StartsWith("/get_order_book "))
+                // Для групповых чатов: разрешаем только OneStep команды и quick paths (с аргументом)
+                if (chatType.HasValue && chatType.Value != ChatType.Private)
                 {
-                    var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == 4)
-                    {
-                        return await HandleQuickOrderBook(parts[1], parts[2], parts[3]);
-                    }
+                    bool isCommandOneStep = _config.Commands.ContainsKey(command)
+                        && _config.Commands[command].First().OneStep;
+
+                    bool isQuickPath = input.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length >= 2
+                        && command != "unknown";
+
+                    if (!isCommandOneStep && !isQuickPath)
+                        return new WizardResult { Message = "", ChatType = chatType.Value };
                 }
 
-                if (input.StartsWith("/get_trades "))
+                // Выполняем команду
+                var result = await ExecuteCommandAsync(userId, input, command);
+                
+                // Применяем ChatType ко всем результатам
+                if (chatType.HasValue)
+                    result.ChatType = chatType.Value;
+                
+                // Фильтруем кнопки для групповых чатов
+                if (chatType.HasValue && chatType.Value != ChatType.Private)
                 {
-                    var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == 2)
-                    {
-                        return await HandleQuickTrades(userId, parts[1]);
-                    }
+                    result.Buttons = FilterButtonsForGroup(result.Buttons);
                 }
-
-                if (input.StartsWith("/get_tops "))
-                {
-                    var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == 2)
-                    {
-                        return await HandleQuickTops(userId, parts[1]);
-                    }
-                }
-
-                if (input.StartsWith("/admin_bots_activity "))
-                {
-                    var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == 2)
-                    {
-                        return await HandleQuickAdminBotsActivity(parts[1]);
-                    }
-                }
-
-                if (input.StartsWith("/admin_stats "))
-                {
-                    var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == 2)
-                    {
-                        return await HandleQuickAdminStats(parts[1]);
-                    }
-                }
-
-                if (input.StartsWith("/mining_buy "))
-                {
-                    var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == 2)
-                    {
-                        return await HandleQuickMiningBuy(userId, parts[1]);
-                    }
-                }
-
-                if (input.StartsWith("/mining_take "))
-                {
-                    var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == 2)
-                    {
-                        return await HandleQuickMiningTake(userId, parts[1]);
-                    }
-                }
-
-                if (input.StartsWith("/mining_sell "))
-                {
-                    var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == 2)
-                    {
-                        return await HandleQuickMiningSell(userId, parts[1]);
-                    }
-                }
-
-                if (_config.Commands.ContainsKey(input))
-                {
-                    return await StartCommand(userId, input);
-                }
-
-                if (_sessionStore.TryGet(userId, out var session) && session != null)
-                {
-                    return await ContinueCommand(userId, input, session);
-                }
-
-                return new WizardResult { Message = "Неизвестная команда" };
+                
+                return result;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Wizard ProcessInput failed for user {UserId}, input: {Input}", userId, input);
-                return new WizardResult { Message = ServerErrorMessage };
+                return new WizardResult { Message = ServerErrorMessage, ChatType = chatType };
             }
             finally
             {
                 stopwatch.Stop();
                 ArkWalletMetrics.RecordCommand(command, stopwatch.Elapsed.TotalSeconds);
+            }
+
+            // Local function to avoid code duplication
+            async Task<WizardResult> ExecuteCommandAsync(long uid, string inp, string cmd)
+            {
+                if (inp.StartsWith("/get_order_book "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 4)
+                        return await HandleQuickOrderBook(parts[1], parts[2], parts[3]);
+                }
+
+                if (inp.StartsWith("/get_trades "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                        return await HandleQuickTrades(uid, parts[1]);
+                }
+
+                if (inp.StartsWith("/get_tops "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                        return await HandleQuickTops(uid, parts[1]);
+                }
+
+                if (inp.StartsWith("/admin_bots_activity "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                        return await HandleQuickAdminBotsActivity(parts[1]);
+                }
+
+                if (inp.StartsWith("/admin_stats "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                        return await HandleQuickAdminStats(parts[1]);
+                }
+
+                if (inp.StartsWith("/mining_buy "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                        return await HandleQuickMiningBuy(uid, parts[1]);
+                }
+
+                if (inp.StartsWith("/mining_take "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                        return await HandleQuickMiningTake(uid, parts[1]);
+                }
+
+                if (inp.StartsWith("/mining_sell "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                        return await HandleQuickMiningSell(uid, parts[1]);
+                }
+
+                if (_config.Commands.ContainsKey(inp))
+                    return await StartCommand(uid, inp);
+
+                if (_sessionStore.TryGet(uid, out var session) && session != null)
+                    return await ContinueCommand(uid, inp, session);
+
+                return new WizardResult { Message = "Неизвестная команда" };
             }
         }
 
@@ -479,5 +500,13 @@ namespace ArkWallet.Infrastructure.Wizard
             => command.StartsWith("/admin", StringComparison.OrdinalIgnoreCase)
                 ? error ?? ServerErrorMessage
                 : ServerErrorMessage;
+
+        /// <summary>
+        /// Убирает все кнопки для групповых чатов.
+        /// </summary>
+        private static List<QuickButton>? FilterButtonsForGroup(List<QuickButton>? buttons)
+        {
+            return null;
+        }
     }
 }

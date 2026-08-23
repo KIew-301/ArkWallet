@@ -11,6 +11,7 @@ namespace ArkWallet.Telegram
     {
         private AccessControlService _accessControl = null!;
         private long _primaryAdminId;
+        private string? _botUsername;
 
         private void LoadConfiguration(ConfigurationService configurationService, AccessControlService accessControl)
         {
@@ -79,6 +80,12 @@ namespace ArkWallet.Telegram
 
         private bool IsAuthorizedUser(long Id)
             => _accessControl.IsAuthorized(Id);
+
+        private bool IsAllowedGroup(long Id)
+            => _accessControl.IsGroupAuthorized(Id);
+
+        private async Task<string> GetBotUsernameAsync(ITelegramBotClient botClient)
+            => _botUsername ??= (await botClient.GetMe()).Username ?? string.Empty;
 
         public async Task SendMessageToAdmin(string message)
         {
