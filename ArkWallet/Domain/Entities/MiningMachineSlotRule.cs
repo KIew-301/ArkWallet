@@ -6,8 +6,8 @@ namespace ArkWallet.Domain.Entities;
 /// </summary>
 internal class MiningMachineSlotRule
 {
-    public long Id { get; private set; }
-    public long MiningMachineSlotId { get; private set; }
+    public long Id { get; }
+    public long MiningMachineSlotId { get; }
     public string CharacterTokenId { get; private set; } = string.Empty;
     public decimal MiningCoefficient { get; private set; }
 

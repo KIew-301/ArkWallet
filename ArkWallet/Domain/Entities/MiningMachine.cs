@@ -46,7 +46,7 @@ internal class MiningMachine
     private static readonly string[] ReusabilityLevels = ["E", "D", "C", "B", "A", "S"];
     private static readonly decimal[] ReusabilityMarkups = [0m, 0.02m, 0.04m, 0.07m, 0.09m, 0.12m];
 
-    public long Id { get; private set; }
+    public long Id { get; }
     public string Name { get; private set; } = string.Empty;
     public MiningMachineType Type { get; private set; }
     public int SwitchingTime { get; private set; }

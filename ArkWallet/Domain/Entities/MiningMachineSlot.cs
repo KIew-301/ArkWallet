@@ -27,7 +27,7 @@ public enum MiningMachineSlotStatus
 /// </summary>
 internal class MiningMachineSlot
 {
-    public long Id { get; private set; }
+    public long Id { get; }
     public long TraderId { get; private set; }
     public string Name { get; private set; } = string.Empty;
     public MiningMachineType Type { get; private set; }

@@ -7,7 +7,7 @@ namespace ArkWallet.Domain.Entities;
 /// </summary>
 internal class MiningGlobalRule
 {
-    public long Id { get; private set; }
+    public long Id { get; }
     public string TokenId { get; private set; } = string.Empty;
     public decimal CurrentCoefficient { get; private set; }
     public decimal FutureCoefficient { get; private set; }

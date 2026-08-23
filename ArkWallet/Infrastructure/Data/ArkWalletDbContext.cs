@@ -34,6 +34,7 @@ internal class ArkWalletDbContext : DbContext
 
         modelBuilder.Entity<MiningMachine>(machine =>
         {
+            machine.HasKey(m => m.Id);
             machine.Property(m => m.Type).HasConversion<string>();
             machine.HasIndex(m => m.Name).IsUnique();
             machine.HasMany(m => m.MiningMachineRules)
@@ -44,6 +45,7 @@ internal class ArkWalletDbContext : DbContext
 
         modelBuilder.Entity<MiningMachineRule>(rule =>
         {
+            rule.HasKey(r => r.Id);
             rule.HasIndex(r => new { r.MiningMachineId, r.CharacterTokenId }).IsUnique();
             rule.HasOne(r => r.CharacterToken)
                 .WithMany()
@@ -53,6 +55,7 @@ internal class ArkWalletDbContext : DbContext
 
         modelBuilder.Entity<MiningMachineSlot>(slot =>
         {
+            slot.HasKey(s => s.Id);
             slot.Property(s => s.Status).HasConversion<string>();
             slot.Property(s => s.Type).HasConversion<string>();
             slot.HasIndex(s => s.TraderId);
@@ -77,6 +80,7 @@ internal class ArkWalletDbContext : DbContext
 
         modelBuilder.Entity<MiningMachineSlotRule>(rule =>
         {
+            rule.HasKey(r => r.Id);
             rule.HasIndex(r => new { r.MiningMachineSlotId, r.CharacterTokenId }).IsUnique();
             rule.HasOne(r => r.CharacterToken)
                 .WithMany()
@@ -86,6 +90,7 @@ internal class ArkWalletDbContext : DbContext
 
         modelBuilder.Entity<MiningGlobalRule>(rule =>
         {
+            rule.HasKey(r => r.Id);
             rule.HasIndex(r => r.TokenId).IsUnique();
             rule.HasOne(r => r.CharacterToken)
                 .WithMany()
