@@ -81,6 +81,57 @@ public class MiningMachineDeletionServiceTest
     }
 
     [Fact]
+    public async Task DeleteMachinesAsync_EmptyIds_ReturnsOk()
+    {
+        await using var db = await DbTest.CreateInitializedDbContextAsync();
+        var service = new MiningMachineDeletionService(db, NullLogger<MiningMachineDeletionService>.Instance);
+
+        var result = await service.DeleteMachinesAsync([]);
+
+        Assert.True(result.IsSuccess, result.Message);
+    }
+
+    [Fact]
+    public async Task DeleteMachinesAsync_MachineNotFound_ReturnsFailAndRollsBack()
+    {
+        await using var db = await DbTest.CreateInitializedDbContextAsync();
+        var machineId = await CreateMachine(db);
+        db.ChangeTracker.Clear();
+        var service = new MiningMachineDeletionService(db, NullLogger<MiningMachineDeletionService>.Instance);
+
+        var result = await service.DeleteMachinesAsync([machineId, 999]);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("999", result.Message);
+        Assert.NotNull(await db.MiningMachines.FindAsync(machineId));
+    }
+
+    [Fact]
+    public async Task DeleteMachinesAsync_ExistingMachines_DeletesMachinesAndRules()
+    {
+        await using var db = await DbTest.CreateInitializedDbContextAsync();
+        await HelpMethods.CreateToken(db, "ZZZ");
+        var firstId = await CreateMachine(db);
+        var second = MiningMachine.Create(MiningMachineType.SMAI, 20, 60, true, "img.zzz", 2m);
+        db.MiningMachines.Add(second);
+        await db.SaveChangesAsync();
+        var secondId = second.Id;
+        db.MiningMachineRules.Add(MiningMachineRule.Create(firstId, "ZZZ", 0.9m));
+        db.MiningMachineRules.Add(MiningMachineRule.Create(secondId, "ZZZ", 0.7m));
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+
+        var service = new MiningMachineDeletionService(db, NullLogger<MiningMachineDeletionService>.Instance);
+
+        var result = await service.DeleteMachinesAsync([firstId, secondId]);
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.Null(await db.MiningMachines.FindAsync(firstId));
+        Assert.Null(await db.MiningMachines.FindAsync(secondId));
+        Assert.Empty(await db.MiningMachineRules.ToListAsync());
+    }
+
+    [Fact]
     public async Task DeactivateMachineAsync_MachineNotFound_ReturnsFail()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();

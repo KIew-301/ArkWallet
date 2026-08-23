@@ -73,6 +73,7 @@ internal static class WizardEngineTestHelper
         var miningGlobalRuleUpdateService = new Mock<IMiningGlobalRuleUpdateService>();
         var appStateQueryService = new Mock<IAppStateQueryService>();
         var miningMachineSlotSwitchingOrchestrator = new Mock<IMiningMachineSlotSwitchingOrchestrator>();
+        var miningMachineCreationOrchestrator = new Mock<IMiningMachineCreationOrchestrator>();
         var miningMachineSlotTakingTokenOrchestrator = new Mock<IMiningMachineSlotTakingTokenOrchestrator>();
         var miningMachineSlotSellingOrchestrator = new Mock<IMiningMachineSlotSellingOrchestrator>();
 
@@ -131,6 +132,7 @@ internal static class WizardEngineTestHelper
             miningGlobalRuleUpdateService.Object,
             appStateQueryService.Object,
             miningMachineSlotSwitchingOrchestrator.Object,
+            miningMachineCreationOrchestrator.Object,
             miningMachineSlotTakingTokenOrchestrator.Object,
             miningMachineSlotSellingOrchestrator.Object,
             config,
@@ -177,6 +179,7 @@ internal static class WizardEngineTestHelper
             MiningGlobalRuleUpdate = miningGlobalRuleUpdateService,
             AppStateQuery = appStateQueryService,
             MiningMachineSlotSwitchingOrchestrator = miningMachineSlotSwitchingOrchestrator,
+            MiningMachineCreationOrchestrator = miningMachineCreationOrchestrator,
             MiningMachineSlotTakingTokenOrchestrator = miningMachineSlotTakingTokenOrchestrator,
             MiningMachineSlotSellingOrchestrator = miningMachineSlotSellingOrchestrator
         };
@@ -222,6 +225,7 @@ internal class ServiceMocks
     public Mock<IMiningGlobalRuleUpdateService> MiningGlobalRuleUpdate { get; init; } = null!;
     public Mock<IAppStateQueryService> AppStateQuery { get; init; } = null!;
     public Mock<IMiningMachineSlotSwitchingOrchestrator> MiningMachineSlotSwitchingOrchestrator { get; init; } = null!;
+    public Mock<IMiningMachineCreationOrchestrator> MiningMachineCreationOrchestrator { get; init; } = null!;
     public Mock<IMiningMachineSlotTakingTokenOrchestrator> MiningMachineSlotTakingTokenOrchestrator { get; init; } = null!;
     public Mock<IMiningMachineSlotSellingOrchestrator> MiningMachineSlotSellingOrchestrator { get; init; } = null!;
 }

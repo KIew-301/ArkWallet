@@ -437,6 +437,70 @@ public class MiningWizardCommandsTest
         Assert.Equal("Rule created (Id: 7).", result.Message);
     }
 
+    [Fact]
+    public async Task AdminMiningCreateMachines_ArrayWithRules_CallsOrchestrator()
+    {
+        List<MiningMachineCreationCommand>? captured = null;
+        _m.MiningMachineCreationOrchestrator
+            .Setup(s => s.CreateMachinesAsync(It.IsAny<IEnumerable<MiningMachineCreationCommand>>()))
+            .Callback<IEnumerable<MiningMachineCreationCommand>>(c => captured = c.ToList())
+            .ReturnsAsync(Result<List<MiningMachineCreationData>>.Ok([
+                new MiningMachineCreationData(1, "SM-01"),
+                new MiningMachineCreationData(2, "MG-01")
+            ]));
+
+        var start = await _engine.ProcessInput(UserId, "/admin_mining_create_machines");
+        Assert.Contains("Send JSON array to create mining machines", start.Message);
+
+        var result = await _engine.ProcessInput(UserId,
+            "[" +
+            "{\"type\":\"SMAI\",\"switchingTime\":10,\"reusability\":50,\"isActiveForSale\":true,\"efficiency\":1.0,\"image\":\"img1\"," +
+            "\"rules\":[{\"characterTokenId\":\"ARK_001\",\"miningCoefficient\":0.9}]}," +
+            "{\"type\":\"MGC\",\"switchingTime\":30,\"reusability\":60,\"isActiveForSale\":true,\"efficiency\":0.5,\"image\":\"img2\"}" +
+            "]");
+
+        Assert.Equal("Created 2 machines (Ids: 1, 2).", result.Message);
+        Assert.NotNull(captured);
+        Assert.Equal(2, captured.Count);
+        Assert.Equal("SMAI", captured[0].Type);
+        Assert.NotNull(captured[0].Rules);
+        Assert.Single(captured[0].Rules);
+        Assert.Equal("ARK_001", captured[0].Rules[0].CharacterTokenId);
+        Assert.Equal(0.9m, captured[0].Rules[0].MiningCoefficient);
+        Assert.Null(captured[1].Rules);
+    }
+
+    [Fact]
+    public async Task AdminMiningCreateMachines_SingleObject_CallsOrchestrator()
+    {
+        _m.MiningMachineCreationOrchestrator
+            .Setup(s => s.CreateMachinesAsync(It.IsAny<IEnumerable<MiningMachineCreationCommand>>()))
+            .ReturnsAsync(Result<List<MiningMachineCreationData>>.Ok([new MiningMachineCreationData(3, "SM-02")]));
+
+        await _engine.ProcessInput(UserId, "/admin_mining_create_machines");
+
+        var result = await _engine.ProcessInput(UserId,
+            "{\"type\":\"BMP\",\"switchingTime\":20,\"reusability\":40,\"isActiveForSale\":false,\"efficiency\":2.0,\"image\":\"img\"}");
+
+        Assert.Equal("Created 1 machines (Ids: 3).", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminMiningCreateMachines_OrchestratorFails_ReturnsError()
+    {
+        _m.MiningMachineCreationOrchestrator
+            .Setup(s => s.CreateMachinesAsync(It.IsAny<IEnumerable<MiningMachineCreationCommand>>()))
+            .ReturnsAsync(Result<List<MiningMachineCreationData>>.Fail("Токены не существуют: ARK_001"));
+
+        await _engine.ProcessInput(UserId, "/admin_mining_create_machines");
+
+        var result = await _engine.ProcessInput(UserId,
+            "[{\"type\":\"SMAI\",\"switchingTime\":10,\"reusability\":50,\"isActiveForSale\":true,\"efficiency\":1.0,\"image\":\"img\",\"rules\":[{\"characterTokenId\":\"ARK_001\",\"miningCoefficient\":0.9}]}]");
+
+        Assert.Contains("не существуют", result.Message);
+        Assert.Contains("ARK_001", result.Message);
+    }
+
     // ═══════════════════════════════════════════════════════════
     //  Admin: delete / deactivate machine, delete rule
     // ═══════════════════════════════════════════════════════════
@@ -464,6 +528,49 @@ public class MiningWizardCommandsTest
     {
         await _engine.ProcessInput(UserId, "/admin_mining_delete_machine");
         await _engine.ProcessInput(UserId, "5");
+
+        var result = await _engine.ProcessInput(UserId, "cancel");
+
+        Assert.Equal("Deletion cancelled.", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminMiningDeleteMachines_Confirm_DeletesMachines()
+    {
+        long[]? capturedIds = null;
+        _m.MiningMachineDeletion
+            .Setup(s => s.DeleteMachinesAsync(It.IsAny<long[]>()))
+            .Callback<long[]>(ids => capturedIds = ids)
+            .ReturnsAsync(Result.Ok());
+
+        var start = await _engine.ProcessInput(UserId, "/admin_mining_delete_machines");
+        Assert.Contains("Enter mining machine Ids to delete", start.Message);
+
+        var step1 = await _engine.ProcessInput(UserId, "1, 2 5");
+        Assert.Contains("PERMANENTLY delete", step1.Message);
+
+        var result = await _engine.ProcessInput(UserId, "confirm");
+
+        Assert.Equal("Deleted 3 machines (Ids: 1, 2, 5).", result.Message);
+        Assert.NotNull(capturedIds);
+        Assert.Equal(new long[] { 1, 2, 5 }, capturedIds);
+    }
+
+    [Fact]
+    public async Task AdminMiningDeleteMachines_InvalidId_ReturnsError()
+    {
+        await _engine.ProcessInput(UserId, "/admin_mining_delete_machines");
+
+        var result = await _engine.ProcessInput(UserId, "1, abc");
+
+        Assert.Contains("Invalid machine Id: abc", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminMiningDeleteMachines_Cancel_ReturnsCancelled()
+    {
+        await _engine.ProcessInput(UserId, "/admin_mining_delete_machines");
+        await _engine.ProcessInput(UserId, "1, 2");
 
         var result = await _engine.ProcessInput(UserId, "cancel");
 

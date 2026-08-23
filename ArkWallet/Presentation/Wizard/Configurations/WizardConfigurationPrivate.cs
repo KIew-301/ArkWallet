@@ -311,6 +311,58 @@ namespace ArkWallet.Entities.Configurations
                 }
             };
 
+            Commands["/admin_mining_create_machines"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send JSON array to create mining machines with their rules in one transaction.\n" +
+                        "Single object or array both supported. Rules are optional per machine:\n\n" +
+                        "[\n" +
+                        "  {\n" +
+                        "    \"type\": \"SMAI\",\n" +
+                        "    \"switchingTime\": 10,\n" +
+                        "    \"reusability\": 50,\n" +
+                        "    \"isActiveForSale\": true,\n" +
+                        "    \"efficiency\": 1.0,\n" +
+                        "    \"image\": \"https://example.com/image.png\",\n" +
+                        "    \"rules\": [\n" +
+                        "      { \"characterTokenId\": \"ARK_001\", \"miningCoefficient\": 0.9 },\n" +
+                        "      { \"characterTokenId\": \"ARK_002\", \"miningCoefficient\": 0.7 }\n" +
+                        "    ]\n" +
+                        "  },\n" +
+                        "  {\n" +
+                        "    \"type\": \"MGC\",\n" +
+                        "    \"switchingTime\": 30,\n" +
+                        "    \"reusability\": 60,\n" +
+                        "    \"isActiveForSale\": true,\n" +
+                        "    \"efficiency\": 0.5,\n" +
+                        "    \"image\": \"https://example.com/image2.png\"\n" +
+                        "  }\n" +
+                        "]"
+                }
+            };
+
+            Commands["/admin_mining_delete_machines"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_ids",
+                    Question = "Enter mining machine Ids to delete (comma or space separated):"
+                },
+                new()
+                {
+                    Name = "confirm_delete",
+                    Question = "Are you sure you want to PERMANENTLY delete these machines and their rules?",
+                    Buttons = new List<QuickButton>
+                    {
+                        new() { Text = "✅ Yes, delete", Value = "confirm" },
+                        new() { Text = "❌ No, cancel", Value = "cancel" }
+                    }
+                }
+            };
+
             Commands["/admin_mining_update_machine"] = new List<WizardStep>
             {
                 new()

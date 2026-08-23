@@ -8,6 +8,7 @@ namespace ArkWallet.Infrastructure.Wizard
     partial class WizardEngine
     {
         private const string MiningMachineIdDataKey = "mining_machine_id";
+        private const string MiningMachineIdsDataKey = "mining_machine_ids";
         private const string MiningMachineNameDataKey = "mining_machine_name";
         private const string MiningSlotIdDataKey = "mining_slot_id";
         private const string MiningSlotNameDataKey = "mining_slot_name";

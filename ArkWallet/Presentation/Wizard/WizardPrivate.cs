@@ -126,7 +126,18 @@ namespace ArkWallet.Infrastructure.Wizard
             "           \"futureCoefficient\": 0.95, \"baseTokenMiningSpeed\": 50 }\n" +
             "   Coefficients are set as a pair (both or none).\n\n" +
             "9) /admin_mining_app_state\n" +
-            "   Shows all service state records (AppState).";
+            "   Shows all service state records (AppState).\n\n" +
+            "10) /admin_mining_create_machines\n" +
+            "   Creates machines with their rules in one transaction.\n" +
+            "   JSON: [ { \"type\": \"SMAI\", \"switchingTime\": 10,\n" +
+            "             \"reusability\": 50, \"isActiveForSale\": true,\n" +
+            "             \"efficiency\": 1.0, \"image\": \"...\",\n" +
+            "             \"rules\": [ { \"characterTokenId\": \"ARK_001\",\n" +
+            "                          \"miningCoefficient\": 0.9 } ] } ]\n" +
+            "   Rules are optional per machine. Single object also supported.\n\n" +
+            "11) /admin_mining_delete_machines\n" +
+            "   Permanently deletes several machines and their rules in one transaction.\n" +
+            "   Enter machine Ids (comma or space separated), then confirm.";
 
         private const string AdminHelpAccessText =
             "Access control commands:\n\n" +
@@ -169,11 +180,14 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/admin_help_mining"][0].Handler = AdminHandleHelpMining;
             _config.Commands["/admin_help_access"][0].Handler = AdminHandleHelpAccess;
             _config.Commands["/admin_mining_create_machine"][0].Handler = AdminHandleMiningCreateMachine;
+            _config.Commands["/admin_mining_create_machines"][0].Handler = AdminHandleMiningCreateMachines;
             _config.Commands["/admin_mining_update_machine"][0].Handler = AdminHandleMiningUpdateMachine;
             _config.Commands["/admin_mining_create_rule"][0].Handler = AdminHandleMiningCreateRule;
             _config.Commands["/admin_mining_update_rule"][0].Handler = AdminHandleMiningUpdateRule;
             _config.Commands["/admin_mining_delete_machine"][0].Handler = AdminHandleMiningDeleteMachineSetId;
             _config.Commands["/admin_mining_delete_machine"][1].Handler = AdminHandleMiningDeleteMachineConfirm;
+            _config.Commands["/admin_mining_delete_machines"][0].Handler = AdminHandleMiningDeleteMachinesSetIds;
+            _config.Commands["/admin_mining_delete_machines"][1].Handler = AdminHandleMiningDeleteMachinesConfirm;
             _config.Commands["/admin_mining_deactivate_machine"][0].Handler = AdminHandleMiningDeactivateMachineSetId;
             _config.Commands["/admin_mining_deactivate_machine"][1].Handler = AdminHandleMiningDeactivateMachineConfirm;
             _config.Commands["/admin_mining_delete_rule"][0].Handler = AdminHandleMiningDeleteRuleSetId;
@@ -954,6 +968,82 @@ namespace ArkWallet.Infrastructure.Wizard
                 Console.WriteLine(ex.StackTrace);
                 return StepResult.Error($"Error: {ex.Message}");
             }
+        }
+
+        private async Task<StepResult> AdminHandleMiningCreateMachines(UserSession session, string input)
+        {
+            try
+            {
+                var trimmed = input.Trim();
+                List<MiningMachineCreationCommand> commands;
+
+                if (trimmed.StartsWith('['))
+                {
+                    commands = JsonConvert.DeserializeObject<List<MiningMachineCreationCommand>>(trimmed,
+                        new JsonSerializerSettings { FloatParseHandling = FloatParseHandling.Decimal }) ?? [];
+                }
+                else
+                {
+                    var rawData = JsonConvert.DeserializeObject<Dictionary<string, object>>(trimmed,
+                        new JsonSerializerSettings { FloatParseHandling = FloatParseHandling.Decimal });
+                    if (rawData == null)
+                        return StepResult.Error("Invalid JSON input");
+
+                    var normalized = NormalizeKeysToPascalCase(rawData);
+                    var command = JsonConvert.DeserializeObject<MiningMachineCreationCommand>(JsonConvert.SerializeObject(normalized),
+                        new JsonSerializerSettings { FloatParseHandling = FloatParseHandling.Decimal });
+                    commands = command == null ? [] : [command];
+                }
+
+                if (commands.Count == 0)
+                    return StepResult.Error("No valid machines found in JSON.");
+
+                var result = await _miningMachineCreationOrchestrator.CreateMachinesAsync(commands);
+
+                if (!result.TryGetData(out var created) || created.Count == 0)
+                    return StepResult.Error(result.Message);
+
+                return StepResult.Ok("completed",
+                    $"Created {created.Count} machines (Ids: {string.Join(", ", created.Select(m => m.Id))}).");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.StackTrace);
+                return StepResult.Error($"Error: {ex.Message}");
+            }
+        }
+
+        private async Task<StepResult> AdminHandleMiningDeleteMachinesSetIds(UserSession session, string input)
+        {
+            var idsText = input.Split([',', ' ', ';'], StringSplitOptions.RemoveEmptyEntries);
+            var ids = new List<long>();
+            foreach (var part in idsText)
+            {
+                if (!long.TryParse(part, out var id))
+                    return StepResult.Error($"Invalid machine Id: {part}. Use comma or space separated numbers.");
+                ids.Add(id);
+            }
+
+            if (ids.Count == 0)
+                return StepResult.Error("Enter at least one machine Id.");
+
+            session.Data[MiningMachineIdsDataKey] = ids.ToArray();
+            return StepResult.Ok("confirm_delete", $"Selected {ids.Count} machines for deletion.");
+        }
+
+        private async Task<StepResult> AdminHandleMiningDeleteMachinesConfirm(UserSession session, string input)
+        {
+            if (input != "confirm")
+                return StepResult.Ok("completed", "Deletion cancelled.");
+
+            var machineIds = session.Data[MiningMachineIdsDataKey] as long[]
+                ?? throw new InvalidOperationException("Machines not selected.");
+
+            var result = await _miningMachineDeletionService.DeleteMachinesAsync(machineIds);
+
+            return result.IsSuccess
+                ? StepResult.Ok("completed", $"Deleted {machineIds.Length} machines (Ids: {string.Join(", ", machineIds)}).")
+                : StepResult.Error(result.Message);
         }
 
         private async Task<StepResult> AdminHandleMiningUpdateMachine(UserSession session, string input)

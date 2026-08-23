@@ -35,6 +35,41 @@ internal class MiningMachineDeletionService(ArkWalletDbContext dbContext, ILogge
         }, logger, nameof(MiningMachineDeletionService));
     }
 
+    public async Task<Result> DeleteMachinesAsync(long[] machineIds)
+    {
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
+        {
+            var ids = machineIds?.Distinct().ToArray() ?? [];
+            if (ids.Length == 0)
+                return Ok();
+
+            return await TransactionHandler.ExecuteAsync(dbContext, async () =>
+            {
+                await dbContext.LockMiningMachinesAsync(ids);
+
+                var existingIds = await dbContext.MiningMachines
+                    .Where(m => ids.Contains(m.Id))
+                    .Select(m => m.Id)
+                    .ToListAsync();
+                var missing = ids.Except(existingIds).ToArray();
+                if (missing.Length > 0)
+                    return Fail($"Машины с Id не существуют: {string.Join(", ", missing)}");
+
+                await dbContext.MiningMachineRules
+                    .Where(r => ids.Contains(r.MiningMachineId))
+                    .ExecuteDeleteAsync();
+
+                var machines = await dbContext.MiningMachines
+                    .Where(m => ids.Contains(m.Id))
+                    .ToListAsync();
+                dbContext.MiningMachines.RemoveRange(machines);
+                await dbContext.SaveChangesAsync();
+
+                return Ok();
+            });
+        }, logger, nameof(MiningMachineDeletionService));
+    }
+
     public async Task<Result> DeactivateMachineAsync(long machineId)
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
