@@ -20,6 +20,15 @@ public class AccessSetting
     /// <summary>User IDs explicitly denied regardless of other settings.</summary>
     public List<long> BlackList { get; set; } = new();
 
+    /// <summary>If true, all non-blacklisted groups are allowed.</summary>
+    public bool IsGroupAccessEnabled { get; set; }
+
+    /// <summary>Group chat IDs explicitly allowed.</summary>
+    public List<long> GroupWhiteList { get; set; } = new();
+
+    /// <summary>Group chat IDs explicitly denied regardless of other settings.</summary>
+    public List<long> GroupBlackList { get; set; } = new();
+
     /// <summary>Creates a default AccessSetting instance.</summary>
     public static AccessSetting Create() => new();
 }

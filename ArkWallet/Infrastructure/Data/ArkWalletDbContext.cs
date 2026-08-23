@@ -1,4 +1,4 @@
-﻿using ArkWallet.Domain.Entities;
+using ArkWallet.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Text.Json;
@@ -106,6 +106,16 @@ internal class ArkWalletDbContext : DbContext
                     v => DeserializeList(v),
                     longListComparer);
             setting.Property(s => s.BlackList)
+                .HasConversion(
+                    v => SerializeList(v),
+                    v => DeserializeList(v),
+                    longListComparer);
+            setting.Property(s => s.GroupWhiteList)
+                .HasConversion(
+                    v => SerializeList(v),
+                    v => DeserializeList(v),
+                    longListComparer);
+            setting.Property(s => s.GroupBlackList)
                 .HasConversion(
                     v => SerializeList(v),
                     v => DeserializeList(v),

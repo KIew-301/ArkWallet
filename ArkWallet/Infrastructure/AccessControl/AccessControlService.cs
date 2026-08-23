@@ -80,6 +80,21 @@ public class AccessControlService
         }
     }
 
+    /// <summary>Returns true if group chat is allowed (whitelisted, or group access enabled and not blacklisted).</summary>
+    public bool IsGroupAuthorized(long chatId)
+    {
+        lock (_lock)
+        {
+            if (_setting.GroupWhiteList.Contains(chatId))
+                return true;
+
+            if (_setting.GroupBlackList.Contains(chatId))
+                return false;
+
+            return _setting.IsGroupAccessEnabled;
+        }
+    }
+
     /// <summary>Returns formatted string of current access settings for display.</summary>
     public string FormatSetting()
     {
@@ -90,6 +105,9 @@ public class AccessControlService
             sb.AppendLine($"Global access: {(_setting.IsGlobalAccessEnabled ? "ON" : "OFF")}");
             sb.AppendLine($"White list ({_setting.WhiteList.Count}): {string.Join(", ", _setting.WhiteList)}");
             sb.AppendLine($"Black list ({_setting.BlackList.Count}): {string.Join(", ", _setting.BlackList)}");
+            sb.AppendLine($"Group access: {(_setting.IsGroupAccessEnabled ? "ON" : "OFF")}");
+            sb.AppendLine($"Group white list ({_setting.GroupWhiteList.Count}): {string.Join(", ", _setting.GroupWhiteList)}");
+            sb.AppendLine($"Group black list ({_setting.GroupBlackList.Count}): {string.Join(", ", _setting.GroupBlackList)}");
             return sb.ToString();
         }
     }

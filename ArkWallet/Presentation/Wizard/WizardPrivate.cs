@@ -147,7 +147,10 @@ namespace ArkWallet.Infrastructure.Wizard
             "   Updates setting.\n" +
             "   JSON: { \"isGlobalAccessEnabled\": true/false,\n" +
             "           \"whiteList\": [123, 456],\n" +
-            "           \"blackList\": [789] }";
+            "           \"blackList\": [789],\n" +
+            "           \"isGroupAccessEnabled\": true/false,\n" +
+            "           \"groupWhiteList\": [-100123],\n" +
+            "           \"groupBlackList\": [-100789] }";
 
         private void ConfigureAdditionHandlers()
         {
@@ -1373,12 +1376,24 @@ namespace ArkWallet.Infrastructure.Wizard
                 if (data.TryGetValue("blackList", out var black))
                     setting.BlackList = black.ToObject<List<long>>();
 
+                if (data.TryGetValue("isGroupAccessEnabled", out var groupToken))
+                    setting.IsGroupAccessEnabled = groupToken.ToObject<bool>();
+
+                if (data.TryGetValue("groupWhiteList", out var groupWhite))
+                    setting.GroupWhiteList = groupWhite.ToObject<List<long>>();
+
+                if (data.TryGetValue("groupBlackList", out var groupBlack))
+                    setting.GroupBlackList = groupBlack.ToObject<List<long>>();
+
                 var existing = await _dbContext.AccessSettings.FindAsync("default");
                 if (existing != null)
                 {
                     existing.IsGlobalAccessEnabled = setting.IsGlobalAccessEnabled;
                     existing.WhiteList = setting.WhiteList;
                     existing.BlackList = setting.BlackList;
+                    existing.IsGroupAccessEnabled = setting.IsGroupAccessEnabled;
+                    existing.GroupWhiteList = setting.GroupWhiteList;
+                    existing.GroupBlackList = setting.GroupBlackList;
                 }
                 else
                 {

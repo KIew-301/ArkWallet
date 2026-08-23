@@ -510,11 +510,14 @@ namespace ArkWallet.Entities.Configurations
                 {
                     Name = "set_options",
                     Question =
-                        "Send JSON:\n\n" +
+                        "Send JSON (any subset of fields):\n\n" +
                         "{\n" +
                         "  \"isGlobalAccessEnabled\": true,\n" +
                         "  \"whiteList\": [123, 456],\n" +
-                        "  \"blackList\": [789]\n" +
+                        "  \"blackList\": [789],\n" +
+                        "  \"isGroupAccessEnabled\": false,\n" +
+                        "  \"groupWhiteList\": [-1001234567890],\n" +
+                        "  \"groupBlackList\": [-1009876543210]\n" +
                         "}"
                 }
             };
