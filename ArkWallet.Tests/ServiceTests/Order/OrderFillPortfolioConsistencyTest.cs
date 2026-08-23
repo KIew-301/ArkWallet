@@ -208,6 +208,10 @@ public class OrderFillPortfolioConsistencyTest : IDisposable
         Assert.Equal(10, userWall.FilledQuantity);
     }
 
-    public void Dispose() => _connection.Dispose();
+    public void Dispose()
+    {
+        _connection.Dispose();
+        GC.SuppressFinalize(this);
+    }
 }
 
