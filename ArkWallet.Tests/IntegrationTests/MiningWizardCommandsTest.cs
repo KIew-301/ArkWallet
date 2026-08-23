@@ -463,10 +463,11 @@ public class MiningWizardCommandsTest
         Assert.NotNull(captured);
         Assert.Equal(2, captured.Count);
         Assert.Equal("SMAI", captured[0].Type);
-        Assert.NotNull(captured[0].Rules);
-        Assert.Single(captured[0].Rules);
-        Assert.Equal("ARK_001", captured[0].Rules[0].CharacterTokenId);
-        Assert.Equal(0.9m, captured[0].Rules[0].MiningCoefficient);
+        var firstRules = captured[0].Rules;
+        Assert.NotNull(firstRules);
+        Assert.Single(firstRules);
+        Assert.Equal("ARK_001", firstRules[0].CharacterTokenId);
+        Assert.Equal(0.9m, firstRules[0].MiningCoefficient);
         Assert.Null(captured[1].Rules);
     }
 
