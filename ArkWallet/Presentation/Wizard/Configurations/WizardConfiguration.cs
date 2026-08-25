@@ -226,6 +226,140 @@ namespace ArkWallet.Entities.Configurations
             };
 
             Commands["/get_tops"] = steps;
+
+            steps = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "request",
+                    OneStep = true
+                },
+            };
+
+            Commands["/mining_rules"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "request",
+                    OneStep = true
+                },
+            };
+
+            Commands["/mining_machines"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "request",
+                    OneStep = true
+                },
+            };
+
+            Commands["/mining_slots"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "request",
+                    OneStep = true
+                },
+            };
+
+            Commands["/mining_take_all"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "request",
+                    OneStep = true
+                },
+            };
+
+            steps = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "select_machine",
+                    Question = "Введите идентификатор машины для покупки:"
+                },
+                new()
+                {
+                    Name = "confirm_buy",
+                    Question = "Подтвердите покупку машины:",
+                    Buttons =
+                    [
+                        new() { Text = "✅ Да, купить", Value = "confirm" },
+                        new() { Text = "❌ Нет, отменить", Value = "cancel" }
+                    ]
+                },
+            };
+
+            Commands["/mining_buy"] = steps;
+
+            steps = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "select_slot",
+                    Question = "Введите идентификатор слота для переключения:"
+                },
+                new()
+                {
+                    Name = "select_token",
+                    Question = "На какой токен переключить майнинг? (напишите символ)"
+                },
+                new()
+                {
+                    Name = "confirm_switch",
+                    Question = "Подтвердите переключение майнинга:",
+                    Buttons =
+                    [
+                        new() { Text = "✅ Да, переключить", Value = "confirm" },
+                        new() { Text = "❌ Нет, отменить", Value = "cancel" }
+                    ]
+                },
+            };
+
+            Commands["/mining_switch"] = steps;
+
+            steps = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "select_slot",
+                    Question = "Введите идентификатор слота для снятия токенов:"
+                },
+                new()
+                {
+                    Name = "confirm_take",
+                    Question = "Подтвердите снятие собранных токенов:",
+                    Buttons =
+                    [
+                        new() { Text = "✅ Да, снять", Value = "confirm" },
+                        new() { Text = "❌ Нет, отменить", Value = "cancel" }
+                    ]
+                },
+            };
+
+            Commands["/mining_take"] = steps;
+
+            steps = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "select_slot",
+                    Question = "Введите идентификатор слота для продажи:"
+                },
+                new()
+                {
+                    Name = "confirm_sell",
+                    Question = "Подтвердите продажу слота:",
+                    Buttons =
+                    [
+                        new() { Text = "✅ Да, продать", Value = "confirm" },
+                        new() { Text = "❌ Нет, отменить", Value = "cancel" }
+                    ]
+                },
+            };
+
+            Commands["/mining_sell"] = steps;
         }
 
         private static List<QuickButton> CreateCountButtons()

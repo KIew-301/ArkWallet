@@ -222,7 +222,7 @@ public class MarketWallBlockerOrchestratorTest
 
         var avg = (20m + 40m) / 2m;
         foreach (var cmd in captured!)
-            Assert.InRange(cmd.Quantity, (int)(avg * 20m), (int)(avg * 100m));
+            Assert.InRange(cmd.Quantity, (int)(avg * 20m), (int)(avg * 100m * 1.4m));
     }
 
     [Fact]

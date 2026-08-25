@@ -10,7 +10,10 @@ internal static class PerfReporter
         while (dir != null)
         {
             if (File.Exists(Path.Combine(dir.FullName, "ArkWallet.sln")))
-                return Path.Combine(dir.FullName, "ArkWallet.PerformanceTests", "Reports");
+            {
+                var provider = RepeatConfig.DatabaseProvider;
+                return Path.Combine(dir.FullName, "ArkWallet.PerformanceTests", "Reports", provider);
+            }
 
             dir = dir.Parent;
         }

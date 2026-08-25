@@ -50,32 +50,13 @@ internal class MarketMakerOrderService(
             if (ids.Length == 0)
                 return Ok();
 
-            var bots = await dbContext.MarketMakerBots
-                .Where(b => ids.Contains(b.Id) && b.IsActive)
-                .ToListAsync();
-
+            var bots = await LoadActiveBotsAsync(ids);
             if (bots.Count == 0)
                 return Result.Fail("Список ботов пуст");
 
-            var symbols = bots.Select(b => b.Symbol).Distinct().ToArray();
+            var tokens = await LoadTokensAsync(bots);
 
-            var tokens = await dbContext.CharacterTokens
-                .Where(t => symbols.Contains(t.Symbol))
-                .ToDictionaryAsync(t => t.Symbol);
-
-            var commands = new List<CreateOrderCommand>(bots.Count);
-
-            foreach (var bot in bots)
-            {
-                if (!tokens.TryGetValue(bot.Symbol, out var token))
-                {
-                    logger.LogWarning("Токен {Symbol} не найден", bot.Symbol);
-                    continue;
-                }
-
-                commands.Add(BuildOrderCommand(bot, token));
-            }
-
+            var commands = BuildOrderCommands(bots, tokens);
             if (commands.Count == 0)
                 return Result.Fail("Не удалось сформировать команды ордеров");
 
@@ -88,6 +69,66 @@ internal class MarketMakerOrderService(
 
             return Ok();
         }, logger, nameof(MarketMakerOrderService));
+    }
+
+    /// <summary>Loads active bots by identifiers, first from the change tracker, then from the database.</summary>
+    private async Task<List<MarketMakerBot>> LoadActiveBotsAsync(long[] ids)
+    {
+        var bots = dbContext.MarketMakerBots.Local
+            .Where(b => ids.Contains(b.Id) && b.IsActive)
+            .ToList();
+
+        var missingIds = ids.Except(bots.Select(b => b.Id)).ToArray();
+        if (missingIds.Length > 0)
+        {
+            var fromDb = await dbContext.MarketMakerBots
+                .Where(b => missingIds.Contains(b.Id) && b.IsActive)
+                .ToListAsync();
+            bots.AddRange(fromDb);
+        }
+
+        return bots;
+    }
+
+    /// <summary>Loads tokens for the bot symbols, first from the change tracker, then from the database.</summary>
+    private async Task<Dictionary<string, CharacterToken>> LoadTokensAsync(List<MarketMakerBot> bots)
+    {
+        var symbols = bots.Select(b => b.Symbol).Distinct().ToArray();
+
+        var tokens = dbContext.CharacterTokens.Local
+            .Where(t => symbols.Contains(t.Symbol))
+            .ToDictionary(t => t.Symbol);
+
+        var missingSymbols = symbols.Except(tokens.Keys).ToArray();
+        if (missingSymbols.Length > 0)
+        {
+            var fromDb = await dbContext.CharacterTokens
+                .Where(t => missingSymbols.Contains(t.Symbol))
+                .ToListAsync();
+            foreach (var t in fromDb)
+                tokens.TryAdd(t.Symbol, t);
+        }
+
+        return tokens;
+    }
+
+    /// <summary>Builds order commands for bots with a known token, skipping the rest with a warning.</summary>
+    private List<CreateOrderCommand> BuildOrderCommands(List<MarketMakerBot> bots, Dictionary<string, CharacterToken> tokens)
+    {
+        var commands = new List<CreateOrderCommand>(bots.Count);
+
+        foreach (var bot in bots)
+        {
+            if (!tokens.TryGetValue(bot.Symbol, out var token))
+            {
+                logger.LogWarning("Токен {Symbol} не найден", bot.Symbol);
+                continue;
+            }
+
+            commands.Add(BuildOrderCommand(bot, token));
+        }
+
+        return commands;
     }
 
     private static CreateOrderCommand BuildOrderCommand(MarketMakerBot bot, CharacterToken token)

@@ -12,13 +12,13 @@ public class OrderCancellationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
 
-        var result1 = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
-        var result2 = await HelpMethods.CancelOrder(db, 101, result1);
+        var result1 = await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
+        var result2 = await HelpMethods.CancelOrder(db, 1001, result1);
 
-        var trader = await HelpMethods.GetTrader(db, 101);
+        var trader = await HelpMethods.GetTrader(db, 1001);
 
         Assert.True(result2.IsSuccess);
         Assert.Equal(1000, trader.Balance);
@@ -30,15 +30,15 @@ public class OrderCancellationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1001, "ZZZ", 10);
 
-        var result1 = await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 5, 100);
-        var result2 = await HelpMethods.CancelOrder(db, 101, result1);
+        var result1 = await HelpMethods.PlaceOrder(db, 1001, "продать", "ZZZ", 5, 100);
+        var result2 = await HelpMethods.CancelOrder(db, 1001, result1);
 
-        var trader = await HelpMethods.GetTrader(db, 101);
-        var portfolio = await HelpMethods.GetPortfolio(db, 101);
+        var trader = await HelpMethods.GetTrader(db, 1001);
+        var portfolio = await HelpMethods.GetPortfolio(db, 1001);
 
         Assert.True(result2.IsSuccess);
         Assert.Equal(1000, trader.Balance);
@@ -51,18 +51,18 @@ public class OrderCancellationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 30);
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 30);
 
-        var resultShortOrder1 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 60);
-        var resultShortOrder2 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 80);
-        var resultLongOrder = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 9, 90);
-        var resultCancelLongOrder = await HelpMethods.CancelOrder(db, 101, resultLongOrder);
+        var resultShortOrder1 = await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 3, 60);
+        var resultShortOrder2 = await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 3, 80);
+        var resultLongOrder = await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 9, 90);
+        var resultCancelLongOrder = await HelpMethods.CancelOrder(db, 1001, resultLongOrder);
 
-        var trader = await HelpMethods.GetTrader(db, 101);
-        var portfolio = await HelpMethods.GetPortfolio(db, 101, "ZZZ");
+        var trader = await HelpMethods.GetTrader(db, 1001);
+        var portfolio = await HelpMethods.GetPortfolio(db, 1001, "ZZZ");
 
         Assert.Equal(580, trader.Balance);
         Assert.Equal(6, portfolio.Quantity);
@@ -74,19 +74,19 @@ public class OrderCancellationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 30);
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 30);
 
-        var resultShortOrder1 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 60);
-        var resultShortOrder2 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 7, 80);
-        var resultShortOrder3 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 10, 100);
-        var resultLongOrder = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 9, 90);
-        var resultCancelShortOrder = await HelpMethods.CancelOrder(db, 102, resultShortOrder3);
+        var resultShortOrder1 = await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 3, 60);
+        var resultShortOrder2 = await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 7, 80);
+        var resultShortOrder3 = await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 10, 100);
+        var resultLongOrder = await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 9, 90);
+        var resultCancelShortOrder = await HelpMethods.CancelOrder(db, 1002, resultShortOrder3);
 
-        var trader = await HelpMethods.GetTrader(db, 102);
-        var portfolio = await HelpMethods.GetPortfolio(db, 102, "ZZZ");
+        var trader = await HelpMethods.GetTrader(db, 1002);
+        var portfolio = await HelpMethods.GetPortfolio(db, 1002, "ZZZ");
 
         Assert.Equal(1660, trader.Balance);
         Assert.Equal(20, portfolio.Quantity);
@@ -98,19 +98,19 @@ public class OrderCancellationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 5);
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 5);
 
-        var resultShortOrder = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 100);
-        var resultLongOrder = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 3, 100);
-        var resultCancelShortOrder = await HelpMethods.CancelOrder(db, 102, resultShortOrder);
+        var resultShortOrder = await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 3, 100);
+        var resultLongOrder = await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 3, 100);
+        var resultCancelShortOrder = await HelpMethods.CancelOrder(db, 1002, resultShortOrder);
 
-        var traderSorter = await HelpMethods.GetTrader(db, 102);
-        var portfolioShorter = await HelpMethods.GetPortfolio(db, 102, "ZZZ");
-        var traderLonger = await HelpMethods.GetTrader(db, 101);
-        var portfolioLonger = await HelpMethods.GetPortfolio(db, 101, "ZZZ");
+        var traderSorter = await HelpMethods.GetTrader(db, 1002);
+        var portfolioShorter = await HelpMethods.GetPortfolio(db, 1002, "ZZZ");
+        var traderLonger = await HelpMethods.GetTrader(db, 1001);
+        var portfolioLonger = await HelpMethods.GetPortfolio(db, 1001, "ZZZ");
 
         Assert.False(resultCancelShortOrder.IsSuccess);
         Assert.Equal("Можно отменить только активный ордер", resultCancelShortOrder.Message);
@@ -122,16 +122,16 @@ public class OrderCancellationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 5);
+        await HelpMethods.AddPortfolio(db, 1001, "ZZZ", 5);
 
-        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 3, 200);
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 3, 150);
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 3, 100);
-        var result = await HelpMethods.CancelAllOrders(db, 101);
+        await HelpMethods.PlaceOrder(db, 1001, "продать", "ZZZ", 3, 200);
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 3, 150);
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 3, 100);
+        var result = await HelpMethods.CancelAllOrders(db, 1001);
 
-        var orders = await HelpMethods.GetTraderOrders(db, 101);
+        var orders = await HelpMethods.GetTraderOrders(db, 1001);
 
         Assert.True(result.IsSuccess);
         Assert.Empty(orders);
@@ -143,10 +143,10 @@ public class OrderCancellationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
-        var result = await HelpMethods.CancelAllOrders(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
+        var result = await HelpMethods.CancelAllOrders(db, 1001);
 
-        var orders = await HelpMethods.GetTraderOrders(db, 101);
+        var orders = await HelpMethods.GetTraderOrders(db, 1001);
 
         Assert.False(result.IsSuccess);
         Assert.Equal("Нет активных ордеров для отмены", result.Message);
@@ -158,10 +158,10 @@ public class OrderCancellationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
 
-        var result = await HelpMethods.CancelOrder(db, 101, "");
+        var result = await HelpMethods.CancelOrder(db, 1001, "");
 
         Assert.False(result.IsSuccess);
         Assert.Equal("Ордера не существует", result.Message);
@@ -175,7 +175,7 @@ public class OrderCancellationServiceTest
 
         await HelpMethods.CreateToken(db, "ZZZ");
 
-        var result = await HelpMethods.CancelOrder(db, 101, "");
+        var result = await HelpMethods.CancelOrder(db, 1001, "");
 
         Assert.False(result.IsSuccess);
         Assert.Equal("Трейдер не найден", result.Message);
@@ -188,14 +188,14 @@ public class OrderCancellationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
 
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 3, 100);
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 2, 200);
-        var result = await HelpMethods.CancelAllOrders(db, 101);
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 3, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 2, 200);
+        var result = await HelpMethods.CancelAllOrders(db, 1001);
 
-        var trader = await HelpMethods.GetTrader(db, 101);
+        var trader = await HelpMethods.GetTrader(db, 1001);
 
         Assert.True(result.IsSuccess);
         Assert.Equal(1000, trader.Balance);
@@ -207,16 +207,16 @@ public class OrderCancellationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1001, "ZZZ", 10);
 
-        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 3, 100);
-        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 2, 200);
-        var result = await HelpMethods.CancelAllOrders(db, 101);
+        await HelpMethods.PlaceOrder(db, 1001, "продать", "ZZZ", 3, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "продать", "ZZZ", 2, 200);
+        var result = await HelpMethods.CancelAllOrders(db, 1001);
 
-        var trader = await HelpMethods.GetTrader(db, 101);
-        var portfolio = await HelpMethods.GetPortfolio(db, 101);
+        var trader = await HelpMethods.GetTrader(db, 1001);
+        var portfolio = await HelpMethods.GetPortfolio(db, 1001);
 
         Assert.True(result.IsSuccess);
         Assert.Equal(1000, trader.Balance);
@@ -229,7 +229,7 @@ public class OrderCancellationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        var result = await HelpMethods.CancelAllOrders(db, 999);
+        var result = await HelpMethods.CancelAllOrders(db, 10001);
 
         Assert.False(result.IsSuccess);
         Assert.Equal("Трейдер не найден", result.Message);
@@ -244,20 +244,20 @@ public class OrderCancellationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
 
         if (scenario == "active")
-            await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 3, 100);
+            await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 3, 100);
         else if (scenario == "cancelled")
         {
-            var order = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 3, 100);
-            await HelpMethods.CancelOrder(db, 101, order);
+            var order = await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 3, 100);
+            await HelpMethods.CancelOrder(db, 1001, order);
         }
 
         var service = new OrderCancellationService(db, NullLogger<OrderCancellationService>.Instance);
 
-        var result = await service.HasActiveOrdersAsync(101);
+        var result = await service.HasActiveOrdersAsync(1001);
 
         Assert.Equal(expected, result);
     }

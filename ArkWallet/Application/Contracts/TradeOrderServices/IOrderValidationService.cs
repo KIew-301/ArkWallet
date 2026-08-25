@@ -15,19 +15,6 @@ namespace ArkWallet.Application.Contracts.TradeOrderServices
         ValidationResult ValidateDirection(string direction);
 
         /// <summary>
-        /// Валидирует токен для сделки с учетом направления
-        /// </summary>
-        /// <param name="traderId">ID трейдера в Telegram</param>
-        /// <param name="symbol">Символ токена</param>
-        /// <param name="direction">Направление сделки</param>
-        /// <returns>Результат валидации</returns>
-        /// <remarks>
-        /// Для продажи проверяет что токен присутствует в портфеле трейдера.
-        /// Для покупки проверка не требуется.
-        /// </remarks>
-        Task<ValidationResult> ValidateTokenAsync(long traderId, string symbol, string direction);
-
-        /// <summary>
         /// Валидирует количество токенов
         /// </summary>
         /// <param name="quantity">Количество токенов</param>
@@ -49,26 +36,6 @@ namespace ArkWallet.Application.Contracts.TradeOrderServices
         Task<ValidationResult> ValidateOrderCancellationAsync(long traderId, string orderId);
 
         /// <summary>
-        /// Валидирует возможность создания ордера
-        /// </summary>
-        /// <param name="traderId">ID трейдера в Telegram</param>
-        /// <param name="symbol">Символ токена</param>
-        /// <param name="direction">Направление сделки</param>
-        /// <param name="quantity">Количество токенов</param>
-        /// <param name="price">Цена за токен</param>
-        /// <returns>Результат валидации</returns>
-        /// <remarks>
-        /// <para>
-        /// Для покупки проверяет достаточность средств с учетом зарезервированных в других ордерах.
-        /// Для продажи проверяет достаточность токенов с учетом зарезервированных в других ордерах.
-        /// </para>
-        /// <para>
-        /// Предполагает что базовые валидации (направление, количество, цена) уже пройдены.
-        /// </para>
-        /// </remarks>
-        Task<ValidationResult> ValidateOrderCreationAsync(long traderId, string symbol, string direction, int quantity, decimal price);
-
-        /// <summary>
         /// Валидирует цену ордера
         /// </summary>
         /// <param name="price">Цена за токен</param>
@@ -81,23 +48,10 @@ namespace ArkWallet.Application.Contracts.TradeOrderServices
         /// <param name="request">Команда создания ордера</param>
         /// <returns>Результат валидации</returns>
         /// <remarks>
-        /// Последовательно проверяет: цену, количество, наличие токена у трейдера.
+        /// Проверяет корректность введённых цены и количества.
         /// При первой ошибке валидация прекращается.
         /// </remarks>
         Task<ValidationResult> ValidateFullOrderAsync(CreateOrderCommand request);
-
-        /// <summary>
-        /// Валидирует наличие токенов у трейдера батчем
-        /// </summary>
-        /// <param name="traderId">ID трейдера в Telegram</param>
-        /// <param name="symbols">Список символов токенов</param>
-        /// <param name="direction">Направление сделки</param>
-        /// <returns>Результат валидации</returns>
-        /// <remarks>
-        /// Для продажи проверяет одним запросом наличие всех токенов в портфеле трейдера.
-        /// Для покупки проверка не требуется.
-        /// </remarks>
-        Task<ValidationResult> ValidateTokensAsync(long traderId, IReadOnlyCollection<string> symbols, string direction);
 
         /// <summary>
         /// Выполняет полную валидацию группы команд создания ордеров
@@ -105,8 +59,7 @@ namespace ArkWallet.Application.Contracts.TradeOrderServices
         /// <param name="requests">Список команд создания ордеров</param>
         /// <returns>Результат валидации</returns>
         /// <remarks>
-        /// Проверяет цену и количество для каждой команды, а также наличие токенов
-        /// у трейдеров одним батч-запросом вместо N+1 запросов.
+        /// Проверяет цену и количество для каждой команды.
         /// При первой ошибке валидация прекращается.
         /// </remarks>
         Task<ValidationResult> ValidateFullOrdersAsync(IReadOnlyCollection<CreateOrderCommand> requests);

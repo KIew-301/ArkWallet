@@ -38,17 +38,6 @@ namespace ArkWallet.Infrastructure.Wizard
 
         private async Task<StepResult> HandleSetToken(UserSession session, string input)
         {
-            string direction = session.Data["set_direction"].ToString();
-
-            var validation = await _orderValidationService.ValidateTokenAsync(
-                session.Id,
-                input,
-                direction
-            );
-
-            if (!validation.IsValid)
-                return StepResult.Error(validation.Message);
-
             session.Data.Add(session.CurrentStep, input.ToUpper());
             return StepResult.Ok("set_quantity");
         }
@@ -87,14 +76,6 @@ namespace ArkWallet.Infrastructure.Wizard
 
             if (!validation.IsValid)
                 return StepResult.Error(validation.Message);
-
-            validation = await _orderValidationService.ValidateOrderCreationAsync(
-                session.Id,
-                symbol,
-                direction,
-                quantity,
-                price
-            );
 
             var command = new CreateOrderCommand(
                 session.Id,
@@ -386,6 +367,9 @@ namespace ArkWallet.Infrastructure.Wizard
                 .Select(p => p.ToString("G").Contains('.') ? p.ToString("G").Split('.')[1].Length : 0)
                 .Max();
             maxDecPlaces = Math.Max(maxDecPlaces, 2);
+
+            if (maxDecPlaces > 6) maxDecPlaces = 6;
+
             var priceWidth = maxIntLen + 1 + maxDecPlaces;
             var priceFmt = new string('0', maxIntLen) + "." + new string('0', maxDecPlaces);
 

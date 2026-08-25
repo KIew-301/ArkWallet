@@ -1,6 +1,5 @@
 ﻿using ArkWallet.Domain.Exceptions;
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ArkWallet.Domain.Entities
 {
@@ -26,13 +25,6 @@ namespace ArkWallet.Domain.Entities
         public virtual Trader? Trader { get; set; }
         public virtual CharacterToken? CharacterToken { get; set; }
 
-        // Необходимость обновления в БД
-        [NotMapped]
-        public bool IsDirty { get; private set; }
-
-        public void MarkDirty() => IsDirty = true;
-        public void MarkClean() => IsDirty = false;
-
         // Методы
         public decimal GetTotalValue()
             => Quantity * AverageBuyPrice;
@@ -50,8 +42,6 @@ namespace ArkWallet.Domain.Entities
             var totalCost = Quantity * AverageBuyPrice + quantity * buyPrice;
             Quantity += quantity;
             AverageBuyPrice = totalCost / Quantity;
-
-            MarkDirty();
         }
 
         public void ReserveTokens(int quantity, decimal reservePrice)
@@ -66,8 +56,6 @@ namespace ArkWallet.Domain.Entities
 
             if (Quantity == 0)
                 AverageBuyPrice = 0;
-
-            MarkDirty();
         }
 
         public void SellTokens(int quantity, decimal sellPrice)
@@ -82,8 +70,6 @@ namespace ArkWallet.Domain.Entities
 
             if (ReserveQuantity == 0)
                 AverageReservePrice = 0;
-
-            MarkDirty();
         }
 
         public void ReturnTokens(int quantity)
@@ -98,8 +84,6 @@ namespace ArkWallet.Domain.Entities
 
             if (ReserveQuantity == 0)
                 AverageReservePrice = 0;
-
-            MarkDirty();
         }
 
         public void RemoveTokens(int quantity, decimal buyPrice)
@@ -111,8 +95,25 @@ namespace ArkWallet.Domain.Entities
 
             if (Quantity == 0)
                 AverageBuyPrice = 0;
+        }
 
-            MarkDirty();
+        /// <summary>
+        /// Переносит полное состояние портфеля (используется при сохранении результатов торгового движка).
+        /// </summary>
+        internal void ApplyState(
+            int quantity,
+            int sellingQuantity,
+            int reserveQuantity,
+            decimal averageBuyPrice,
+            decimal averageSellPrice,
+            decimal averageReservePrice)
+        {
+            Quantity = quantity;
+            SellingQuantity = sellingQuantity;
+            ReserveQuantity = reserveQuantity;
+            AverageBuyPrice = averageBuyPrice;
+            AverageSellPrice = averageSellPrice;
+            AverageReservePrice = averageReservePrice;
         }
 
         public static PortfolioItem Create(long telegramId, string symbol, int quantity, decimal price)

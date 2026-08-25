@@ -282,6 +282,245 @@ namespace ArkWallet.Entities.Configurations
             {
                 new() { Name = "request", OneStep = true }
             };
+
+            Commands["/admin_help_mining"] = new List<WizardStep>
+            {
+                new() { Name = "request", OneStep = true }
+            };
+
+            Commands["/admin_help_access"] = new List<WizardStep>
+            {
+                new() { Name = "request", OneStep = true }
+            };
+
+            Commands["/admin_mining_create_machine"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send JSON to create a mining machine (name and cost are generated automatically):\n\n" +
+                        "{\n" +
+                        "  \"type\": \"SMAI\",\n" +
+                        "  \"switchingTime\": 10,\n" +
+                        "  \"reusability\": 50,\n" +
+                        "  \"isActiveForSale\": true,\n" +
+                        "  \"efficiency\": 1.0,\n" +
+                        "  \"image\": \"https://example.com/image.png\"\n" +
+                        "}"
+                }
+            };
+
+            Commands["/admin_mining_create_machines"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send JSON array to create mining machines with their rules in one transaction.\n" +
+                        "Single object or array both supported. Rules are optional per machine:\n\n" +
+                        "[\n" +
+                        "  {\n" +
+                        "    \"type\": \"SMAI\",\n" +
+                        "    \"switchingTime\": 10,\n" +
+                        "    \"reusability\": 50,\n" +
+                        "    \"isActiveForSale\": true,\n" +
+                        "    \"efficiency\": 1.0,\n" +
+                        "    \"image\": \"https://example.com/image.png\",\n" +
+                        "    \"rules\": [\n" +
+                        "      { \"characterTokenId\": \"ARK_001\", \"miningCoefficient\": 0.9 },\n" +
+                        "      { \"characterTokenId\": \"ARK_002\", \"miningCoefficient\": 0.7 }\n" +
+                        "    ]\n" +
+                        "  },\n" +
+                        "  {\n" +
+                        "    \"type\": \"MGC\",\n" +
+                        "    \"switchingTime\": 30,\n" +
+                        "    \"reusability\": 60,\n" +
+                        "    \"isActiveForSale\": true,\n" +
+                        "    \"efficiency\": 0.5,\n" +
+                        "    \"image\": \"https://example.com/image2.png\"\n" +
+                        "  }\n" +
+                        "]"
+                }
+            };
+
+            Commands["/admin_mining_delete_machines"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_ids",
+                    Question = "Enter mining machine Ids to delete (comma or space separated):"
+                },
+                new()
+                {
+                    Name = "confirm_delete",
+                    Question = "Are you sure you want to PERMANENTLY delete these machines and their rules?",
+                    Buttons = new List<QuickButton>
+                    {
+                        new() { Text = "✅ Yes, delete", Value = "confirm" },
+                        new() { Text = "❌ No, cancel", Value = "cancel" }
+                    }
+                }
+            };
+
+            Commands["/admin_mining_update_machine"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send JSON to update a mining machine (machineId required, others optional,\n" +
+                        "name and cost are regenerated automatically):\n\n" +
+                        "{\n" +
+                        "  \"machineId\": 1,\n" +
+                        "  \"type\": \"MGC\",\n" +
+                        "  \"switchingTime\": 30,\n" +
+                        "  \"reusability\": 60,\n" +
+                        "  \"isActiveForSale\": true,\n" +
+                        "  \"efficiency\": 0.5,\n" +
+                        "  \"image\": \"https://example.com/new-image.png\"\n" +
+                        "}"
+                }
+            };
+
+            Commands["/admin_mining_create_rule"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send JSON array to create mining rules (machine-token pairs).\n" +
+                        "Single object or array both supported:\n\n" +
+                        "[\n" +
+                        "  {\n" +
+                        "    \"miningMachineId\": 1,\n" +
+                        "    \"characterTokenId\": \"ARK_001\",\n" +
+                        "    \"miningCoefficient\": 0.9\n" +
+                        "  },\n" +
+                        "  {\n" +
+                        "    \"miningMachineId\": 2,\n" +
+                        "    \"characterTokenId\": \"ARK_002\",\n" +
+                        "    \"miningCoefficient\": 0.7\n" +
+                        "  }\n" +
+                        "]"
+                }
+            };
+
+            Commands["/admin_mining_update_rule"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send JSON to update a mining rule (machine name and cost are\n" +
+                        "regenerated automatically):\n\n" +
+                        "{\n" +
+                        "  \"miningRuleId\": 1,\n" +
+                        "  \"miningCoefficient\": 0.9\n" +
+                        "}"
+                }
+            };
+
+            Commands["/admin_mining_delete_machine"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_id",
+                    Question = "Enter mining machine Id to delete:"
+                },
+                new()
+                {
+                    Name = "confirm_delete",
+                    Question = "Are you sure you want to PERMANENTLY delete this machine and its rules?",
+                    Buttons = new List<QuickButton>
+                    {
+                        new() { Text = "✅ Yes, delete", Value = "confirm" },
+                        new() { Text = "❌ No, cancel", Value = "cancel" }
+                    }
+                }
+            };
+
+            Commands["/admin_mining_deactivate_machine"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_id",
+                    Question = "Enter mining machine Id to deactivate:"
+                },
+                new()
+                {
+                    Name = "confirm_deactivate",
+                    Question = "Are you sure you want to deactivate this machine? It will no longer be available for purchase.",
+                    Buttons = new List<QuickButton>
+                    {
+                        new() { Text = "✅ Yes, deactivate", Value = "confirm" },
+                        new() { Text = "❌ No, cancel", Value = "cancel" }
+                    }
+                }
+            };
+
+            Commands["/admin_mining_delete_rule"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_id",
+                    Question = "Enter mining rule Id to delete:"
+                },
+                new()
+                {
+                    Name = "confirm_delete",
+                    Question = "Are you sure you want to delete this mining rule?",
+                    Buttons = new List<QuickButton>
+                    {
+                        new() { Text = "✅ Yes, delete", Value = "confirm" },
+                        new() { Text = "❌ No, cancel", Value = "cancel" }
+                    }
+                }
+            };
+
+            Commands["/admin_mining_update_global_rule"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send JSON to update global mining rule (symbol required, others optional):\n\n" +
+                        "{\n" +
+                        "  \"symbol\": \"ARK_001\",\n" +
+                        "  \"currentCoefficient\": 1.05,\n" +
+                        "  \"futureCoefficient\": 0.95,\n" +
+                        "  \"baseTokenMiningSpeed\": 50\n" +
+                        "}"
+                }
+            };
+
+            Commands["/admin_mining_app_state"] = new List<WizardStep>
+            {
+                new() { Name = "request", OneStep = true }
+            };
+
+            Commands["/admin_access_get"] = new List<WizardStep>
+            {
+                new() { Name = "request", OneStep = true }
+            };
+
+            Commands["/admin_access_set"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Send JSON (any subset of fields):\n\n" +
+                        "{\n" +
+                        "  \"isGlobalAccessEnabled\": true,\n" +
+                        "  \"whiteList\": [123, 456],\n" +
+                        "  \"blackList\": [789],\n" +
+                        "  \"isGroupAccessEnabled\": false,\n" +
+                        "  \"groupWhiteList\": [-1001234567890],\n" +
+                        "  \"groupBlackList\": [-1009876543210]\n" +
+                        "}"
+                }
+            };
         }
     }
 }

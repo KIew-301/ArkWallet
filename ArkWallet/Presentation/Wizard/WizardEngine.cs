@@ -3,9 +3,12 @@ using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Contracts.Decorators;
 using ArkWallet.Application.Contracts.Leaders;
 using ArkWallet.Application.Contracts.MarketMaker;
+using ArkWallet.Application.Contracts.MiningMachineServices;
 using ArkWallet.Application.Contracts.Orchestrators;
 using ArkWallet.Application.Contracts.Other;
+using ArkWallet.Infrastructure.AccessControl;
 using ArkWallet.Application.Contracts.PortfolioServices;
+using ArkWallet.Infrastructure.Data;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TradeServices;
 using ArkWallet.Application.Contracts.TraderServices;
@@ -68,6 +71,26 @@ namespace ArkWallet.Infrastructure.Wizard
         // STATS
         private readonly ITradingVolumeService _tradingVolumeService;
 
+        // MINING SERVICES
+        private readonly IMiningGlobalRuleQueryService _miningGlobalRuleQueryService;
+        private readonly IMiningMachineQueryService _miningMachineQueryService;
+        private readonly IMiningMachineSlotQueryService _miningMachineSlotQueryService;
+        private readonly IMiningMachineSlotBuyingService _miningMachineSlotBuyingService;
+        private readonly IMiningMachineCreationService _miningMachineCreationService;
+        private readonly IMiningMachineRuleCreationService _miningMachineRuleCreationService;
+        private readonly IMiningMachineDeletionService _miningMachineDeletionService;
+        private readonly IMiningMachineRuleDeletionService _miningMachineRuleDeletionService;
+        private readonly IMiningMachineUpdateService _miningMachineUpdateService;
+        private readonly IMiningMachineRuleUpdateService _miningMachineRuleUpdateService;
+        private readonly IMiningGlobalRuleUpdateService _miningGlobalRuleUpdateService;
+        private readonly IAppStateQueryService _appStateQueryService;
+
+        // MINING ORCHESTRATORS
+        private readonly IMiningMachineCreationOrchestrator _miningMachineCreationOrchestrator;
+        private readonly IMiningMachineSlotSwitchingOrchestrator _miningMachineSlotSwitchingOrchestrator;
+        private readonly IMiningMachineSlotTakingTokenOrchestrator _miningMachineSlotTakingTokenOrchestrator;
+        private readonly IMiningMachineSlotSellingOrchestrator _miningMachineSlotSellingOrchestrator;
+
         // BROADCAST
         private readonly IMessageSender _messageSender;
 
@@ -77,6 +100,12 @@ namespace ArkWallet.Infrastructure.Wizard
 
         // OBSERVABILITY
         private readonly IMetricsSnapshotService _metricsSnapshotService;
+
+        // DB
+        private readonly ArkWalletDbContext _dbContext;
+
+        // ACCESS CONTROL
+        private readonly AccessControlService _accessControl;
 
         public WizardEngine(
             IUserSessionStore sessionStore,
@@ -107,7 +136,25 @@ namespace ArkWallet.Infrastructure.Wizard
             IQuestionDecorator questionDecorator,
             IButtonDecorator buttonDecorator,
             IMetricsSnapshotService metricsSnapshotService,
-            WizardConfiguration config
+            IMiningGlobalRuleQueryService miningGlobalRuleQueryService,
+            IMiningMachineQueryService miningMachineQueryService,
+            IMiningMachineSlotQueryService miningMachineSlotQueryService,
+            IMiningMachineSlotBuyingService miningMachineSlotBuyingService,
+            IMiningMachineCreationService miningMachineCreationService,
+            IMiningMachineRuleCreationService miningMachineRuleCreationService,
+            IMiningMachineDeletionService miningMachineDeletionService,
+            IMiningMachineRuleDeletionService miningMachineRuleDeletionService,
+            IMiningMachineUpdateService miningMachineUpdateService,
+            IMiningMachineRuleUpdateService miningMachineRuleUpdateService,
+            IMiningGlobalRuleUpdateService miningGlobalRuleUpdateService,
+            IAppStateQueryService appStateQueryService,
+            IMiningMachineSlotSwitchingOrchestrator miningMachineSlotSwitchingOrchestrator,
+            IMiningMachineCreationOrchestrator miningMachineCreationOrchestrator,
+            IMiningMachineSlotTakingTokenOrchestrator miningMachineSlotTakingTokenOrchestrator,
+            IMiningMachineSlotSellingOrchestrator miningMachineSlotSellingOrchestrator,
+            WizardConfiguration config,
+            ArkWalletDbContext dbContext,
+            AccessControlService accessControl
             )
         {
             _sessionStore = sessionStore;
@@ -138,6 +185,24 @@ namespace ArkWallet.Infrastructure.Wizard
             _questionDecorator = questionDecorator;
             _buttonDecorator = buttonDecorator;
             _metricsSnapshotService = metricsSnapshotService;
+            _miningGlobalRuleQueryService = miningGlobalRuleQueryService;
+            _miningMachineQueryService = miningMachineQueryService;
+            _miningMachineSlotQueryService = miningMachineSlotQueryService;
+            _miningMachineSlotBuyingService = miningMachineSlotBuyingService;
+            _miningMachineCreationService = miningMachineCreationService;
+            _miningMachineRuleCreationService = miningMachineRuleCreationService;
+            _miningMachineDeletionService = miningMachineDeletionService;
+            _miningMachineRuleDeletionService = miningMachineRuleDeletionService;
+            _miningMachineUpdateService = miningMachineUpdateService;
+            _miningMachineRuleUpdateService = miningMachineRuleUpdateService;
+            _miningGlobalRuleUpdateService = miningGlobalRuleUpdateService;
+            _appStateQueryService = appStateQueryService;
+            _miningMachineSlotSwitchingOrchestrator = miningMachineSlotSwitchingOrchestrator;
+            _miningMachineCreationOrchestrator = miningMachineCreationOrchestrator;
+            _miningMachineSlotTakingTokenOrchestrator = miningMachineSlotTakingTokenOrchestrator;
+            _miningMachineSlotSellingOrchestrator = miningMachineSlotSellingOrchestrator;
+            _dbContext = dbContext;
+            _accessControl = accessControl;
             _config = config;
 
             ConfigureHandlers();
@@ -167,81 +232,139 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/get_orders"][0].Handler = HandleGetOrders;
             _config.Commands["/get_trades"][0].Handler = HandleSetTradesLimit;
             _config.Commands["/get_tops"][0].Handler = HandleSetTopsLimit;
+            _config.Commands["/mining_rules"][0].Handler = HandleGetMiningRules;
+            _config.Commands["/mining_machines"][0].Handler = HandleGetMiningMachines;
+            _config.Commands["/mining_slots"][0].Handler = HandleGetMiningSlots;
+            _config.Commands["/mining_take_all"][0].Handler = HandleMiningTakeAll;
+            _config.Commands["/mining_buy"][0].Handler = HandleMiningBuySelectMachine;
+            _config.Commands["/mining_buy"][1].Handler = HandleMiningBuyConfirm;
+            _config.Commands["/mining_switch"][0].Handler = HandleMiningSwitchSelectSlot;
+            _config.Commands["/mining_switch"][1].Handler = HandleMiningSwitchSelectToken;
+            _config.Commands["/mining_switch"][2].Handler = HandleMiningSwitchConfirm;
+            _config.Commands["/mining_take"][0].Handler = HandleMiningTakeSelectSlot;
+            _config.Commands["/mining_take"][1].Handler = HandleMiningTakeConfirm;
+            _config.Commands["/mining_sell"][0].Handler = HandleMiningSellSelectSlot;
+            _config.Commands["/mining_sell"][1].Handler = HandleMiningSellConfirm;
         }
 
         public async Task<WizardResult> ProcessInput(long userId, string input)
+            => await ProcessInputInternal(userId, input, chatType: null);
+
+        public async Task<WizardResult> ProcessInput(long userId, string input, ChatType? chatType)
+            => await ProcessInputInternal(userId, input, chatType);
+
+        private async Task<WizardResult> ProcessInputInternal(long userId, string input, ChatType? chatType)
         {
             var command = ResolveCommandName(input, userId);
             var stopwatch = Stopwatch.StartNew();
 
             try
             {
-                if (input.StartsWith("/get_order_book "))
+                // Для групповых чатов: разрешаем только OneStep команды и quick paths (с аргументом)
+                if (chatType.HasValue && chatType.Value != ChatType.Private)
                 {
-                    var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == 4)
-                    {
-                        return await HandleQuickOrderBook(parts[1], parts[2], parts[3]);
-                    }
+                    bool isCommandOneStep = _config.Commands.ContainsKey(command)
+                        && _config.Commands[command].First().OneStep;
+
+                    bool isQuickPath = input.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length >= 2
+                        && command != "unknown";
+
+                    if (!isCommandOneStep && !isQuickPath)
+                        return new WizardResult { Message = "", ChatType = chatType.Value };
                 }
 
-                if (input.StartsWith("/get_trades "))
+                // Выполняем команду
+                var result = await ExecuteCommandAsync(userId, input, command);
+                
+                // Применяем ChatType ко всем результатам
+                if (chatType.HasValue)
+                    result.ChatType = chatType.Value;
+                
+                // Фильтруем кнопки для групповых чатов
+                if (chatType.HasValue && chatType.Value != ChatType.Private)
                 {
-                    var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == 2)
-                    {
-                        return await HandleQuickTrades(userId, parts[1]);
-                    }
+                    result.Buttons = FilterButtonsForGroup(result.Buttons);
                 }
-
-                if (input.StartsWith("/get_tops "))
-                {
-                    var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == 2)
-                    {
-                        return await HandleQuickTops(userId, parts[1]);
-                    }
-                }
-
-                if (input.StartsWith("/admin_bots_activity "))
-                {
-                    var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == 2)
-                    {
-                        return await HandleQuickAdminBotsActivity(parts[1]);
-                    }
-                }
-
-                if (input.StartsWith("/admin_stats "))
-                {
-                    var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == 2)
-                    {
-                        return await HandleQuickAdminStats(parts[1]);
-                    }
-                }
-
-                if (_config.Commands.ContainsKey(input))
-                {
-                    return await StartCommand(userId, input);
-                }
-
-                if (_sessionStore.TryGet(userId, out var session) && session != null)
-                {
-                    return await ContinueCommand(userId, input, session);
-                }
-
-                return new WizardResult { Message = "Неизвестная команда" };
+                
+                return result;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Wizard ProcessInput failed for user {UserId}, input: {Input}", userId, input);
-                return new WizardResult { Message = ServerErrorMessage };
+                return new WizardResult { Message = ServerErrorMessage, ChatType = chatType };
             }
             finally
             {
                 stopwatch.Stop();
                 ArkWalletMetrics.RecordCommand(command, stopwatch.Elapsed.TotalSeconds);
+            }
+
+            // Local function to avoid code duplication
+            async Task<WizardResult> ExecuteCommandAsync(long uid, string inp, string cmd)
+            {
+                if (inp.StartsWith("/get_order_book "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 4)
+                        return await HandleQuickOrderBook(parts[1], parts[2], parts[3]);
+                }
+
+                if (inp.StartsWith("/get_trades "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                        return await HandleQuickTrades(uid, parts[1]);
+                }
+
+                if (inp.StartsWith("/get_tops "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                        return await HandleQuickTops(uid, parts[1]);
+                }
+
+                if (inp.StartsWith("/admin_bots_activity "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                        return await HandleQuickAdminBotsActivity(parts[1]);
+                }
+
+                if (inp.StartsWith("/admin_stats "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                        return await HandleQuickAdminStats(parts[1]);
+                }
+
+                if (inp.StartsWith("/mining_buy "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                        return await HandleQuickMiningBuy(uid, parts[1]);
+                }
+
+                if (inp.StartsWith("/mining_take "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                        return await HandleQuickMiningTake(uid, parts[1]);
+                }
+
+                if (inp.StartsWith("/mining_sell "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                        return await HandleQuickMiningSell(uid, parts[1]);
+                }
+
+                if (_config.Commands.ContainsKey(inp))
+                    return await StartCommand(uid, inp);
+
+                if (_sessionStore.TryGet(uid, out var session) && session != null)
+                    return await ContinueCommand(uid, inp, session);
+
+                return new WizardResult { Message = "Неизвестная команда" };
             }
         }
 
@@ -251,7 +374,10 @@ namespace ArkWallet.Infrastructure.Wizard
                 || input.StartsWith("/get_trades ")
                 || input.StartsWith("/get_tops ")
                 || input.StartsWith("/admin_bots_activity ")
-                || input.StartsWith("/admin_stats "))
+                || input.StartsWith("/admin_stats ")
+                || input.StartsWith("/mining_buy ")
+                || input.StartsWith("/mining_take ")
+                || input.StartsWith("/mining_sell "))
             {
                 return input.Split(' ', 2)[0];
             }
@@ -310,7 +436,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 {
                     _logger.LogWarning("Wizard OneStep handler error for user {UserId}, command {Command}: {Error}",
                         userId, command, result.Message);
-                    return new WizardResult { Message = ServerErrorMessage };
+                    return new WizardResult { Message = ErrorMessageFor(command, result.Message) };
                 }
 
                 return new WizardResult { Message = result.Message ?? "Готово!", Buttons = result.Buttons, SentFilePath = result.SentFilePath };
@@ -328,7 +454,7 @@ namespace ArkWallet.Infrastructure.Wizard
             {
                 _logger.LogWarning("Wizard step error for user {UserId}, command {Command}, step {Step}: {Error}",
                     userId, session.CurrentCommand, session.CurrentStep, result.Message);
-                return new WizardResult { Message = ServerErrorMessage, Buttons = currentStep.Buttons };
+                return new WizardResult { Message = ErrorMessageFor(session.CurrentCommand, result.Message), Buttons = currentStep.Buttons };
             }
 
             if (result.NextStep == "completed")
@@ -355,7 +481,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 {
                     _logger.LogWarning("Wizard OneStep handler error for user {UserId}, command {Command}, step {Step}: {Error}",
                         userId, session.CurrentCommand, result.NextStep, oneStepResult.Message);
-                    return new WizardResult { Message = ServerErrorMessage };
+                    return new WizardResult { Message = ErrorMessageFor(session.CurrentCommand, oneStepResult.Message) };
                 }
 
                 return new WizardResult { Message = oneStepResult.Message ?? "Готово!", Buttons = oneStepResult.Buttons, SentFilePath = oneStepResult.SentFilePath };
@@ -365,6 +491,22 @@ namespace ArkWallet.Infrastructure.Wizard
             var buttons = await _buttonDecorator.DecorateButtonsAsync(nextStep.Name, nextStep.Buttons, session);
 
             return new WizardResult { Message = question, Buttons = buttons };
+        }
+
+        /// <summary>
+        /// Для admin-команд показывает конкретное описание ошибки, для остальных — общее сообщение.
+        /// </summary>
+        private static string ErrorMessageFor(string command, string? error)
+            => command.StartsWith("/admin", StringComparison.OrdinalIgnoreCase)
+                ? error ?? ServerErrorMessage
+                : ServerErrorMessage;
+
+        /// <summary>
+        /// Убирает все кнопки для групповых чатов.
+        /// </summary>
+        private static List<QuickButton>? FilterButtonsForGroup(List<QuickButton>? buttons)
+        {
+            return null;
         }
     }
 }

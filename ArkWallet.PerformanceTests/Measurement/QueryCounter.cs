@@ -57,7 +57,7 @@ public sealed class QueryCounter : IDbCommandInterceptor
 
     public int NonQueryExecuted(DbCommand command, CommandExecutedEventData eventData, int result)
     {
-        Record(eventData.Duration, eventData.Command.CommandText, result);
+        Record(eventData.Duration, eventData.Command.CommandText, Math.Max(0, result));
         return result;
     }
 
@@ -77,7 +77,7 @@ public sealed class QueryCounter : IDbCommandInterceptor
     public async ValueTask<int> NonQueryExecutedAsync(
         DbCommand command, CommandExecutedEventData eventData, int result, CancellationToken cancellationToken = default)
     {
-        Record(eventData.Duration, eventData.Command.CommandText, result);
+        Record(eventData.Duration, eventData.Command.CommandText, Math.Max(0, result));
         return result;
     }
 
@@ -96,7 +96,7 @@ public sealed class QueryCounter : IDbCommandInterceptor
             {
                 stats = new CommandStats(commandText);
                 _byText.Add(commandText, stats);
-}
+            }
 
             stats.Count++;
             stats.TotalTicks += duration.Ticks;
@@ -106,7 +106,11 @@ public sealed class QueryCounter : IDbCommandInterceptor
     }
 
     private DbDataReader WrapReader(CommandStats stats, DbDataReader result)
-        => new CountingDbDataReader(result, () =>
+    {
+        if (result is Npgsql.NpgsqlDataReader)
+            return result;
+
+        return new CountingDbDataReader(result, () =>
         {
             lock (_lock)
             {
@@ -114,6 +118,7 @@ public sealed class QueryCounter : IDbCommandInterceptor
                 stats.Rows++;
             }
         });
+    }
 
     private static double ToMs(long ticks) => TimeSpan.FromTicks(ticks).TotalMilliseconds;
 
@@ -127,5 +132,3 @@ public sealed class QueryCounter : IDbCommandInterceptor
         public int Rows;
     }
 }
-
-

@@ -32,6 +32,8 @@ internal class BalanceSnapshotOrchestrator(
 
             try
             {
+                await dbContext.LockTradersAsync(traderIds);
+
                 foreach (var traderId in traderIds)
                 {
                     var snapshotResult = await balanceSnapshotService.TakeTotalTraderBalanceSnapshot(traderId);

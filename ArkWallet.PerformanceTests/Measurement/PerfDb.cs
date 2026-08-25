@@ -9,6 +9,15 @@ internal static class PerfDb
 {
     internal static ArkWalletDbContext CreateDbContext(params IInterceptor[] interceptors)
     {
+        return RepeatConfig.DatabaseProvider switch
+        {
+            "postgres" or "postgresql" => CreatePostgresDbContext(interceptors),
+            _ => CreateSqliteDbContext(interceptors),
+        };
+    }
+
+    private static ArkWalletDbContext CreateSqliteDbContext(IInterceptor[] interceptors)
+    {
         var connection = new SqliteConnection("DataSource=:memory:");
         connection.Open();
 
@@ -18,5 +27,20 @@ internal static class PerfDb
             .Options;
 
         return new ArkWalletDbContext(options);
+    }
+
+    private static ArkWalletDbContext CreatePostgresDbContext(IInterceptor[] interceptors)
+    {
+        var connectionString = PostgresPerfContainer.GetConnectionStringAsync()
+            .GetAwaiter().GetResult();
+
+        var options = new DbContextOptionsBuilder<ArkWalletDbContext>()
+            .UseNpgsql(connectionString)
+            .AddInterceptors(interceptors)
+            .Options;
+
+        var context = new ArkWalletDbContext(options);
+        context.Database.EnsureDeleted();
+        return context;
     }
 }

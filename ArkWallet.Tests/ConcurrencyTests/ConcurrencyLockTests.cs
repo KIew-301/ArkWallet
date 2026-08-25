@@ -5,6 +5,7 @@ using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Services.TradeOrderServices;
 using ArkWallet.Domain.Engines;
 using ArkWallet.Domain.Entities;
+using ArkWallet.Infrastructure;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Tests.HelpTools;
 using Microsoft.EntityFrameworkCore;
@@ -98,6 +99,121 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
     }
 
     [SkippableFact]
+    public async Task MiningSlotLock_BlocksConcurrentWriter_UntilReleased()
+    {
+        await using (var db = CreateContext())
+            await db.Database.EnsureCreatedAsync();
+
+        long slotId;
+        await using (var seed = CreateContext())
+        {
+            await HelpMethods.RegisterTrader(seed, 201);
+
+            var machine = MiningMachine.Create(MiningMachineType.SMAI, 10, 80, true, "img.zzz", 1m);
+            seed.MiningMachines.Add(machine);
+            await seed.SaveChangesAsync();
+
+            var slot = MiningMachineSlot.Create(201, machine, 1200, DateTime.UtcNow);
+            seed.MiningMachineSlots.Add(slot);
+            await seed.SaveChangesAsync();
+
+            slotId = slot.Id;
+        }
+
+        await using var holder = CreateContext();
+        await using var waiter = CreateContext();
+
+        await using var holderTx = await holder.Database.BeginTransactionAsync();
+        await holder.LockMiningMachineSlotsAsync([slotId]);
+
+        await using var waiterTx = await waiter.Database.BeginTransactionAsync();
+        await waiter.Database.ExecuteSqlRawAsync("SET LOCAL lock_timeout = '300ms'");
+
+        var blocked = await Assert.ThrowsAsync<PostgresException>(
+            () => waiter.LockMiningMachineSlotsAsync([slotId]));
+        Assert.Equal("55P03", blocked.SqlState);
+
+        await waiterTx.RollbackAsync();
+        await holderTx.CommitAsync();
+
+        await using var waiterTx2 = await waiter.Database.BeginTransactionAsync();
+        await waiter.LockMiningMachineSlotsAsync([slotId]);
+        await waiterTx2.CommitAsync();
+    }
+
+    [SkippableFact]
+    public async Task ActiveMiningSlotLock_BlocksConcurrentWorker_UntilReleased()
+    {
+        await using (var db = CreateContext())
+            await db.Database.EnsureCreatedAsync();
+
+        await using (var seed = CreateContext())
+        {
+            await HelpMethods.RegisterTrader(seed, 301);
+
+            var machine = MiningMachine.Create(MiningMachineType.SMAI, 30, 80, true, "img.zzz", 1m);
+            seed.MiningMachines.Add(machine);
+            await seed.SaveChangesAsync();
+
+            var slot = MiningMachineSlot.Create(301, machine, 1200, DateTime.UtcNow);
+            seed.MiningMachineSlots.Add(slot);
+            await seed.SaveChangesAsync();
+
+            await seed.Database.ExecuteSqlRawAsync(
+                "UPDATE \"MiningMachineSlots\" SET \"Status\" = 'Active' WHERE \"Id\" = {0}", slot.Id);
+        }
+
+        await using var holder = CreateContext();
+        await using var waiter = CreateContext();
+
+        await using var holderTx = await holder.Database.BeginTransactionAsync();
+        await holder.LockActiveMiningMachineSlotsAsync();
+
+        await using var waiterTx = await waiter.Database.BeginTransactionAsync();
+        await waiter.Database.ExecuteSqlRawAsync("SET LOCAL lock_timeout = '300ms'");
+
+        var blocked = await Assert.ThrowsAsync<PostgresException>(
+            () => waiter.LockActiveMiningMachineSlotsAsync());
+        Assert.Equal("55P03", blocked.SqlState);
+
+        await waiterTx.RollbackAsync();
+        await holderTx.CommitAsync();
+    }
+
+    [SkippableFact]
+    public async Task MiningMachineLock_BlocksConcurrentWriter_UntilReleased()
+    {
+        await using (var db = CreateContext())
+            await db.Database.EnsureCreatedAsync();
+
+        long machineId;
+        await using (var seed = CreateContext())
+        {
+            var machine = MiningMachine.Create(MiningMachineType.SMAI, 150, 80, true, "img.zzz", 1m);
+            seed.MiningMachines.Add(machine);
+            await seed.SaveChangesAsync();
+
+            machineId = machine.Id;
+        }
+
+        await using var holder = CreateContext();
+        await using var waiter = CreateContext();
+
+        await using var holderTx = await holder.Database.BeginTransactionAsync();
+        await holder.LockMiningMachinesAsync([machineId]);
+
+        await using var waiterTx = await waiter.Database.BeginTransactionAsync();
+        await waiter.Database.ExecuteSqlRawAsync("SET LOCAL lock_timeout = '300ms'");
+
+        var blocked = await Assert.ThrowsAsync<PostgresException>(
+            () => waiter.LockMiningMachinesAsync([machineId]));
+        Assert.Equal("55P03", blocked.SqlState);
+
+        await waiterTx.RollbackAsync();
+        await holderTx.CommitAsync();
+    }
+
+    [SkippableFact]
     public async Task ConcurrentBuyers_DoNotDoubleFillSellerOrder()
     {
         await using (var db = CreateContext())
@@ -105,8 +221,8 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
 
         await using (var seed = CreateContext())
         {
-            await HelpMethods.RegisterTrader(seed, 102, "Buyer1");
-            await HelpMethods.RegisterTrader(seed, 103, "Buyer2");
+            await HelpMethods.RegisterTrader(seed, 1002, "Buyer1");
+            await HelpMethods.RegisterTrader(seed, 1003, "Buyer2");
         }
 
         const int iterations = 30;
@@ -121,8 +237,8 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
                 await HelpMethods.RegisterTrader(seed, sellerId, $"Seller{i}");
                 await HelpMethods.CreateToken(seed, symbol);
                 await HelpMethods.AddPortfolio(seed, sellerId, symbol, 100);
-                await HelpMethods.GiveMoney(seed, 102, 50_000m);
-                await HelpMethods.GiveMoney(seed, 103, 50_000m);
+                await HelpMethods.GiveMoney(seed, 1002, 50_000m);
+                await HelpMethods.GiveMoney(seed, 1003, 50_000m);
 
                 var sell = await HelpMethods.PlaceOrder(seed, sellerId, "продать", symbol, 100, 100);
                 Assert.True(sell.IsSuccess, sell.Message);
@@ -134,13 +250,13 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
             {
                 await start.Task;
                 await using var db = CreateContext();
-                return await BuyAsync(db, 102, symbol);
+                return await BuyAsync(db, 1002, symbol);
             });
             var task2 = Task.Run(async () =>
             {
                 await start.Task;
                 await using var db = CreateContext();
-                return await BuyAsync(db, 103, symbol);
+                return await BuyAsync(db, 1003, symbol);
             });
 
             start.SetResult();
@@ -153,7 +269,7 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
             Assert.Equal(100, sellerOrder.FilledQuantity);
 
             var buyersExecuted = await check.TradeOrders
-                .Where(o => (o.TraderTelegramId == 102 || o.TraderTelegramId == 103) && o.CharacterTokenId == symbol)
+                .Where(o => (o.TraderTelegramId == 1002 || o.TraderTelegramId == 1003) && o.CharacterTokenId == symbol)
                 .SumAsync(o => o.FilledQuantity);
 
             Assert.Equal(100, buyersExecuted);
@@ -181,6 +297,12 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
             .ReturnsAsync(new Result(true, "Success"));
         var logger = NullLogger<OrderCreationService>.Instance;
 
-        return new OrderCreationService(db, engine, validator.Object, candle.Object, dispatcher.Object, logger);
+        return new OrderCreationService(
+            db,
+            engine,
+            validator.Object,
+            new MediatREventPublisher(TestMediatorFactory.Create(db, candle.Object)),
+            dispatcher.Object,
+            logger);
     }
 }

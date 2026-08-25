@@ -27,7 +27,8 @@ internal class MarketMakerGridEngine(FixedGridEngine fixedGridEngine)
                 if (!HasOrderInRange(existingOrders, lower, upper, "купить"))
                 {
                     var price = GetRandomPriceInRange(lower, upper);
-                    var quantity = (int)Math.Max(bot.BasePower * 0.3m, 1);
+                    var spread = Random.Shared.Next(0, 41);
+                    var quantity = (int)Math.Max(bot.BasePower * 0.3m * (1 + spread / 100m), 1);
 
                     commands.Add(new CreateOrderCommand(
                         bot.TraderId,
@@ -51,7 +52,8 @@ internal class MarketMakerGridEngine(FixedGridEngine fixedGridEngine)
                 if (!HasOrderInRange(existingOrders, lower, upper, "продать"))
                 {
                     var price = GetRandomPriceInRange(lower, upper);
-                    var quantity = (int)Math.Max(bot.BasePower * 0.3m, 1);
+                    var spread = Random.Shared.Next(0, 41);
+                    var quantity = (int)Math.Max(bot.BasePower * 0.3m * (1 + spread / 100m), 1);
 
                     commands.Add(new CreateOrderCommand(
                         bot.TraderId,

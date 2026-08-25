@@ -5,13 +5,11 @@ namespace ArkWallet.Tests.ServiceTests.Order;
 
 public class OrderValidationServiceTests
 {
-    private static readonly string[] SingleToken = ["ZZZ"];
-    private static readonly string[] TwoTokens = ["ZZZ", "YYY"];
-
     [Theory]
     [InlineData("купить", true)]
     [InlineData("продать", true)]
-    [InlineData("КУПИТЬ", false)]
+    [InlineData("КУПИТЬ", true)]
+    [InlineData(" Купить ", true)]
     [InlineData("покупать", false)]
     [InlineData("", false)]
     [InlineData(null, false)]
@@ -54,127 +52,18 @@ public class OrderValidationServiceTests
     }
 
     [Fact]
-    public async Task ValidateTokenAsync_BuyDirection_ReturnsSuccess()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-        await HelpMethods.RegisterTrader(db, 101);
-
-        var service = new OrderValidationService(db);
-
-        var result = await service.ValidateTokenAsync(101, "ZZZ", "купить");
-
-        Assert.True(result.IsValid);
-    }
-
-    [Fact]
-    public async Task ValidateTokenAsync_SellWithToken_ReturnsSuccess()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
-
-        var service = new OrderValidationService(db);
-
-        var result = await service.ValidateTokenAsync(101, "ZZZ", "продать");
-
-        Assert.True(result.IsValid);
-    }
-
-    [Fact]
-    public async Task ValidateTokenAsync_SellWithoutToken_ReturnsFail()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.CreateToken(db, "ZZZ");
-
-        var service = new OrderValidationService(db);
-
-        var result = await service.ValidateTokenAsync(101, "ZZZ", "продать");
-
-        Assert.False(result.IsValid);
-        Assert.Contains("не обладает", result.Message);
-    }
-
-    [Fact]
-    public async Task ValidateTokensAsync_BuyDirection_ReturnsSuccess()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-        await HelpMethods.RegisterTrader(db, 101);
-
-        var service = new OrderValidationService(db);
-
-        var result = await service.ValidateTokensAsync(101, SingleToken, "купить");
-
-        Assert.True(result.IsValid);
-    }
-
-    [Fact]
-    public async Task ValidateTokensAsync_SellWithAllTokens_ReturnsSuccess()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.CreateToken(db, "YYY");
-        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
-        await HelpMethods.AddPortfolio(db, 101, "YYY", 5);
-
-        var service = new OrderValidationService(db);
-
-        var result = await service.ValidateTokensAsync(101, TwoTokens, "продать");
-
-        Assert.True(result.IsValid);
-    }
-
-    [Fact]
-    public async Task ValidateTokensAsync_SellWithoutOneToken_ReturnsFail()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.CreateToken(db, "YYY");
-        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
-
-        var service = new OrderValidationService(db);
-
-        var result = await service.ValidateTokensAsync(101, TwoTokens, "продать");
-
-        Assert.False(result.IsValid);
-        Assert.Contains("не обладает", result.Message);
-    }
-
-    [Fact]
-    public async Task ValidateTokensAsync_SellWithEmptySymbols_ReturnsSuccess()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-
-        var service = new OrderValidationService(db);
-
-        var result = await service.ValidateTokensAsync(101, Array.Empty<string>(), "продать");
-
-        Assert.True(result.IsValid);
-    }
-
-    [Fact]
     public async Task ValidateOrderCancellationAsync_ActiveOrder_ReturnsSuccess()
     {
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        var orderResult = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        var orderResult = await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
 
         var service = new OrderValidationService(db);
 
         Assert.True(orderResult.TryGetData(out var data), orderResult.Message);
-        var result = await service.ValidateOrderCancellationAsync(101, data.Order.Id);
+        var result = await service.ValidateOrderCancellationAsync(1001, data.Order.Id);
 
         Assert.True(result.IsValid);
     }
@@ -184,11 +73,11 @@ public class OrderValidationServiceTests
     {
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
 
         var service = new OrderValidationService(db);
 
-        var result = await service.ValidateOrderCancellationAsync(101, "non-existent-id");
+        var result = await service.ValidateOrderCancellationAsync(1001, "non-existent-id");
 
         Assert.False(result.IsValid);
         Assert.Contains("не существует", result.Message);
@@ -199,16 +88,16 @@ public class OrderValidationServiceTests
     {
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        var orderResult = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        var orderResult = await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
 
-        await HelpMethods.CancelOrder(db, 101, orderResult);
+        await HelpMethods.CancelOrder(db, 1001, orderResult);
 
         var service = new OrderValidationService(db);
 
         Assert.True(orderResult.TryGetData(out var data), orderResult.Message);
-        var result = await service.ValidateOrderCancellationAsync(101, data.Order.Id);
+        var result = await service.ValidateOrderCancellationAsync(1001, data.Order.Id);
 
         Assert.False(result.IsValid);
         Assert.Contains("Нельзя отменить неактивный ордер", result.Message);
@@ -219,81 +108,17 @@ public class OrderValidationServiceTests
     {
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
         await HelpMethods.CreateToken(db, "ZZZ");
-        var orderResult = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        var orderResult = await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
 
         var service = new OrderValidationService(db);
 
         Assert.True(orderResult.TryGetData(out var data), orderResult.Message);
-        var result = await service.ValidateOrderCancellationAsync(102, data.Order.Id);
+        var result = await service.ValidateOrderCancellationAsync(1002, data.Order.Id);
 
         Assert.False(result.IsValid);
         Assert.Contains("не своей", result.Message);
-    }
-
-    [Fact]
-    public async Task ValidateOrderCreation_Buy_SufficientBalance_ReturnsSuccess()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.CreateToken(db, "ZZZ");
-
-        var service = new OrderValidationService(db);
-
-        var result = await service.ValidateOrderCreationAsync(101, "ZZZ", "купить", 5, 100);
-
-        Assert.True(result.IsValid);
-    }
-
-    [Fact]
-    public async Task ValidateOrderCreation_Buy_InsufficientBalance_ReturnsFail()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.CreateToken(db, "ZZZ");
-
-        var service = new OrderValidationService(db);
-
-        var result = await service.ValidateOrderCreationAsync(101, "ZZZ", "купить", 15, 100);
-
-        Assert.False(result.IsValid);
-        Assert.Contains("Не хватает средств", result.Message);
-    }
-
-    [Fact]
-    public async Task ValidateOrderCreation_Sell_SufficientTokens_ReturnsSuccess()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
-
-        var service = new OrderValidationService(db);
-
-        var result = await service.ValidateOrderCreationAsync(101, "ZZZ", "продать", 5, 100);
-
-        Assert.True(result.IsValid);
-    }
-
-    [Fact]
-    public async Task ValidateOrderCreation_Sell_InsufficientTokens_ReturnsFail()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 3);
-
-        var service = new OrderValidationService(db);
-
-        var result = await service.ValidateOrderCreationAsync(101, "ZZZ", "продать", 5, 100);
-
-        Assert.False(result.IsValid);
-        Assert.Contains("Не хватает токенов", result.Message);
     }
 }

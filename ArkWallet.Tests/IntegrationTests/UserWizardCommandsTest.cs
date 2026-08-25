@@ -116,10 +116,10 @@ public class UserWizardCommandsTest : IDisposable
         var msg = Normalize(result.Message);
 
         Assert.Contains("👤 Alice", msg);
-        Assert.Contains("💰 Баланс: 5000,00₽", msg);
-        Assert.Contains("📊 Общий баланс: 6281,84₽", msg);
+        Assert.Contains($"💰 Баланс: {5000m:F2}{Descriptor.CurrencySymbol}", msg);
+        Assert.Contains($"📊 Общий баланс: {6281.84m:F2}{Descriptor.CurrencySymbol}", msg);
         Assert.Contains("📦 Портфель:", msg);
-        Assert.Contains("LAPLD: 20 шт. (куплено за 2070,00₽)", msg);
+        Assert.Contains($"LAPLD: 20 шт. (куплено за {2070m:F2}{Descriptor.CurrencySymbol})", msg);
         Assert.Contains("Если продать сейчас", msg);
         Assert.Contains("🏆 Рейтинг по балансу: #2 из 3", msg);
 
@@ -152,7 +152,7 @@ public class UserWizardCommandsTest : IDisposable
         var msg = Normalize(result.Message);
 
         Assert.Contains("👤 Alice", msg);
-        Assert.Contains("💰 Баланс: 3000,00₽", msg);
+        Assert.Contains($"💰 Баланс: {3000m:F2}{Descriptor.CurrencySymbol}", msg);
         Assert.Contains("Портфель:", msg);
         Assert.Contains("Пусто", msg);
         Assert.Contains("🏆 Рейтинг по балансу: #1 из 1", msg);
@@ -191,8 +191,8 @@ public class UserWizardCommandsTest : IDisposable
 
         Assert.NotNull(result.Message);
         var msg = Normalize(result.Message);
-        Assert.Contains("💰 Баланс: 4000,00₽", msg);
-        Assert.Contains("📊 Общий баланс: 4000,00₽", msg);
+        Assert.Contains($"💰 Баланс: {4000m:F2}{Descriptor.CurrencySymbol}", msg);
+        Assert.Contains($"📊 Общий баланс: {4000m:F2}{Descriptor.CurrencySymbol}", msg);
         Assert.DoesNotContain("Рейтинг", msg);
     }
 
@@ -223,17 +223,11 @@ public class UserWizardCommandsTest : IDisposable
             .Setup(s => s.GetTokenInfoAsync("ZZZ"))
             .ReturnsAsync(Result<TokenInfo>.Ok(new TokenInfo("ZZZ", "Zero", 100m, "", "")));
         _m.OrderValidation
-            .Setup(s => s.ValidateTokenAsync(UserId, "zzz", "купить"))
-            .ReturnsAsync(new ValidationResult(true));
-        _m.OrderValidation
             .Setup(s => s.ValidateQuantity(5))
             .Returns(new ValidationResult(true));
         _m.OrderValidation
             .Setup(s => s.ValidatePrice(100m))
             .Returns(new ValidationResult(true));
-        _m.OrderValidation
-            .Setup(s => s.ValidateOrderCreationAsync(UserId, "ZZZ", "купить", 5, 100m))
-            .ReturnsAsync(new ValidationResult(true));
 
         var orderDto = new OrderDto("order-1", Domain.ValueObjects.OrderType.Buy, UserId, "ZZZ", 5, 100m,
             Domain.ValueObjects.OrderStatus.Active, DateTime.UtcNow);
@@ -257,7 +251,7 @@ public class UserWizardCommandsTest : IDisposable
         Assert.NotNull(r5.Message);
         Assert.Contains("Ожидаем", r5.Message);
         Assert.Contains("5 шт. токенов ZZZ", r5.Message);
-        Assert.Contains("100,00₽", r5.Message);
+        Assert.Contains($"{100m:F2}{Descriptor.CurrencySymbol}", r5.Message);
     }
 
     [Fact]
@@ -270,17 +264,11 @@ public class UserWizardCommandsTest : IDisposable
             .Setup(s => s.GetTokenInfoAsync("ZZZ"))
             .ReturnsAsync(Result<TokenInfo>.Ok(new TokenInfo("ZZZ", "Zero", 150m, "", "")));
         _m.OrderValidation
-            .Setup(s => s.ValidateTokenAsync(UserId, "ZZZ", "продать"))
-            .ReturnsAsync(new ValidationResult(true));
-        _m.OrderValidation
             .Setup(s => s.ValidateQuantity(10))
             .Returns(new ValidationResult(true));
         _m.OrderValidation
             .Setup(s => s.ValidatePrice(150m))
             .Returns(new ValidationResult(true));
-        _m.OrderValidation
-            .Setup(s => s.ValidateOrderCreationAsync(UserId, "ZZZ", "продать", 10, 150m))
-            .ReturnsAsync(new ValidationResult(true));
 
         var orderDto = new OrderDto("order-2", Domain.ValueObjects.OrderType.Sell, UserId, "ZZZ", 10, 150m,
             Domain.ValueObjects.OrderStatus.Active, DateTime.UtcNow);
@@ -298,7 +286,7 @@ public class UserWizardCommandsTest : IDisposable
         Assert.Contains("Ожидаем", result.Message);
         Assert.Contains("когда у вас купят", result.Message);
         Assert.Contains("10 шт. токенов ZZZ", result.Message);
-        Assert.Contains("150,00₽", result.Message);
+        Assert.Contains($"{150m:F2}{Descriptor.CurrencySymbol}", result.Message);
     }
 
     [Fact]
@@ -324,9 +312,6 @@ public class UserWizardCommandsTest : IDisposable
         _m.TokenQuery
             .Setup(s => s.GetTokenInfoAsync("ZZZ"))
             .ReturnsAsync(Result<TokenInfo>.Ok(new TokenInfo("ZZZ", "Zero", 100m, "", "")));
-        _m.OrderValidation
-            .Setup(s => s.ValidateTokenAsync(UserId, "zzz", "купить"))
-            .ReturnsAsync(new ValidationResult(true));
 
         await _engine.ProcessInput(UserId, "/place_order");
         await _engine.ProcessInput(UserId, "Купить");
@@ -347,10 +332,10 @@ public class UserWizardCommandsTest : IDisposable
             .Setup(s => s.GetTokenInfoAsync("ZZZ"))
             .ReturnsAsync(Result<TokenInfo>.Ok(new TokenInfo("ZZZ", "Zero", 100m, "", "")));
         _m.OrderValidation
-            .Setup(s => s.ValidateTokenAsync(UserId, "zzz", "купить"))
-            .ReturnsAsync(new ValidationResult(true));
-        _m.OrderValidation
             .Setup(s => s.ValidateQuantity(5))
+            .Returns(new ValidationResult(true));
+        _m.OrderValidation
+            .Setup(s => s.ValidatePrice(100m))
             .Returns(new ValidationResult(true));
 
         await _engine.ProcessInput(UserId, "/place_order");
@@ -543,7 +528,7 @@ public class UserWizardCommandsTest : IDisposable
         Assert.Contains("📊 Информация о токене", result.Message);
         Assert.Contains("Символ: ZZZ", result.Message);
         Assert.Contains("Название: Zero", result.Message);
-        Assert.Contains("70,85₽", result.Message);
+        Assert.Contains($"{70.85m:F2}{Descriptor.CurrencySymbol}", result.Message);
     }
 
     [Fact]
@@ -612,8 +597,8 @@ public class UserWizardCommandsTest : IDisposable
         Assert.Contains("История цен ZZZ", result.Message);
         Assert.Contains("шаг 5 мин", result.Message);
         Assert.Contains("2 записей", result.Message);
-        Assert.Contains("100,00₽", result.Message);
-        Assert.Contains("101,00₽", result.Message);
+        Assert.Contains($"{100m:F2}{Descriptor.CurrencySymbol}", result.Message);
+        Assert.Contains($"{101m:F2}{Descriptor.CurrencySymbol}", result.Message);
     }
 
     [Fact]
@@ -716,8 +701,8 @@ public class UserWizardCommandsTest : IDisposable
         Assert.Contains("🔻 ПОКУПКА (BID)", msg);
         Assert.Contains("ℹ️ КАК ЧИТАТЬ:", msg);
         Assert.Contains("номер] [цена] × [количество]", msg);
-        Assert.Contains("70,34", msg);
-        Assert.Contains("70,10", msg);
+        Assert.Contains($"{70.34m:F2}", msg);
+        Assert.Contains($"{70.10m:F2}", msg);
 
         Assert.NotNull(result.Buttons);
         Assert.Single(result.Buttons);
@@ -817,8 +802,8 @@ public class UserWizardCommandsTest : IDisposable
         Assert.Contains("📋 Ваши активные ордера:", msg);
         Assert.Contains("🟢 Покупка ZZZ", msg);
         Assert.Contains("🔴 Продажа ZZZ", msg);
-        Assert.Contains("58,29₽", msg);
-        Assert.Contains("75,00₽", msg);
+        Assert.Contains($"{58.29m:F2}{Descriptor.CurrencySymbol}", msg);
+        Assert.Contains($"{75m:F2}{Descriptor.CurrencySymbol}", msg);
         Assert.Contains("░░░░░░░░░░", msg);
         Assert.Contains("0/65 (0%)", msg);
         Assert.Contains("5/10 (50%)", msg);
@@ -865,10 +850,10 @@ public class UserWizardCommandsTest : IDisposable
         Assert.Contains("📊 Последние 2 сделок:", msg);
         Assert.Contains("🟢 Купил LAPLD", msg);
         Assert.Contains("🔴 Продал LAPLD", msg);
-        Assert.Contains("Цена: 103,50 | Кол-во: 8", msg);
-        Assert.Contains("Цена: 98,02 | Кол-во: 2", msg);
-        Assert.Contains("💸 Баланс: -828,00₽", msg);
-        Assert.Contains("💰 Баланс: +196,05₽", msg);
+        Assert.Contains($"Цена: {103.5m:F2} | Кол-во: 8", msg);
+        Assert.Contains($"Цена: {98.02m:F2} | Кол-во: 2", msg);
+        Assert.Contains($"💸 Баланс: {-828m:+0.00;-0.00}{Descriptor.CurrencySymbol}", msg);
+        Assert.Contains($"💰 Баланс: {196.05m:+0.00;-0.00}{Descriptor.CurrencySymbol}", msg);
 
         Assert.NotNull(result.Buttons);
         Assert.Equal("/get_trades 5", result.Buttons[0].Value);
@@ -1286,7 +1271,7 @@ public class UserWizardCommandsTest : IDisposable
         var result = await _engine.ProcessInput(UserId, "/admin_get_ids");
 
         Assert.NotNull(result.Message);
-        Assert.Contains("Ошибка", result.Message);
+        Assert.Equal("Failed to get trader list.", result.Message);
     }
 
     [Fact]
@@ -1341,7 +1326,7 @@ public class UserWizardCommandsTest : IDisposable
         var result = await _engine.ProcessInput(UserId, "[]");
 
         Assert.NotNull(result.Message);
-        Assert.Equal("Ошибка на стороне сервера", result.Message);
+        Assert.Equal("Expected a JSON array with at least one token.", result.Message);
     }
 
     [Fact]
@@ -1364,7 +1349,7 @@ public class UserWizardCommandsTest : IDisposable
         var result = await _engine.ProcessInput(UserId, "NOPE");
 
         Assert.NotNull(result.Message);
-        Assert.Equal("Ошибка на стороне сервера", result.Message);
+        Assert.Equal("Token not found. Check the symbol and try again.", result.Message);
     }
 
     [Fact]

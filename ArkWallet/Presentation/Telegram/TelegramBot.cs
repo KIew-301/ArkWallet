@@ -1,8 +1,7 @@
 ﻿using ArkWallet.Application.Contracts.Other;
-using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Infrastructure.AccessControl;
 using ArkWallet.Infrastructure.Wizard;
 using ArkWallet.Presentation.Telegram;
-using Microsoft.Extensions.Configuration;
 using System.Diagnostics.CodeAnalysis;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
@@ -11,10 +10,13 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 
+using ChatTypeDomain = ArkWallet.Domain.ValueObjects.ChatType;
+using ChatTypeTelegram = Telegram.Bot.Types.Enums.ChatType;
+
 namespace ArkWallet.Telegram
 {
     [ExcludeFromCodeCoverage(Justification = "Telegram-бот: точка входа Telegram API, зависит от внешнего клиента и polling. Тестируется интеграционно.")]
-    internal partial class TelegramBot(IServiceProvider serviceProvider) : IMessageSender
+    internal partial class TelegramBot(IServiceProvider serviceProvider, ILogger<TelegramBot> logger) : IMessageSender
     {
         // Интерфейс для взаимодействия с ботом
         ITelegramBotClient botClient = null!;
@@ -22,8 +24,9 @@ namespace ArkWallet.Telegram
         public async Task Start()
         {
             var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+            var accessControl = serviceProvider.GetRequiredService<AccessControlService>();
             ConfigurationService configurationService = new(configuration);
-            LoadConfiguration(configurationService);
+            LoadConfiguration(configurationService, accessControl);
             string token = configurationService.GetToken();
 
             _ = LaunchBot(token);
@@ -62,17 +65,71 @@ namespace ArkWallet.Telegram
                 if (update.Message is { } message && message.Text is { } messageText)
                 {
                     var chatId = message.Chat.Id;
-                    Console.WriteLine($"Received text message");
-                    await ProcessUserInput(botClient, chatId, messageText, cancellationToken);
-                }
+                    var telegramChatType = message.Chat.Type;
+                    var userId = message.From?.Id ?? 0;
+                    var username = message.From?.Username ?? "без юзернейма";
+                    var isGroup = telegramChatType == ChatTypeTelegram.Group || telegramChatType == ChatTypeTelegram.Supergroup;
 
-                else if (update.CallbackQuery is { } callbackQuery)
+                    logger.LogInformation(
+                        "📩 Сообщение | UserId: {UserId} | Username: @{Username} | ChatId: {ChatId} | ChatType: {ChatType} | Text: {Text}",
+                        userId,
+                        username,
+                        chatId,
+                        telegramChatType,
+                        messageText
+                    );
+
+                    if (isGroup && !IsAllowedGroup(chatId))
+                    {                         
+                        logger.LogWarning(
+                            "⛔ Неавторизованная группа | ChatId: {ChatId} | UserId: {UserId} | Username: @{Username}",
+                            chatId,
+                            userId,
+                            username
+                        );
+                        return;
+                    }
+
+                    string processedText = messageText;
+
+                    if (isGroup)
+                    {
+                        var botMention = $"@{await GetBotUsernameAsync(botClient)}";
+
+                        if (processedText.Contains(botMention))
+                        {
+                            processedText = processedText.Replace(botMention, "").Trim();
+                        }
+
+                        logger.LogInformation(
+                            "🔄 Группа | Оригинал: {Original} | Обработано: {Processed} | Отправитель: {UserId}",
+                            messageText,
+                            processedText,
+                            userId
+                        );
+                    }
+
+                    await ProcessUserInput(botClient, chatId, processedText, userId, cancellationToken, telegramChatType);
+                }
+                else if (update.CallbackQuery is { } callbackQuery && callbackQuery.Message != null)
                 {
+                    var userId = callbackQuery.From.Id;
+                    var chatId = callbackQuery.Message.Chat.Id;
+                    var data = callbackQuery.Data ?? "без данных";
+
+                    logger.LogInformation(
+                        "🔄 Callback | UserId: {UserId} | ChatId: {ChatId} | Data: {Data}",
+                        userId,
+                        chatId,
+                        data
+                    );
+
                     await HandleCallbackQuery(botClient, callbackQuery, cancellationToken);
                 }
             }
             catch (Exception ex)
             {
+                logger.LogError(ex, "Unhandled error in HandleUpdateAsync");
                 Console.WriteLine($"Unhandled error: {ex.Message}");
             }
         }
@@ -80,8 +137,25 @@ namespace ArkWallet.Telegram
         async Task HandleCallbackQuery(ITelegramBotClient botClient, CallbackQuery callbackQuery, CancellationToken cancellationToken)
         {
             var chatId = callbackQuery.Message.Chat.Id;
+            var chatType = callbackQuery.Message.Chat.Type;
             var callbackData = callbackQuery.Data;
             var messageId = callbackQuery.Message.MessageId;
+            var userId = callbackQuery.From.Id;
+
+            var chatTypeEnum = chatType switch
+            {
+                ChatTypeTelegram.Private => ChatTypeDomain.Private,
+                ChatTypeTelegram.Group => ChatTypeDomain.Group,
+                ChatTypeTelegram.Supergroup => ChatTypeDomain.Supergroup,
+                _ => ChatTypeDomain.Private
+            };
+
+            logger.LogInformation(
+                "📨 Callback обработка | UserId: {UserId} | ChatId: {ChatId} | Data: {Data}",
+                userId,
+                chatId,
+                callbackData ?? "null"
+            );
 
             try
             {
@@ -93,9 +167,16 @@ namespace ArkWallet.Telegram
                 await botClient.AnswerCallbackQuery(callbackQuery.Id, cancellationToken: cancellationToken);
 
                 if (callbackData == null) return;
-                var result = await wizardEngine.ProcessInput(chatId, callbackData);
+                var result = await wizardEngine.ProcessInput(userId, callbackData, chatTypeEnum);
 
-                if (IsAuthorizedUser(chatId))
+                logger.LogInformation(
+                    "📤 Callback результат | UserId: {UserId} | Message: {Message} | HasButtons: {HasButtons}",
+                    userId,
+                    result.Message?.Length > 100 ? result.Message.Substring(0, 100) + "..." : result.Message,
+                    result.Buttons != null && result.Buttons.Any()
+                );
+
+                if (IsAuthorizedUser(userId))
                 {
                     if (!string.IsNullOrEmpty(result.SentFilePath))
                     {
@@ -103,9 +184,11 @@ namespace ArkWallet.Telegram
                     }
                     else if (result.Buttons != null && result.Buttons.Any())
                     {
+                        // Кнопки уже отфильтрованы в WizardEngine для групповых чатов
                         var inlineButtons = result.Buttons.Select(btn =>
                             new[] { InlineKeyboardButton.WithCallbackData(btn.Text, btn.Value ?? btn.Text) }
                         );
+
                         var inlineMarkup = new InlineKeyboardMarkup(inlineButtons);
 
                         await botClient.EditMessageText(
@@ -125,6 +208,10 @@ namespace ArkWallet.Telegram
                             cancellationToken: cancellationToken
                         );
                     }
+                }
+                else
+                {
+                    logger.LogWarning("⛔ Неавторизованный пользователь | UserId: {UserId} | ChatId: {ChatId}", userId, chatId);
                 }
             }
             catch (ApiRequestException apiEx) when (apiEx.Message.Contains("message is not modified"))
@@ -135,8 +222,10 @@ namespace ArkWallet.Telegram
                     cancellationToken: cancellationToken
                 );
             }
-            catch
+            catch (Exception ex)
             {
+                logger.LogError(ex, "Error processing callback query | UserId: {UserId} | ChatId: {ChatId}", userId, chatId);
+
                 await botClient.EditMessageText(
                             chatId: chatId,
                             messageId: messageId,
@@ -146,16 +235,38 @@ namespace ArkWallet.Telegram
             }
         }
 
-        async Task ProcessUserInput(ITelegramBotClient botClient, long chatId, string input, CancellationToken cancellationToken)
+        async Task ProcessUserInput(ITelegramBotClient botClient, long chatId, string input, long userId, CancellationToken cancellationToken, ChatTypeTelegram chatTypeEnum)
         {
+            var chatType = chatTypeEnum switch
+            {
+                ChatTypeTelegram.Private => ChatTypeDomain.Private,
+                ChatTypeTelegram.Group => ChatTypeDomain.Group,
+                ChatTypeTelegram.Supergroup => ChatTypeDomain.Supergroup,
+                _ => ChatTypeDomain.Private
+            };
+
+            logger.LogInformation(
+                "📥 ProcessUserInput | UserId: {UserId} | ChatId: {ChatId} | Input: {Input}",
+                userId,
+                chatId,
+                input.Length > 50 ? input.Substring(0, 50) + "..." : input
+            );
+
             try
             {
-                if (IsAuthorizedUser(chatId))
+                if (IsAuthorizedUser(userId))
                 {
                     using var scope = serviceProvider.CreateScope();
                     var wizardEngine = scope.ServiceProvider.GetRequiredService<WizardEngine>();
 
-                    var result = await wizardEngine.ProcessInput(chatId, input);
+                    var result = await wizardEngine.ProcessInput(userId, input, chatType);
+
+                    logger.LogInformation(
+                        "📤 ProcessUserInput результат | UserId: {UserId} | Message: {Message} | HasButtons: {HasButtons}",
+                        userId,
+                        result.Message?.Length > 100 ? result.Message.Substring(0, 100) + "..." : result.Message,
+                        result.Buttons != null && result.Buttons.Any()
+                    );
 
                     if (string.IsNullOrEmpty(result.Message)) return;
 
@@ -165,6 +276,7 @@ namespace ArkWallet.Telegram
                     }
                     else if (result.Buttons != null && result.Buttons.Any())
                     {
+                        // Кнопки уже отфильтрованы в WizardEngine для групповых чатов
                         var inlineButtons = result.Buttons.Select(btn =>
                             new[] { InlineKeyboardButton.WithCallbackData(btn.Text, btn.Value ?? btn.Text) }
                         );
@@ -186,9 +298,15 @@ namespace ArkWallet.Telegram
                         );
                     }
                 }
+                else
+                {
+                    logger.LogWarning("⛔ Неавторизованный чат | ChatId: {ChatId} | UserId: {UserId}", chatId, userId);
+                }
             }
-            catch
+            catch (Exception ex)
             {
+                logger.LogError(ex, "Error processing user input | UserId: {UserId} | ChatId: {ChatId}", userId, chatId);
+
                 await botClient.SendMessage(
                     chatId: chatId,
                     text: "Ошибка в системе.",

@@ -35,5 +35,22 @@ namespace ArkWallet.Presentation.Telegram
             long adminChatId = long.Parse(configuration[$"Telegram:AdminId:AdditionThird"] ?? "0");
             return adminChatId;
         }
+
+        public HashSet<long> GetAllowedUserIds()
+        {
+            var ids = new HashSet<long>();
+            string? raw = configuration[$"Telegram:AllowedUserIds"];
+
+            if (string.IsNullOrWhiteSpace(raw))
+                return ids;
+
+            foreach (var part in raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                if (long.TryParse(part, out var id))
+                    ids.Add(id);
+            }
+
+            return ids;
+        }
     }
 }

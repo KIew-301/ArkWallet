@@ -12,14 +12,14 @@ public class OrderCreationFullValidationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
+        await HelpMethods.AddPortfolio(db, 1001, "ZZZ", 100);
 
         var validationService = new OrderValidationService(db);
 
         var request = new CreateOrderCommand(
-            TraderId: 101,
+            TraderId: 1001,
             Direction: "купить",
             Symbol: "ZZZ",
             Quantity: 5,
@@ -37,13 +37,13 @@ public class OrderCreationFullValidationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
 
         var validationService = new OrderValidationService(db);
 
         var request = new CreateOrderCommand(
-            TraderId: 101,
+            TraderId: 1001,
             Direction: "купить",
             Symbol: "ZZZ",
             Quantity: 5,
@@ -62,13 +62,13 @@ public class OrderCreationFullValidationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
 
         var validationService = new OrderValidationService(db);
 
         var request = new CreateOrderCommand(
-            TraderId: 101,
+            TraderId: 1001,
             Direction: "купить",
             Symbol: "ZZZ",
             Quantity: 0,
@@ -79,54 +79,5 @@ public class OrderCreationFullValidationServiceTest
 
         Assert.False(result.IsValid);
         Assert.Contains("Количество должно быть больше 0", result.Message);
-    }
-
-    [Fact]
-    public async Task ValidateAsync_TokenNotFound_ReturnsFail()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-
-        await HelpMethods.RegisterTrader(db, 101);
-
-        var validationService = new OrderValidationService(db);
-
-        var request = new CreateOrderCommand(
-            TraderId: 101,
-            Direction: "продать",
-            Symbol: "UNKNOWN",
-            Quantity: 5,
-            Price: 100
-        );
-
-        var result = await validationService.ValidateFullOrderAsync(request);
-
-        Assert.False(result.IsValid);
-        Assert.Contains("не обладает", result.Message);
-    }
-
-    [Fact]
-    public async Task ValidateAsync_NotTokenExistence_ReturnsFail()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.CreateToken(db, "ZZZ");
-
-        var validationService = new OrderValidationService(db);
-
-        var request = new CreateOrderCommand(
-            TraderId: 101,
-            Direction: "продать",
-            Symbol: "ZZZ",
-            Quantity: 5,
-            Price: 100
-        );
-
-        var result = await validationService.ValidateFullOrderAsync(request);
-
-        Assert.False(result.IsValid);
-        Assert.Contains("не обладает", result.Message);
     }
 }

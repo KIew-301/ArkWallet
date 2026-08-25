@@ -1,6 +1,7 @@
 ﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.ValueObjects;
+using TradingOrder = ArkWallet.Domain.TradingContext.Order;
 
 namespace ArkWallet.Application.Dtos
 {
@@ -15,6 +16,7 @@ namespace ArkWallet.Application.Dtos
     /// <param name="Price">Цена за единицу токена</param>
     /// <param name="Status">Статус ордера</param>
     /// <param name="CreatedAt">Дата и время создания ордера</param>
+    /// <param name="AverageExecutePrice">Средняя цена исполнения ордера</param>
     public record OrderDto(
         string Id,
         OrderType Direction,
@@ -30,7 +32,7 @@ namespace ArkWallet.Application.Dtos
         internal static OrderDto FromEntity(TradeOrder order)
         {
             if (order == null)
-                throw new Exception("Невозможно создать DTO из пустого ордера");
+                throw new ArgumentException("Невозможно создать DTO из пустого ордера", nameof(order));
 
             return new(
                 order.Id,
@@ -40,6 +42,24 @@ namespace ArkWallet.Application.Dtos
                 order.Quantity,
                 order.Price,
                 order.Status,
+                order.CreatedAt,
+                order.AverageExecutePrice
+                );
+        }
+
+        internal static OrderDto FromAggregate(TradingOrder order, long traderId)
+        {
+            if (order == null)
+                throw new ArgumentException("Невозможно создать DTO из пустого ордера", nameof(order));
+
+            return new(
+                order.Id,
+                (OrderType)(int)order.Type,
+                traderId,
+                order.TokenSymbol,
+                order.Quantity,
+                order.Price,
+                (OrderStatus)(int)order.Status,
                 order.CreatedAt,
                 order.AverageExecutePrice
                 );

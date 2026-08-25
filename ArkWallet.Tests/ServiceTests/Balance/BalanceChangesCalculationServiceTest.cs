@@ -21,8 +21,8 @@ public class BalanceChangesCalculationServiceTest
         var calculationServicelogger = NullLogger<BalanceChangesCalculationService>.Instance;
         var calculationService = new BalanceChangesCalculationService(db, snapshotService, calculationServicelogger);
 
-        await HelpMethods.RegisterTrader(db, 101);
-        var result = await calculationService.TakeMainBalanceChanges(101, 1);
+        await HelpMethods.RegisterTrader(db, 1001);
+        var result = await calculationService.TakeMainBalanceChanges(1001, 1);
 
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var data));
@@ -44,10 +44,10 @@ public class BalanceChangesCalculationServiceTest
         var calculationServicelogger = NullLogger<BalanceChangesCalculationService>.Instance;
         var calculationService = new BalanceChangesCalculationService(db, snapshotService, calculationServicelogger);
 
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.GiveMoney(db, 101, 2500);
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.GiveMoney(db, 1001, 2500);
 
-        var result = await calculationService.TakeMainBalanceChanges(101, 1);
+        var result = await calculationService.TakeMainBalanceChanges(1001, 1);
 
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var data));
@@ -74,14 +74,14 @@ public class BalanceChangesCalculationServiceTest
         var calculationServicelogger = NullLogger<BalanceChangesCalculationService>.Instance;
         var calculationService = new BalanceChangesCalculationService(db, snapshotService, calculationServicelogger);
 
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.SaveBalanceSnapshot(db, 101, 1000, 1000, 0, 0, 0, DateTime.UtcNow.AddDays(-7));
-        await HelpMethods.SaveBalanceSnapshot(db, 101, 1750, 1750, 0, 0, 0, DateTime.UtcNow.AddDays(-3));
-        await HelpMethods.SaveBalanceSnapshot(db, 101, 2500, 2500, 0, 0, 0, DateTime.UtcNow.AddDays(-2));
-        await HelpMethods.SaveBalanceSnapshot(db, 101, 1500, 1500, 0, 0, 0, DateTime.UtcNow.AddDays(-1));
-        await HelpMethods.GiveMoney(db, 101, 1000);
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.SaveBalanceSnapshot(db, 1001, 1000, 1000, 0, 0, 0, DateTime.UtcNow.AddDays(-7));
+        await HelpMethods.SaveBalanceSnapshot(db, 1001, 1750, 1750, 0, 0, 0, DateTime.UtcNow.AddDays(-3));
+        await HelpMethods.SaveBalanceSnapshot(db, 1001, 2500, 2500, 0, 0, 0, DateTime.UtcNow.AddDays(-2));
+        await HelpMethods.SaveBalanceSnapshot(db, 1001, 1500, 1500, 0, 0, 0, DateTime.UtcNow.AddDays(-1));
+        await HelpMethods.GiveMoney(db, 1001, 1000);
 
-        var result = await calculationService.TakeMainBalanceChanges(101, period);
+        var result = await calculationService.TakeMainBalanceChanges(1001, period);
         var changeAbsolute = currentBalance - previousBalance;
         var changePercent = changeAbsolute / previousBalance * 100;
 
@@ -105,8 +105,8 @@ public class BalanceChangesCalculationServiceTest
         var calculationServicelogger = NullLogger<BalanceChangesCalculationService>.Instance;
         var calculationService = new BalanceChangesCalculationService(db, snapshotService, calculationServicelogger);
 
-        await HelpMethods.RegisterTrader(db, 101);
-        var result = await calculationService.TakeMainBalanceChanges(101, 0);
+        await HelpMethods.RegisterTrader(db, 1001);
+        var result = await calculationService.TakeMainBalanceChanges(1001, 0);
 
         Assert.False(result.IsSuccess);
         Assert.Equal("Минимальный период для расчёта: 1 день", result.Message);
@@ -126,8 +126,8 @@ public class BalanceChangesCalculationServiceTest
         var calculationServicelogger = NullLogger<BalanceChangesCalculationService>.Instance;
         var calculationService = new BalanceChangesCalculationService(db, mockSnapshotServiceService.Object, calculationServicelogger);
 
-        await HelpMethods.RegisterTrader(db, 101);
-        var result = await calculationService.TakeMainBalanceChanges(101, 1);
+        await HelpMethods.RegisterTrader(db, 1001);
+        var result = await calculationService.TakeMainBalanceChanges(1001, 1);
 
         Assert.False(result.IsSuccess);
         Assert.Equal("Error", result.Message);
@@ -145,8 +145,8 @@ public class BalanceChangesCalculationServiceTest
         var calculationServicelogger = NullLogger<BalanceChangesCalculationService>.Instance;
         var calculationService = new BalanceChangesCalculationService(db, snapshotService, calculationServicelogger);
 
-        await HelpMethods.RegisterTrader(db, 202);
-        var result = await calculationService.TakeTotalBalanceChanges(202, 1);
+        await HelpMethods.RegisterTrader(db, 1202);
+        var result = await calculationService.TakeTotalBalanceChanges(1202, 1);
 
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var data));
@@ -167,11 +167,11 @@ public class BalanceChangesCalculationServiceTest
         var calculationServicelogger = NullLogger<BalanceChangesCalculationService>.Instance;
         var calculationService = new BalanceChangesCalculationService(db, snapshotService, calculationServicelogger);
 
-        await HelpMethods.RegisterTrader(db, 202);
-        await HelpMethods.SaveBalanceSnapshot(db, 202, 1000, 1000, 0, 0, 0, DateTime.UtcNow.AddDays(-7));
-        await HelpMethods.GiveMoney(db, 202, 500);
+        await HelpMethods.RegisterTrader(db, 1202);
+        await HelpMethods.SaveBalanceSnapshot(db, 1202, 1000, 1000, 0, 0, 0, DateTime.UtcNow.AddDays(-7));
+        await HelpMethods.GiveMoney(db, 1202, 500);
 
-        var result = await calculationService.TakeTotalBalanceChanges(202, 7);
+        var result = await calculationService.TakeTotalBalanceChanges(1202, 7);
 
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var data));
@@ -192,7 +192,7 @@ public class BalanceChangesCalculationServiceTest
         var calculationServicelogger = NullLogger<BalanceChangesCalculationService>.Instance;
         var calculationService = new BalanceChangesCalculationService(db, snapshotService, calculationServicelogger);
 
-        var result = await calculationService.TakeTotalBalanceChanges(202, 0);
+        var result = await calculationService.TakeTotalBalanceChanges(1202, 0);
 
         Assert.False(result.IsSuccess);
     }
@@ -206,11 +206,11 @@ public class BalanceChangesCalculationServiceTest
         var snapshotService = new BalanceSnapshotService(db, NullLogger<BalanceSnapshotService>.Instance);
         var calculationService = new BalanceChangesCalculationService(db, snapshotService, NullLogger<BalanceChangesCalculationService>.Instance);
 
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.SaveBalanceSnapshot(db, 101, 1000, 1000, 0, 0, 0, DateTime.UtcNow.AddDays(-2));
-        await HelpMethods.GiveMoney(db, 101, 500);
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.SaveBalanceSnapshot(db, 1001, 1000, 1000, 0, 0, 0, DateTime.UtcNow.AddDays(-2));
+        await HelpMethods.GiveMoney(db, 1001, 500);
 
-        var result = await calculationService.TakeBalanceChanges(101, 1);
+        var result = await calculationService.TakeBalanceChanges(1001, 1);
 
         Assert.True(result.IsSuccess, result.Message);
         Assert.True(result.TryGetData(out var data));
@@ -228,7 +228,7 @@ public class BalanceChangesCalculationServiceTest
         var snapshotService = new BalanceSnapshotService(db, NullLogger<BalanceSnapshotService>.Instance);
         var calculationService = new BalanceChangesCalculationService(db, snapshotService, NullLogger<BalanceChangesCalculationService>.Instance);
 
-        var result = await calculationService.TakeBalanceChanges(101, 0);
+        var result = await calculationService.TakeBalanceChanges(1001, 0);
 
         Assert.False(result.IsSuccess);
         Assert.Equal("Минимальный период для расчёта: 1 день", result.Message);
@@ -247,7 +247,7 @@ public class BalanceChangesCalculationServiceTest
 
         var calculationService = new BalanceChangesCalculationService(db, mockSnapshotService.Object, NullLogger<BalanceChangesCalculationService>.Instance);
 
-        var result = await calculationService.TakeBalanceChanges(101, 1);
+        var result = await calculationService.TakeBalanceChanges(1001, 1);
 
         Assert.False(result.IsSuccess);
         Assert.Equal("Error", result.Message);

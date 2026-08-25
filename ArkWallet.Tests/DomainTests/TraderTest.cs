@@ -55,20 +55,6 @@ public class TraderTest
     }
 
     [Fact]
-    public void MarkDirty_ThenClean_TogglesIsDirty()
-    {
-        var trader = Trader.Create(101L, "user");
-
-        Assert.False(trader.IsDirty);
-
-        trader.MarkDirty();
-        Assert.True(trader.IsDirty);
-
-        trader.MarkClean();
-        Assert.False(trader.IsDirty);
-    }
-
-    [Fact]
     public void AddToBalance_IncreasesBalance()
     {
         var trader = Trader.Create(101L, "user");

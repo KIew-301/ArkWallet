@@ -2,6 +2,7 @@
 using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Application.Services.Other;
+using ArkWallet.Infrastructure.AccessControl;
 using ArkWallet.Presentation.API;
 using ArkWallet.Presentation.DTOs;
 using Microsoft.AspNetCore.Mvc;
@@ -95,7 +96,7 @@ public class AuthControllerTest
         var authController = new AuthController(
             mockTraderRegistrationService.Object, config,
             mockTokenService.Object, mockTraderAuthService.Object,
-            mockLogger.Object);
+            new AccessControlService(), mockLogger.Object);
 
         return authController;
     }

@@ -1,5 +1,15 @@
 ﻿namespace ArkWallet.Domain.ValueObjects
 {
+    /// <summary>
+    /// Тип чата в Telegram для управления доступом и кнопками
+    /// </summary>
+    public enum ChatType
+    {
+        Private,
+        Group,
+        Supergroup
+    }
+
     public class WizardStep
     {
         public string Name { get; set; }
@@ -34,6 +44,12 @@
         public string? Message { get; set; }
         public List<QuickButton>? Buttons { get; set; }
         public string? SentFilePath { get; set; }
+        
+        /// <summary>
+        /// Тип чата, в котором была вызвана команда.
+        /// Используется для фильтрации кнопок (в группах только "Обновить").
+        /// </summary>
+        public ChatType? ChatType { get; set; }
     }
 
     public class UserSession

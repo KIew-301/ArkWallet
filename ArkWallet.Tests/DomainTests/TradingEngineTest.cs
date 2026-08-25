@@ -1,165 +1,136 @@
-﻿using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.Engines;
+﻿using ArkWallet.Domain.Engines;
 using ArkWallet.Domain.Exceptions;
-using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Domain.TradingContext;
+using ArkWallet.Tests.HelpTools;
 
 namespace ArkWallet.Tests.DomainTests;
 
 public class TradingEngineTest
 {
     private readonly TradingEngine _engine = new();
+    private readonly RecordingEventPublisher _publisher = new();
 
-    private static CharacterToken CreateToken(string symbol = "ZZZ", decimal price = 100m)
-    {
-        return CharacterToken.Create(symbol, "Test Token", CharacterRarity.FourStar, price, 1000, "img", "icon");
-    }
+    private static Token CreateToken(string symbol = "ZZZ", decimal price = 100m)
+        => Token.Create(symbol, "Test Token", TokenRarity.FourStar, price, 1000, "img", "icon");
 
-    private static Trader CreateTrader(long id, decimal? balance = null)
+    private Trader CreateTrader(long id, decimal balance = 1000m)
     {
-        var trader = Trader.Create(id, $"User{id}");
-        if (balance.HasValue)
-            trader.AddToBalance(balance.Value - Trader.GetDefaultBalance());
+        var trader = Trader.Create(id, $"User{id}", balance);
+        trader.SetEventPublisher(_publisher);
         return trader;
     }
 
-    private static TradeOrder CreateBuyOrder(long traderId, string symbol = "ZZZ", int quantity = 5, decimal price = 100m)
-        => TradeOrder.Create(OrderType.Buy, symbol, traderId, price, quantity);
-
-    private static TradeOrder CreateSellOrder(long traderId, string symbol = "ZZZ", int quantity = 5, decimal price = 100m)
-        => TradeOrder.Create(OrderType.Sell, symbol, traderId, price, quantity);
-
-    private static TradingContext CreateContext(
-        TradeOrder newOrder,
-        List<TradeOrder>? existingOrders = null,
-        Dictionary<long, Trader>? traders = null,
-        Dictionary<long, PortfolioItem>? portfolios = null,
-        CharacterToken? token = null)
+    private Trader CreateTraderWithPortfolio(long id, string symbol, int quantity, decimal avgBuyPrice, decimal balance = 1000m)
     {
-        return new TradingContext
-        {
-            NewOrders = new List<TradeOrder> { newOrder },
-            ExistingOrders = existingOrders ?? new List<TradeOrder>(),
-            Traders = traders ?? new Dictionary<long, Trader>(),
-            Portfolios = portfolios ?? new Dictionary<long, PortfolioItem>(),
-            Token = token ?? CreateToken(),
-            AllTrades = new List<Trade>()
-        };
+        var trader = CreateTrader(id, balance);
+        trader.AttachPortfolio(PortfolioItem.Create(id, symbol, quantity, avgBuyPrice));
+        return trader;
     }
 
-    [Fact]
-    public void ProcessOrder_NullOrder_ReturnsFailed()
+    private TradingContext CreateContext(
+        List<Order>? newOrders = null,
+        List<Order>? existingOrders = null,
+        Dictionary<long, Trader>? traders = null,
+        Token? token = null)
     {
         var context = new TradingContext
         {
-            NewOrders = null!,
-            ExistingOrders = new List<TradeOrder>(),
-            Traders = new Dictionary<long, Trader>(),
-            Portfolios = new Dictionary<long, PortfolioItem>(),
-            Token = CreateToken(),
-            AllTrades = new List<Trade>()
+            NewOrders = newOrders ?? new List<Order>(),
+            ExistingOrders = existingOrders ?? new List<Order>(),
+            Traders = traders ?? new Dictionary<long, Trader>(),
+            Token = token ?? CreateToken(),
+            EventPublisher = _publisher
         };
 
-        var result = _engine.ProcessOrder(context);
-        Assert.False(result.IsSuccess);
-        Assert.Contains("не может быть null", result.Message);
+        context.Token.SetEventPublisher(_publisher);
+        foreach (var order in context.ExistingOrders)
+            order.SetEventPublisher(_publisher);
+
+        return context;
     }
 
     [Fact]
-    public void ProcessOrder_ZeroQuantity_ReturnsFailed()
+    public async Task ProcessOrder_NullOrder_ReturnsFailed()
     {
-        var order = new TradeOrder { Quantity = 0, Price = 100, Type = OrderType.Buy, CharacterTokenId = "ZZZ", TraderTelegramId = 1 };
-        var context = CreateContext(order);
+        var context = CreateContext();
 
-        var result = _engine.ProcessOrder(context);
-        Assert.False(result.IsSuccess);
-        Assert.Contains("Количество", result.Message);
+        var ex = await Assert.ThrowsAsync<DomainException>(() => _engine.ProcessOrder(context));
+
+        Assert.Contains("не может быть null", ex.Message);
     }
 
     [Fact]
-    public void ProcessOrder_ZeroPrice_ReturnsFailed()
-    {
-        var order = new TradeOrder { Quantity = 5, Price = 0, Type = OrderType.Buy, CharacterTokenId = "ZZZ", TraderTelegramId = 1 };
-        var context = CreateContext(order);
-
-        var result = _engine.ProcessOrder(context);
-        Assert.False(result.IsSuccess);
-        Assert.Contains("цена", result.Message);
-    }
-
-    [Fact]
-    public void ProcessOrder_BuyNoMatching_ReservesBalanceAndReturnsOrder()
+    public async Task ProcessOrder_BuyNoMatching_KeepsReservedBalanceAndReturnsOrder()
     {
         var buyer = CreateTrader(1, 10000m);
-        var traders = new Dictionary<long, Trader> { { 1, buyer } };
-        var order = CreateBuyOrder(1, quantity: 10, price: 100m);
-        var context = CreateContext(order, traders: traders);
+        var order = await buyer.PlaceOrder(OrderType.Buy, "ZZZ", 100m, 10);
+        var context = CreateContext(
+            newOrders: new List<Order> { order },
+            traders: new Dictionary<long, Trader> { { 1, buyer } });
 
-        var result = _engine.ProcessOrder(context);
+        await _engine.ProcessOrder(context);
 
-        Assert.True(result.IsSuccess);
         Assert.Empty(context.AllTrades);
+        Assert.DoesNotContain(_publisher.Events, e => e is TradeExecutedEvent);
+        Assert.DoesNotContain(_publisher.Events, e => e is OrderFilledEvent);
+        Assert.DoesNotContain(_publisher.Events, e => e is TokenPriceUpdatedEvent);
+        Assert.Contains(_publisher.Events, e => e is OrderPlacedEvent placed && placed.Order == order);
         Assert.True(order.IsActive());
         Assert.Equal(10000m - 1000m, buyer.Balance);
     }
 
     [Fact]
-    public void ProcessOrder_SellNoMatching_ReservesTokensAndReturnsOrder()
+    public async Task ProcessOrder_SellNoMatching_KeepsReservedTokensAndReturnsOrder()
     {
-        var seller = CreateTrader(1);
-        var traders = new Dictionary<long, Trader> { { 1, seller } };
-        var portfolio = PortfolioItem.Create(1, "ZZZ", 10, 50m);
-        var portfolios = new Dictionary<long, PortfolioItem> { { 1, portfolio } };
-        var order = CreateSellOrder(1, quantity: 5, price: 200m);
-        var context = CreateContext(order, traders: traders, portfolios: portfolios);
+        var seller = CreateTraderWithPortfolio(1, "ZZZ", 10, 50m);
+        var order = await seller.PlaceOrder(OrderType.Sell, "ZZZ", 200m, 5);
+        var context = CreateContext(
+            newOrders: new List<Order> { order },
+            traders: new Dictionary<long, Trader> { { 1, seller } });
 
-        var result = _engine.ProcessOrder(context);
+        await _engine.ProcessOrder(context);
 
-        Assert.True(result.IsSuccess);
         Assert.Empty(context.AllTrades);
+        Assert.DoesNotContain(_publisher.Events, e => e is TradeExecutedEvent);
+        Assert.DoesNotContain(_publisher.Events, e => e is OrderFilledEvent);
+        Assert.Contains(_publisher.Events, e => e is OrderPlacedEvent placed && placed.Order == order);
+        var portfolio = seller.Portfolio.Single();
         Assert.Equal(5, portfolio.ReserveQuantity);
         Assert.Equal(5, portfolio.Quantity);
-        Assert.True(portfolio.IsDirty);
     }
 
     [Fact]
-    public void ProcessOrder_SellWithoutPortfolio_ReturnsFailed()
+    public async Task PlaceOrder_SellWithoutPortfolio_Throws()
     {
         var seller = CreateTrader(1);
-        var traders = new Dictionary<long, Trader> { { 1, seller } };
-        var order = CreateSellOrder(1);
-        var context = CreateContext(order, traders: traders);
 
-        var result = _engine.ProcessOrder(context);
-
-        Assert.False(result.IsSuccess);
-        Assert.Contains("портфеле", result.Message);
+        await Assert.ThrowsAsync<DomainException>(() => seller.PlaceOrder(OrderType.Sell, "ZZZ", 100m, 5));
     }
 
     [Fact]
-    public void ProcessOrder_BuyMatchingSell_ExecutesTrade()
+    public async Task ProcessOrder_BuyMatchingSell_ExecutesTrade()
     {
         var buyer = CreateTrader(1, 10000m);
-        var seller = CreateTrader(2);
-        var traders = new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } };
-
-        var existingSell = CreateSellOrder(2, quantity: 5, price: 80m);
-        var existingOrders = new List<TradeOrder> { existingSell };
-
-        var sellerPortfolio = PortfolioItem.Create(2, "ZZZ", 5, 50m);
-        var portfolios = new Dictionary<long, PortfolioItem> { { 2, sellerPortfolio } };
-
-        var buyOrder = CreateBuyOrder(1, quantity: 5, price: 100m);
+        var seller = CreateTraderWithPortfolio(2, "ZZZ", 5, 50m);
+        var existingSell = await seller.PlaceOrder(OrderType.Sell, "ZZZ", 80m, 5);
+        var buyOrder = await buyer.PlaceOrder(OrderType.Buy, "ZZZ", 100m, 5);
         var token = CreateToken();
-        var context = CreateContext(buyOrder, existingOrders, traders, portfolios, token);
+        var context = CreateContext(
+            newOrders: new List<Order> { buyOrder },
+            existingOrders: new List<Order> { existingSell },
+            traders: new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } },
+            token: token);
 
-        var result = _engine.ProcessOrder(context);
+        await _engine.ProcessOrder(context);
 
-        Assert.True(result.IsSuccess);
         Assert.Single(context.AllTrades);
         Assert.Equal(5, context.AllTrades[0].Quantity);
         Assert.Equal(80m, context.AllTrades[0].Price);
         Assert.Equal(1, context.AllTrades[0].BuyerId);
         Assert.Equal(2, context.AllTrades[0].SellerId);
+        Assert.Single(_publisher.Events.OfType<TradeExecutedEvent>());
+        Assert.Contains(_publisher.Events, e => e is OrderFilledEvent filled && filled.Order == existingSell);
+        Assert.Contains(_publisher.Events, e => e is TokenPriceUpdatedEvent updated && updated.Token == token);
         Assert.True(buyOrder.IsFilled());
         Assert.True(existingSell.IsFilled());
         Assert.Equal(1000m + 80m * 5, seller.Balance);
@@ -168,107 +139,82 @@ public class TradingEngineTest
     }
 
     [Fact]
-    public void ProcessOrder_SellMatchingBuy_ExecutesTrade()
+    public async Task ProcessOrder_SellMatchingBuy_ExecutesTrade()
     {
         var buyer = CreateTrader(1);
-        var seller = CreateTrader(2, 10000m);
-        var traders = new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } };
+        var seller = CreateTraderWithPortfolio(2, "ZZZ", 10, 50m, balance: 10000m);
+        var existingBuy = await buyer.PlaceOrder(OrderType.Buy, "ZZZ", 150m, 3);
+        var sellOrder = await seller.PlaceOrder(OrderType.Sell, "ZZZ", 120m, 3);
+        var context = CreateContext(
+            newOrders: new List<Order> { sellOrder },
+            existingOrders: new List<Order> { existingBuy },
+            traders: new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } });
 
-        var existingBuy = CreateBuyOrder(1, quantity: 3, price: 150m);
-        var existingOrders = new List<TradeOrder> { existingBuy };
+        await _engine.ProcessOrder(context);
 
-        var sellerPortfolio = PortfolioItem.Create(2, "ZZZ", 10, 50m);
-        var portfolios = new Dictionary<long, PortfolioItem> { { 2, sellerPortfolio } };
-
-        var sellOrder = CreateSellOrder(2, quantity: 3, price: 120m);
-        var token = CreateToken();
-        var context = CreateContext(sellOrder, existingOrders, traders, portfolios, token);
-
-        var result = _engine.ProcessOrder(context);
-
-        Assert.True(result.IsSuccess);
         Assert.Single(context.AllTrades);
         Assert.Equal(1, context.AllTrades[0].BuyerId);
         Assert.Equal(2, context.AllTrades[0].SellerId);
         Assert.Equal(150m, context.AllTrades[0].Price);
         Assert.True(sellOrder.IsFilled());
         Assert.True(existingBuy.IsFilled());
-        Assert.Equal(150m, token.CurrentPrice);
+        Assert.Equal(150m, context.Token.CurrentPrice);
     }
 
     [Fact]
-    public void ProcessOrder_BuyWithOverpayment_RefundsDifference()
+    public async Task ProcessOrder_BuyWithOverpayment_RefundsDifference()
     {
         var buyer = CreateTrader(1, 10000m);
-        var seller = CreateTrader(2);
-        var traders = new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } };
+        var seller = CreateTraderWithPortfolio(2, "ZZZ", 5, 50m);
+        var existingSell = await seller.PlaceOrder(OrderType.Sell, "ZZZ", 60m, 5);
+        var buyOrder = await buyer.PlaceOrder(OrderType.Buy, "ZZZ", 100m, 5);
+        var context = CreateContext(
+            newOrders: new List<Order> { buyOrder },
+            existingOrders: new List<Order> { existingSell },
+            traders: new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } });
 
-        var existingSell = CreateSellOrder(2, quantity: 5, price: 60m);
-        var existingOrders = new List<TradeOrder> { existingSell };
+        await _engine.ProcessOrder(context);
 
-        var sellerPortfolio = PortfolioItem.Create(2, "ZZZ", 5, 50m);
-        var portfolios = new Dictionary<long, PortfolioItem> { { 2, sellerPortfolio } };
-
-        var buyOrder = CreateBuyOrder(1, quantity: 5, price: 100m);
-        var context = CreateContext(buyOrder, existingOrders, traders, portfolios);
-
-        var result = _engine.ProcessOrder(context);
-
-        Assert.True(result.IsSuccess);
         var overpayment = (100m - 60m) * 5;
         Assert.Equal(10000m - 500m + overpayment, buyer.Balance);
         Assert.Equal(1000m + 60m * 5, seller.Balance);
     }
 
     [Fact]
-    public void ProcessOrder_BuyMatchingBuyerHasNoPortfolio_CreatesNewPortfolio()
+    public async Task ProcessOrder_BuyMatchingBuyerHasNoPortfolio_CreatesNewPortfolio()
     {
         var buyer = CreateTrader(1, 10000m);
-        var seller = CreateTrader(2);
-        var traders = new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } };
+        var seller = CreateTraderWithPortfolio(2, "ZZZ", 5, 50m);
+        var existingSell = await seller.PlaceOrder(OrderType.Sell, "ZZZ", 80m, 5);
+        var buyOrder = await buyer.PlaceOrder(OrderType.Buy, "ZZZ", 100m, 5);
+        var context = CreateContext(
+            newOrders: new List<Order> { buyOrder },
+            existingOrders: new List<Order> { existingSell },
+            traders: new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } });
 
-        var existingSell = CreateSellOrder(2, quantity: 5, price: 80m);
-        var existingOrders = new List<TradeOrder> { existingSell };
+        await _engine.ProcessOrder(context);
 
-        var sellerPortfolio = PortfolioItem.Create(2, "ZZZ", 5, 50m);
-        var portfolios = new Dictionary<long, PortfolioItem> { { 2, sellerPortfolio } };
-
-        var buyOrder = CreateBuyOrder(1, quantity: 5, price: 100m);
-        var context = CreateContext(buyOrder, existingOrders, traders, portfolios);
-
-        var result = _engine.ProcessOrder(context);
-
-        Assert.True(result.IsSuccess);
         Assert.Single(context.AllTrades);
-        Assert.True(context.Portfolios.ContainsKey(1));
-        Assert.Equal(5, context.Portfolios[1].Quantity);
+        Assert.Single(buyer.Portfolio);
+        Assert.Equal(5, buyer.Portfolio[0].Quantity);
     }
 
     [Fact]
-    public void ProcessOrder_MultipleMatches_FillsPartially()
+    public async Task ProcessOrder_MultipleMatches_FillsPartially()
     {
         var buyer = CreateTrader(1, 10000m);
-        var seller1 = CreateTrader(2);
-        var seller2 = CreateTrader(3);
-        var traders = new Dictionary<long, Trader> { { 1, buyer }, { 2, seller1 }, { 3, seller2 } };
+        var seller1 = CreateTraderWithPortfolio(2, "ZZZ", 3, 50m);
+        var seller2 = CreateTraderWithPortfolio(3, "ZZZ", 3, 50m);
+        var sell1 = await seller1.PlaceOrder(OrderType.Sell, "ZZZ", 80m, 3);
+        var sell2 = await seller2.PlaceOrder(OrderType.Sell, "ZZZ", 90m, 3);
+        var buyOrder = await buyer.PlaceOrder(OrderType.Buy, "ZZZ", 100m, 5);
+        var context = CreateContext(
+            newOrders: new List<Order> { buyOrder },
+            existingOrders: new List<Order> { sell1, sell2 },
+            traders: new Dictionary<long, Trader> { { 1, buyer }, { 2, seller1 }, { 3, seller2 } });
 
-        var sell1 = CreateSellOrder(2, quantity: 3, price: 80m);
-        var sell2 = CreateSellOrder(3, quantity: 3, price: 90m);
-        var existingOrders = new List<TradeOrder> { sell1, sell2 };
+        await _engine.ProcessOrder(context);
 
-        var seller1Portfolio = PortfolioItem.Create(2, "ZZZ", 3, 50m);
-        var seller2Portfolio = PortfolioItem.Create(3, "ZZZ", 3, 50m);
-        var portfolios = new Dictionary<long, PortfolioItem>
-        {
-            { 2, seller1Portfolio }, { 3, seller2Portfolio }
-        };
-
-        var buyOrder = CreateBuyOrder(1, quantity: 5, price: 100m);
-        var context = CreateContext(buyOrder, existingOrders, traders, portfolios);
-
-        var result = _engine.ProcessOrder(context);
-
-        Assert.True(result.IsSuccess);
         Assert.Equal(2, context.AllTrades.Count);
         Assert.True(buyOrder.IsFilled());
         Assert.True(sell1.IsFilled());
@@ -278,109 +224,90 @@ public class TradingEngineTest
     }
 
     [Fact]
-    public void ProcessOrder_BuyExactPriceMatch_NoOverpayment()
+    public async Task ProcessOrder_BuyExactPriceMatch_NoOverpayment()
     {
         var buyer = CreateTrader(1, 10000m);
-        var seller = CreateTrader(2);
-        var traders = new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } };
+        var seller = CreateTraderWithPortfolio(2, "ZZZ", 5, 50m);
+        var existingSell = await seller.PlaceOrder(OrderType.Sell, "ZZZ", 100m, 5);
+        var buyOrder = await buyer.PlaceOrder(OrderType.Buy, "ZZZ", 100m, 5);
+        var context = CreateContext(
+            newOrders: new List<Order> { buyOrder },
+            existingOrders: new List<Order> { existingSell },
+            traders: new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } });
 
-        var existingSell = CreateSellOrder(2, quantity: 5, price: 100m);
-        var existingOrders = new List<TradeOrder> { existingSell };
+        await _engine.ProcessOrder(context);
 
-        var sellerPortfolio = PortfolioItem.Create(2, "ZZZ", 5, 50m);
-        var portfolios = new Dictionary<long, PortfolioItem> { { 2, sellerPortfolio } };
-
-        var buyOrder = CreateBuyOrder(1, quantity: 5, price: 100m);
-        var context = CreateContext(buyOrder, existingOrders, traders, portfolios);
-
-        var result = _engine.ProcessOrder(context);
-
-        Assert.True(result.IsSuccess);
         Assert.Equal(10000m - 500m, buyer.Balance);
         Assert.Equal(1000m + 500m, seller.Balance);
     }
 
     [Fact]
-    public void ProcessOrder_NoTrades_TokenPriceUnchanged()
+    public async Task ProcessOrder_NoTrades_TokenPriceUnchanged()
     {
         var buyer = CreateTrader(1, 10000m);
-        var traders = new Dictionary<long, Trader> { { 1, buyer } };
-        var order = CreateBuyOrder(1);
+        var order = await buyer.PlaceOrder(OrderType.Buy, "ZZZ", 100m, 5);
         var token = CreateToken(price: 200m);
-        var context = CreateContext(order, traders: traders, token: token);
+        var context = CreateContext(
+            newOrders: new List<Order> { order },
+            traders: new Dictionary<long, Trader> { { 1, buyer } },
+            token: token);
 
-        var result = _engine.ProcessOrder(context);
+        await _engine.ProcessOrder(context);
 
-        Assert.True(result.IsSuccess);
         Assert.Empty(context.AllTrades);
+        Assert.DoesNotContain(_publisher.Events, e => e is TokenPriceUpdatedEvent);
         Assert.Equal(200m, token.CurrentPrice);
     }
 
     [Fact]
-    public void ProcessOrder_BuySellOrderFilters_SelfOrdersExcluded()
+    public async Task ProcessOrder_BuySellOrderFilters_SelfOrdersExcluded()
     {
-        var buyer = CreateTrader(1, 10000m);
-        var seller = CreateTrader(2);
-        var traders = new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } };
+        var buyer = CreateTraderWithPortfolio(1, "ZZZ", 10, 50m, balance: 10000m);
+        var ownSell = await buyer.PlaceOrder(OrderType.Sell, "ZZZ", 80m, 5);
+        var buyOrder = await buyer.PlaceOrder(OrderType.Buy, "ZZZ", 100m, 5);
+        var context = CreateContext(
+            newOrders: new List<Order> { buyOrder },
+            existingOrders: new List<Order> { ownSell },
+            traders: new Dictionary<long, Trader> { { 1, buyer } });
 
-        var ownBuyOrder = CreateBuyOrder(1, quantity: 5, price: 200m);
-        var existingOrders = new List<TradeOrder> { ownBuyOrder };
+        await _engine.ProcessOrder(context);
 
-        var sellerPortfolio = PortfolioItem.Create(2, "ZZZ", 5, 50m);
-        var portfolios = new Dictionary<long, PortfolioItem> { { 2, sellerPortfolio } };
-
-        var buyOrder = CreateBuyOrder(1, quantity: 5, price: 100m);
-        var context = CreateContext(buyOrder, existingOrders, traders, portfolios);
-
-        var result = _engine.ProcessOrder(context);
-
-        Assert.True(result.IsSuccess);
         Assert.Empty(context.AllTrades);
         Assert.True(buyOrder.IsActive());
+        Assert.True(ownSell.IsActive());
     }
 
     [Fact]
-    public void ProcessOrder_SellBuyOrderFilters_SelfOrdersExcluded()
+    public async Task ProcessOrder_SellBuyOrderFilters_SelfOrdersExcluded()
     {
-        var buyer = CreateTrader(1);
-        var seller = CreateTrader(2, 10000m);
-        var traders = new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } };
+        var seller = CreateTraderWithPortfolio(2, "ZZZ", 10, 50m, balance: 10000m);
+        var ownBuy = await seller.PlaceOrder(OrderType.Buy, "ZZZ", 150m, 5);
+        var sellOrder = await seller.PlaceOrder(OrderType.Sell, "ZZZ", 100m, 5);
+        var context = CreateContext(
+            newOrders: new List<Order> { sellOrder },
+            existingOrders: new List<Order> { ownBuy },
+            traders: new Dictionary<long, Trader> { { 2, seller } });
 
-        var ownSellOrder = CreateSellOrder(2, quantity: 5, price: 50m);
-        var existingOrders = new List<TradeOrder> { ownSellOrder };
+        await _engine.ProcessOrder(context);
 
-        var sellerPortfolio = PortfolioItem.Create(2, "ZZZ", 10, 50m);
-        var portfolios = new Dictionary<long, PortfolioItem> { { 2, sellerPortfolio } };
-
-        var sellOrder = CreateSellOrder(2, quantity: 5, price: 100m);
-        var context = CreateContext(sellOrder, existingOrders, traders, portfolios);
-
-        var result = _engine.ProcessOrder(context);
-
-        Assert.True(result.IsSuccess);
         Assert.Empty(context.AllTrades);
+        Assert.True(sellOrder.IsActive());
     }
 
     [Fact]
-    public void ProcessOrder_BuyPartialFillFirstOrderFullyFilled()
+    public async Task ProcessOrder_BuyPartialFillFirstOrderFullyFilled()
     {
         var buyer = CreateTrader(1, 10000m);
-        var seller1 = CreateTrader(2);
-        var seller2 = CreateTrader(3);
-        var traders = new Dictionary<long, Trader> { { 1, buyer }, { 2, seller1 }, { 3, seller2 } };
+        var seller1 = CreateTraderWithPortfolio(2, "ZZZ", 2, 50m);
+        var sell1 = await seller1.PlaceOrder(OrderType.Sell, "ZZZ", 80m, 2);
+        var buyOrder = await buyer.PlaceOrder(OrderType.Buy, "ZZZ", 100m, 5);
+        var context = CreateContext(
+            newOrders: new List<Order> { buyOrder },
+            existingOrders: new List<Order> { sell1 },
+            traders: new Dictionary<long, Trader> { { 1, buyer }, { 2, seller1 } });
 
-        var sell1 = CreateSellOrder(2, quantity: 2, price: 80m);
-        var existingOrders = new List<TradeOrder> { sell1 };
+        await _engine.ProcessOrder(context);
 
-        var seller1Portfolio = PortfolioItem.Create(2, "ZZZ", 2, 50m);
-        var portfolios = new Dictionary<long, PortfolioItem> { { 2, seller1Portfolio } };
-
-        var buyOrder = CreateBuyOrder(1, quantity: 5, price: 100m);
-        var context = CreateContext(buyOrder, existingOrders, traders, portfolios);
-
-        var result = _engine.ProcessOrder(context);
-
-        Assert.True(result.IsSuccess);
         Assert.Single(context.AllTrades);
         Assert.Equal(2, context.AllTrades[0].Quantity);
         Assert.False(buyOrder.IsFilled());
@@ -389,234 +316,192 @@ public class TradingEngineTest
     }
 
     [Fact]
-    public void ProcessOrder_SellBuyerPortfolioExists_BuyTokensIncreasesQuantity()
+    public async Task ProcessOrder_SellBuyerPortfolioExists_BuyTokensIncreasesQuantity()
     {
-        var buyer = CreateTrader(1);
-        var seller = CreateTrader(2, 10000m);
-        var traders = new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } };
+        var buyer = CreateTraderWithPortfolio(1, "ZZZ", 5, 80m);
+        var seller = CreateTraderWithPortfolio(2, "ZZZ", 10, 50m, balance: 10000m);
+        var existingBuy = await buyer.PlaceOrder(OrderType.Buy, "ZZZ", 150m, 3);
+        var sellOrder = await seller.PlaceOrder(OrderType.Sell, "ZZZ", 120m, 3);
+        var context = CreateContext(
+            newOrders: new List<Order> { sellOrder },
+            existingOrders: new List<Order> { existingBuy },
+            traders: new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } });
 
-        var existingBuy = CreateBuyOrder(1, quantity: 3, price: 150m);
-        var existingOrders = new List<TradeOrder> { existingBuy };
+        await _engine.ProcessOrder(context);
 
-        var buyerPortfolio = PortfolioItem.Create(1, "ZZZ", 5, 80m);
-        var sellerPortfolio = PortfolioItem.Create(2, "ZZZ", 10, 50m);
-        var portfolios = new Dictionary<long, PortfolioItem> { { 1, buyerPortfolio }, { 2, sellerPortfolio } };
-
-        var sellOrder = CreateSellOrder(2, quantity: 3, price: 120m);
-        var context = CreateContext(sellOrder, existingOrders, traders, portfolios);
-
-        var result = _engine.ProcessOrder(context);
-
-        Assert.True(result.IsSuccess);
-        Assert.Equal(8, buyerPortfolio.Quantity);
-        Assert.True(buyerPortfolio.IsDirty);
+        Assert.Equal(8, buyer.Portfolio.Single(p => p.TokenSymbol == "ZZZ").Quantity);
     }
 
     [Fact]
-    public void ProcessOrder_BuySellNotMatching_DoesNotFill()
+    public async Task ProcessOrder_BuySellNotMatching_DoesNotFill()
     {
         var buyer = CreateTrader(1, 10000m);
-        var seller = CreateTrader(2);
-        var traders = new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } };
+        var seller = CreateTraderWithPortfolio(2, "ZZZ", 5, 50m);
+        var existingSell = await seller.PlaceOrder(OrderType.Sell, "ZZZ", 200m, 5);
+        var buyOrder = await buyer.PlaceOrder(OrderType.Buy, "ZZZ", 100m, 5);
+        var context = CreateContext(
+            newOrders: new List<Order> { buyOrder },
+            existingOrders: new List<Order> { existingSell },
+            traders: new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } });
 
-        var existingSell = CreateSellOrder(2, quantity: 5, price: 200m);
-        var existingOrders = new List<TradeOrder> { existingSell };
+        await _engine.ProcessOrder(context);
 
-        var sellerPortfolio = PortfolioItem.Create(2, "ZZZ", 5, 50m);
-        var portfolios = new Dictionary<long, PortfolioItem> { { 2, sellerPortfolio } };
-
-        var buyOrder = CreateBuyOrder(1, quantity: 5, price: 100m);
-        var context = CreateContext(buyOrder, existingOrders, traders, portfolios);
-
-        var result = _engine.ProcessOrder(context);
-
-        Assert.True(result.IsSuccess);
         Assert.Empty(context.AllTrades);
         Assert.True(buyOrder.IsActive());
         Assert.True(existingSell.IsActive());
     }
 
     [Fact]
-    public void ProcessOrder_SellBuyNotMatching_DoesNotFill()
+    public async Task ProcessOrder_SellBuyNotMatching_DoesNotFill()
     {
         var buyer = CreateTrader(1);
-        var seller = CreateTrader(2, 10000m);
-        var traders = new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } };
+        var seller = CreateTraderWithPortfolio(2, "ZZZ", 10, 50m, balance: 10000m);
+        var existingBuy = await buyer.PlaceOrder(OrderType.Buy, "ZZZ", 50m, 5);
+        var sellOrder = await seller.PlaceOrder(OrderType.Sell, "ZZZ", 100m, 5);
+        var context = CreateContext(
+            newOrders: new List<Order> { sellOrder },
+            existingOrders: new List<Order> { existingBuy },
+            traders: new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } });
 
-        var existingBuy = CreateBuyOrder(1, quantity: 5, price: 50m);
-        var existingOrders = new List<TradeOrder> { existingBuy };
+        await _engine.ProcessOrder(context);
 
-        var sellerPortfolio = PortfolioItem.Create(2, "ZZZ", 10, 50m);
-        var portfolios = new Dictionary<long, PortfolioItem> { { 2, sellerPortfolio } };
-
-        var sellOrder = CreateSellOrder(2, quantity: 5, price: 100m);
-        var context = CreateContext(sellOrder, existingOrders, traders, portfolios);
-
-        var result = _engine.ProcessOrder(context);
-
-        Assert.True(result.IsSuccess);
         Assert.Empty(context.AllTrades);
     }
 
     [Fact]
-    public void ProcessOrder_NullToken_ReturnsFailed()
+    public async Task ProcessOrder_BuyTraderMissing_ReturnsFailed()
+    {
+        var order = Order.Create(OrderType.Buy, "ZZZ", 100m, 5);
+        order.TraderId = 1;
+        var context = CreateContext(newOrders: new List<Order> { order });
+
+        var ex = await Assert.ThrowsAsync<DomainException>(() => _engine.ProcessOrder(context));
+
+        Assert.Contains("Трейдер не найден", ex.Message);
+    }
+
+    [Fact]
+    public async Task ProcessOrder_TradeBuyerNotFound_ReturnsFailed()
+    {
+        var seller = CreateTraderWithPortfolio(2, "ZZZ", 10, 50m, balance: 10000m);
+        var sellOrder = await seller.PlaceOrder(OrderType.Sell, "ZZZ", 120m, 3);
+        var existingBuy = Order.Create(OrderType.Buy, "ZZZ", 150m, 3);
+        existingBuy.TraderId = 1;
+        var context = CreateContext(
+            newOrders: new List<Order> { sellOrder },
+            existingOrders: new List<Order> { existingBuy },
+            traders: new Dictionary<long, Trader> { { 2, seller } });
+
+        var ex = await Assert.ThrowsAsync<DomainException>(() => _engine.ProcessOrder(context));
+
+        Assert.Contains("Покупатель", ex.Message);
+    }
+
+    [Fact]
+    public async Task ProcessOrder_TradeSellerNotFound_ReturnsFailed()
     {
         var buyer = CreateTrader(1, 10000m);
-        var traders = new Dictionary<long, Trader> { { 1, buyer } };
-        var order = CreateBuyOrder(1, quantity: 5, price: 100m);
-        var context = CreateContext(order, traders: traders);
-        context.Token = null!;
+        var buyOrder = await buyer.PlaceOrder(OrderType.Buy, "ZZZ", 100m, 5);
+        var existingSell = Order.Create(OrderType.Sell, "ZZZ", 80m, 5);
+        existingSell.TraderId = 2;
+        var context = CreateContext(
+            newOrders: new List<Order> { buyOrder },
+            existingOrders: new List<Order> { existingSell },
+            traders: new Dictionary<long, Trader> { { 1, buyer } });
 
-        var result = _engine.ProcessOrder(context);
+        var ex = await Assert.ThrowsAsync<DomainException>(() => _engine.ProcessOrder(context));
 
-        Assert.False(result.IsSuccess);
+        Assert.Contains("Продавец", ex.Message);
     }
 
     [Fact]
-    public void ProcessOrder_BuyTraderMissing_ReturnsFailed()
-    {
-        var order = CreateBuyOrder(1, quantity: 5, price: 100m);
-        var context = CreateContext(order);
-
-        var result = _engine.ProcessOrder(context);
-
-        Assert.False(result.IsSuccess);
-        Assert.Contains("Трейдер не найден", result.Message);
-    }
-
-    [Fact]
-    public void ProcessOrder_TradeBuyerNotFound_ReturnsFailed()
-    {
-        var seller = CreateTrader(2, 10000m);
-        var traders = new Dictionary<long, Trader> { { 2, seller } };
-
-        var existingBuy = CreateBuyOrder(1, quantity: 3, price: 150m);
-        var existingOrders = new List<TradeOrder> { existingBuy };
-
-        var sellerPortfolio = PortfolioItem.Create(2, "ZZZ", 10, 50m);
-        var portfolios = new Dictionary<long, PortfolioItem> { { 2, sellerPortfolio } };
-
-        var sellOrder = CreateSellOrder(2, quantity: 3, price: 120m);
-        var context = CreateContext(sellOrder, existingOrders, traders, portfolios);
-
-        var result = _engine.ProcessOrder(context);
-
-        Assert.False(result.IsSuccess);
-        Assert.Contains("Покупатель", result.Message);
-    }
-
-    [Fact]
-    public void ProcessOrder_TradeSellerNotFound_ReturnsFailed()
-    {
-        var buyer = CreateTrader(1, 10000m);
-        var traders = new Dictionary<long, Trader> { { 1, buyer } };
-
-        var existingSell = CreateSellOrder(2, quantity: 5, price: 80m);
-        var existingOrders = new List<TradeOrder> { existingSell };
-
-        var buyOrder = CreateBuyOrder(1, quantity: 5, price: 100m);
-        var context = CreateContext(buyOrder, existingOrders, traders);
-
-        var result = _engine.ProcessOrder(context);
-
-        Assert.False(result.IsSuccess);
-        Assert.Contains("Продавец", result.Message);
-    }
-
-    [Fact]
-    public void ProcessOrder_TradeSellerHasNoPortfolio_ReturnsFailed()
+    public async Task ProcessOrder_TradeSellerHasNoPortfolio_ReturnsFailed()
     {
         var buyer = CreateTrader(1, 10000m);
         var seller = CreateTrader(2);
-        var traders = new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } };
+        var buyOrder = await buyer.PlaceOrder(OrderType.Buy, "ZZZ", 100m, 5);
+        var existingSell = Order.Create(OrderType.Sell, "ZZZ", 80m, 5);
+        existingSell.TraderId = 2;
+        seller.AttachOrder(existingSell);
+        var context = CreateContext(
+            newOrders: new List<Order> { buyOrder },
+            existingOrders: new List<Order> { existingSell },
+            traders: new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } });
 
-        var existingSell = CreateSellOrder(2, quantity: 5, price: 80m);
-        var existingOrders = new List<TradeOrder> { existingSell };
+        var ex = await Assert.ThrowsAsync<DomainException>(() => _engine.ProcessOrder(context));
 
-        var buyOrder = CreateBuyOrder(1, quantity: 5, price: 100m);
-        var context = CreateContext(buyOrder, existingOrders, traders);
-
-        var result = _engine.ProcessOrder(context);
-
-        Assert.False(result.IsSuccess);
-        Assert.Contains("портфеля", result.Message);
+        Assert.Contains("No portfolio item", ex.Message);
     }
 
     [Fact]
-    public void ProcessOrders_MatchingOrder_ExecutesTrade()
+    public async Task ProcessOrder_ExecutedTrade_UsesEngineTimeProvider()
+    {
+        var timeProvider = new TestTimeProvider();
+        var engine = new TradingEngine(timeProvider);
+
+        var buyer = CreateTrader(1, 10000m);
+        var seller = CreateTraderWithPortfolio(2, "ZZZ", 5, 50m);
+        var existingSell = await seller.PlaceOrder(OrderType.Sell, "ZZZ", 80m, 5);
+        var buyOrder = await buyer.PlaceOrder(OrderType.Buy, "ZZZ", 100m, 5);
+        var context = CreateContext(
+            newOrders: new List<Order> { buyOrder },
+            existingOrders: new List<Order> { existingSell },
+            traders: new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } });
+
+        await engine.ProcessOrder(context);
+
+        Assert.Equal(timeProvider.GetUtcNow().UtcDateTime, context.AllTrades[0].ExecutedAt);
+    }
+
+    [Fact]
+    public async Task ProcessOrders_MatchingOrder_ExecutesTrade()
     {
         var buyer = CreateTrader(1, 10000m);
-        var seller = CreateTrader(2);
-        var traders = new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } };
+        var seller = CreateTraderWithPortfolio(2, "ZZZ", 5, 50m);
+        var existingSell = await seller.PlaceOrder(OrderType.Sell, "ZZZ", 80m, 5);
+        var buyOrder = await buyer.PlaceOrder(OrderType.Buy, "ZZZ", 100m, 5);
+        var context = CreateContext(
+            newOrders: new List<Order> { buyOrder },
+            existingOrders: new List<Order> { existingSell },
+            traders: new Dictionary<long, Trader> { { 1, buyer }, { 2, seller } });
 
-        var existingSell = CreateSellOrder(2, quantity: 5, price: 80m);
-        var existingOrders = new List<TradeOrder> { existingSell };
+        await _engine.ProcessOrders(context);
 
-        var sellerPortfolio = PortfolioItem.Create(2, "ZZZ", 5, 50m);
-        var portfolios = new Dictionary<long, PortfolioItem> { { 2, sellerPortfolio } };
-
-        var buyOrder = CreateBuyOrder(1, quantity: 5, price: 100m);
-        var context = CreateContext(buyOrder, existingOrders, traders, portfolios);
-
-        var result = _engine.ProcessOrders(context);
-
-        Assert.True(result.IsSuccess);
         Assert.Single(context.AllTrades);
         Assert.True(buyOrder.IsFilled());
+        Assert.True(existingSell.IsFilled());
     }
 
     [Fact]
-    public void ProcessOrders_EmptyOrders_ReturnsFailed()
+    public async Task ProcessOrders_MultipleNewOrders_MatchesEachAgainstBook()
     {
-        var context = new TradingContext
-        {
-            NewOrders = new List<TradeOrder>(),
-            ExistingOrders = new List<TradeOrder>(),
-            Traders = new Dictionary<long, Trader>(),
-            Portfolios = new Dictionary<long, PortfolioItem>(),
-            Token = CreateToken(),
-            AllTrades = new List<Trade>()
-        };
+        var buyer1 = CreateTrader(1, 10000m);
+        var buyer2 = CreateTrader(2, 5000m);
+        var seller = CreateTraderWithPortfolio(3, "ZZZ", 8, 50m);
+        var existingSell = await seller.PlaceOrder(OrderType.Sell, "ZZZ", 80m, 5);
+        var buy1 = await buyer1.PlaceOrder(OrderType.Buy, "ZZZ", 100m, 5);
+        var buy2 = await buyer2.PlaceOrder(OrderType.Buy, "ZZZ", 90m, 3);
+        var context = CreateContext(
+            newOrders: new List<Order> { buy1, buy2 },
+            existingOrders: new List<Order> { existingSell },
+            traders: new Dictionary<long, Trader> { { 1, buyer1 }, { 2, buyer2 }, { 3, seller } });
 
-        var result = _engine.ProcessOrders(context);
+        await _engine.ProcessOrders(context);
 
-        Assert.False(result.IsSuccess);
-        Assert.Contains("пустым", result.Message);
+        Assert.Single(context.AllTrades);
+        Assert.True(buy1.IsFilled());
+        Assert.True(existingSell.IsFilled());
+        Assert.True(buy2.IsActive());
+        Assert.Equal(2, _publisher.Events.OfType<OrderPlacedEvent>().Count(e => context.NewOrders.Contains(e.Order)));
     }
 
     [Fact]
-    public void ProcessOrders_ZeroQuantity_ReturnsFailed()
+    public async Task ProcessOrders_EmptyOrders_ReturnsFailed()
     {
-        var order = new TradeOrder { Quantity = 0, Price = 100, Type = OrderType.Buy, CharacterTokenId = "ZZZ", TraderTelegramId = 1 };
-        var context = CreateContext(order);
+        var context = CreateContext();
 
-        var result = _engine.ProcessOrders(context);
+        var ex = await Assert.ThrowsAsync<DomainException>(() => _engine.ProcessOrders(context));
 
-        Assert.False(result.IsSuccess);
-        Assert.Contains("Количество", result.Message);
-    }
-
-    [Fact]
-    public void ProcessOrders_NullToken_ReturnsFailed()
-    {
-        var order = CreateBuyOrder(1, quantity: 5, price: 100m);
-        var context = CreateContext(order);
-        context.Token = null!;
-
-        var result = _engine.ProcessOrders(context);
-
-        Assert.False(result.IsSuccess);
-    }
-
-    [Fact]
-    public void TradingResult_Failed_CreatesFailedInstance()
-    {
-        var result = TradingResult.Failed("error");
-        result.UpdatedToken = CreateToken();
-
-        Assert.False(result.IsSuccess);
-        Assert.Equal("error", result.Error);
-        Assert.Empty(result.PortfoliosToAdd);
-        Assert.NotNull(result.UpdatedToken);
+        Assert.Contains("пустым", ex.Message);
     }
 }

@@ -3,6 +3,7 @@ using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Contracts.Decorators;
 using ArkWallet.Application.Contracts.Leaders;
 using ArkWallet.Application.Contracts.MarketMaker;
+using ArkWallet.Application.Contracts.MiningMachineServices;
 using ArkWallet.Application.Contracts.Orchestrators;
 using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Contracts.PortfolioServices;
@@ -13,6 +14,7 @@ using ArkWallet.Application.Contracts.TradeServices;
 using ArkWallet.Application.Services.CharacterTokenServices;
 using ArkWallet.Application.Services.Leaders;
 using ArkWallet.Application.Services.MarketMaker;
+using ArkWallet.Application.Services.MiningMachineServices;
 using ArkWallet.Application.Services.Orchestrators;
 using ArkWallet.Application.Services.Other;
 using ArkWallet.Application.Services.PortfolioServices;
@@ -22,18 +24,23 @@ using ArkWallet.Application.Services.TraderServices;
 using ArkWallet.Application.Services.TradeServices;
 using ArkWallet.Application.Services.Wizard;
 using ArkWallet.Application.Workers;
+using ArkWallet.Domain.Common;
 using ArkWallet.Domain.Engines;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Entities.Configurations;
 using ArkWallet.Infrastructure;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Infrastructure.Wizard;
+using ArkWallet.Presentation.API;
 using ArkWallet.Presentation.Health;
 using ArkWallet.Presentation.Wizard;
+using ArkWallet.Infrastructure.AccessControl;
 using ArkWallet.Telegram;
+using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -104,7 +111,10 @@ class Program
             });
 
         builder.Services.AddAuthorization();
-        builder.Services.AddControllers();
+        builder.Services.AddControllers(options =>
+        {
+            options.Filters.Add<AccessSettingFilter>();
+        });
         builder.Services.AddRouting(options => options.LowercaseUrls = true);
 
         builder.Services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
@@ -125,12 +135,14 @@ class Program
             var connStr = builder.Configuration.GetConnectionString("DefaultConnection")
                 ?? "Host=localhost;Port=5432;Database=arkwallet;Username=arkwallet;Password=arkwallet";
             builder.Services.AddDbContext<ArkWalletDbContext>(options =>
-                options.UseNpgsql(connStr));
+                options.UseNpgsql(connStr)
+                    .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
         }
         else
         {
             builder.Services.AddDbContext<ArkWalletDbContext>(options =>
-                options.UseSqlite("Data Source=arkwallet.db"));
+                options.UseSqlite("Data Source=arkwallet.db")
+                    .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
         }
 
         // Swagger
@@ -193,6 +205,9 @@ class Program
             builder.Services.AddHostedService<MarketWallBlockerWorker>();
             builder.Services.AddHostedService<NotificationWorker>();
             builder.Services.AddHostedService<BalanceSavingSnapshotWorker>();
+            builder.Services.AddHostedService<MiningMachineCalculationWorker>();
+            builder.Services.AddHostedService<MiningGlobalRuleCreationWorker>();
+            builder.Services.AddHostedService<MiningMachineSlotSwitchingWorker>();
         }
 
         var app = builder.Build();
@@ -222,23 +237,30 @@ class Program
             using (var scope = app.Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<ArkWalletDbContext>();
-                var provider = app.Services.GetRequiredService<IConfiguration>()["Database:Provider"] ?? "SQLite";
-                if (provider == "PostgreSQL")
+                await db.Database.MigrateAsync();
+                Console.WriteLine("Миграции применены!");
+            }
+
+            // Load AccessControl into memory
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ArkWalletDbContext>();
+                var accessControl = app.Services.GetRequiredService<AccessControlService>();
+                var setting = await db.AccessSettings.FirstOrDefaultAsync();
+                if (setting == null)
                 {
-                    await db.Database.EnsureCreatedAsync();
-                    Console.WriteLine("PostgreSQL schema ensured!");
+                    setting = AccessSetting.Create();
+                    db.AccessSettings.Add(setting);
+                    await db.SaveChangesAsync();
                 }
-                else
-                {
-                    await db.Database.MigrateAsync();
-                    Console.WriteLine("Миграции применены!");
-                }
+                accessControl.LoadFromDb(setting);
+                Console.WriteLine("AccessSetting loaded into memory.");
             }
 
             // Telegram BotS
             using (var scope = app.Services.CreateScope())
             {
-                var bot = scope.ServiceProvider.GetRequiredService<TelegramBot>();
+                var bot = app.Services.GetRequiredService<TelegramBot>();
                 await bot.Start();
             }
         }
@@ -248,6 +270,10 @@ class Program
 
     private static void RegisterServices(IServiceCollection services)
     {
+        // MediatR
+        services.AddMediatR(cfg =>
+            cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+
         // DbContext
         services.AddDbContext<ArkWalletDbContext>();
 
@@ -256,6 +282,10 @@ class Program
         services.AddScoped<FixedGridEngine>();
         services.AddScoped<MarketMakerGridEngine>();
         services.AddScoped<WallBlockerEngine>();
+        services.AddScoped<MiningEngine>();
+
+        // Domain Events
+        services.AddScoped<IEventPublisher, MediatREventPublisher>();
 
         // Telegram Bot
         services.AddSingleton<TelegramBot>();
@@ -318,6 +348,31 @@ class Program
         // MarketWallBlocker
         services.AddScoped<IMarketWallBlockerOrchestrator, MarketWallBlockerOrchestrator>();
 
+        // MiningMachineServices
+        services.AddScoped<IMiningMachineCreationService, MiningMachineCreationService>();
+        services.AddScoped<IMiningMachineUpdateService, MiningMachineUpdateService>();
+        services.AddScoped<IMiningMachineRuleCreationService, MiningMachineRuleCreationService>();
+        services.AddScoped<IMiningMachineRuleUpdateService, MiningMachineRuleUpdateService>();
+        services.AddScoped<IMiningMachineSlotBuyingService, MiningMachineSlotBuyingService>();
+        services.AddScoped<IMiningMachineSlotSwitchingService, MiningMachineSlotSwitchingService>();
+        services.AddScoped<IMiningMachineSlotCalculationService, MiningMachineSlotCalculationService>();
+        services.AddScoped<IMiningMachineSlotSellingService, MiningMachineSlotSellingService>();
+        services.AddScoped<IMiningMachineQueryService, MiningMachineQueryService>();
+        services.AddScoped<IMiningMachineSlotQueryService, MiningMachineSlotQueryService>();
+        services.AddScoped<IMiningMachineSlotTakingTokenService, MiningMachineSlotTakingTokenService>();
+        services.AddScoped<IMiningGlobalRuleQueryService, MiningGlobalRuleQueryService>();
+        services.AddScoped<IMiningGlobalRuleCreationService, MiningGlobalRuleCreationService>();
+        services.AddScoped<IMiningMachineDeletionService, MiningMachineDeletionService>();
+        services.AddScoped<IMiningMachineRuleDeletionService, MiningMachineRuleDeletionService>();
+        services.AddScoped<IMiningGlobalRuleUpdateService, MiningGlobalRuleUpdateService>();
+        services.AddScoped<IAppStateQueryService, AppStateQueryService>();
+
+        // MiningMachineOrchestrators
+        services.AddScoped<IMiningMachineCreationOrchestrator, MiningMachineCreationOrchestrator>();
+        services.AddScoped<IMiningMachineSlotTakingTokenOrchestrator, MiningMachineSlotTakingTokenOrchestrator>();
+        services.AddScoped<IMiningMachineSlotSwitchingOrchestrator, MiningMachineSlotSwitchingOrchestrator>();
+        services.AddScoped<IMiningMachineSlotSellingOrchestrator, MiningMachineSlotSellingOrchestrator>();
+
         // Trade Services
         services.AddScoped<ITradeQueryService, TradeQueryService>();
 
@@ -331,5 +386,8 @@ class Program
 
         // Observability
         services.AddSingleton<IMetricsSnapshotService, MetricsSnapshotService>();
+
+        // Access Control
+        services.AddSingleton<AccessControlService>();
     }
 }

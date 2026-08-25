@@ -18,12 +18,12 @@ public class TradeQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
 
         var logger = NullLogger<TradeQueryService>.Instance;
         var service = new TradeQueryService(db, logger);
 
-        var result = await service.GetTraderTradesAsync(101);
+        var result = await service.GetTraderTradesAsync(1001);
 
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var data));
@@ -36,18 +36,18 @@ public class TradeQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
         await HelpMethods.CreateToken(db, "ZZZ", "Zero");
-        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 10);
 
-        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 5, 100);
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
 
         var logger = NullLogger<TradeQueryService>.Instance;
         var service = new TradeQueryService(db, logger);
 
-        var result = await service.GetTraderTradesAsync(101);
+        var result = await service.GetTraderTradesAsync(1001);
 
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var data));
@@ -60,18 +60,18 @@ public class TradeQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
         await HelpMethods.CreateToken(db, "ZZZ", "Zero");
-        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 10);
 
-        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 5, 100);
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
 
         var logger = NullLogger<TradeQueryService>.Instance;
         var service = new TradeQueryService(db, logger);
 
-        var result = await service.GetTraderTradesAsync(101);
+        var result = await service.GetTraderTradesAsync(1001);
 
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var data));
@@ -87,18 +87,18 @@ public class TradeQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
         await HelpMethods.CreateToken(db, "ZZZ", "Zero");
-        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 10);
 
-        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 5, 100);
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
 
         var logger = NullLogger<TradeQueryService>.Instance;
         var service = new TradeQueryService(db, logger);
 
-        var result = await service.GetTraderTradesAsync(102);
+        var result = await service.GetTraderTradesAsync(1002);
 
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var data));
@@ -114,18 +114,18 @@ public class TradeQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
         await HelpMethods.CreateToken(db, "ZZZ", "Zero");
-        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 10);
 
-        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 5, 100);
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
 
         var logger = NullLogger<TradeQueryService>.Instance;
         var service = new TradeQueryService(db, logger);
 
-        var result = await service.GetTraderTradesAsync(101);
+        var result = await service.GetTraderTradesAsync(1001);
 
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var data));
@@ -143,18 +143,18 @@ public class TradeQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
         await HelpMethods.CreateToken(db, "ZZZ", "Zero", CharacterRarity.FourStar, 1000, 100m, true, "image.png", "icon.png");
-        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 10);
 
-        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 5, 100);
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
 
         var logger = NullLogger<TradeQueryService>.Instance;
         var service = new TradeQueryService(db, logger);
 
-        var result = await service.GetTraderTradesAsync(101, withTokenInfo: true);
+        var result = await service.GetTraderTradesAsync(1001, withTokenInfo: true);
 
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var data));

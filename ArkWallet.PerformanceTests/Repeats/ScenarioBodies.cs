@@ -6,6 +6,7 @@ using ArkWallet.Application.Services.Orchestrators;
 using ArkWallet.Application.Services.TradeOrderServices;
 using ArkWallet.Application.Services.TraderServices;
 using ArkWallet.Domain.Engines;
+using ArkWallet.Infrastructure;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.PerformanceTests.Helpers;
 using ArkWallet.PerformanceTests.Measurement;
@@ -168,7 +169,7 @@ internal static class ScenarioBodies
             db,
             new TradingEngine(),
             new OrderValidationService(db),
-            candleUpdateService,
+            new MediatREventPublisher(TestMediatorFactory.Create(db, candleUpdateService)),
             new FakeTaskDispatcher(),
             NullLogger<OrderCreationService>.Instance);
     }
@@ -182,7 +183,7 @@ internal static class ScenarioBodies
             db,
             new TradingEngine(),
             new OrderValidationService(db),
-            candleUpdateService,
+            new MediatREventPublisher(TestMediatorFactory.Create(db, candleUpdateService)),
             new FakeTaskDispatcher(),
             NullLogger<OrderCreationService>.Instance);
 

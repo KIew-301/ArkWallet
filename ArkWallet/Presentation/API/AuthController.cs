@@ -1,5 +1,6 @@
 ﻿using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Contracts.TraderServices;
+using ArkWallet.Infrastructure.AccessControl;
 using ArkWallet.Presentation.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -17,6 +18,7 @@ public class AuthController(
     ITraderRegistrationService traderRegistrationService,
     IConfiguration configuration, ITokenService tokenService,
     ITraderAuthService traderAuthService,
+    AccessControlService accessControl,
     ILogger<AuthController> logger) : ControllerBase
 {
     /// <summary>
@@ -43,6 +45,9 @@ public class AuthController(
         }
 
         logger.LogInformation("Auth success for user {UserId} ({FirstName})", data.User.Id, data.User.FirstName);
+
+        if (!accessControl.IsAuthorized(data.User.Id))
+            return StatusCode(403, "Access denied");
 
         var isRegistered = await traderRegistrationService.CheckTraderAlreadyRegistered(data.User.Id);
 
