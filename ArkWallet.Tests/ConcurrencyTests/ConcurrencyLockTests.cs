@@ -221,8 +221,8 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
 
         await using (var seed = CreateContext())
         {
-            await HelpMethods.RegisterTrader(seed, 102, "Buyer1");
-            await HelpMethods.RegisterTrader(seed, 103, "Buyer2");
+            await HelpMethods.RegisterTrader(seed, 1002, "Buyer1");
+            await HelpMethods.RegisterTrader(seed, 1003, "Buyer2");
         }
 
         const int iterations = 30;
@@ -237,8 +237,8 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
                 await HelpMethods.RegisterTrader(seed, sellerId, $"Seller{i}");
                 await HelpMethods.CreateToken(seed, symbol);
                 await HelpMethods.AddPortfolio(seed, sellerId, symbol, 100);
-                await HelpMethods.GiveMoney(seed, 102, 50_000m);
-                await HelpMethods.GiveMoney(seed, 103, 50_000m);
+                await HelpMethods.GiveMoney(seed, 1002, 50_000m);
+                await HelpMethods.GiveMoney(seed, 1003, 50_000m);
 
                 var sell = await HelpMethods.PlaceOrder(seed, sellerId, "продать", symbol, 100, 100);
                 Assert.True(sell.IsSuccess, sell.Message);
@@ -250,13 +250,13 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
             {
                 await start.Task;
                 await using var db = CreateContext();
-                return await BuyAsync(db, 102, symbol);
+                return await BuyAsync(db, 1002, symbol);
             });
             var task2 = Task.Run(async () =>
             {
                 await start.Task;
                 await using var db = CreateContext();
-                return await BuyAsync(db, 103, symbol);
+                return await BuyAsync(db, 1003, symbol);
             });
 
             start.SetResult();
@@ -269,7 +269,7 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
             Assert.Equal(100, sellerOrder.FilledQuantity);
 
             var buyersExecuted = await check.TradeOrders
-                .Where(o => (o.TraderTelegramId == 102 || o.TraderTelegramId == 103) && o.CharacterTokenId == symbol)
+                .Where(o => (o.TraderTelegramId == 1002 || o.TraderTelegramId == 1003) && o.CharacterTokenId == symbol)
                 .SumAsync(o => o.FilledQuantity);
 
             Assert.Equal(100, buyersExecuted);

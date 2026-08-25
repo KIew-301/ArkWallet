@@ -77,13 +77,13 @@ public class OrderBookServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.GiveMoney(db, 101, 10_000_000m);
+        await HelpMethods.GiveMoney(db, 1001, 10_000_000m);
 
-        await HelpMethods.PlaceOrder(db, 101, "Купить", "ZZZ", 5, 100);
-        await HelpMethods.PlaceOrder(db, 101, "Купить", "ZZZ", 3, 110);
-        await HelpMethods.PlaceOrder(db, 101, "Купить", "ZZZ", 7, 90);
+        await HelpMethods.PlaceOrder(db, 1001, "Купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "Купить", "ZZZ", 3, 110);
+        await HelpMethods.PlaceOrder(db, 1001, "Купить", "ZZZ", 7, 90);
 
         var service = new OrderBookService(db, NullLogger<OrderBookService>.Instance);
 
@@ -104,13 +104,13 @@ public class OrderBookServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
+        await HelpMethods.AddPortfolio(db, 1001, "ZZZ", 100);
 
-        await HelpMethods.PlaceOrder(db, 101, "Продать", "ZZZ", 5, 200);
-        await HelpMethods.PlaceOrder(db, 101, "Продать", "ZZZ", 3, 180);
-        await HelpMethods.PlaceOrder(db, 101, "Продать", "ZZZ", 7, 210);
+        await HelpMethods.PlaceOrder(db, 1001, "Продать", "ZZZ", 5, 200);
+        await HelpMethods.PlaceOrder(db, 1001, "Продать", "ZZZ", 3, 180);
+        await HelpMethods.PlaceOrder(db, 1001, "Продать", "ZZZ", 7, 210);
 
         var service = new OrderBookService(db, NullLogger<OrderBookService>.Instance);
 
@@ -131,13 +131,13 @@ public class OrderBookServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.GiveMoney(db, 101, 10_000_000m);
-        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
+        await HelpMethods.GiveMoney(db, 1001, 10_000_000m);
+        await HelpMethods.AddPortfolio(db, 1001, "ZZZ", 100);
 
-        await HelpMethods.PlaceOrder(db, 101, "Купить", "ZZZ", 5, 100);
-        await HelpMethods.PlaceOrder(db, 101, "Продать", "ZZZ", 3, 105);
+        await HelpMethods.PlaceOrder(db, 1001, "Купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "Продать", "ZZZ", 3, 105);
 
         var service = new OrderBookService(db, NullLogger<OrderBookService>.Instance);
 
@@ -156,13 +156,13 @@ public class OrderBookServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.GiveMoney(db, 101, 10_000_000m);
+        await HelpMethods.GiveMoney(db, 1001, 10_000_000m);
 
-        await HelpMethods.PlaceOrder(db, 101, "Купить", "ZZZ", 1, 100);
-        await HelpMethods.PlaceOrder(db, 101, "Купить", "ZZZ", 1, 110);
-        await HelpMethods.PlaceOrder(db, 101, "Купить", "ZZZ", 1, 120);
+        await HelpMethods.PlaceOrder(db, 1001, "Купить", "ZZZ", 1, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "Купить", "ZZZ", 1, 110);
+        await HelpMethods.PlaceOrder(db, 1001, "Купить", "ZZZ", 1, 120);
 
         var service = new OrderBookService(db, NullLogger<OrderBookService>.Instance);
 
@@ -181,13 +181,13 @@ public class OrderBookServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
+        await HelpMethods.AddPortfolio(db, 1001, "ZZZ", 100);
 
-        await HelpMethods.PlaceOrder(db, 101, "Продать", "ZZZ", 1, 100);
-        await HelpMethods.PlaceOrder(db, 101, "Продать", "ZZZ", 1, 110);
-        await HelpMethods.PlaceOrder(db, 101, "Продать", "ZZZ", 1, 120);
+        await HelpMethods.PlaceOrder(db, 1001, "Продать", "ZZZ", 1, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "Продать", "ZZZ", 1, 110);
+        await HelpMethods.PlaceOrder(db, 1001, "Продать", "ZZZ", 1, 120);
 
         var service = new OrderBookService(db, NullLogger<OrderBookService>.Instance);
 
@@ -206,11 +206,11 @@ public class OrderBookServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.GiveMoney(db, 101, 10_000_000m);
+        await HelpMethods.GiveMoney(db, 1001, 10_000_000m);
 
-        await HelpMethods.PlaceOrder(db, 101, "Купить", "ZZZ", 10, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "Купить", "ZZZ", 10, 100);
 
         var service = new OrderBookService(db, NullLogger<OrderBookService>.Instance);
 
@@ -231,13 +231,13 @@ public class OrderBookServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.GiveMoney(db, 101, 10_000_000m);
+        await HelpMethods.GiveMoney(db, 1001, 10_000_000m);
 
-        var order1 = await HelpMethods.PlaceOrder(db, 101, "Купить", "ZZZ", 5, 100);
-        var order2 = await HelpMethods.PlaceOrder(db, 101, "Купить", "ZZZ", 5, 200);
-        await HelpMethods.CancelOrder(db, 101, order2);
+        var order1 = await HelpMethods.PlaceOrder(db, 1001, "Купить", "ZZZ", 5, 100);
+        var order2 = await HelpMethods.PlaceOrder(db, 1001, "Купить", "ZZZ", 5, 200);
+        await HelpMethods.CancelOrder(db, 1001, order2);
 
         var service = new OrderBookService(db, NullLogger<OrderBookService>.Instance);
 
@@ -255,11 +255,11 @@ public class OrderBookServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.GiveMoney(db, 101, 10_000_000m);
+        await HelpMethods.GiveMoney(db, 1001, 10_000_000m);
 
-        await HelpMethods.PlaceOrder(db, 101, "Купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "Купить", "ZZZ", 5, 100);
 
         var service = new OrderBookService(db, NullLogger<OrderBookService>.Instance);
 

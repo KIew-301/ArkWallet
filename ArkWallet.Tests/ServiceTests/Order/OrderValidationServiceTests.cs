@@ -56,14 +56,14 @@ public class OrderValidationServiceTests
     {
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        var orderResult = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        var orderResult = await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
 
         var service = new OrderValidationService(db);
 
         Assert.True(orderResult.TryGetData(out var data), orderResult.Message);
-        var result = await service.ValidateOrderCancellationAsync(101, data.Order.Id);
+        var result = await service.ValidateOrderCancellationAsync(1001, data.Order.Id);
 
         Assert.True(result.IsValid);
     }
@@ -73,11 +73,11 @@ public class OrderValidationServiceTests
     {
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
 
         var service = new OrderValidationService(db);
 
-        var result = await service.ValidateOrderCancellationAsync(101, "non-existent-id");
+        var result = await service.ValidateOrderCancellationAsync(1001, "non-existent-id");
 
         Assert.False(result.IsValid);
         Assert.Contains("не существует", result.Message);
@@ -88,16 +88,16 @@ public class OrderValidationServiceTests
     {
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        var orderResult = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        var orderResult = await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
 
-        await HelpMethods.CancelOrder(db, 101, orderResult);
+        await HelpMethods.CancelOrder(db, 1001, orderResult);
 
         var service = new OrderValidationService(db);
 
         Assert.True(orderResult.TryGetData(out var data), orderResult.Message);
-        var result = await service.ValidateOrderCancellationAsync(101, data.Order.Id);
+        var result = await service.ValidateOrderCancellationAsync(1001, data.Order.Id);
 
         Assert.False(result.IsValid);
         Assert.Contains("Нельзя отменить неактивный ордер", result.Message);
@@ -108,15 +108,15 @@ public class OrderValidationServiceTests
     {
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
         await HelpMethods.CreateToken(db, "ZZZ");
-        var orderResult = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        var orderResult = await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
 
         var service = new OrderValidationService(db);
 
         Assert.True(orderResult.TryGetData(out var data), orderResult.Message);
-        var result = await service.ValidateOrderCancellationAsync(102, data.Order.Id);
+        var result = await service.ValidateOrderCancellationAsync(1002, data.Order.Id);
 
         Assert.False(result.IsValid);
         Assert.Contains("не своей", result.Message);

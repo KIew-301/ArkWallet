@@ -15,16 +15,16 @@ public class OrderCreationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101, "FirstUser");
-        await HelpMethods.RegisterTrader(db, 102, "SecondUser");
+        await HelpMethods.RegisterTrader(db, 1001, "FirstUser");
+        await HelpMethods.RegisterTrader(db, 1002, "SecondUser");
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 10);
 
-        var result1 = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
-        var result2 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 5, 100);
+        var result1 = await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
+        var result2 = await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 5, 100);
 
-        var orders1 = await HelpMethods.GetTraderOrders(db, 101, "ZZZ", OrderStatus.Filled);
-        var orders2 = await HelpMethods.GetTraderOrders(db, 102, "ZZZ", OrderStatus.Filled);
+        var orders1 = await HelpMethods.GetTraderOrders(db, 1001, "ZZZ", OrderStatus.Filled);
+        var orders2 = await HelpMethods.GetTraderOrders(db, 1002, "ZZZ", OrderStatus.Filled);
 
         Assert.True(result1.IsSuccess);
         Assert.True(result2.IsSuccess);
@@ -39,9 +39,9 @@ public class OrderCreationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        var result = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        var result = await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
 
         Assert.True(result.IsSuccess, $"Order failed: {result.Message}");
     }
@@ -52,10 +52,10 @@ public class OrderCreationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
-        var result = await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 5, 100);
+        await HelpMethods.AddPortfolio(db, 1001, "ZZZ", 10);
+        var result = await HelpMethods.PlaceOrder(db, 1001, "продать", "ZZZ", 5, 100);
 
         Assert.True(result.IsSuccess, $"Order failed: {result.Message}");
     }
@@ -66,27 +66,27 @@ public class OrderCreationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 30);
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 30);
 
-        var result1 = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 9, 90);
-        var result2 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 60);
-        var result3 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 80);
-        var result4 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 100);
+        var result1 = await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 9, 90);
+        var result2 = await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 3, 60);
+        var result3 = await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 3, 80);
+        var result4 = await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 3, 100);
 
-        var trader1 = await HelpMethods.GetTrader(db, 101);
-        var trader2 = await HelpMethods.GetTrader(db, 102);
+        var trader1 = await HelpMethods.GetTrader(db, 1001);
+        var trader2 = await HelpMethods.GetTrader(db, 1002);
 
-        var portfolio1 = await HelpMethods.GetPortfolio(db, 101, "ZZZ");
-        var portfolio2 = await HelpMethods.GetPortfolio(db, 102, "ZZZ");
+        var portfolio1 = await HelpMethods.GetPortfolio(db, 1001, "ZZZ");
+        var portfolio2 = await HelpMethods.GetPortfolio(db, 1002, "ZZZ");
 
-        var filledOrders1 = await HelpMethods.GetTraderOrders(db, 101, "ZZZ", OrderStatus.Filled);
-        var filledOrders2 = await HelpMethods.GetTraderOrders(db, 102, "ZZZ", OrderStatus.Filled);
+        var filledOrders1 = await HelpMethods.GetTraderOrders(db, 1001, "ZZZ", OrderStatus.Filled);
+        var filledOrders2 = await HelpMethods.GetTraderOrders(db, 1002, "ZZZ", OrderStatus.Filled);
 
-        var activeOrders1 = await HelpMethods.GetTraderOrders(db, 101, "ZZZ", OrderStatus.Active);
-        var activeOrders2 = await HelpMethods.GetTraderOrders(db, 102, "ZZZ", OrderStatus.Active);
+        var activeOrders1 = await HelpMethods.GetTraderOrders(db, 1001, "ZZZ", OrderStatus.Active);
+        var activeOrders2 = await HelpMethods.GetTraderOrders(db, 1002, "ZZZ", OrderStatus.Active);
 
         Assert.True(result1.IsSuccess);
         Assert.True(result2.IsSuccess);
@@ -120,27 +120,27 @@ public class OrderCreationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 30);
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 30);
 
-        var result1 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 60);
-        var result2 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 80);
-        var result3 = await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 100);
-        var result4 = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 9, 90);
+        var result1 = await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 3, 60);
+        var result2 = await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 3, 80);
+        var result3 = await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 3, 100);
+        var result4 = await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 9, 90);
 
-        var trader1 = await HelpMethods.GetTrader(db, 101);
-        var trader2 = await HelpMethods.GetTrader(db, 102);
+        var trader1 = await HelpMethods.GetTrader(db, 1001);
+        var trader2 = await HelpMethods.GetTrader(db, 1002);
 
-        var portfolio1 = await HelpMethods.GetPortfolio(db, 101, "ZZZ");
-        var portfolio2 = await HelpMethods.GetPortfolio(db, 102, "ZZZ");
+        var portfolio1 = await HelpMethods.GetPortfolio(db, 1001, "ZZZ");
+        var portfolio2 = await HelpMethods.GetPortfolio(db, 1002, "ZZZ");
 
-        var filledOrders1 = await HelpMethods.GetTraderOrders(db, 101, "ZZZ", OrderStatus.Filled);
-        var filledOrders2 = await HelpMethods.GetTraderOrders(db, 102, "ZZZ", OrderStatus.Filled);
+        var filledOrders1 = await HelpMethods.GetTraderOrders(db, 1001, "ZZZ", OrderStatus.Filled);
+        var filledOrders2 = await HelpMethods.GetTraderOrders(db, 1002, "ZZZ", OrderStatus.Filled);
 
-        var activeOrders1 = await HelpMethods.GetTraderOrders(db, 101, "ZZZ", OrderStatus.Active);
-        var activeOrders2 = await HelpMethods.GetTraderOrders(db, 102, "ZZZ", OrderStatus.Active);
+        var activeOrders1 = await HelpMethods.GetTraderOrders(db, 1001, "ZZZ", OrderStatus.Active);
+        var activeOrders2 = await HelpMethods.GetTraderOrders(db, 1002, "ZZZ", OrderStatus.Active);
 
         Assert.True(result1.IsSuccess, result1.Message);
         Assert.True(result2.IsSuccess, result2.Message);
@@ -174,41 +174,41 @@ public class OrderCreationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101); // 1 - 1000, 0
-        await HelpMethods.RegisterTrader(db, 102); // 2 - 1000, 0
-        await HelpMethods.RegisterTrader(db, 103); // 3 - 1000, 0
+        await HelpMethods.RegisterTrader(db, 1001); // 1 - 1000, 0
+        await HelpMethods.RegisterTrader(db, 1002); // 2 - 1000, 0
+        await HelpMethods.RegisterTrader(db, 1003); // 3 - 1000, 0
 
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 5);  // 2 - 1000, 5
-        await HelpMethods.AddPortfolio(db, 103, "ZZZ", 50); // 2 - 1000, 50
-        await HelpMethods.GiveMoney(db, 101, 1000);         // 2 - 2000, 0
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 5);  // 2 - 1000, 5
+        await HelpMethods.AddPortfolio(db, 1003, "ZZZ", 50); // 2 - 1000, 50
+        await HelpMethods.GiveMoney(db, 1001, 1000);         // 2 - 2000, 0
 
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 50);      // 1 - 1750, 0 | 2 - 1000, 5 | 3 - 1000, 50 - первый 
-        await HelpMethods.PlaceOrder(db, 102, "купить", "ZZZ", 10, 60);     // 1 - 1750, 0 | 2 - 400, 5 | 3 - 1000, 50 - второй /матчится 3-им полностью
-        await HelpMethods.PlaceOrder(db, 103, "продать", "ZZZ", 10, 30);    // 1 - 1750, 0 | 2 - 400, 15 | 3 - 1600, 40 - третий /матчится 2-ым полностью
-        await HelpMethods.PlaceOrder(db, 102, "купить", "ZZZ", 2, 90);      // 1 - 1750, 0 | 2 - 220, 15 | 3 - 1600, 40 - четвёртый /матчится 8-ым полностью
-        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 100, 150);  // Error
-        await HelpMethods.PlaceOrder(db, 103, "продать", "ZZZ", 5, 150);    // 1 - 1750, 0 | 2 - 220, 15 | 3 - 1600, 35 - пятый /матчится седьмым полностью
-        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 5, 150);    // 1 - 1750, 0 | 2 - 220, 10 | 3 - 1600, 35 - шестой /не матчится
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 2, 15000);   // Error
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 2, 150);     // 1 - 1450, 2 | 2 - 220, 10 | 3 - 1900, 35 - седьмой /матчится вторым полностью
-        await HelpMethods.PlaceOrder(db, 103, "продать", "ZZZ", 30, 10);    // 1 - 1450, 7 | 2 - 220, 12 | 3 - 2330, 5 - восьмой /матчится 4-ым на 2
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 50);      // 1 - 1750, 0 | 2 - 1000, 5 | 3 - 1000, 50 - первый 
+        await HelpMethods.PlaceOrder(db, 1002, "купить", "ZZZ", 10, 60);     // 1 - 1750, 0 | 2 - 400, 5 | 3 - 1000, 50 - второй /матчится 3-им полностью
+        await HelpMethods.PlaceOrder(db, 1003, "продать", "ZZZ", 10, 30);    // 1 - 1750, 0 | 2 - 400, 15 | 3 - 1600, 40 - третий /матчится 2-ым полностью
+        await HelpMethods.PlaceOrder(db, 1002, "купить", "ZZZ", 2, 90);      // 1 - 1750, 0 | 2 - 220, 15 | 3 - 1600, 40 - четвёртый /матчится 8-ым полностью
+        await HelpMethods.PlaceOrder(db, 1001, "продать", "ZZZ", 100, 150);  // Error
+        await HelpMethods.PlaceOrder(db, 1003, "продать", "ZZZ", 5, 150);    // 1 - 1750, 0 | 2 - 220, 15 | 3 - 1600, 35 - пятый /матчится седьмым полностью
+        await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 5, 150);    // 1 - 1750, 0 | 2 - 220, 10 | 3 - 1600, 35 - шестой /не матчится
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 2, 15000);   // Error
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 2, 150);     // 1 - 1450, 2 | 2 - 220, 10 | 3 - 1900, 35 - седьмой /матчится вторым полностью
+        await HelpMethods.PlaceOrder(db, 1003, "продать", "ZZZ", 30, 10);    // 1 - 1450, 7 | 2 - 220, 12 | 3 - 2330, 5 - восьмой /матчится 4-ым на 2
 
-        var trader1 = await HelpMethods.GetTrader(db, 101);
-        var trader2 = await HelpMethods.GetTrader(db, 102);
-        var trader3 = await HelpMethods.GetTrader(db, 103);
+        var trader1 = await HelpMethods.GetTrader(db, 1001);
+        var trader2 = await HelpMethods.GetTrader(db, 1002);
+        var trader3 = await HelpMethods.GetTrader(db, 1003);
 
-        var portfolio1 = await HelpMethods.GetPortfolio(db, 101, "ZZZ");
-        var portfolio2 = await HelpMethods.GetPortfolio(db, 102, "ZZZ");
-        var portfolio3 = await HelpMethods.GetPortfolio(db, 103, "ZZZ");
+        var portfolio1 = await HelpMethods.GetPortfolio(db, 1001, "ZZZ");
+        var portfolio2 = await HelpMethods.GetPortfolio(db, 1002, "ZZZ");
+        var portfolio3 = await HelpMethods.GetPortfolio(db, 1003, "ZZZ");
 
-        var filledOrders1 = await HelpMethods.GetTraderOrders(db, 101, "ZZZ", OrderStatus.Filled);
-        var filledOrders2 = await HelpMethods.GetTraderOrders(db, 102, "ZZZ", OrderStatus.Filled);
-        var filledOrders3 = await HelpMethods.GetTraderOrders(db, 103, "ZZZ", OrderStatus.Filled);
+        var filledOrders1 = await HelpMethods.GetTraderOrders(db, 1001, "ZZZ", OrderStatus.Filled);
+        var filledOrders2 = await HelpMethods.GetTraderOrders(db, 1002, "ZZZ", OrderStatus.Filled);
+        var filledOrders3 = await HelpMethods.GetTraderOrders(db, 1003, "ZZZ", OrderStatus.Filled);
 
-        var activeOrders1 = await HelpMethods.GetTraderOrders(db, 101, "ZZZ", OrderStatus.Active);
-        var activeOrders2 = await HelpMethods.GetTraderOrders(db, 102, "ZZZ", OrderStatus.Active);
-        var activeOrders3 = await HelpMethods.GetTraderOrders(db, 103, "ZZZ", OrderStatus.Active);
+        var activeOrders1 = await HelpMethods.GetTraderOrders(db, 1001, "ZZZ", OrderStatus.Active);
+        var activeOrders2 = await HelpMethods.GetTraderOrders(db, 1002, "ZZZ", OrderStatus.Active);
+        var activeOrders3 = await HelpMethods.GetTraderOrders(db, 1003, "ZZZ", OrderStatus.Active);
 
         Assert.NotNull(trader1);
         Assert.NotNull(trader2);
@@ -218,7 +218,7 @@ public class OrderCreationServiceTest
         Assert.Equal(220, trader2.Balance);
         Assert.Equal(2330, trader3.Balance);
 
-        // Портфель 101
+        // Портфель 1001
         Assert.Equal(7, portfolio1.Quantity);
         Assert.Equal(78.57m, portfolio1.AverageBuyPrice, 2);
         Assert.Equal(0, portfolio1.ReserveQuantity);
@@ -226,7 +226,7 @@ public class OrderCreationServiceTest
         Assert.Equal(0, portfolio1.SellingQuantity);
         Assert.Equal(0, portfolio1.AverageSellPrice);
 
-        // Портфель 102
+        // Портфель 1002
         Assert.Equal(12, portfolio2.Quantity);
         Assert.Equal(2826.11m, portfolio2.AverageBuyPrice, 2);
         Assert.Equal(5, portfolio2.ReserveQuantity);
@@ -234,7 +234,7 @@ public class OrderCreationServiceTest
         Assert.Equal(0, portfolio2.SellingQuantity);
         Assert.Equal(0, portfolio2.AverageSellPrice);
 
-        // Портфель 103
+        // Портфель 1003
         Assert.Equal(5, portfolio3.Quantity);
         Assert.Equal(10000m, portfolio3.AverageBuyPrice, 2);
         Assert.Equal(26, portfolio3.ReserveQuantity);
@@ -257,16 +257,16 @@ public class OrderCreationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1001, "ZZZ", 10);
 
-        var resultShortOrder = await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 5, 100);
-        var resultLongOrder = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        var resultShortOrder = await HelpMethods.PlaceOrder(db, 1001, "продать", "ZZZ", 5, 100);
+        var resultLongOrder = await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
 
-        var orders = await HelpMethods.GetTraderOrders(db, 101, "ZZZ", OrderStatus.Active);
-        var trader = await HelpMethods.GetTrader(db, 101);
-        var portfolio = await HelpMethods.GetPortfolio(db, 101, "ZZZ");
+        var orders = await HelpMethods.GetTraderOrders(db, 1001, "ZZZ", OrderStatus.Active);
+        var trader = await HelpMethods.GetTrader(db, 1001);
+        var portfolio = await HelpMethods.GetPortfolio(db, 1001, "ZZZ");
 
         Assert.Equal(2, orders.Length);
         Assert.Equal(500, trader.Balance);
@@ -279,10 +279,10 @@ public class OrderCreationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 10);
 
         var mockTokenPriceCandleUpdateService = new Mock<ITokenPriceCandleUpdateService>();
         mockTokenPriceCandleUpdateService
@@ -290,10 +290,10 @@ public class OrderCreationServiceTest
             .ReturnsAsync(Result.Fail("Ошибка обновления цены"));
 
         await HelpMethods.PlaceOrder(
-            db, 102, "продать", "ZZZ", 5, 100,
+            db, 1002, "продать", "ZZZ", 5, 100,
             tokenPriceCandleUpdateService: mockTokenPriceCandleUpdateService.Object);
         var result = await HelpMethods.PlaceOrder(
-            db, 101, "купить", "ZZZ", 5, 100,
+            db, 1001, "купить", "ZZZ", 5, 100,
             tokenPriceCandleUpdateService: mockTokenPriceCandleUpdateService.Object);
 
         Assert.False(result.IsSuccess);
@@ -306,10 +306,10 @@ public class OrderCreationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 10);
 
         var mockTokenPriceCandleUpdateService = new Mock<ITokenPriceCandleUpdateService>();
         mockTokenPriceCandleUpdateService
@@ -317,7 +317,7 @@ public class OrderCreationServiceTest
             .ReturnsAsync(Result.Ok());
 
         var result = await HelpMethods.PlaceOrder(
-            db, 101, "купить", "ZZZ", 5, 100,
+            db, 1001, "купить", "ZZZ", 5, 100,
             tokenPriceCandleUpdateService: mockTokenPriceCandleUpdateService.Object);
 
         Assert.True(result.IsSuccess);
@@ -329,13 +329,13 @@ public class OrderCreationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
 
         var mockTokenPriceCandleUpdateService = new Mock<ITokenPriceCandleUpdateService>();
 
         var result = await HelpMethods.PlaceOrder(
-            db, 101, "купить", "ZZZ", 5, 100,
+            db, 1001, "купить", "ZZZ", 5, 100,
             tokenPriceCandleUpdateService: mockTokenPriceCandleUpdateService.Object);
 
         Assert.True(result.IsSuccess);
@@ -351,12 +351,12 @@ public class OrderCreationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.RegisterTrader(db, 102);
-        await HelpMethods.RegisterTrader(db, 103);
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
+        await HelpMethods.RegisterTrader(db, 1003);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
-        await HelpMethods.AddPortfolio(db, 103, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1003, "ZZZ", 10);
 
         decimal? lastUpdatedPrice = null;
 
@@ -370,22 +370,22 @@ public class OrderCreationServiceTest
             .ReturnsAsync(Result.Ok());
 
         await HelpMethods.PlaceOrder(
-            db, 101, "купить", "ZZZ", 5, 115,
+            db, 1001, "купить", "ZZZ", 5, 115,
             tokenPriceCandleUpdateService: mockTokenPriceCandleUpdateService.Object);
         await HelpMethods.PlaceOrder(
-            db, 102, "купить", "ZZZ", 5, 110,
+            db, 1002, "купить", "ZZZ", 5, 110,
             tokenPriceCandleUpdateService: mockTokenPriceCandleUpdateService.Object);
         await HelpMethods.PlaceOrder(
-            db, 103, "продать", "ZZZ", 5, 90,
+            db, 1003, "продать", "ZZZ", 5, 90,
             tokenPriceCandleUpdateService: mockTokenPriceCandleUpdateService.Object);
         await HelpMethods.PlaceOrder(
-            db, 101, "продать", "ZZZ", 5, 120,
+            db, 1001, "продать", "ZZZ", 5, 120,
             tokenPriceCandleUpdateService: mockTokenPriceCandleUpdateService.Object);
         await HelpMethods.PlaceOrder(
-            db, 101, "купить", "ZZZ", 5, 60,
+            db, 1001, "купить", "ZZZ", 5, 60,
             tokenPriceCandleUpdateService: mockTokenPriceCandleUpdateService.Object);
         await HelpMethods.PlaceOrder(
-            db, 103, "продать", "ZZZ", 5, 50,
+            db, 1003, "продать", "ZZZ", 5, 50,
             tokenPriceCandleUpdateService: mockTokenPriceCandleUpdateService.Object);
 
         Assert.Equal(110m, lastUpdatedPrice);
@@ -401,21 +401,21 @@ public class OrderCreationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101, "Buyer");
-        await HelpMethods.RegisterTrader(db, 102, "Seller1");
-        await HelpMethods.RegisterTrader(db, 103, "Seller2");
-        await HelpMethods.RegisterTrader(db, 104, "Seller3");
+        await HelpMethods.RegisterTrader(db, 1001, "Buyer");
+        await HelpMethods.RegisterTrader(db, 1002, "Seller1");
+        await HelpMethods.RegisterTrader(db, 1003, "Seller2");
+        await HelpMethods.RegisterTrader(db, 1004, "Seller3");
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
-        await HelpMethods.AddPortfolio(db, 103, "ZZZ", 10);
-        await HelpMethods.AddPortfolio(db, 104, "ZZZ", 10);
-        await HelpMethods.GiveMoney(db, 101, 10000);
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1003, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1004, "ZZZ", 10);
+        await HelpMethods.GiveMoney(db, 1001, 10000);
 
-        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 90);
-        await HelpMethods.PlaceOrder(db, 103, "продать", "ZZZ", 4, 95);
-        await HelpMethods.PlaceOrder(db, 104, "продать", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 3, 90);
+        await HelpMethods.PlaceOrder(db, 1003, "продать", "ZZZ", 4, 95);
+        await HelpMethods.PlaceOrder(db, 1004, "продать", "ZZZ", 5, 100);
 
-        var result = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 10, 100);
+        var result = await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 10, 100);
 
         Assert.True(result.TryGetData(out var data), result.Message);
 
@@ -430,18 +430,18 @@ public class OrderCreationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101, "Buyer");
-        await HelpMethods.RegisterTrader(db, 102, "Seller1");
-        await HelpMethods.RegisterTrader(db, 103, "Seller2");
+        await HelpMethods.RegisterTrader(db, 1001, "Buyer");
+        await HelpMethods.RegisterTrader(db, 1002, "Seller1");
+        await HelpMethods.RegisterTrader(db, 1003, "Seller2");
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
-        await HelpMethods.AddPortfolio(db, 103, "ZZZ", 10);
-        await HelpMethods.GiveMoney(db, 101, 10000);
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1003, "ZZZ", 10);
+        await HelpMethods.GiveMoney(db, 1001, 10000);
 
-        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 90);
-        await HelpMethods.PlaceOrder(db, 103, "продать", "ZZZ", 4, 95);
+        await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 3, 90);
+        await HelpMethods.PlaceOrder(db, 1003, "продать", "ZZZ", 4, 95);
 
-        var result = await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        var result = await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
 
         Assert.True(result.TryGetData(out var data), result.Message);
 
@@ -460,13 +460,13 @@ public class OrderCreationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1001, "ZZZ", 10);
 
         var isBuy = direction.Contains("КУП") || direction.Contains("Куп");
         var result = await HelpMethods.PlaceOrder(
-            db, 101, direction, "ZZZ", 5, isBuy ? 10 : 100);
+            db, 1001, direction, "ZZZ", 5, isBuy ? 10 : 100);
 
         Assert.True(result.IsSuccess, $"Order failed: {result.Message}");
         Assert.True(result.TryGetData(out var data), result.Message);

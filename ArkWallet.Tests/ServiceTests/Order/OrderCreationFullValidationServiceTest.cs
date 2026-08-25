@@ -12,14 +12,14 @@ public class OrderCreationFullValidationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);
+        await HelpMethods.AddPortfolio(db, 1001, "ZZZ", 100);
 
         var validationService = new OrderValidationService(db);
 
         var request = new CreateOrderCommand(
-            TraderId: 101,
+            TraderId: 1001,
             Direction: "купить",
             Symbol: "ZZZ",
             Quantity: 5,
@@ -37,13 +37,13 @@ public class OrderCreationFullValidationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
 
         var validationService = new OrderValidationService(db);
 
         var request = new CreateOrderCommand(
-            TraderId: 101,
+            TraderId: 1001,
             Direction: "купить",
             Symbol: "ZZZ",
             Quantity: 5,
@@ -62,13 +62,13 @@ public class OrderCreationFullValidationServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
 
         var validationService = new OrderValidationService(db);
 
         var request = new CreateOrderCommand(
-            TraderId: 101,
+            TraderId: 1001,
             Direction: "купить",
             Symbol: "ZZZ",
             Quantity: 0,

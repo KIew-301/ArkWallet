@@ -55,15 +55,15 @@ public class OrderCreationBatchServiceTest
     public async Task CreateOrdersAsync_MultipleBuyOrdersSameSymbol_ReturnsSuccess()
     {
         using var db = CreateDb();
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.GiveMoney(db, 101, 10000);
+        await HelpMethods.GiveMoney(db, 1001, 10000);
 
         var service = CreateService(db);
         var commands = new List<CreateOrderCommand>
         {
-            new(101, "купить", "ZZZ", 5, 100),
-            new(101, "купить", "ZZZ", 5, 90)
+            new(1001, "купить", "ZZZ", 5, 100),
+            new(1001, "купить", "ZZZ", 5, 90)
         };
 
         var result = await service.CreateOrdersAsync(commands);
@@ -77,16 +77,16 @@ public class OrderCreationBatchServiceTest
     public async Task CreateOrdersAsync_TwoSymbols_TwoGroups_ReturnsSuccess()
     {
         using var db = CreateDb();
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.CreateToken(db, "AAA");
-        await HelpMethods.GiveMoney(db, 101, 10000);
+        await HelpMethods.GiveMoney(db, 1001, 10000);
 
         var service = CreateService(db);
         var commands = new List<CreateOrderCommand>
         {
-            new(101, "купить", "ZZZ", 5, 100),
-            new(101, "купить", "AAA", 5, 50)
+            new(1001, "купить", "ZZZ", 5, 100),
+            new(1001, "купить", "AAA", 5, 50)
         };
 
         var result = await service.CreateOrdersAsync(commands);
@@ -100,13 +100,13 @@ public class OrderCreationBatchServiceTest
     public async Task CreateOrdersAsync_InvalidPrice_ReturnsFail()
     {
         using var db = CreateDb();
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
 
         var service = CreateService(db);
         var result = await service.CreateOrdersAsync(new[]
         {
-            new CreateOrderCommand(101, "купить", "ZZZ", 5, 0)
+            new CreateOrderCommand(1001, "купить", "ZZZ", 5, 0)
         });
 
         Assert.False(result.IsSuccess);
@@ -117,13 +117,13 @@ public class OrderCreationBatchServiceTest
     public async Task CreateOrdersAsync_BuyInsufficientFunds_ReturnsFail()
     {
         using var db = CreateDb();
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
 
         var service = CreateService(db);
         var result = await service.CreateOrdersAsync(new[]
         {
-            new CreateOrderCommand(101, "купить", "ZZZ", 5, 1000)
+            new CreateOrderCommand(1001, "купить", "ZZZ", 5, 1000)
         });
 
         Assert.False(result.IsSuccess);
@@ -134,15 +134,15 @@ public class OrderCreationBatchServiceTest
     public async Task CreateOrdersAsync_SellInsufficientTokens_ReturnsFail()
     {
         using var db = CreateDb();
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 3);
+        await HelpMethods.AddPortfolio(db, 1001, "ZZZ", 3);
 
         var service = CreateService(db);
         var commands = new[]
         {
-            new CreateOrderCommand(101, "продать", "ZZZ", 2, 100),
-            new CreateOrderCommand(101, "продать", "ZZZ", 2, 90)
+            new CreateOrderCommand(1001, "продать", "ZZZ", 2, 100),
+            new CreateOrderCommand(1001, "продать", "ZZZ", 2, 90)
         };
 
         var result = await service.CreateOrdersAsync(commands);
@@ -155,15 +155,15 @@ public class OrderCreationBatchServiceTest
     public async Task CreateOrdersAsync_SellWithSufficientTokens_ReturnsSuccess()
     {
         using var db = CreateDb();
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1001, "ZZZ", 10);
 
         var service = CreateService(db);
         var commands = new List<CreateOrderCommand>
         {
-            new(101, "продать", "ZZZ", 2, 100),
-            new(101, "продать", "ZZZ", 2, 90)
+            new(1001, "продать", "ZZZ", 2, 100),
+            new(1001, "продать", "ZZZ", 2, 90)
         };
 
         var result = await service.CreateOrdersAsync(commands);
@@ -177,11 +177,11 @@ public class OrderCreationBatchServiceTest
     public async Task CreateOrderAsync_SellWithoutOwnedToken_ReturnsFail()
     {
         using var db = CreateDb();
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
 
         var service = CreateService(db);
-        var result = await service.CreateOrderAsync(new CreateOrderCommand(101, "продать", "ZZZ", 2, 100));
+        var result = await service.CreateOrderAsync(new CreateOrderCommand(1001, "продать", "ZZZ", 2, 100));
 
         Assert.False(result.IsSuccess);
         Assert.Contains("No portfolio item", result.Message);
@@ -191,12 +191,12 @@ public class OrderCreationBatchServiceTest
     public async Task CreateOrdersAsync_TokenPriceUpdateFails_ReturnsFail()
     {
         using var db = CreateDb();
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.GiveMoney(db, 101, 10000);
-        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.GiveMoney(db, 1001, 10000);
+        await HelpMethods.RegisterTrader(db, 1002);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
-        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 5, 90);
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 10);
+        await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 5, 90);
 
         var candleService = new Mock<ITokenPriceCandleUpdateService>();
         candleService
@@ -213,7 +213,7 @@ public class OrderCreationBatchServiceTest
 
         var result = await service.CreateOrdersAsync(new[]
         {
-            new CreateOrderCommand(101, "купить", "ZZZ", 5, 100)
+            new CreateOrderCommand(1001, "купить", "ZZZ", 5, 100)
         });
 
         Assert.False(result.IsSuccess);
@@ -224,11 +224,11 @@ public class OrderCreationBatchServiceTest
     public async Task CreateOrderAsync_InvalidQuantity_ReturnsFail()
     {
         using var db = CreateDb();
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
 
         var service = CreateService(db);
-        var result = await service.CreateOrderAsync(new CreateOrderCommand(101, "купить", "ZZZ", -1, 100));
+        var result = await service.CreateOrderAsync(new CreateOrderCommand(1001, "купить", "ZZZ", -1, 100));
 
         Assert.False(result.IsSuccess);
         Assert.Contains("Количество", result.Message);

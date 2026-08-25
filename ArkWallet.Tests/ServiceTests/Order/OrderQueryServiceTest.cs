@@ -16,12 +16,12 @@ public class OrderQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
 
         var logger = NullLogger<OrderQueryService>.Instance;
         var service = new OrderQueryService(db, logger);
 
-        var result = await service.GetTraderOrdersAsync(101);
+        var result = await service.GetTraderOrdersAsync(1001);
 
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var data));
@@ -34,16 +34,16 @@ public class OrderQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ", "Zero");
-        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
-        await HelpMethods.PlaceOrder(db, 101, "продать", "ZZZ", 3, 200);
+        await HelpMethods.AddPortfolio(db, 1001, "ZZZ", 10);
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "продать", "ZZZ", 3, 200);
 
         var logger = NullLogger<OrderQueryService>.Instance;
         var service = new OrderQueryService(db, logger);
 
-        var result = await service.GetTraderOrdersAsync(101);
+        var result = await service.GetTraderOrdersAsync(1001);
 
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var data));
@@ -56,14 +56,14 @@ public class OrderQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ", "Zero");
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
 
         var logger = NullLogger<OrderQueryService>.Instance;
         var service = new OrderQueryService(db, logger);
 
-        var result = await service.GetTraderOrdersAsync(101);
+        var result = await service.GetTraderOrdersAsync(1001);
 
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var data));
@@ -85,18 +85,18 @@ public class OrderQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
         await HelpMethods.CreateToken(db, "ZZZ", "Zero");
-        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 10);
 
-        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 5, 100);
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
 
         var logger = NullLogger<OrderQueryService>.Instance;
         var service = new OrderQueryService(db, logger);
 
-        var result = await service.GetTraderOrdersAsync(101);
+        var result = await service.GetTraderOrdersAsync(1001);
 
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var data));
@@ -114,18 +114,18 @@ public class OrderQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
         await HelpMethods.CreateToken(db, "ZZZ", "Zero");
-        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 10);
 
-        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 3, 100);
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 3, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
 
         var logger = NullLogger<OrderQueryService>.Instance;
         var service = new OrderQueryService(db, logger);
 
-        var result = await service.GetTraderOrdersAsync(101);
+        var result = await service.GetTraderOrdersAsync(1001);
 
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var data));
@@ -143,18 +143,18 @@ public class OrderQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
         await HelpMethods.CreateToken(db, "ZZZ", "Zero");
-        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 10);
 
-        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 5, 100);
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
 
         var logger = NullLogger<OrderQueryService>.Instance;
         var service = new OrderQueryService(db, logger);
 
-        var result = await service.GetTraderOrdersAsync(101, includeActive: true, includeFilled: false, includeCancelled: false);
+        var result = await service.GetTraderOrdersAsync(1001, includeActive: true, includeFilled: false, includeCancelled: false);
 
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var data));
@@ -167,18 +167,18 @@ public class OrderQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
-        await HelpMethods.RegisterTrader(db, 102);
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
         await HelpMethods.CreateToken(db, "ZZZ", "Zero");
-        await HelpMethods.AddPortfolio(db, 102, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 10);
 
-        await HelpMethods.PlaceOrder(db, 102, "продать", "ZZZ", 5, 100);
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
 
         var logger = NullLogger<OrderQueryService>.Instance;
         var service = new OrderQueryService(db, logger);
 
-        var result = await service.GetTraderOrdersAsync(101, includeActive: false, includeFilled: true, includeCancelled: false);
+        var result = await service.GetTraderOrdersAsync(1001, includeActive: false, includeFilled: true, includeCancelled: false);
 
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var data));
@@ -192,14 +192,14 @@ public class OrderQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ", "Zero");
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
 
         var logger = NullLogger<OrderQueryService>.Instance;
         var service = new OrderQueryService(db, logger);
 
-        var result = await service.GetTraderOrdersAsync(101, includeActive: false, includeFilled: false, includeCancelled: false);
+        var result = await service.GetTraderOrdersAsync(1001, includeActive: false, includeFilled: false, includeCancelled: false);
 
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var data));
@@ -212,14 +212,14 @@ public class OrderQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ", "Zero", CharacterRarity.FourStar, 1000, 100m,  true, "image.png", "icon.png");
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
 
         var logger = NullLogger<OrderQueryService>.Instance;
         var service = new OrderQueryService(db, logger);
 
-        var result = await service.GetTraderOrdersAsync(101, withTokenInfo: true);
+        var result = await service.GetTraderOrdersAsync(1001, withTokenInfo: true);
 
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var data));
@@ -235,14 +235,14 @@ public class OrderQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ", "Zero", CharacterRarity.FourStar, 1000, 100m, true, "image.png", "icon.png");
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
 
         var logger = NullLogger<OrderQueryService>.Instance;
         var service = new OrderQueryService(db, logger);
 
-        var result = await service.GetTraderOrdersAsync(101, withTokenInfo: false);
+        var result = await service.GetTraderOrdersAsync(1001, withTokenInfo: false);
 
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var data));
@@ -258,18 +258,18 @@ public class OrderQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ", "Zero", CharacterRarity.FourStar, 1000, 100m, true, "image1.png", "icon1.png");
         await HelpMethods.CreateToken(db, "YYY", "One", CharacterRarity.FiveStar, 500, 50m, true, "image2.png", "icon2.png");
-        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
-        await HelpMethods.AddPortfolio(db, 101, "YYY", 10);
-        await HelpMethods.PlaceOrder(db, 101, "купить", "ZZZ", 5, 100);
-        await HelpMethods.PlaceOrder(db, 101, "продать", "YYY", 3, 200);
+        await HelpMethods.AddPortfolio(db, 1001, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1001, "YYY", 10);
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "продать", "YYY", 3, 200);
 
         var logger = NullLogger<OrderQueryService>.Instance;
         var service = new OrderQueryService(db, logger);
 
-        var result = await service.GetTraderOrdersAsync(101, withTokenInfo: true);
+        var result = await service.GetTraderOrdersAsync(1001, withTokenInfo: true);
 
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var data));

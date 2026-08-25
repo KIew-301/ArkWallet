@@ -24,7 +24,7 @@ namespace ArkWallet.Tests.ServiceTests.Order;
 public class OrderFillPortfolioConsistencyTest : IDisposable
 {
     private const long UserId = 5728254515;
-    private const long BotId = 102;
+    private const long BotId = 1002;
     private const string Sym = "SHZA";
 
     private readonly SqliteConnection _connection;
@@ -157,14 +157,14 @@ public class OrderFillPortfolioConsistencyTest : IDisposable
         {
             await HelpMethods.RegisterTrader(db, UserId, "Testes");
             await HelpMethods.RegisterTrader(db, BotId, "MMBot");
-            await HelpMethods.RegisterTrader(db, 103, "MMBot2");
+            await HelpMethods.RegisterTrader(db, 1003, "MMBot2");
             await HelpMethods.CreateToken(db, Sym, price: 44);
             await HelpMethods.GiveMoney(db, UserId, 100_000);
             await HelpMethods.GiveMoney(db, BotId, 1_000_000);
-            await HelpMethods.GiveMoney(db, 103, 1_000_000);
+            await HelpMethods.GiveMoney(db, 1003, 1_000_000);
             await HelpMethods.AddPortfolio(db, UserId, Sym, 2000);
             await HelpMethods.AddPortfolio(db, BotId, Sym, 5000);
-            await HelpMethods.AddPortfolio(db, 103, Sym, 5000);
+            await HelpMethods.AddPortfolio(db, 1003, Sym, 5000);
             await db.SaveChangesAsync();
         }
 
@@ -181,7 +181,7 @@ public class OrderFillPortfolioConsistencyTest : IDisposable
         var commands = new List<CreateOrderCommand>
         {
             new(BotId, "продать", Sym, 19, 44.4m), // sell SHZA group
-            new(103, "купить", Sym, 10, 45m)       // buy SHZA group - crosses the 45 wall
+            new(1003, "купить", Sym, 10, 45m)       // buy SHZA group - crosses the 45 wall
         };
 
         using (var db = NewScope())

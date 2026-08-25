@@ -17,9 +17,9 @@ public class BalanceSnapshotOrchestratorTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
         await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, 101, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1001, "ZZZ", 10);
 
         var snapshotService = new BalanceSnapshotService(db, NullLogger<BalanceSnapshotService>.Instance);
         var savingService = new BalanceSavingService(db, NullLogger<BalanceSavingService>.Instance);
@@ -30,7 +30,7 @@ public class BalanceSnapshotOrchestratorTest
 
         Assert.True(result.IsSuccess);
 
-        var history = await HelpMethods.GetBalanceHistory(db, 101);
+        var history = await HelpMethods.GetBalanceHistory(db, 1001);
         Assert.Single(history);
     }
 
@@ -56,11 +56,11 @@ public class BalanceSnapshotOrchestratorTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
 
         var mockSnapshotService = new Mock<IBalanceSnapshotService>();
         mockSnapshotService
-            .Setup(x => x.TakeTotalTraderBalanceSnapshot(101))
+            .Setup(x => x.TakeTotalTraderBalanceSnapshot(1001))
             .ReturnsAsync(Result<BalanceSnapshotData>.Fail("Ошибка создания снимка"));
 
         var savingService = new BalanceSavingService(db, NullLogger<BalanceSavingService>.Instance);
@@ -79,13 +79,13 @@ public class BalanceSnapshotOrchestratorTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 1001);
 
         var mockSnapshotService = new Mock<IBalanceSnapshotService>();
         mockSnapshotService
-            .Setup(x => x.TakeTotalTraderBalanceSnapshot(101))
+            .Setup(x => x.TakeTotalTraderBalanceSnapshot(1001))
             .ReturnsAsync(Result<BalanceSnapshotData>.Ok(
-                new BalanceSnapshotData(101, 2000, 1000, 250, 250, 500, DateTime.UtcNow)));
+                new BalanceSnapshotData(1001, 2000, 1000, 250, 250, 500, DateTime.UtcNow)));
 
         var mockSavingService = new Mock<IBalanceSavingService>();
         mockSavingService
