@@ -130,7 +130,7 @@ internal class ArkWalletDbContext : DbContext
 
     private static string SerializeList(List<long> list) => JsonSerializer.Serialize(list);
     private static List<long> DeserializeList(string json) =>
-        JsonSerializer.Deserialize<List<long>>(json) ?? new();
+        string.IsNullOrWhiteSpace(json) ? new() : JsonSerializer.Deserialize<List<long>>(json) ?? new();
     private static bool SequenceEqual(List<long> a, List<long> b) =>
         a is null ? b is null : b is not null && a.SequenceEqual(b);
 }
