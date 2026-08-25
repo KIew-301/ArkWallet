@@ -257,12 +257,9 @@ class Program
                 Console.WriteLine("AccessSetting loaded into memory.");
             }
 
-            // Telegram BotS
-            using (var scope = app.Services.CreateScope())
-            {
-                var bot = app.Services.GetRequiredService<TelegramBot>();
-                await bot.Start();
-            }
+            // Telegram Bot
+            var bot = app.Services.GetRequiredService<TelegramBot>();
+            await bot.Start();
         }
 
         await app.RunAsync();
