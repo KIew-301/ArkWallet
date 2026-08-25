@@ -28,15 +28,17 @@ namespace ArkWallet.Telegram
             ConfigurationService configurationService = new(configuration);
             LoadConfiguration(configurationService, accessControl);
             string token = configurationService.GetToken();
+            string? baseUrl = configurationService.GetBaseUrl();
 
-            _ = LaunchBot(token);
+            _ = LaunchBot(token, baseUrl);
         }
 
-        private async Task LaunchBot(string token)
+        private async Task LaunchBot(string token, string? baseUrl)
         {
             using var cts = new CancellationTokenSource();
 
-            botClient = new TelegramBotClient(token);
+            var options = new TelegramBotClientOptions(token, baseUrl: baseUrl);
+            botClient = new TelegramBotClient(options);
 
             ReceiverOptions receiverOptions = new ReceiverOptions
             {

@@ -18,6 +18,11 @@ namespace ArkWallet.Presentation.Telegram
             return token;
         }
 
+        public string? GetBaseUrl()
+        {
+            return configuration["Telegram:BaseUrl"];
+        }
+
         public long GetPAId()
         {
             long adminChatId = long.Parse(configuration[$"Telegram:AdminId:Main"] ?? "0");

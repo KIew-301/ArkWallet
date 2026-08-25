@@ -284,6 +284,12 @@ ArkWallet.PerformanceTests/Reports/
 # Environment
 .env.server
 
+# Database dumps
+dump.sql
+
+# Cloudflare Worker (telegram-proxy) local files
+telegram-proxy
+
 # Debug scripts
 check_logs*.py
 
