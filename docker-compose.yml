@@ -59,6 +59,7 @@ services:
       Telegram__AdminId__Addition: ${TELEGRAM_ADMIN_ID_ADDITION}
       Telegram__AdminId__AdditionThird: ${TELEGRAM_ADMIN_ID_ADDITION_THIRD}
       Telegram__AllowedUserIds: ${TELEGRAM_ALLOWED_USER_IDS:-}
+      Telegram__BaseUrl: ${TELEGRAM_BASE_URL:-}
       RabbitMQ__UserName: ${RABBITMQ_USER:-guest}
       RabbitMQ__Password: ${RABBITMQ_PASSWORD:-guest}
       RabbitMQ__HostName: rabbitmq
