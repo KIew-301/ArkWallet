@@ -31,7 +31,7 @@ internal sealed class OrderFilledEventHandler(ArkWalletDbContext dbContext) : IN
         if (BotFilter.IsBot(order.TraderId) && order.IsFilled())
         {
             dbContext.TradeOrders.Remove(trackedOrder);
-            await dbContext.SaveChangesAsync();
+            await dbContext.SaveChangesAsync(cancellationToken);
         }
     }
 }
