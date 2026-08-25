@@ -31,12 +31,13 @@ namespace ArkWallet.Telegram
 
         private async Task SetCommandList(CommandListType type)
         {
-            List<BotCommand> commands;
+            List<BotCommand> privateCommands;
+            List<BotCommand> groupCommands;
 
             switch (type)
             {
                 case CommandListType.SimpleMode:
-                    commands = new List<BotCommand>()
+                    privateCommands = new List<BotCommand>()
                     {
                         new("/start", "Зарегистрироваться."),
                         new("/place_order", "Открыть ордер."),
@@ -57,16 +58,31 @@ namespace ArkWallet.Telegram
                         new("/mining_take", "Забрать токены."),
                         new("/mining_sell", "Продать слот."),
                     };
+
+                    groupCommands = new List<BotCommand>()
+                    {
+                        new("/get_profile", "Получить данные профиля."),
+                        new("/get_orders", "Мои активные ордера."),
+                        new("/mining_rules", "Правила майнинга."),
+                        new("/mining_machines", "Майнеры на продажу."),
+                        new("/mining_slots", "Мои слоты."),
+                    };
                     break;
 
                 default:
-                    commands = new List<BotCommand>();
+                    privateCommands = new List<BotCommand>();
+                    groupCommands = new List<BotCommand>();
                     break;
             }
 
             await botClient.SetMyCommands(
-                commands: commands,
-                scope: BotCommandScope.Default(),
+                commands: privateCommands,
+                scope: BotCommandScope.AllPrivateChats(),
+                languageCode: null);
+
+            await botClient.SetMyCommands(
+                commands: groupCommands,
+                scope: BotCommandScope.AllGroupChats(),
                 languageCode: null);
         }
 
