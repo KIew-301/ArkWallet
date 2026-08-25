@@ -44,8 +44,16 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
                     portfolioItem.ReturnTokens(order.GetRemainingQuantity());
                 }
 
+                var isBotOrder = BotFilter.IsBot(traderId);
+
                 dbContext.TradeOrders.Update(order);
                 await dbContext.SaveChangesAsync();
+
+                if (isBotOrder)
+                {
+                    dbContext.TradeOrders.Remove(order);
+                    await dbContext.SaveChangesAsync();
+                }
 
                 return Ok();
             });
@@ -88,9 +96,18 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
 
                 RefundOrders(trader, orders, portfolioItems);
 
-                await dbContext.TradeOrders
-                    .Where(o => o.TraderTelegramId == traderId && o.Status == OrderStatus.Active)
-                    .ExecuteUpdateAsync(o => o.SetProperty(o => o.Status, OrderStatus.Cancelled));
+                var isBot = BotFilter.IsBot(traderId);
+
+                if (isBot)
+                {
+                    dbContext.TradeOrders.RemoveRange(orders);
+                }
+                else
+                {
+                    await dbContext.TradeOrders
+                        .Where(o => o.TraderTelegramId == traderId && o.Status == OrderStatus.Active)
+                        .ExecuteUpdateAsync(o => o.SetProperty(o => o.Status, OrderStatus.Cancelled));
+                }
 
                 await dbContext.SaveChangesAsync();
 
