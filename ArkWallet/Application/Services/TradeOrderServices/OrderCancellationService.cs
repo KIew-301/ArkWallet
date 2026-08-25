@@ -128,7 +128,7 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
         {
             var portfolioItem = dbContext.PortfolioItems
                 .FirstOrDefault(p => p.TraderTelegramId == traderId && p.CharacterTokenId == order.CharacterTokenId);
-            portfolioItem.ReturnTokens(order.GetRemainingQuantity());
+            portfolioItem?.ReturnTokens(order.GetRemainingQuantity());
         }
     }
 
