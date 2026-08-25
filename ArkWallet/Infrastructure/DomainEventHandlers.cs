@@ -1,3 +1,4 @@
+using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Services.TradeOrderServices;
 using ArkWallet.Domain.Exceptions;
@@ -18,13 +19,20 @@ internal sealed class OrderPlacedEventHandler(ArkWalletDbContext dbContext) : IN
 
 internal sealed class OrderFilledEventHandler(ArkWalletDbContext dbContext) : INotificationHandler<OrderFilledEvent>
 {
-    public Task Handle(OrderFilledEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(OrderFilledEvent notification, CancellationToken cancellationToken)
     {
-        var trackedOrder = dbContext.TradeOrders.Local.FirstOrDefault(o => o.Id == notification.Order.Id);
-        if (trackedOrder != null)
-            TradingContextMapper.ApplyTo(trackedOrder, notification.Order);
+        var order = notification.Order;
+        var trackedOrder = dbContext.TradeOrders.Local.FirstOrDefault(o => o.Id == order.Id);
+        if (trackedOrder == null)
+            return;
 
-        return Task.CompletedTask;
+        TradingContextMapper.ApplyTo(trackedOrder, order);
+
+        if (BotFilter.IsBot(order.TraderId) && order.IsFilled())
+        {
+            dbContext.TradeOrders.Remove(trackedOrder);
+            await dbContext.SaveChangesAsync();
+        }
     }
 }
 
@@ -32,7 +40,12 @@ internal sealed class TradeExecutedEventHandler(ArkWalletDbContext dbContext) : 
 {
     public Task Handle(TradeExecutedEvent notification, CancellationToken cancellationToken)
     {
-        dbContext.Trades.Add(TradingContextMapper.ToTrade(notification.Trade));
+        var trade = notification.Trade;
+
+        if (BotFilter.IsBotBotTrade(trade.BuyerId, trade.SellerId))
+            return Task.CompletedTask;
+
+        dbContext.Trades.Add(TradingContextMapper.ToTrade(trade));
         return Task.CompletedTask;
     }
 }
