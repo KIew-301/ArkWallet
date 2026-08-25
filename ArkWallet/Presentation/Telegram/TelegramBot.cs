@@ -35,29 +35,35 @@ namespace ArkWallet.Telegram
 
         private async Task LaunchBot(string token, string? baseUrl)
         {
-            using var cts = new CancellationTokenSource();
-
-            var options = new TelegramBotClientOptions(token, baseUrl: baseUrl);
-            botClient = new TelegramBotClient(options);
-
-            ReceiverOptions receiverOptions = new ReceiverOptions
+            try
             {
-                AllowedUpdates = Array.Empty<UpdateType>()
-            };
+                var options = new TelegramBotClientOptions(token, baseUrl: baseUrl);
+                botClient = new TelegramBotClient(options);
 
-            botClient.StartReceiving(
-                HandleUpdateAsync,
-                HandleErrorAsync,
-                receiverOptions,
-                cts.Token
-            );
+                ReceiverOptions receiverOptions = new ReceiverOptions
+                {
+                    AllowedUpdates = Array.Empty<UpdateType>()
+                };
 
-            var me = await botClient.GetMe();
+                botClient.StartReceiving(
+                    HandleUpdateAsync,
+                    HandleErrorAsync,
+                    receiverOptions
+                );
 
-            await SetCommandList(CommandListType.SimpleMode);
+                var me = await botClient.GetMe();
+                Console.WriteLine($"Bot connected: @{me.Username} (ID: {me.Id})");
 
-            Console.WriteLine($"Start listening");
-            await Task.Delay(Timeout.Infinite, cts.Token).ConfigureAwait(false);
+                await SetCommandList(CommandListType.SimpleMode);
+
+                Console.WriteLine($"Start listening");
+                await Task.Delay(Timeout.Infinite);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to start Telegram bot");
+                Console.WriteLine($"Bot start failed: {ex.Message}");
+            }
         }
 
         async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
