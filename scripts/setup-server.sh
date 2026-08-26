@@ -21,18 +21,8 @@ else
   echo "[2/6] Docker Compose already installed"
 fi
 
-# 3. Install nginx + certbot
-if ! command -v nginx &> /dev/null; then
-  echo "[3/6] Installing nginx and certbot..."
-  apt-get update && apt-get install -y nginx certbot python3-certbot-nginx
-  systemctl enable nginx
-  systemctl start nginx
-else
-  echo "[3/6] nginx already installed"
-fi
-
-# 4. Create app directory
-echo "[4/6] Setting up app directory..."
+# 3. Create app directory
+echo "[3/6] Setting up app directory..."
 mkdir -p /opt/arkwallet /var/www/certbot
 cd /opt/arkwallet
 
@@ -40,14 +30,18 @@ if [ ! -f ".git" ]; then
   git clone https://github.com/KIew-301/ArkWallet.git /opt/arkwallet
 fi
 
-# 5. Setup .env
+# 4. Setup .env
 if [ ! -f ".env" ]; then
-  echo "[5/6] Creating .env from template..."
+  echo "[4/6] Creating .env from template..."
   cp .env.server .env
   echo "[!] IMPORTANT: Edit /opt/arkwallet/.env and fill in real secrets!"
 else
-  echo "[5/6] .env already exists"
+  echo "[4/6] .env already exists"
 fi
+
+# 5. Setup nginx, SSL, htpasswd (idempotent — after repo + .env exist)
+echo "[5/6] Setting up nginx..."
+bash "$(dirname "$0")/ensure-nginx.sh" /opt/arkwallet
 
 # 6. Install systemd service
 echo "[6/6] Installing systemd service..."
@@ -61,4 +55,4 @@ echo "1. Edit /opt/arkwallet/.env with real secrets"
 echo "2. Run: systemctl start arkwallet"
 echo "3. Check status: systemctl status arkwallet"
 echo "4. Logs: docker compose -f /opt/arkwallet/docker-compose.yml logs -f"
-echo "5. SSL: bash scripts/setup-ssl.sh (after DNS points to this server)"
+echo "5. SSL and nginx are auto-configured by ensure-nginx.sh"
