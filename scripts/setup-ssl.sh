@@ -17,47 +17,9 @@ certbot certonly --webroot -w "$WEBROOT" -d "$DOMAIN" --non-interactive --agree-
     exit 1
 }
 
-# Replace staging config with SSL config
-cat > /etc/nginx/sites-available/arkwallet.conf << 'NGINXEOF'
-server {
-    listen 80;
-    server_name arkwallet.ru;
-
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-    }
-
-    location / {
-        return 301 https://$host$request_uri;
-    }
-}
-
-server {
-    listen 443 ssl;
-    server_name arkwallet.ru;
-
-    ssl_certificate /etc/letsencrypt/live/arkwallet.ru/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/arkwallet.ru/privkey.pem;
-
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers HIGH:!aNULL:!MD5;
-    ssl_prefer_server_ciphers on;
-
-    client_max_body_size 10m;
-
-    location / {
-        proxy_pass http://127.0.0.1:5000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection keep-alive;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-NGINXEOF
+# Replace staging config with SSL config from repo
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cp "$SCRIPT_DIR/nginx/arkwallet.conf" /etc/nginx/sites-available/arkwallet.conf
 
 nginx -t && systemctl reload nginx
 

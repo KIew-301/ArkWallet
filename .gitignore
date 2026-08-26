@@ -430,5 +430,5 @@ FodyWeavers.xsd
 appsettings.json
 appsettings.*.json
 !appsettings.example.json
-wwwroot
 messages.html
+mockServiceWorker.js
