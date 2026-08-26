@@ -195,6 +195,17 @@ namespace ArkWallet.Entities.Configurations
             {
                 new()
                 {
+                    Name = "request",
+                    OneStep = true
+                },
+            };
+
+            Commands["/get_tokens"] = steps;
+
+            steps = new List<WizardStep>
+            {
+                new()
+                {
                     Name = "set_limit",
                     Question = "Сколько последних сделок показать?",
                     Buttons =

@@ -48,8 +48,11 @@ namespace ArkWallet.Telegram
                         new("/get_price_history", "Получить историю цен токена."),
                         new("/get_order_book", "Получить стакан ордеров токена."),
                         new("/get_orders", "Мои активные ордера."),
+                        new("/get_tokens", "Все токены с ценами."),
                         new("/get_trades", "Мои последние сделки."),
                         new("/get_tops", "Рейтинг трейдеров."),
+                        new("/top", "Топ-10 трейдеров (быстро)."),
+                        new("/trades", "Последние 10 сделок (быстро)."),
                         new("/mining_rules", "Правила майнинга."),
                         new("/mining_machines", "Майнеры на продажу."),
                         new("/mining_slots", "Мои слоты."),
@@ -62,6 +65,7 @@ namespace ArkWallet.Telegram
                     groupCommands = new List<BotCommand>()
                     {
                         new("/get_profile", "Получить данные профиля."),
+                        new("/get_tokens", "Все токены с ценами."),
                         new("/get_orders", "Мои активные ордера."),
                         new("/mining_rules", "Правила майнинга."),
                         new("/mining_machines", "Майнеры на продажу."),

@@ -230,6 +230,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/get_order_book"][1].Handler = HandleSetBuyCount;
             _config.Commands["/get_order_book"][2].Handler = HandleSetSellCount;
             _config.Commands["/get_orders"][0].Handler = HandleGetOrders;
+            _config.Commands["/get_tokens"][0].Handler = HandleGetTokens;
             _config.Commands["/get_trades"][0].Handler = HandleSetTradesLimit;
             _config.Commands["/get_tops"][0].Handler = HandleSetTopsLimit;
             _config.Commands["/mining_rules"][0].Handler = HandleGetMiningRules;
@@ -309,19 +310,25 @@ namespace ArkWallet.Infrastructure.Wizard
                         return await HandleQuickOrderBook(parts[1], parts[2], parts[3]);
                 }
 
-                if (inp.StartsWith("/get_trades "))
+                if (inp.StartsWith("/get_trades ") || inp.StartsWith("/trades "))
                 {
                     var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length == 2)
                         return await HandleQuickTrades(uid, parts[1]);
                 }
 
-                if (inp.StartsWith("/get_tops "))
+                if (inp == "/trades")
+                    return await HandleQuickTrades(uid, "10");
+
+                if (inp.StartsWith("/get_tops ") || inp.StartsWith("/top "))
                 {
                     var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length == 2)
                         return await HandleQuickTops(uid, parts[1]);
                 }
+
+                if (inp == "/top")
+                    return await HandleQuickTops(uid, "10");
 
                 if (inp.StartsWith("/admin_bots_activity "))
                 {
@@ -372,7 +379,9 @@ namespace ArkWallet.Infrastructure.Wizard
         {
             if (input.StartsWith("/get_order_book ")
                 || input.StartsWith("/get_trades ")
+                || input.StartsWith("/trades ")
                 || input.StartsWith("/get_tops ")
+                || input.StartsWith("/top ")
                 || input.StartsWith("/admin_bots_activity ")
                 || input.StartsWith("/admin_stats ")
                 || input.StartsWith("/mining_buy ")
@@ -381,6 +390,9 @@ namespace ArkWallet.Infrastructure.Wizard
             {
                 return input.Split(' ', 2)[0];
             }
+
+            if (input is "/top" or "/trades")
+                return input;
 
             if (_config.Commands.ContainsKey(input))
                 return input;
