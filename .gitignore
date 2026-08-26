@@ -431,3 +431,4 @@ appsettings.json
 appsettings.*.json
 !appsettings.example.json
 messages.html
+mockServiceWorker.js
