@@ -56,7 +56,7 @@ public class TradeTest
     {
         var trade = CreateTrade(symbol: "BBB", price: 30m, quantity: 5);
 
-        Assert.Equal("5 BBB по 30₽", trade.GetDescription());
+        Assert.Equal("5 BBB по 30𝖘𝖙", trade.GetDescription());
     }
 
     [Fact]

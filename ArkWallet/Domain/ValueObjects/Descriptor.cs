@@ -6,10 +6,10 @@ namespace ArkWallet.Domain.ValueObjects;
 public static class Descriptor
 {
     /// <summary>Символ валюты для отображения в UI</summary>
-    public const string CurrencySymbol = "₽";
+    public const string CurrencySymbol = "𝖘𝖙";
 
     /// <summary>Название валюты</summary>
-    public const string CurrencyName = "руб.";
+    public const string CurrencyName = "стейджи";
 
     /// <summary>Формат баланса: {amount}{symbol}</summary>
     public static string FormatBalance(decimal amount) => $"{amount:F2}{CurrencySymbol}";

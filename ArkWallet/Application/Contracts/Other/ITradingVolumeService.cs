@@ -13,7 +13,7 @@ public interface ITradingVolumeService
     /// <param name="symbol">Символ токена</param>
     /// <param name="periodDays">Период в днях (0 = всё время)</param>
     /// <param name="includeBots">Учитывать сделки ботов (ID 100-1000)</param>
-    /// <returns>Суммарный объём в рублях</returns>
+    /// <returns>Суммарный объём в стейджи</returns>
     Task<Result<decimal>> GetTokenVolumeAsync(string symbol, int periodDays, bool includeBots);
 
     /// <summary>
@@ -21,7 +21,7 @@ public interface ITradingVolumeService
     /// </summary>
     /// <param name="periodDays">Период в днях (0 = всё время)</param>
     /// <param name="includeBots">Учитывать сделки ботов (ID 100-1000)</param>
-    /// <returns>Суммарный объём в рублях</returns>
+    /// <returns>Суммарный объём в стейджи</returns>
     Task<Result<decimal>> GetTotalVolumeAsync(int periodDays, bool includeBots);
 
     /// <summary>
