@@ -13,7 +13,7 @@
 ![Telegram](https://img.shields.io/badge/Telegram_Bot-26A5E4?style=for-the-badge&logo=telegram&logoColor=white)
 ![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)
 ![SonarCloud](https://img.shields.io/badge/SonarCloud-F3702A?style=for-the-badge&logo=sonarcloud&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge&logo=mit&logoColor=white)
+![License](https://img.shields.io/badge/License-PolyForm%20NC-blue?style=for-the-badge&logo=shield&logoColor=white)
 
 </div>
 
@@ -347,6 +347,8 @@ The `ArkWallet.PerformanceTests` project (excluded from CI and the main solution
 
 ## 📄 License
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the PolyForm Noncommercial License 1.0.0 — see the [LICENSE](LICENSE) file for details.
+
+**Source is open for reading. Commercial use is prohibited.**
 
 ---
