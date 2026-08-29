@@ -26,27 +26,9 @@ internal sealed record AllGiftsReceivedEvent(
     DateTime ReceivedAt
 ) : INotification;
 
-internal sealed record GiftSendRejectedEvent(
-    long SenderId,
-    long RecipientId,
-    string TokenSymbol,
-    decimal Quantity,
-    GiftRejectReason Reason,
-    DateTime RejectedAt
-) : INotification;
-
 internal sealed record GiftReceivedData(
     Guid GiftId,
     long SenderId,
     string TokenSymbol,
     decimal Quantity
 );
-
-internal enum GiftRejectReason
-{
-    LimitExceeded,
-    PriceTooHigh,
-    InsufficientBalance,
-    RecipientNotRegistered,
-    SelfGift
-}

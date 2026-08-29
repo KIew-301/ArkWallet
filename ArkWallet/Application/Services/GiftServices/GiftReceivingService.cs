@@ -186,6 +186,7 @@ internal class GiftReceivingService(
                     (int)gift.Quantity,
                     gift.PriceAtSend);
                 dbContext.PortfolioItems.Add(newPortfolioItem);
+                context.PortfolioItems.Add(newPortfolioItem);
             }
             else
             {

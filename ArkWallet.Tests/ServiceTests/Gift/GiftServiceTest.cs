@@ -347,4 +347,135 @@ public class GiftServiceTest
         var result = await sending.SendGiftAsync(1001, 9999);
         Assert.False(result.IsSuccess);
     }
+
+    [Fact]
+    public async Task SendGift_TokenQueryFailure_Fails()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.AddPortfolio(db, 1001, "ZZZ", 10);
+
+        var (sending, tokenQuery) = CreateSendingService(db);
+        tokenQuery
+            .Setup(x => x.GetAllActiveTokensAsync())
+            .ReturnsAsync(Result<List<TokenInfoWithPriceChange>>.Fail("ошибка запроса"));
+
+        var result = await sending.SendGiftAsync(1001, 1002);
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Токены не найдены", result.Message);
+    }
+
+    [Fact]
+    public async Task ReceiveGift_GiftNotFound_Fails()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 1002);
+
+        var receiving = CreateReceivingService(db);
+        var result = await receiving.ReceiveGiftAsync(1002, Guid.NewGuid());
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Подарок не найден", result.Message);
+    }
+
+    [Fact]
+    public async Task ReceiveGift_RecipientNotRegistered_Fails()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 1001);
+        var giftId = Guid.NewGuid();
+        db.Gifts.Add(ArkWallet.Domain.Entities.Gift.Create(giftId, 1001, 1002, "ZZZ", 1, 50m, DateTime.UtcNow));
+        await db.SaveChangesAsync();
+
+        var receiving = CreateReceivingService(db);
+        var result = await receiving.ReceiveGiftAsync(1002, giftId);
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Получатель не найден", result.Message);
+    }
+
+    [Fact]
+    public async Task ReceiveGift_TokensAddedToExistingPortfolio()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.AddPortfolio(db, 1001, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 3);
+
+        var (sending, tokenQuery) = CreateSendingService(db);
+        SetupAllTokens(tokenQuery, ("ZZZ", 50));
+
+        var sendResult = await sending.SendGiftAsync(1001, 1002);
+        Assert.True(sendResult.IsSuccess);
+        sendResult.TryGetData(out var sendData);
+
+        var receiving = CreateReceivingService(db);
+        var receiveResult = await receiving.ReceiveGiftAsync(1002, sendData.GiftId);
+        Assert.True(receiveResult.IsSuccess);
+
+        var recipientPortfolio = await db.PortfolioItems
+            .FirstOrDefaultAsync(p => p.TraderTelegramId == 1002 && p.CharacterTokenId == "ZZZ");
+        Assert.NotNull(recipientPortfolio);
+        Assert.Equal(4, recipientPortfolio.Quantity);
+    }
+
+    [Fact]
+    public async Task ReceiveAllGifts_TokensAddedToRecipient()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.AddPortfolio(db, 1001, "ZZZ", 10);
+
+        var (sending, tokenQuery) = CreateSendingService(db);
+        SetupAllTokens(tokenQuery, ("ZZZ", 50));
+
+        var send1 = await sending.SendGiftAsync(1001, 1002);
+        Assert.True(send1.IsSuccess);
+
+        _time.SkipInSeconds(9 * 3600);
+
+        var send2 = await sending.SendGiftAsync(1001, 1002);
+        Assert.True(send2.IsSuccess);
+
+        var receiving = CreateReceivingService(db);
+        var result = await receiving.ReceiveAllGiftsAsync(1002);
+        Assert.True(result.IsSuccess);
+        result.TryGetData(out var data);
+        Assert.Equal(2, data.Count);
+
+        var recipientPortfolio = await db.PortfolioItems
+            .FirstOrDefaultAsync(p => p.TraderTelegramId == 1002 && p.CharacterTokenId == "ZZZ");
+        Assert.NotNull(recipientPortfolio);
+        Assert.Equal(2, recipientPortfolio.Quantity);
+
+        Assert.Equal(2, await db.Gifts.CountAsync(g => g.RecipientId == 1002 && g.Status == "Received"));
+    }
+
+    [Fact]
+    public async Task ReceiveAllGifts_NoPendingGifts_Fails()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 1002);
+
+        var receiving = CreateReceivingService(db);
+        var result = await receiving.ReceiveAllGiftsAsync(1002);
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Нет подарков", result.Message);
+    }
 }

@@ -39,16 +39,4 @@ internal static class GiftContextMapper
 
         return User.Load(trader.TelegramId, portfolio, giftsSent, giftsReceived);
     }
-
-    internal static Records.Gift ToRecord(
-        Guid giftId,
-        long senderId,
-        long recipientId,
-        string tokenSymbol,
-        decimal quantity,
-        decimal priceAtSend,
-        DateTime sentAt)
-    {
-        return Records.Gift.Create(giftId, senderId, recipientId, tokenSymbol, quantity, priceAtSend, sentAt);
-    }
 }
