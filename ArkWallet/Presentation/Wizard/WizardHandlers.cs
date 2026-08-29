@@ -461,12 +461,13 @@ namespace ArkWallet.Infrastructure.Wizard
 
             var lines = new List<string> { "📊 Токены:\n" };
 
-            foreach (var token in tokens.OrderBy(t => t.TokenInfo.Symbol))
+            foreach (var token in tokens)
             {
                 var change = token.DailyChangePercent;
                 var emoji = change >= 0 ? "🟢" : "🔴";
                 var sign = change >= 0 ? "+" : "";
-                lines.Add($"{emoji} {token.TokenInfo.Symbol,-8} {token.TokenInfo.CurrentPrice,10:F2}{Descriptor.CurrencySymbol}  ({sign}{change:F1}%)");
+                var price = $"{token.TokenInfo.CurrentPrice:F2}{Descriptor.CurrencySymbol}";
+                lines.Add($"{emoji} {token.TokenInfo.Symbol,-10}{price,13}  ({sign}{change:F1}%)");
             }
 
             lines.Add("");

@@ -836,6 +836,7 @@ public class UserWizardCommandsTest : IDisposable
         Assert.Contains("📊 Токены:", msg);
         Assert.Contains("ZZZ", msg);
         Assert.Contains("AAA", msg);
+        Assert.True(msg.IndexOf("ZZZ") < msg.IndexOf("AAA"), "Tokens should be sorted by price (descending)");
         Assert.Contains($"{100m:F2}{Descriptor.CurrencySymbol}", msg);
         Assert.Contains($"+{5.5m:F1}%", msg);
         Assert.Contains($"-{2m:F1}%", msg);
