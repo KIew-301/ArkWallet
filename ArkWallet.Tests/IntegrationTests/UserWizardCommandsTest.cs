@@ -300,7 +300,7 @@ public class UserWizardCommandsTest : IDisposable
         var result = await _engine.ProcessInput(UserId, "invalid");
 
         Assert.NotNull(result.Message);
-        Assert.Contains("Ошибка", result.Message);
+        Assert.Contains("Неверное направление", result.Message);
     }
 
     [Fact]
@@ -319,7 +319,7 @@ public class UserWizardCommandsTest : IDisposable
         var result = await _engine.ProcessInput(UserId, "abc");
 
         Assert.NotNull(result.Message);
-        Assert.Contains("Ошибка", result.Message);
+        Assert.Contains("Необходимо ввести целое число", result.Message);
     }
 
     [Fact]
@@ -345,7 +345,7 @@ public class UserWizardCommandsTest : IDisposable
         var result = await _engine.ProcessInput(UserId, "abc");
 
         Assert.NotNull(result.Message);
-        Assert.Contains("Ошибка", result.Message);
+        Assert.Contains("Необходимо ввести число", result.Message);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -542,7 +542,7 @@ public class UserWizardCommandsTest : IDisposable
         var result = await _engine.ProcessInput(UserId, "NONEXISTENT");
 
         Assert.NotNull(result.Message);
-        Assert.Equal("Ошибка на стороне сервера", result.Message);
+        Assert.Contains("Токен не найден", result.Message);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -880,7 +880,7 @@ public class UserWizardCommandsTest : IDisposable
         var result = await _engine.ProcessInput(UserId, "abc");
 
         Assert.NotNull(result.Message);
-        Assert.Contains("Ошибка", result.Message);
+        Assert.Contains("Необходимо ввести положительное целое", result.Message);
     }
 
     [Fact]

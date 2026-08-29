@@ -162,7 +162,7 @@ public class MiningWizardCommandsTest
         await _engine.ProcessInput(UserId, "/mining_buy");
         var result = await _engine.ProcessInput(UserId, "abc");
 
-        Assert.Equal("Ошибка на стороне сервера", result.Message);
+        Assert.Contains("Введите корректный идентификатор машины", result.Message);
     }
 
     [Fact]
@@ -173,7 +173,7 @@ public class MiningWizardCommandsTest
         await _engine.ProcessInput(UserId, "/mining_buy");
         var result = await _engine.ProcessInput(UserId, "999");
 
-        Assert.Equal("Ошибка на стороне сервера", result.Message);
+        Assert.Contains("Машина не найдена в списке доступных для", result.Message);
     }
 
     [Fact]
@@ -233,7 +233,7 @@ public class MiningWizardCommandsTest
 
         var result = await _engine.ProcessInput(UserId, "confirm");
 
-        Assert.Equal("Ошибка на стороне сервера", result.Message);
+        Assert.Equal("Недостаточно средств", result.Message);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -274,7 +274,7 @@ public class MiningWizardCommandsTest
         await _engine.ProcessInput(UserId, "/mining_switch");
         var result = await _engine.ProcessInput(UserId, "777");
 
-        Assert.Equal("Ошибка на стороне сервера", result.Message);
+        Assert.Contains("Слот не найден", result.Message);
     }
 
     [Fact]
@@ -290,7 +290,7 @@ public class MiningWizardCommandsTest
 
         var result = await _engine.ProcessInput(UserId, "NONEXISTENT");
 
-        Assert.Equal("Ошибка на стороне сервера", result.Message);
+        Assert.Contains("Токен не найден", result.Message);
     }
 
     // ═══════════════════════════════════════════════════════════
