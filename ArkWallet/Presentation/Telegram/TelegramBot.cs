@@ -2,6 +2,7 @@
 using ArkWallet.Infrastructure.AccessControl;
 using ArkWallet.Infrastructure.Wizard;
 using ArkWallet.Presentation.Telegram;
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
@@ -20,6 +21,38 @@ namespace ArkWallet.Telegram
     {
         // Интерфейс для взаимодействия с ботом
         ITelegramBotClient botClient = null!;
+
+        // Обработка обновлений: Telegram.Bot выполняет handler'ы строго последовательно,
+        // поэтому одна зависшая отправка блокировала всех пользователей. Планируем работу
+        // в фоне с ограниченной параллельностью и сериализацией по чату — это безопасно
+        // для состояния WizardEngine (на пользователя) и сохраняет порядок сообщений.
+        static readonly int MaxConcurrentUpdates = 20;
+        static readonly SemaphoreSlim UpdateConcurrency = new(MaxConcurrentUpdates, MaxConcurrentUpdates);
+        readonly ConcurrentDictionary<long, SemaphoreSlim> _chatLocks = new();
+
+        void ScheduleUpdate(long chatId, Func<Task> handler)
+        {
+            _ = Task.Run(async () =>
+            {
+                var chatLock = _chatLocks.GetOrAdd(chatId, _ => new SemaphoreSlim(1, 1));
+
+                await UpdateConcurrency.WaitAsync();
+                await chatLock.WaitAsync();
+                try
+                {
+                    await handler();
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Unhandled error in scheduled update for chat {ChatId}", chatId);
+                }
+                finally
+                {
+                    chatLock.Release();
+                    UpdateConcurrency.Release();
+                }
+            });
+        }
 
         // Надёжность отправки: короткий таймаут попытки + повтор с экспоненциальной задержкой.
         // Bot API иногда перестаёт отвечать на burst команд, поэтому каждый запрос
@@ -224,7 +257,8 @@ namespace ArkWallet.Telegram
                         );
                     }
 
-                    await ProcessUserInput(botClient, chatId, processedText, userId, cancellationToken, telegramChatType, replyToUserId);
+                    ScheduleUpdate(chatId, () =>
+                        ProcessUserInput(botClient, chatId, processedText, userId, cancellationToken, telegramChatType, replyToUserId));
                 }
                 else if (update.CallbackQuery is { } callbackQuery && callbackQuery.Message != null)
                 {
@@ -239,7 +273,7 @@ namespace ArkWallet.Telegram
                         data
                     );
 
-                    await HandleCallbackQuery(botClient, callbackQuery, cancellationToken);
+                    ScheduleUpdate(chatId, () => HandleCallbackQuery(botClient, callbackQuery, cancellationToken));
                 }
             }
             catch (Exception ex)
