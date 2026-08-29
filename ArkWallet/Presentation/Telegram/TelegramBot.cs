@@ -2,6 +2,7 @@
 using ArkWallet.Infrastructure.AccessControl;
 using ArkWallet.Infrastructure.Wizard;
 using ArkWallet.Presentation.Telegram;
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
@@ -20,6 +21,143 @@ namespace ArkWallet.Telegram
     {
         // Интерфейс для взаимодействия с ботом
         ITelegramBotClient botClient = null!;
+
+        // Обработка обновлений: Telegram.Bot выполняет handler'ы строго последовательно,
+        // поэтому одна зависшая отправка блокировала всех пользователей. Планируем работу
+        // в фоне с ограниченной параллельностью и сериализацией по чату — это безопасно
+        // для состояния WizardEngine (на пользователя) и сохраняет порядок сообщений.
+        static readonly int MaxConcurrentUpdates = 20;
+        static readonly SemaphoreSlim UpdateConcurrency = new(MaxConcurrentUpdates, MaxConcurrentUpdates);
+        readonly ConcurrentDictionary<long, SemaphoreSlim> _chatLocks = new();
+
+        void ScheduleUpdate(long chatId, Func<Task> handler)
+        {
+            _ = Task.Run(async () =>
+            {
+                var chatLock = _chatLocks.GetOrAdd(chatId, _ => new SemaphoreSlim(1, 1));
+
+                await UpdateConcurrency.WaitAsync();
+                await chatLock.WaitAsync();
+                try
+                {
+                    await handler();
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Unhandled error in scheduled update for chat {ChatId}", chatId);
+                }
+                finally
+                {
+                    chatLock.Release();
+                    UpdateConcurrency.Release();
+                }
+            });
+        }
+
+        // Надёжность отправки: короткий таймаут попытки + повтор с экспоненциальной задержкой.
+        // Bot API иногда перестаёт отвечать на burst команд, поэтому каждый запрос
+        // не должен блокировать обработку обновлений на весь HttpClient.Timeout (100с).
+        static readonly TimeSpan SendAttemptTimeout = TimeSpan.FromSeconds(15);
+        const int MaxSendAttempts = 3;
+
+        async Task<T> SendWithRetryAsync<T>(Func<ITelegramBotClient, CancellationToken, Task<T>> send,
+            CancellationToken updateToken)
+        {
+            for (int attempt = 1; ; attempt++)
+            {
+                try
+                {
+                    using var attemptCts = CancellationTokenSource.CreateLinkedTokenSource(updateToken);
+                    attemptCts.CancelAfter(SendAttemptTimeout);
+                    return await send(botClient, attemptCts.Token);
+                }
+                catch (Exception ex) when (attempt < MaxSendAttempts && IsTransientFailure(ex) && !updateToken.IsCancellationRequested)
+                {
+                    TimeSpan delay = TimeSpan.FromSeconds(Math.Min(Math.Pow(2, attempt - 1), 4));
+
+                    if (ex is ApiRequestException api && api.ErrorCode == 429)
+                        delay = TimeSpan.FromSeconds(Math.Max(delay.TotalSeconds, api.Parameters?.RetryAfter ?? 2));
+
+                    await Task.Delay(delay, updateToken);
+                }
+            }
+        }
+
+        Task SendWithRetryAsync(Func<ITelegramBotClient, CancellationToken, Task> send, CancellationToken updateToken)
+            => SendWithRetryAsync<bool>(
+                async (client, ct) =>
+                {
+                    await send(client, ct);
+                    return true;
+                },
+                updateToken);
+
+        static bool IsTransientFailure(Exception ex)
+        {
+            if (ex is OperationCanceledException)
+                return true;
+
+            if (ex is not RequestException requestException)
+                return false;
+
+            return requestException is not ApiRequestException apiException
+                || apiException.ErrorCode is 429 or 500 or 502 or 503 or 504;
+        }
+
+        async Task SendMessageWithRetryAsync(long chatId, string text, InlineKeyboardMarkup? replyMarkup, CancellationToken updateToken)
+        {
+            await SendWithRetryAsync<Message>(
+                (client, ct) => replyMarkup is null
+                    ? client.SendMessage(chatId: chatId, text: text, cancellationToken: ct)
+                    : client.SendMessage(chatId: chatId, text: text, replyMarkup: replyMarkup, cancellationToken: ct),
+                updateToken);
+        }
+
+        async Task EditMessageWithRetryAsync(long chatId, int messageId, string text, InlineKeyboardMarkup? replyMarkup, CancellationToken updateToken)
+        {
+            try
+            {
+                await SendWithRetryAsync<Message>(
+                    (client, ct) => replyMarkup is null
+                        ? client.EditMessageText(chatId: chatId, messageId: messageId, text: text, cancellationToken: ct)
+                        : client.EditMessageText(chatId: chatId, messageId: messageId, text: text, replyMarkup: replyMarkup, cancellationToken: ct),
+                    updateToken);
+            }
+            catch (ApiRequestException apiEx) when (apiEx.Message.Contains("message is not modified"))
+            {
+                logger.LogDebug("Message {MessageId} was not modified", messageId);
+            }
+        }
+
+        async Task AnswerCallbackWithRetryAsync(string callbackQueryId, CancellationToken updateToken)
+        {
+            await SendWithRetryAsync((client, ct) =>
+                client.AnswerCallbackQuery(callbackQueryId, cancellationToken: ct), updateToken);
+        }
+
+        async Task SafeSendTextAsync(long chatId, string text, CancellationToken updateToken)
+        {
+            try
+            {
+                await SendMessageWithRetryAsync(chatId, text, null, updateToken);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Не удалось отправить сообщение в чат {ChatId}", chatId);
+            }
+        }
+
+        async Task SafeEditMessageAsync(long chatId, int messageId, string text, InlineKeyboardMarkup? replyMarkup, CancellationToken updateToken)
+        {
+            try
+            {
+                await EditMessageWithRetryAsync(chatId, messageId, text, replyMarkup, updateToken);
+            }
+            catch (Exception ex)
+            {
+                logger.LogDebug(ex, "Не удалось отредактировать сообщение {MessageId}", messageId);
+            }
+        }
 
         public async Task Start()
         {
@@ -119,7 +257,8 @@ namespace ArkWallet.Telegram
                         );
                     }
 
-                    await ProcessUserInput(botClient, chatId, processedText, userId, cancellationToken, telegramChatType, replyToUserId);
+                    ScheduleUpdate(chatId, () =>
+                        ProcessUserInput(botClient, chatId, processedText, userId, cancellationToken, telegramChatType, replyToUserId));
                 }
                 else if (update.CallbackQuery is { } callbackQuery && callbackQuery.Message != null)
                 {
@@ -134,7 +273,7 @@ namespace ArkWallet.Telegram
                         data
                     );
 
-                    await HandleCallbackQuery(botClient, callbackQuery, cancellationToken);
+                    ScheduleUpdate(chatId, () => HandleCallbackQuery(botClient, callbackQuery, cancellationToken));
                 }
             }
             catch (Exception ex)
@@ -174,7 +313,7 @@ namespace ArkWallet.Telegram
 
                 Console.WriteLine($"Received callback");
 
-                await botClient.AnswerCallbackQuery(callbackQuery.Id, cancellationToken: cancellationToken);
+                await AnswerCallbackWithRetryAsync(callbackQuery.Id, cancellationToken);
 
                 if (callbackData == null) return;
                 var result = await wizardEngine.ProcessInput(userId, callbackData, chatTypeEnum);
@@ -201,22 +340,11 @@ namespace ArkWallet.Telegram
 
                         var inlineMarkup = new InlineKeyboardMarkup(inlineButtons);
 
-                        await botClient.EditMessageText(
-                            chatId: chatId,
-                            messageId: messageId,
-                            text: result.Message,
-                            replyMarkup: inlineMarkup,
-                            cancellationToken: cancellationToken
-                        );
+                        await EditMessageWithRetryAsync(chatId, messageId, result.Message, inlineMarkup, cancellationToken);
                     }
                     else
                     {
-                        await botClient.EditMessageText(
-                            chatId: chatId,
-                            messageId: messageId,
-                            text: result.Message,
-                            cancellationToken: cancellationToken
-                        );
+                        await EditMessageWithRetryAsync(chatId, messageId, result.Message, null, cancellationToken);
                     }
                 }
                 else
@@ -226,22 +354,13 @@ namespace ArkWallet.Telegram
             }
             catch (ApiRequestException apiEx) when (apiEx.Message.Contains("message is not modified"))
             {
-                await botClient.AnswerCallbackQuery(
-                    callbackQuery.Id,
-                    text: "Данные уже актуальны",
-                    cancellationToken: cancellationToken
-                );
+                await AnswerCallbackWithRetryAsync(callbackQuery.Id, cancellationToken);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error processing callback query | UserId: {UserId} | ChatId: {ChatId}", userId, chatId);
 
-                await botClient.EditMessageText(
-                            chatId: chatId,
-                            messageId: messageId,
-                            text: "Ошибка в системе.",
-                            cancellationToken: cancellationToken
-                        );
+                await SafeEditMessageAsync(chatId, messageId, "Ошибка в системе.", null, cancellationToken);
             }
         }
 
@@ -292,20 +411,11 @@ namespace ArkWallet.Telegram
                         );
                         var inlineMarkup = new InlineKeyboardMarkup(inlineButtons);
 
-                        await botClient.SendMessage(
-                            chatId: chatId,
-                            text: result.Message,
-                            replyMarkup: inlineMarkup,
-                            cancellationToken: cancellationToken
-                        );
+                        await SendMessageWithRetryAsync(chatId, result.Message, inlineMarkup, cancellationToken);
                     }
                     else
                     {
-                        await botClient.SendMessage(
-                            chatId: chatId,
-                            text: result.Message,
-                            cancellationToken: cancellationToken
-                        );
+                        await SendMessageWithRetryAsync(chatId, result.Message, null, cancellationToken);
                     }
                 }
                 else
@@ -317,11 +427,7 @@ namespace ArkWallet.Telegram
             {
                 logger.LogError(ex, "Error processing user input | UserId: {UserId} | ChatId: {ChatId}", userId, chatId);
 
-                await botClient.SendMessage(
-                    chatId: chatId,
-                    text: "Ошибка в системе.",
-                    cancellationToken: cancellationToken
-                );
+                await SafeSendTextAsync(chatId, "Ошибка в системе.", cancellationToken);
             }
         }
 
@@ -332,11 +438,14 @@ namespace ArkWallet.Telegram
                 using var fileStream = File.OpenRead(filePath);
                 var fileName = Path.GetFileName(filePath);
 
-                await botClient.SendDocument(
-                    chatId: chatId,
-                    document: InputFile.FromStream(fileStream, fileName),
-                    caption: caption,
-                    cancellationToken: cancellationToken
+                await SendWithRetryAsync<Message>(
+                    (client, ct) => client.SendDocument(
+                        chatId: chatId,
+                        document: InputFile.FromStream(fileStream, fileName),
+                        caption: caption,
+                        cancellationToken: ct
+                    ),
+                    cancellationToken
                 );
 
                 File.Delete(filePath);
@@ -344,11 +453,7 @@ namespace ArkWallet.Telegram
             catch (Exception ex)
             {
                 Console.WriteLine($"Error sending file: {ex.Message}");
-                await botClient.SendMessage(
-                    chatId: chatId,
-                    text: caption ?? "Данные получены.",
-                    cancellationToken: cancellationToken
-                );
+                await SafeSendTextAsync(chatId, caption ?? "Данные получены.", cancellationToken);
             }
         }
 

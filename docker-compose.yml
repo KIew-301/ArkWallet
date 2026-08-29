@@ -93,6 +93,8 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${METRICS_API_KEY:-change-me-metrics-api-key}
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_SERVER_ROOT_URL: "https://arkwallet.ru/grafana/"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
     ports:
       - "127.0.0.1:3000:3000"
     volumes:
