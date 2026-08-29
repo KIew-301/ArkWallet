@@ -242,6 +242,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/get_order_book"][1].Handler = HandleSetBuyCount;
             _config.Commands["/get_order_book"][2].Handler = HandleSetSellCount;
             _config.Commands["/get_orders"][0].Handler = HandleGetOrders;
+            _config.Commands["/get_tokens"][0].Handler = HandleGetTokens;
             _config.Commands["/get_trades"][0].Handler = HandleSetTradesLimit;
             _config.Commands["/get_tops"][0].Handler = HandleSetTopsLimit;
             _config.Commands["/mining_rules"][0].Handler = HandleGetMiningRules;

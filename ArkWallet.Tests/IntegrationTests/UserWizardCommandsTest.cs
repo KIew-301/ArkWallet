@@ -815,6 +815,38 @@ public class UserWizardCommandsTest : IDisposable
     }
 
     // ═══════════════════════════════════════════════════════════
+    //  /get_tokens
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public async Task GetTokens_ShowsAllTokensWithPricesAndChange()
+    {
+        _m.TokenQuery
+            .Setup(s => s.GetAllActiveTokensAsync())
+            .ReturnsAsync(Result<List<TokenInfoWithPriceChange>>.Ok(new List<TokenInfoWithPriceChange>
+            {
+                new(new TokenInfo("ZZZ", "Zero", 100m, "", ""), 5.5m),
+                new(new TokenInfo("AAA", "Alpha", 50m, "", ""), -2.0m)
+            }));
+
+        var result = await _engine.ProcessInput(UserId, "/get_tokens");
+
+        Assert.NotNull(result.Message);
+        var msg = Normalize(result.Message);
+        Assert.Contains("📊 Токены:", msg);
+        Assert.Contains("ZZZ", msg);
+        Assert.Contains("AAA", msg);
+        Assert.Contains($"{100m:F2}{Descriptor.CurrencySymbol}", msg);
+        Assert.Contains($"+{5.5m:F1}%", msg);
+        Assert.Contains($"-{2m:F1}%", msg);
+        Assert.Contains("Всего: 2 токенов", msg);
+
+        Assert.NotNull(result.Buttons);
+        Assert.Single(result.Buttons);
+        Assert.Equal("/get_tokens", result.Buttons[0].Value);
+    }
+
+    // ═══════════════════════════════════════════════════════════
     //  /get_trades
     // ═══════════════════════════════════════════════════════════
 
