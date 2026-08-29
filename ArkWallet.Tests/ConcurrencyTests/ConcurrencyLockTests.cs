@@ -3,6 +3,8 @@ using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Services.TradeOrderServices;
+using ArkWallet.Application.Services.GiftServices;
+using ArkWallet.Domain.Common;
 using ArkWallet.Domain.Engines;
 using ArkWallet.Domain.Entities;
 using ArkWallet.Infrastructure;
@@ -274,6 +276,76 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
 
             Assert.Equal(100, buyersExecuted);
         }
+    }
+
+    [SkippableFact]
+    public async Task GiftSend_BlocksConcurrentWriter_UntilReleased()
+    {
+        await using (var db = CreateContext())
+            await db.Database.EnsureCreatedAsync();
+
+        await using (var seed = CreateContext())
+        {
+            await HelpMethods.RegisterTrader(seed, 101);
+            await HelpMethods.RegisterTrader(seed, 102);
+        }
+
+        await using var holder = CreateContext();
+        await using var waiter = CreateContext();
+
+        await using var holderTx = await holder.Database.BeginTransactionAsync();
+        await holder.LockTradersAsync([101L]);
+
+        await using var waiterTx = await waiter.Database.BeginTransactionAsync();
+        await waiter.Database.ExecuteSqlRawAsync("SET LOCAL lock_timeout = '300ms'");
+
+        var service = new GiftSendingService(
+            waiter,
+            new Mock<ITokenQueryService>().Object,
+            new Mock<IEventPublisher>().Object,
+            NullLogger<GiftSendingService>.Instance,
+            new TestTimeProvider());
+
+        var blocked = await Assert.ThrowsAsync<PostgresException>(
+            () => service.SendGiftAsync(101, 102));
+        Assert.Equal("55P03", blocked.SqlState);
+
+        await waiterTx.RollbackAsync();
+        await holderTx.CommitAsync();
+    }
+
+    [SkippableFact]
+    public async Task GiftReceive_BlocksConcurrentWriter_UntilReleased()
+    {
+        await using (var db = CreateContext())
+            await db.Database.EnsureCreatedAsync();
+
+        await using (var seed = CreateContext())
+        {
+            await HelpMethods.RegisterTrader(seed, 102);
+        }
+
+        await using var holder = CreateContext();
+        await using var waiter = CreateContext();
+
+        await using var holderTx = await holder.Database.BeginTransactionAsync();
+        await holder.LockTradersAsync([102L]);
+
+        await using var waiterTx = await waiter.Database.BeginTransactionAsync();
+        await waiter.Database.ExecuteSqlRawAsync("SET LOCAL lock_timeout = '300ms'");
+
+        var service = new GiftReceivingService(
+            waiter,
+            new Mock<IEventPublisher>().Object,
+            NullLogger<GiftReceivingService>.Instance,
+            new TestTimeProvider());
+
+        var blocked = await Assert.ThrowsAsync<PostgresException>(
+            () => service.ReceiveGiftAsync(102, Guid.NewGuid()));
+        Assert.Equal("55P03", blocked.SqlState);
+
+        await waiterTx.RollbackAsync();
+        await holderTx.CommitAsync();
     }
 
     private static async Task<Result<OrderCreationData>> BuyAsync(ArkWalletDbContext db, long traderId, string symbol)

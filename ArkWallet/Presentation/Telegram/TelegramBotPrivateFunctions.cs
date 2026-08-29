@@ -48,6 +48,7 @@ namespace ArkWallet.Telegram
                         new("/get_price_history", "Получить историю цен токена."),
                         new("/get_order_book", "Получить стакан ордеров токена."),
                         new("/get_orders", "Мои активные ордера."),
+                        new("/get_tokens", "Все токены с ценами."),
                         new("/get_trades", "Мои последние сделки."),
                         new("/get_tops", "Рейтинг трейдеров."),
                         new("/mining_rules", "Правила майнинга."),
@@ -57,15 +58,22 @@ namespace ArkWallet.Telegram
                         new("/mining_switch", "Сменить токен слота."),
                         new("/mining_take", "Забрать токены."),
                         new("/mining_sell", "Продать слот."),
+                        new("/send_gift", "Отправить подарок."),
+                        new("/get_gifts_list", "Список подарков."),
+                        new("/collect_all_gifts", "Собрать все подарки."),
                     };
 
                     groupCommands = new List<BotCommand>()
                     {
                         new("/get_profile", "Получить данные профиля."),
+                        new("/get_tokens", "Все токены с ценами."),
                         new("/get_orders", "Мои активные ордера."),
                         new("/mining_rules", "Правила майнинга."),
                         new("/mining_machines", "Майнеры на продажу."),
                         new("/mining_slots", "Мои слоты."),
+                        new("/send_gift", "Отправить подарок (ответом на сообщение)."),
+                        new("/get_gifts_list", "Список подарков."),
+                        new("/collect_all_gifts", "Собрать все подарки."),
                     };
                     break;
 

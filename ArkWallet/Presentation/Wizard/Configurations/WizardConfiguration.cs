@@ -195,6 +195,17 @@ namespace ArkWallet.Entities.Configurations
             {
                 new()
                 {
+                    Name = "request",
+                    OneStep = true
+                },
+            };
+
+            Commands["/get_tokens"] = steps;
+
+            steps = new List<WizardStep>
+            {
+                new()
+                {
                     Name = "set_limit",
                     Question = "Сколько последних сделок показать?",
                     Buttons =
@@ -360,6 +371,28 @@ namespace ArkWallet.Entities.Configurations
             };
 
             Commands["/mining_sell"] = steps;
+
+            steps = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "request",
+                    OneStep = true
+                },
+            };
+
+            Commands["/get_gifts_list"] = steps;
+
+            steps = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "request",
+                    OneStep = true
+                },
+            };
+
+            Commands["/collect_all_gifts"] = steps;
         }
 
         private static List<QuickButton> CreateCountButtons()

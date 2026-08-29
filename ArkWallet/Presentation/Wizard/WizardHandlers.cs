@@ -452,6 +452,37 @@ namespace ArkWallet.Infrastructure.Wizard
             return result;
         }
 
+        public async Task<StepResult> HandleGetTokens(UserSession session, string input)
+        {
+            var tokensResult = await _tokenQueryService.GetAllActiveTokensAsync();
+
+            if (!tokensResult.TryGetData(out var tokens) || tokens.Count == 0)
+                return StepResult.Ok("completed", "Нет доступных токенов.");
+
+            var lines = new List<string> { "📊 Токены:\n" };
+
+            foreach (var token in tokens)
+            {
+                var change = token.DailyChangePercent;
+                var emoji = change >= 0 ? "🟢" : "🔴";
+                var sign = change >= 0 ? "+" : "";
+                var price = $"{token.TokenInfo.CurrentPrice:F2}{Descriptor.CurrencySymbol}";
+                lines.Add($"{emoji} {token.TokenInfo.Symbol,-10}{price,13}  ({sign}{change:F1}%)");
+            }
+
+            lines.Add("");
+            lines.Add($"Всего: {tokens.Count} токенов");
+
+            var buttons = new List<QuickButton>
+            {
+                new() { Text = RefreshButtonText, Value = "/get_tokens" }
+            };
+
+            var result = StepResult.Ok("completed", string.Join("\n", lines));
+            result.Buttons = buttons;
+            return result;
+        }
+
         private async Task<StepResult> HandleSetTradesLimit(UserSession session, string input)
         {
             if (!int.TryParse(input, out var limit) || limit <= 0)
