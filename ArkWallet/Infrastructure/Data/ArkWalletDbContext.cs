@@ -22,6 +22,7 @@ internal class ArkWalletDbContext : DbContext
     public DbSet<MiningMachineSlotRule> MiningMachineSlotRules { get; set; }
     public DbSet<MiningGlobalRule> MiningGlobalRules { get; set; }
     public DbSet<AccessSetting> AccessSettings { get; set; }
+    public DbSet<Gift> Gifts { get; set; }
 
     public ArkWalletDbContext(DbContextOptions<ArkWalletDbContext> options) : base(options)
     {
