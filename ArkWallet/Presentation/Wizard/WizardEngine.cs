@@ -6,6 +6,7 @@ using ArkWallet.Application.Contracts.MarketMaker;
 using ArkWallet.Application.Contracts.MiningMachineServices;
 using ArkWallet.Application.Contracts.Orchestrators;
 using ArkWallet.Application.Contracts.Other;
+using ArkWallet.Application.Contracts.GiftServices;
 using ArkWallet.Infrastructure.AccessControl;
 using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Infrastructure.Data;
@@ -94,6 +95,11 @@ namespace ArkWallet.Infrastructure.Wizard
         // BROADCAST
         private readonly IMessageSender _messageSender;
 
+        // GIFT
+        private readonly IGiftSendingService _giftSendingService;
+        private readonly IGiftReceivingService _giftReceivingService;
+        private readonly IQueryGiftService _giftQueryService;
+
         // DECORATOR SERVICES
         private readonly IQuestionDecorator _questionDecorator;
         private readonly IButtonDecorator _buttonDecorator;
@@ -132,6 +138,9 @@ namespace ArkWallet.Infrastructure.Wizard
             ITokenService tokenService,
             ITradingVolumeService tradingVolumeService,
             IMessageSender messageSender,
+            IGiftSendingService giftSendingService,
+            IGiftReceivingService giftReceivingService,
+            IQueryGiftService giftQueryService,
             IConfiguration configuration,
             IQuestionDecorator questionDecorator,
             IButtonDecorator buttonDecorator,
@@ -181,6 +190,9 @@ namespace ArkWallet.Infrastructure.Wizard
             _tokenService = tokenService;
             _tradingVolumeService = tradingVolumeService;
             _messageSender = messageSender;
+            _giftSendingService = giftSendingService;
+            _giftReceivingService = giftReceivingService;
+            _giftQueryService = giftQueryService;
             _primaryAdminId = long.Parse(configuration["Telegram:AdminId:Main"] ?? "0");
             _questionDecorator = questionDecorator;
             _buttonDecorator = buttonDecorator;
@@ -245,15 +257,17 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/mining_take"][1].Handler = HandleMiningTakeConfirm;
             _config.Commands["/mining_sell"][0].Handler = HandleMiningSellSelectSlot;
             _config.Commands["/mining_sell"][1].Handler = HandleMiningSellConfirm;
+            _config.Commands["/get_gifts_list"][0].Handler = HandleGetGiftsList;
+            _config.Commands["/collect_all_gifts"][0].Handler = HandleCollectAllGifts;
         }
 
         public async Task<WizardResult> ProcessInput(long userId, string input)
-            => await ProcessInputInternal(userId, input, chatType: null);
+            => await ProcessInputInternal(userId, input, chatType: null, replyToUserId: null);
 
-        public async Task<WizardResult> ProcessInput(long userId, string input, ChatType? chatType)
-            => await ProcessInputInternal(userId, input, chatType);
+        public async Task<WizardResult> ProcessInput(long userId, string input, ChatType? chatType, long? replyToUserId = null)
+            => await ProcessInputInternal(userId, input, chatType, replyToUserId);
 
-        private async Task<WizardResult> ProcessInputInternal(long userId, string input, ChatType? chatType)
+        private async Task<WizardResult> ProcessInputInternal(long userId, string input, ChatType? chatType, long? replyToUserId)
         {
             var command = ResolveCommandName(input, userId);
             var stopwatch = Stopwatch.StartNew();
@@ -269,12 +283,17 @@ namespace ArkWallet.Infrastructure.Wizard
                     bool isQuickPath = input.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length >= 2
                         && command != "unknown";
 
-                    if (!isCommandOneStep && !isQuickPath)
+                    bool isGroupGiftCommand = command == "/send_gift";
+
+                    // collect_gift — персональное действие (кнопка в личном чате), в группах недоступно
+                    bool isPrivateOnlyGiftCollection = command == "collect_gift";
+
+                    if (!isCommandOneStep && !isQuickPath && !isGroupGiftCommand || isPrivateOnlyGiftCollection)
                         return new WizardResult { Message = "", ChatType = chatType.Value };
                 }
 
                 // Выполняем команду
-                var result = await ExecuteCommandAsync(userId, input, command);
+                var result = await ExecuteCommandAsync(userId, input, command, replyToUserId);
                 
                 // Применяем ChatType ко всем результатам
                 if (chatType.HasValue)
@@ -300,7 +319,7 @@ namespace ArkWallet.Infrastructure.Wizard
             }
 
             // Local function to avoid code duplication
-            async Task<WizardResult> ExecuteCommandAsync(long uid, string inp, string cmd)
+            async Task<WizardResult> ExecuteCommandAsync(long uid, string inp, string cmd, long? replyUid)
             {
                 if (inp.StartsWith("/get_order_book "))
                 {
@@ -358,6 +377,44 @@ namespace ArkWallet.Infrastructure.Wizard
                         return await HandleQuickMiningSell(uid, parts[1]);
                 }
 
+                if (inp.StartsWith("/send_gift"))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 1)
+                    {
+                        if (chatType.HasValue && chatType.Value != ChatType.Private)
+                        {
+                            if (replyUid is null)
+                                return new WizardResult { Message = "Ответьте на сообщение пользователя, которому хотите отправить подарок." };
+
+                            return await HandleQuickGift(uid, replyUid.Value.ToString());
+                        }
+
+                        return await HandleGiftListUsers(uid);
+                    }
+                }
+
+                if (inp.StartsWith("gift_send "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                        return await HandleQuickGift(uid, parts[1]);
+                }
+
+                if (inp.StartsWith("collect_gift "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                        return await HandleCollectGift(uid, parts[1]);
+                }
+
+                if (inp.StartsWith("/collect_gift "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                        return await HandleCollectGift(uid, parts[1]);
+                }
+
                 if (_config.Commands.ContainsKey(inp))
                     return await StartCommand(uid, inp);
 
@@ -372,12 +429,17 @@ namespace ArkWallet.Infrastructure.Wizard
         {
             if (input.StartsWith("/get_order_book ")
                 || input.StartsWith("/get_trades ")
+                || input.StartsWith("/trades ")
                 || input.StartsWith("/get_tops ")
+                || input.StartsWith("/top ")
                 || input.StartsWith("/admin_bots_activity ")
                 || input.StartsWith("/admin_stats ")
                 || input.StartsWith("/mining_buy ")
                 || input.StartsWith("/mining_take ")
-                || input.StartsWith("/mining_sell "))
+                || input.StartsWith("/mining_sell ")
+                || input.StartsWith("/send_gift")
+                || input.StartsWith("gift_send")
+                || input.StartsWith("collect_gift "))
             {
                 return input.Split(' ', 2)[0];
             }
@@ -497,9 +559,7 @@ namespace ArkWallet.Infrastructure.Wizard
         /// Для admin-команд показывает конкретное описание ошибки, для остальных — общее сообщение.
         /// </summary>
         private static string ErrorMessageFor(string command, string? error)
-            => command.StartsWith("/admin", StringComparison.OrdinalIgnoreCase)
-                ? error ?? ServerErrorMessage
-                : ServerErrorMessage;
+            => error ?? ServerErrorMessage;
 
         /// <summary>
         /// Убирает все кнопки для групповых чатов.

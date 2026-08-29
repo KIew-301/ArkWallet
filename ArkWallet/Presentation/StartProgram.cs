@@ -7,6 +7,7 @@ using ArkWallet.Application.Contracts.MiningMachineServices;
 using ArkWallet.Application.Contracts.Orchestrators;
 using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Contracts.PortfolioServices;
+using ArkWallet.Application.Contracts.GiftServices;
 using ArkWallet.Application.Contracts.SuggestionServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TraderServices;
@@ -17,6 +18,7 @@ using ArkWallet.Application.Services.MarketMaker;
 using ArkWallet.Application.Services.MiningMachineServices;
 using ArkWallet.Application.Services.Orchestrators;
 using ArkWallet.Application.Services.Other;
+using ArkWallet.Application.Services.GiftServices;
 using ArkWallet.Application.Services.PortfolioServices;
 using ArkWallet.Application.Services.SuggestionServices;
 using ArkWallet.Application.Services.TradeOrderServices;
@@ -315,6 +317,11 @@ class Program
         // PortfolioServices
         services.AddScoped<IPortfolioQueryService, PortfolioQueryService>();
         services.AddScoped<IPortfolioUpdatingService, PortfolioUpdatingService>();
+
+        // GiftServices
+        services.AddScoped<IGiftSendingService, GiftSendingService>();
+        services.AddScoped<IGiftReceivingService, GiftReceivingService>();
+        services.AddScoped<IQueryGiftService, GiftQueryService>();
 
         // SuggestionServices
         services.AddScoped<IPriceSuggestionService, PriceSuggestionService>();

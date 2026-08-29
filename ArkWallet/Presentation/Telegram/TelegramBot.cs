@@ -77,13 +77,15 @@ namespace ArkWallet.Telegram
                     var userId = message.From?.Id ?? 0;
                     var username = message.From?.Username ?? "без юзернейма";
                     var isGroup = telegramChatType == ChatTypeTelegram.Group || telegramChatType == ChatTypeTelegram.Supergroup;
+                    long? replyToUserId = message.ReplyToMessage?.From?.Id;
 
                     logger.LogInformation(
-                        "📩 Сообщение | UserId: {UserId} | Username: @{Username} | ChatId: {ChatId} | ChatType: {ChatType} | Text: {Text}",
+                        "📩 Сообщение | UserId: {UserId} | Username: @{Username} | ChatId: {ChatId} | ChatType: {ChatType} | ReplyTo: {ReplyTo} | Text: {Text}",
                         userId,
                         username,
                         chatId,
                         telegramChatType,
+                        replyToUserId,
                         messageText
                     );
 
@@ -117,7 +119,7 @@ namespace ArkWallet.Telegram
                         );
                     }
 
-                    await ProcessUserInput(botClient, chatId, processedText, userId, cancellationToken, telegramChatType);
+                    await ProcessUserInput(botClient, chatId, processedText, userId, cancellationToken, telegramChatType, replyToUserId);
                 }
                 else if (update.CallbackQuery is { } callbackQuery && callbackQuery.Message != null)
                 {
@@ -243,7 +245,7 @@ namespace ArkWallet.Telegram
             }
         }
 
-        async Task ProcessUserInput(ITelegramBotClient botClient, long chatId, string input, long userId, CancellationToken cancellationToken, ChatTypeTelegram chatTypeEnum)
+        async Task ProcessUserInput(ITelegramBotClient botClient, long chatId, string input, long userId, CancellationToken cancellationToken, ChatTypeTelegram chatTypeEnum, long? replyToUserId = null)
         {
             var chatType = chatTypeEnum switch
             {
@@ -267,7 +269,7 @@ namespace ArkWallet.Telegram
                     using var scope = serviceProvider.CreateScope();
                     var wizardEngine = scope.ServiceProvider.GetRequiredService<WizardEngine>();
 
-                    var result = await wizardEngine.ProcessInput(userId, input, chatType);
+                    var result = await wizardEngine.ProcessInput(userId, input, chatType, replyToUserId);
 
                     logger.LogInformation(
                         "📤 ProcessUserInput результат | UserId: {UserId} | Message: {Message} | HasButtons: {HasButtons}",
