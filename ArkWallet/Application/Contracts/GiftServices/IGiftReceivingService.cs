@@ -21,6 +21,14 @@ public interface IGiftReceivingService
     Task<Result<GiftReceiveAllResult>> ReceiveAllGiftsAsync(long recipientId);
 }
 
+/// <summary>
+/// Результат приёма одного подарка
+/// </summary>
+/// <param name="GiftId">ID подарка</param>
+/// <param name="SenderId">Telegram ID отправителя</param>
+/// <param name="RecipientId">Telegram ID получателя</param>
+/// <param name="TokenSymbol">Символ токена</param>
+/// <param name="Quantity">Количество токенов</param>
 public record GiftReceiveResult(
     Guid GiftId,
     long SenderId,
@@ -29,6 +37,12 @@ public record GiftReceiveResult(
     decimal Quantity
 );
 
+/// <summary>
+/// Результат приёма всех подарков
+/// </summary>
+/// <param name="RecipientId">Telegram ID получателя</param>
+/// <param name="Count">Количество принятых подарков</param>
+/// <param name="Gifts">Список принятых подарков</param>
 public record GiftReceiveAllResult(
     long RecipientId,
     int Count,

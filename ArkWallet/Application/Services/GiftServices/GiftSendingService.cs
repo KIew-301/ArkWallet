@@ -58,7 +58,6 @@ internal class GiftSendingService(
 
                 user.SetEventPublisher(eventPublisher);
 
-                var giftIdBefore = Guid.NewGuid();
                 var sentAt = timeProvider.GetUtcNow().UtcDateTime;
 
                 await user.SendGift(recipientId, tokenPrices, timeProvider);
@@ -67,7 +66,7 @@ internal class GiftSendingService(
 
                 await dbContext.SaveChangesAsync();
 
-                var lastSent = user.GiftsSent.LastOrDefault();
+                var lastSent = GetLastSentGift(user);
                 if (lastSent is null)
                     throw new InvalidOperationException("Ошибка при отправке подарка");
 
@@ -82,7 +81,7 @@ internal class GiftSendingService(
 
     private void SyncGiftState(User user, long recipientId, DateTime sentAt, List<Records.PortfolioItem> portfolioItems)
     {
-        var sentGift = user.GiftsSent.LastOrDefault();
+        var sentGift = GetLastSentGift(user);
         if (sentGift is null)
             return;
 
@@ -105,4 +104,7 @@ internal class GiftSendingService(
 
         dbContext.Gifts.Add(giftRecord);
     }
+
+    private static SentGift? GetLastSentGift(User user)
+        => user.GiftsSent.Count > 0 ? user.GiftsSent[user.GiftsSent.Count - 1] : null;
 }

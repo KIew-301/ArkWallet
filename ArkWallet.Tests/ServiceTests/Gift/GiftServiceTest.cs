@@ -14,6 +14,8 @@ namespace ArkWallet.Tests.ServiceTests.Gift;
 
 public class GiftServiceTest
 {
+    private static readonly string[] ReturnableTokenSymbols = new[] { "AAA", "BBB" };
+
     private readonly TestTimeProvider _time = new();
     private readonly Mock<IEventPublisher> _eventPublisher = new();
 
@@ -29,7 +31,7 @@ public class GiftServiceTest
         return new GiftReceivingService(db, _eventPublisher.Object, NullLogger<GiftReceivingService>.Instance, _time);
     }
 
-    private void SetupAllTokens(Mock<ITokenQueryService> tokenQuery, params (string Symbol, decimal Price)[] tokens)
+    private static void SetupAllTokens(Mock<ITokenQueryService> tokenQuery, params (string Symbol, decimal Price)[] tokens)
     {
         var tokenInfos = tokens
             .Select(t => new TokenInfo(t.Symbol, t.Symbol, t.Price, "icon.zzz", "img.zzz"))
@@ -180,7 +182,7 @@ public class GiftServiceTest
         Assert.True(result.IsSuccess);
 
         result.TryGetData(out var data);
-        Assert.Contains(data.TokenSymbol, new[] { "AAA", "BBB" });
+        Assert.Contains(data.TokenSymbol, ReturnableTokenSymbols);
         Assert.Equal(1, data.Quantity);
     }
 
@@ -256,12 +258,14 @@ public class GiftServiceTest
         var giftId = sendData.GiftId;
 
         var giftBefore = await db.Gifts.FindAsync(giftId);
+        Assert.NotNull(giftBefore);
         Assert.Equal("Sent", giftBefore.Status);
 
         var receiving = CreateReceivingService(db);
         await receiving.ReceiveGiftAsync(1002, giftId);
 
         var giftAfter = await db.Gifts.FindAsync(giftId);
+        Assert.NotNull(giftAfter);
         Assert.Equal("Received", giftAfter.Status);
         Assert.NotNull(giftAfter.ReceivedAt);
     }

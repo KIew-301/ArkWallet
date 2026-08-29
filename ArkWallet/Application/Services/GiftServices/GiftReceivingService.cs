@@ -194,14 +194,14 @@ internal class GiftReceivingService(
         }
     }
 
-    private class ReceiveContext
+    private sealed class ReceiveContext
     {
         public User Recipient { get; init; } = null!;
         public Records.Gift Gift { get; init; } = null!;
         public List<Records.PortfolioItem> PortfolioItems { get; init; } = new();
     }
 
-    private class ReceiveAllContext
+    private sealed class ReceiveAllContext
     {
         public User Recipient { get; init; } = null!;
         public List<Records.Gift> PendingGifts { get; init; } = new();

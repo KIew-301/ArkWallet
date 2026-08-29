@@ -9,7 +9,9 @@ namespace ArkWallet.Tests.ServiceTests.Gift;
 
 public class GiftQueryServiceTest
 {
-    private GiftQueryService CreateService(ArkWalletDbContext db)
+    private static readonly string[] ExpectedTokenOrder = new[] { "AAA", "BBB", "ZZZ" };
+
+    private static GiftQueryService CreateService(ArkWalletDbContext db)
         => new(db, NullLogger<GiftQueryService>.Instance);
 
     private static Records.Gift CreatePendingGift(Guid id, long senderId, long recipientId, string symbol, decimal quantity, DateTime sentAt)
@@ -75,6 +77,6 @@ public class GiftQueryServiceTest
         var result = await service.GetPendingGiftsAsync(2001);
 
         Assert.True(result.TryGetData(out var gifts));
-        Assert.Equal(new[] { "AAA", "BBB", "ZZZ" }, gifts.Select(g => g.TokenSymbol).ToArray());
+        Assert.Equal(ExpectedTokenOrder, gifts.Select(g => g.TokenSymbol).ToArray());
     }
 }
