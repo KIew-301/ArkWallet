@@ -17,7 +17,7 @@ using ChatTypeTelegram = Telegram.Bot.Types.Enums.ChatType;
 namespace ArkWallet.Telegram
 {
     [ExcludeFromCodeCoverage(Justification = "Telegram-бот: точка входа Telegram API, зависит от внешнего клиента и polling. Тестируется интеграционно.")]
-    internal partial class TelegramBot(IServiceProvider serviceProvider, ILogger<TelegramBot> logger) : IMessageSender
+    public partial class TelegramBot(IServiceProvider serviceProvider, ILogger<TelegramBot> logger) : IMessageSender
     {
         // Интерфейс для взаимодействия с ботом
         ITelegramBotClient botClient = null!;
@@ -167,16 +167,37 @@ namespace ArkWallet.Telegram
             LoadConfiguration(configurationService, accessControl);
             string token = configurationService.GetToken();
             string? baseUrl = configurationService.GetBaseUrl();
+            string? webhookUrl = configurationService.GetWebhookUrl();
+            string? webhookSecret = configurationService.GetWebhookSecret();
 
-            _ = LaunchBot(token, baseUrl);
+            _ = LaunchBot(token, baseUrl, webhookUrl, webhookSecret);
         }
 
-        private async Task LaunchBot(string token, string? baseUrl)
+        private async Task LaunchBot(string token, string? baseUrl, string? webhookUrl, string? webhookSecret)
         {
             try
             {
                 var options = new TelegramBotClientOptions(token, baseUrl: baseUrl);
                 botClient = new TelegramBotClient(options);
+
+                var me = await botClient.GetMe();
+                Console.WriteLine($"Bot connected: @{me.Username} (ID: {me.Id})");
+
+                await SetCommandList(CommandListType.SimpleMode);
+
+                // Вебхук: Telegram сам присылает апдейты на наш сервер, поллинг не нужен.
+                // Это убирает долгий getUpdates из пути Cloudflare-proxy — источник зависаний под спамом.
+                if (!string.IsNullOrWhiteSpace(webhookUrl))
+                {
+                    await botClient.SetWebhook(
+                        url: webhookUrl,
+                        allowedUpdates: Array.Empty<UpdateType>(),
+                        secretToken: string.IsNullOrWhiteSpace(webhookSecret) ? null : webhookSecret
+                    );
+
+                    Console.WriteLine($"Webhook registered: {webhookUrl}");
+                    return;
+                }
 
                 ReceiverOptions receiverOptions = new ReceiverOptions
                 {
@@ -188,11 +209,6 @@ namespace ArkWallet.Telegram
                     HandleErrorAsync,
                     receiverOptions
                 );
-
-                var me = await botClient.GetMe();
-                Console.WriteLine($"Bot connected: @{me.Username} (ID: {me.Id})");
-
-                await SetCommandList(CommandListType.SimpleMode);
 
                 Console.WriteLine($"Start listening");
                 await Task.Delay(Timeout.Infinite);
@@ -282,6 +298,9 @@ namespace ArkWallet.Telegram
                 Console.WriteLine($"Unhandled error: {ex.Message}");
             }
         }
+
+        internal Task HandleWebhookUpdateAsync(Update update, CancellationToken cancellationToken)
+            => HandleUpdateAsync(botClient, update, cancellationToken);
 
         async Task HandleCallbackQuery(ITelegramBotClient botClient, CallbackQuery callbackQuery, CancellationToken cancellationToken)
         {

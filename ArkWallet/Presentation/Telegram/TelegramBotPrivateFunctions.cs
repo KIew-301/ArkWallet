@@ -7,7 +7,7 @@ using Telegram.Bot.Types;
 
 namespace ArkWallet.Telegram
 {
-    internal partial class TelegramBot : IMessageSender
+    public partial class TelegramBot : IMessageSender
     {
         private AccessControlService _accessControl = null!;
         private long _primaryAdminId;

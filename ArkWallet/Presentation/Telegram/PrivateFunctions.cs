@@ -23,6 +23,16 @@ namespace ArkWallet.Presentation.Telegram
             return configuration["Telegram:BaseUrl"];
         }
 
+        public string? GetWebhookUrl()
+        {
+            return configuration["Telegram:WebhookUrl"];
+        }
+
+        public string? GetWebhookSecret()
+        {
+            return configuration["Telegram:WebhookSecret"];
+        }
+
         public long GetPAId()
         {
             long adminChatId = long.Parse(configuration[$"Telegram:AdminId:Main"] ?? "0");

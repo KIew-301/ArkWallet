@@ -82,6 +82,9 @@ jobs:
             TELEGRAM_ADMIN_ID=${{ secrets.TELEGRAM_ADMIN_ID }}
             TELEGRAM_ADMIN_ID_ADDITION=${{ secrets.TELEGRAM_ADMIN_ID_ADDITION }}
             TELEGRAM_ADMIN_ID_ADDITION_THIRD=${{ secrets.TELEGRAM_ADMIN_ID_ADDITION_THIRD }}
+            TELEGRAM_BASE_URL=${{ secrets.TELEGRAM_BASE_URL }}
+            TELEGRAM_WEBHOOK_URL=${{ secrets.TELEGRAM_WEBHOOK_URL }}
+            TELEGRAM_WEBHOOK_SECRET=${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
             RABBITMQ_USER=arkwallet
             RABBITMQ_PASSWORD=rabbit_secure_pass_2024
             ENVEOF
@@ -94,6 +97,19 @@ jobs:
             else
               echo "METRICS_API_KEY=${{ secrets.METRICS_API_KEY }}" >> "$APP_DIR/.env"
             fi
+
+            # Update webhook secrets in existing .env (idempotent)
+            for KEY in TELEGRAM_WEBHOOK_URL TELEGRAM_WEBHOOK_SECRET; do
+              case "$KEY" in
+                TELEGRAM_WEBHOOK_URL) VALUE="${{ secrets.TELEGRAM_WEBHOOK_URL }}" ;;
+                TELEGRAM_WEBHOOK_SECRET) VALUE="${{ secrets.TELEGRAM_WEBHOOK_SECRET }}" ;;
+              esac
+              if grep -q "^$KEY=" "$APP_DIR/.env"; then
+                sed -i "s|^$KEY=.*|$KEY=$VALUE|" "$APP_DIR/.env"
+              else
+                echo "$KEY=$VALUE" >> "$APP_DIR/.env"
+              fi
+            done
 
             # Render prometheus.yml with the metrics API key
             sed -i "s|change-me-metrics-api-key|${{ secrets.METRICS_API_KEY }}|g" "$APP_DIR/prometheus.yml"
