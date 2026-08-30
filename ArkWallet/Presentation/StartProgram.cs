@@ -130,8 +130,9 @@ class Program
 
             options.OnRejected = async (context, cancellationToken) =>
             {
-                if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
-                    context.HttpContext.Response.Headers.RetryAfter = ((long)retryAfter.TotalSeconds).ToString();
+                context.HttpContext.Response.Headers.RetryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter)
+                    ? ((long)retryAfter.TotalSeconds).ToString()
+                    : "1";
                 await Task.CompletedTask;
             };
 
@@ -270,22 +271,21 @@ class Program
             RejectionStatusCode = StatusCodes.Status429TooManyRequests,
             OnRejected = async (context, cancellationToken) =>
             {
-                if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
-                    context.HttpContext.Response.Headers.RetryAfter = ((long)retryAfter.TotalSeconds).ToString();
+                context.HttpContext.Response.Headers.RetryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter)
+                    ? ((long)retryAfter.TotalSeconds).ToString()
+                    : "1";
                 await Task.CompletedTask;
             },
             GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
-                context.Request.Path.StartsWithSegments("/api/")
-                    ? RateLimitPartition.GetSlidingWindowLimiter(GetClientKey(context), _ =>
-                        new SlidingWindowRateLimiterOptions
-                        {
-                            PermitLimit = 3,
-                            Window = TimeSpan.FromSeconds(1),
-                            SegmentsPerWindow = 1,
-                            QueueLimit = 0,
-                            AutoReplenishment = true
-                        })
-                    : RateLimitPartition.GetNoLimiter<string>(context.Request.Path))
+                RateLimitPartition.GetSlidingWindowLimiter(GetClientKey(context), _ =>
+                    new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit = context.Request.Path.StartsWithSegments("/api") ? 3 : 1000,
+                        Window = TimeSpan.FromSeconds(1),
+                        SegmentsPerWindow = 1,
+                        QueueLimit = 0,
+                        AutoReplenishment = true
+                    }))
         });
         app.UseRateLimiter();
         app.UseCors();
