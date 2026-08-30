@@ -123,7 +123,7 @@ class Program
         builder.Services.AddRouting(options => options.LowercaseUrls = true);
 
         // Анти-спам API: скользящее окно, 1 запрос/с на каждый (клиент, эндпоинт).
-        // Auth-политика отдельно строже: 1 запрос / 5 секунд на клиента.
+        // Auth-эндпоинты строже: 1 запрос / 5 секунд на клиента.
         builder.Services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -136,26 +136,19 @@ class Program
             };
 
             options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
-                RateLimitPartition.GetSlidingWindowLimiter(GetClientKey(context) + "|" + context.Request.Path, _ =>
+            {
+                string client = GetClientKey(context);
+                bool isAuth = context.Request.Path.StartsWithSegments("/api/v1/auth");
+                return RateLimitPartition.GetSlidingWindowLimiter(client + "|" + context.Request.Path, _ =>
                     new SlidingWindowRateLimiterOptions
                     {
                         PermitLimit = 1,
-                        Window = TimeSpan.FromSeconds(1),
-                        SegmentsPerWindow = 1,
+                        Window = isAuth ? TimeSpan.FromSeconds(5) : TimeSpan.FromSeconds(1),
+                        SegmentsPerWindow = isAuth ? 5 : 1,
                         QueueLimit = 0,
                         AutoReplenishment = true
-                    }));
-
-            options.AddPolicy("auth", context =>
-                RateLimitPartition.GetSlidingWindowLimiter(GetClientKey(context), _ =>
-                    new SlidingWindowRateLimiterOptions
-                    {
-                        PermitLimit = 1,
-                        Window = TimeSpan.FromSeconds(5),
-                        SegmentsPerWindow = 5,
-                        QueueLimit = 0,
-                        AutoReplenishment = true
-                    }));
+                    });
+            });
         });
 
         static string GetClientKey(HttpContext context)
@@ -270,6 +263,30 @@ class Program
         });
         
         app.UseHttpsRedirection();
+        // Глобальный кап анти-спама: не более 3 запросов/с с одного клиента на ЛЮБЫЕ API
+        // (на случай, когда спамят на разные эндпоинты — у каждого свой бакет основного лимитера).
+        app.UseRateLimiter(new RateLimiterOptions
+        {
+            RejectionStatusCode = StatusCodes.Status429TooManyRequests,
+            OnRejected = async (context, cancellationToken) =>
+            {
+                if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+                    context.HttpContext.Response.Headers.RetryAfter = ((long)retryAfter.TotalSeconds).ToString();
+                await Task.CompletedTask;
+            },
+            GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+                context.Request.Path.StartsWithSegments("/api/")
+                    ? RateLimitPartition.GetSlidingWindowLimiter(GetClientKey(context), _ =>
+                        new SlidingWindowRateLimiterOptions
+                        {
+                            PermitLimit = 3,
+                            Window = TimeSpan.FromSeconds(1),
+                            SegmentsPerWindow = 1,
+                            QueueLimit = 0,
+                            AutoReplenishment = true
+                        })
+                    : RateLimitPartition.GetNoLimiter<string>(context.Request.Path))
+        });
         app.UseRateLimiter();
         app.UseCors();
         app.UseAuthentication();
