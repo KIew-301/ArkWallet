@@ -41,6 +41,8 @@ using ArkWallet.Telegram;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Design;
@@ -53,6 +55,7 @@ using OpenTelemetry.Metrics;
 using System.Reflection;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using System.Threading.RateLimiting;
 
 [ExcludeFromCodeCoverage(Justification = "Точка входа приложения: конфигурация DI, middleware и инфраструктуры. Не содержит бизнес-логики.")]
 class Program
@@ -118,6 +121,44 @@ class Program
             options.Filters.Add<AccessSettingFilter>();
         });
         builder.Services.AddRouting(options => options.LowercaseUrls = true);
+
+        // Анти-спам API: скользящее окно, 1 запрос/с на каждый (клиент, эндпоинт).
+        // Auth-эндпоинты строже: 1 запрос / 5 секунд на клиента.
+        builder.Services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+            options.OnRejected = async (context, cancellationToken) =>
+            {
+                context.HttpContext.Response.Headers.RetryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter)
+                    ? ((long)retryAfter.TotalSeconds).ToString()
+                    : "1";
+                await Task.CompletedTask;
+            };
+
+            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+            {
+                string client = GetClientKey(context);
+                bool isAuth = context.Request.Path.StartsWithSegments("/api/v1/auth");
+                return RateLimitPartition.GetSlidingWindowLimiter(client + "|" + context.Request.Path, _ =>
+                    new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit = 1,
+                        Window = isAuth ? TimeSpan.FromSeconds(5) : TimeSpan.FromSeconds(1),
+                        SegmentsPerWindow = isAuth ? 5 : 1,
+                        QueueLimit = 0,
+                        AutoReplenishment = true
+                    });
+            });
+        });
+
+        static string GetClientKey(HttpContext context)
+        {
+            string? forwarded = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(forwarded))
+                return forwarded.Split(',')[0].Trim();
+            return context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        }
 
         builder.Services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
 
@@ -223,13 +264,37 @@ class Program
         });
         
         app.UseHttpsRedirection();
+        // Глобальный кап анти-спама: не более 3 запросов/с с одного клиента на ЛЮБЫЕ API
+        // (на случай, когда спамят на разные эндпоинты — у каждого свой бакет основного лимитера).
+        app.UseRateLimiter(new RateLimiterOptions
+        {
+            RejectionStatusCode = StatusCodes.Status429TooManyRequests,
+            OnRejected = async (context, cancellationToken) =>
+            {
+                context.HttpContext.Response.Headers.RetryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter)
+                    ? ((long)retryAfter.TotalSeconds).ToString()
+                    : "1";
+                await Task.CompletedTask;
+            },
+            GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+                RateLimitPartition.GetSlidingWindowLimiter(GetClientKey(context), _ =>
+                    new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit = context.Request.Path.StartsWithSegments("/api") ? 3 : 1000,
+                        Window = TimeSpan.FromSeconds(1),
+                        SegmentsPerWindow = 1,
+                        QueueLimit = 0,
+                        AutoReplenishment = true
+                    }))
+        });
+        app.UseRateLimiter();
         app.UseCors();
         app.UseAuthentication();
         app.UseAuthorization();
         app.UseDefaultFiles();
         app.UseStaticFiles();
         app.MapControllers();
-        app.MapHealthChecks("/health");
+        app.MapHealthChecks("/health").DisableRateLimiting();
         app.UseMiddleware<MetricsApiKeyMiddleware>();
         app.MapPrometheusScrapingEndpoint();
 

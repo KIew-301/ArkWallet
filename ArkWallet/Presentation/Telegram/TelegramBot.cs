@@ -4,6 +4,7 @@ using ArkWallet.Infrastructure.Wizard;
 using ArkWallet.Presentation.Telegram;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading.RateLimiting;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
@@ -30,10 +31,33 @@ namespace ArkWallet.Telegram
         static readonly SemaphoreSlim UpdateConcurrency = new(MaxConcurrentUpdates, MaxConcurrentUpdates);
         readonly ConcurrentDictionary<long, SemaphoreSlim> _chatLocks = new();
 
+        // Анти-спам: не более MaxCommandsPerSecond команд/сек на чат (скользящее окно).
+        // Избыток отбрасывается — бот не тонет в очереди из сообщений одного юзера.
+        const int MaxCommandsPerSecond = 3;
+        readonly ConcurrentDictionary<long, SlidingWindowRateLimiter> _commandLimiters = new();
+
         void ScheduleUpdate(long chatId, Func<Task> handler)
         {
             _ = Task.Run(async () =>
             {
+                var commandLimiter = _commandLimiters.GetOrAdd(chatId, _ => new SlidingWindowRateLimiter(
+                    new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit = MaxCommandsPerSecond,
+                        Window = TimeSpan.FromSeconds(1),
+                        SegmentsPerWindow = 1,
+                        QueueLimit = 0,
+                        AutoReplenishment = true
+                    }));
+
+                using var commandLease = commandLimiter.AttemptAcquire(1);
+                if (!commandLease.IsAcquired)
+                {
+                    logger.LogWarning("Anti-spam: update for chat {ChatId} dropped (limit {Limit} cmd/s)",
+                        chatId, MaxCommandsPerSecond);
+                    return;
+                }
+
                 var chatLock = _chatLocks.GetOrAdd(chatId, _ => new SemaphoreSlim(1, 1));
 
                 await UpdateConcurrency.WaitAsync();
