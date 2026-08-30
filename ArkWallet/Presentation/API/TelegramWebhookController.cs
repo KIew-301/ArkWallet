@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
-using Telegram.Bot;
+using System.Text.Json.Serialization;
 using Telegram.Bot.Types;
 
 namespace ArkWallet.Presentation.API;
@@ -16,8 +16,26 @@ namespace ArkWallet.Presentation.API;
 [ApiController]
 [AllowAnonymous]
 [Route("bot/webhook")]
-public class TelegramWebhookController(TelegramBot telegramBot, IConfiguration configuration) : ControllerBase
+public class TelegramWebhookController(TelegramBot telegramBot, IConfiguration configuration, ILogger<TelegramWebhookController> logger) : ControllerBase
 {
+    /// <summary>
+    /// Опции десериализации апдейта: Telegram шлёт snake_case (message_id, first_name, ...),
+    /// а типы-перечисления приходят строками (chat.type = "private"/"supergroup"/...).
+    /// Не зависит от внутренних статических опций Telegram.Bot, поэтому работает одинаково на любом рантайме.
+    /// </summary>
+    private static readonly JsonSerializerOptions s_updateOptions = CreateUpdateOptions();
+
+    private static JsonSerializerOptions CreateUpdateOptions()
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+            PropertyNameCaseInsensitive = true,
+        };
+        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower));
+        return options;
+    }
+
     /// <summary>
     /// Приём апдейта от Telegram Bot API (вебхук): Telegram делает POST на этот адрес
     /// при каждом новом сообщении/callback.
@@ -55,15 +73,27 @@ public class TelegramWebhookController(TelegramBot telegramBot, IConfiguration c
         Update? update;
         try
         {
-            update = JsonSerializer.Deserialize<Update>(body, JsonBotAPI.Options);
+            update = JsonSerializer.Deserialize<Update>(body, s_updateOptions);
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            logger.LogWarning(ex, "Telegram webhook: не удалось десериализовать Update. Тело: {Body}",
+                body.Length > 500 ? body[..500] : body);
+            return BadRequest();
+        }
+        catch (NotSupportedException ex)
+        {
+            logger.LogWarning(ex, "Telegram webhook: десериализация Update не поддерживается средой выполнения (например, Reflection-less JSON). Тело: {Body}",
+                body.Length > 500 ? body[..500] : body);
             return BadRequest();
         }
 
         if (update is null)
+        {
+            logger.LogWarning("Telegram webhook: тело запроса десериализовалось в null. Тело: {Body}",
+                body.Length > 500 ? body[..500] : body);
             return BadRequest();
+        }
 
         // Обработка уходит в фоновую очередь (ScheduleUpdate), а токен запроса
         // (RequestAborted) отменяется сразу после отправки 200. Передавать его нельзя —
