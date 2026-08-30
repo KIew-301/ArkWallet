@@ -1,6 +1,7 @@
 using ArkWallet.Telegram;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -15,6 +16,7 @@ namespace ArkWallet.Presentation.API;
 [ExcludeFromCodeCoverage(Justification = "Webhook-контроллер: точка входа Telegram Bot API извне, зависит от внешнего клиента. Тестируется интеграционно.")]
 [ApiController]
 [AllowAnonymous]
+[DisableRateLimiting]
 [Route("bot/webhook")]
 public class TelegramWebhookController(TelegramBot telegramBot, IConfiguration configuration, ILogger<TelegramWebhookController> logger) : ControllerBase
 {

@@ -3,6 +3,7 @@ using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Infrastructure.AccessControl;
 using ArkWallet.Presentation.DTOs;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Configuration;
 using System.Diagnostics.CodeAnalysis;
 
@@ -13,6 +14,7 @@ namespace ArkWallet.Presentation.API;
 /// </summary>
 [ExcludeFromCodeCoverage(Justification = "API-контроллер: только маршрутизация HTTP-запросов к сервисам. Не содержит бизнес-логики, тестируется интеграционно.")]
 [ApiController]
+[EnableRateLimiting("auth")]
 [Route("api/v1/[controller]")]
 public class AuthController(
     ITraderRegistrationService traderRegistrationService,
