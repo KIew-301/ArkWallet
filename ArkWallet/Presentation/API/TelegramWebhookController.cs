@@ -18,21 +18,34 @@ namespace ArkWallet.Presentation.API;
 [Route("bot/webhook")]
 public class TelegramWebhookController(TelegramBot telegramBot, IConfiguration configuration) : ControllerBase
 {
+    /// <summary>
+    /// Приём апдейта от Telegram Bot API (вебхук): Telegram делает POST на этот адрес
+    /// при каждом новом сообщении/callback.
+    /// </summary>
+    /// <param name="secretToken">Секретный токен из заголовка X-Telegram-Bot-Api-Secret-Token (проверяется, если настроен)</param>
+    /// <param name="cancellationToken">Токен отмены запроса</param>
+    /// <returns>200 при успешном приёме апдейта</returns>
+    /// <response code="200">Апдейт принят и передан в фоновую обработку</response>
+    /// <response code="401">Неверный X-Telegram-Bot-Api-Secret-Token</response>
+    /// <response code="400">Некорректное тело запроса (нельзя десериализовать Update)</response>
     [HttpPost]
     [ProducesResponseType(200)]
     [ProducesResponseType(401)]
     [ProducesResponseType(400)]
-    public async Task<IActionResult> Post(CancellationToken cancellationToken)
+    public async Task<IActionResult> Post(
+        [FromHeader(Name = "X-Telegram-Bot-Api-Secret-Token")] string? secretToken,
+        CancellationToken cancellationToken)
     {
         string? webhookSecret = configuration["Telegram:WebhookSecret"];
 
-        if (!string.IsNullOrWhiteSpace(webhookSecret))
+        if (!string.IsNullOrWhiteSpace(webhookSecret) &&
+            !string.Equals(secretToken, webhookSecret, StringComparison.Ordinal))
         {
-            var secretHeader = Request.Headers["X-Telegram-Bot-Api-Secret-Token"].ToString();
-            if (!string.Equals(secretHeader, webhookSecret, StringComparison.Ordinal))
-                return Unauthorized();
+            return Unauthorized();
         }
 
+        // Тело десериализуем вручную через JsonBotAPI.Options: Telegram шлёт snake_case
+        // (message_id, first_name...), а стандартный биндинг тела этого не понимает.
         string body;
         using (var reader = new StreamReader(Request.Body))
         {
