@@ -1,0 +1,29 @@
+using ArkWallet.Application.Common;
+using ArkWallet.Application.Contracts.GlobalGoalServices;
+using ArkWallet.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+
+namespace ArkWallet.Application.Services.GlobalGoalServices;
+
+/// <summary>
+/// Расчёт цели "Общий баланс": сумма totalBalance самых свежих снимков всех участников
+/// сервера, за исключением ботов.
+/// </summary>
+internal class TotalBalanceGlobalGoalCalculation : IDomainGlobalGoalCalculation
+{
+    public string GoalName => "Общий баланс";
+
+    public async Task<decimal> CalculateAsync(ArkWalletDbContext dbContext)
+    {
+        var sum = await dbContext.BalanceSnapshots
+            .Where(s => !BotFilter.IsBot(s.TraderId))
+            .GroupBy(s => s.TraderId)
+            .Select(g => g
+                .OrderByDescending(s => s.SnapshotDateTime)
+                .Select(s => s.TotalBalance)
+                .FirstOrDefault())
+            .SumAsync();
+
+        return sum;
+    }
+}
