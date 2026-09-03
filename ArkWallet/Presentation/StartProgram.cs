@@ -8,6 +8,7 @@ using ArkWallet.Application.Contracts.Orchestrators;
 using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Application.Contracts.GiftServices;
+using ArkWallet.Application.Contracts.GlobalGoalServices;
 using ArkWallet.Application.Contracts.SuggestionServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TraderServices;
@@ -19,6 +20,7 @@ using ArkWallet.Application.Services.MiningMachineServices;
 using ArkWallet.Application.Services.Orchestrators;
 using ArkWallet.Application.Services.Other;
 using ArkWallet.Application.Services.GiftServices;
+using ArkWallet.Application.Services.GlobalGoalServices;
 using ArkWallet.Application.Services.PortfolioServices;
 using ArkWallet.Application.Services.SuggestionServices;
 using ArkWallet.Application.Services.TradeOrderServices;
@@ -251,6 +253,7 @@ class Program
             builder.Services.AddHostedService<MiningMachineCalculationWorker>();
             builder.Services.AddHostedService<MiningGlobalRuleCreationWorker>();
             builder.Services.AddHostedService<MiningMachineSlotSwitchingWorker>();
+            builder.Services.AddHostedService<GlobalGoalUpdateWorker>();
         }
 
         var app = builder.Build();
@@ -387,6 +390,11 @@ class Program
         services.AddScoped<IGiftSendingService, GiftSendingService>();
         services.AddScoped<IGiftReceivingService, GiftReceivingService>();
         services.AddScoped<IQueryGiftService, GiftQueryService>();
+
+        // GlobalGoalServices
+        services.AddScoped<IGlobalGoalCheckingService, GlobalGoalCheckingService>();
+        services.AddScoped<IGlobalGoalQueryService, GlobalGoalQueryService>();
+        services.AddScoped<IDomainGlobalGoalCalculation, TotalBalanceGlobalGoalCalculation>();
 
         // SuggestionServices
         services.AddScoped<IPriceSuggestionService, PriceSuggestionService>();

@@ -23,6 +23,9 @@ internal class ArkWalletDbContext : DbContext
     public DbSet<MiningGlobalRule> MiningGlobalRules { get; set; }
     public DbSet<AccessSetting> AccessSettings { get; set; }
     public DbSet<Gift> Gifts { get; set; }
+    public DbSet<GlobalGoal> GlobalGoals { get; set; }
+    public DbSet<GlobalGoalHistory> GlobalGoalHistories { get; set; }
+    public DbSet<GlobalGoalStep> GlobalGoalSteps { get; set; }
 
     public ArkWalletDbContext(DbContextOptions<ArkWalletDbContext> options) : base(options)
     {
@@ -97,6 +100,31 @@ internal class ArkWalletDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(r => r.TokenId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<GlobalGoal>(goal =>
+        {
+            goal.HasKey(g => g.Id);
+            goal.HasIndex(g => g.Name).IsUnique();
+            goal.HasMany(g => g.Histories)
+                .WithOne()
+                .HasForeignKey(h => h.GoalId)
+                .OnDelete(DeleteBehavior.Cascade);
+            goal.HasMany(g => g.Steps)
+                .WithOne()
+                .HasForeignKey(s => s.GoalId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<GlobalGoalHistory>(history =>
+        {
+            history.HasKey(h => h.Id);
+        });
+
+        modelBuilder.Entity<GlobalGoalStep>(step =>
+        {
+            step.HasKey(s => s.Id);
+            step.HasIndex(s => new { s.GoalId, s.StepNumber }).IsUnique();
         });
 
         var longListComparer = new ValueComparer<List<long>>(
