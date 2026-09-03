@@ -19,10 +19,8 @@ public interface IGiftSendingService
 /// Результат отправки подарка
 /// </summary>
 public record GiftSendResult(
-    Guid GiftId,
     long SenderId,
     long RecipientId,
     string TokenSymbol,
-    decimal Quantity,
-    decimal PriceAtSend
+    int Quantity
 );
