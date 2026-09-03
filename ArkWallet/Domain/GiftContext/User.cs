@@ -3,228 +3,110 @@ using ArkWallet.Domain.Exceptions;
 
 namespace ArkWallet.Domain.GiftContext;
 
+/// <summary>
+/// User aggregate in the Gift context. The sender is the root of gifting rules: it selects the
+/// token to gift from its own portfolio, removes it as part of sending and applies the rate
+/// limit. The resulting gift-sent event is consumed by the Mail context to create the gift message.
+/// </summary>
 internal class User : AggregateRoot
 {
-    private readonly List<PortfolioPosition> _portfolio = new();
-    private readonly List<SentGift> _giftsSent = new();
-    private readonly List<ReceivedGift> _giftsReceived = new();
+    private const decimal MaxTokenPrice = 1000m;
+    private static readonly TimeSpan GiftCooldown = TimeSpan.FromHours(8);
+
+    private readonly List<Tokens> _portfolio;
 
     public long Id { get; }
-    public IReadOnlyList<PortfolioPosition> Portfolio => _portfolio;
-    public IReadOnlyList<SentGift> GiftsSent => _giftsSent;
-    public IReadOnlyList<ReceivedGift> GiftsReceived => _giftsReceived;
+    public string Name { get; }
+    public IReadOnlyList<Tokens> Portfolio => _portfolio;
+    public IReadOnlyList<SentGift> SentGifts { get; }
 
-    private const decimal MaxTokenPrice = 1000m;
-
-    private User(long id)
+    private User(long id, string name, List<Tokens> portfolio, IReadOnlyList<SentGift> sentGifts)
     {
         Id = id;
+        Name = name;
+        _portfolio = portfolio;
+        SentGifts = sentGifts;
     }
 
-    public static User Create(long id)
-    {
-        return new User(id);
-    }
-
+    /// <summary>
+    /// Rehydrates a User (the gift sender) with all its portfolio tokens and sent gifts.
+    /// </summary>
     internal static User Load(
         long id,
-        List<PortfolioPosition> portfolio,
-        List<SentGift> giftsSent,
-        List<ReceivedGift> giftsReceived)
+        string name,
+        List<Tokens> portfolio,
+        IReadOnlyList<SentGift> sentGifts)
     {
-        var user = new User(id);
-        user._portfolio.AddRange(portfolio);
-        user._giftsSent.AddRange(giftsSent);
-        user._giftsReceived.AddRange(giftsReceived);
-        return user;
+        return new User(id, name, portfolio, sentGifts);
     }
 
-    public async Task SendGift(
-        long recipientId,
-        IReadOnlyDictionary<string, decimal> tokenPrices,
-        TimeProvider timeProvider)
+    /// <summary>
+    /// Sends a gift to the recipient. Takes only the recipient and the current time; everything
+    /// else (portfolio, rate limit, sender) comes from the aggregate itself. Removes the gifted
+    /// token from its own portfolio.
+    /// </summary>
+    public async Task<GiftSentEvent> SendGift(long recipientId, DateTime createdAt)
     {
         if (Id == recipientId)
             throw new DomainException("Нельзя отправить подарок самому себе");
 
-        var eightHoursAgo = timeProvider.GetUtcNow().UtcDateTime.AddHours(-8);
-        var recentGift = _giftsSent.FirstOrDefault(g =>
-            g.RecipientId == recipientId
-            && g.SentAt > eightHoursAgo);
-        if (recentGift is not null)
-            throw new DomainException($"Нельзя отправлять более 1 токена одному человеку раз в 8 часов");
+        var cooldownStart = createdAt - GiftCooldown;
+        var alreadyGifted = SentGifts.Any(g => g.RecipientId == recipientId && g.SentAt > cooldownStart);
+        if (alreadyGifted)
+            throw new DomainException("Нельзя отправлять более 1 токена одному человеку раз в 8 часов");
 
-        var eligiblePositions = _portfolio
-            .Where(p => tokenPrices.TryGetValue(p.TokenSymbol, out var price) && price <= MaxTokenPrice && p.Quantity >= 1)
+        var eligible = _portfolio
+            .Where(t => t.Price <= MaxTokenPrice && !t.IsEmpty)
             .ToList();
 
-        if (eligiblePositions.Count == 0)
+        if (eligible.Count == 0)
             throw new DomainException("Нет подходящих токенов в портфеле (все токены дороже лимита или портфель пуст)");
 
-        var random = Random.Shared;
-        var position = eligiblePositions[random.Next(eligiblePositions.Count)];
+        var selected = eligible[Random.Shared.Next(eligible.Count)];
+        selected.RemoveQuantity(1);
 
-        var giftId = Guid.NewGuid();
-        var sentAt = timeProvider.GetUtcNow().UtcDateTime;
-        var currentPrice = tokenPrices[position.TokenSymbol];
+        if (selected.IsEmpty)
+            _portfolio.Remove(selected);
 
-        position.RemoveQuantity(1);
+        var giftSent = new GiftSentEvent(
+            Id,
+            recipientId,
+            Name,
+            selected.Symbol,
+            1,
+            createdAt);
 
-        var sentGift = new SentGift(giftId, recipientId, position.TokenSymbol, 1, currentPrice, sentAt);
-        _giftsSent.Add(sentGift);
+        await PublishAsync(giftSent);
 
-        await PublishAsync(new GiftSentEvent(giftId, Id, recipientId, position.TokenSymbol, 1, sentAt));
-
-        if (position.Quantity == 0)
-            _portfolio.Remove(position);
+        return giftSent;
     }
-
-    public async Task ReceiveGift(
-        Guid giftId,
-        long senderId,
-        string tokenSymbol,
-        decimal quantity,
-        TimeProvider timeProvider)
-    {
-        var receivedGift = _giftsReceived.FirstOrDefault(g =>
-            g.GiftId == giftId && g.Status == GiftStatus.Sent);
-        if (receivedGift is null)
-            throw new DomainException("Gift not found or already received");
-
-        receivedGift.MarkAsReceived(timeProvider.GetUtcNow().UtcDateTime);
-
-        var existing = _portfolio.FirstOrDefault(p => p.TokenSymbol == tokenSymbol);
-        if (existing is null)
-        {
-            _portfolio.Add(new PortfolioPosition(tokenSymbol, quantity));
-        }
-        else
-        {
-            existing.AddQuantity(quantity);
-        }
-
-        await PublishAsync(new GiftReceivedEvent(
-            giftId, senderId, Id, tokenSymbol, quantity,
-            timeProvider.GetUtcNow().UtcDateTime));
-    }
-
-    public async Task ReceiveAllGifts(TimeProvider timeProvider)
-    {
-        var pendingGifts = _giftsReceived
-            .Where(g => g.Status == GiftStatus.Sent)
-            .ToList();
-
-        if (pendingGifts.Count == 0)
-            throw new DomainException("No pending gifts to receive");
-
-        var receivedAt = timeProvider.GetUtcNow().UtcDateTime;
-        var receivedData = new List<GiftReceivedData>();
-
-        foreach (var gift in pendingGifts)
-        {
-            gift.MarkAsReceived(receivedAt);
-
-            var existing = _portfolio.FirstOrDefault(p => p.TokenSymbol == gift.TokenSymbol);
-            if (existing is null)
-            {
-                _portfolio.Add(new PortfolioPosition(gift.TokenSymbol, gift.Quantity));
-            }
-            else
-            {
-                existing.AddQuantity(gift.Quantity);
-            }
-
-            receivedData.Add(new GiftReceivedData(
-                gift.GiftId, gift.SenderId, gift.TokenSymbol, gift.Quantity));
-        }
-
-        await PublishAsync(new AllGiftsReceivedEvent(Id, receivedData, receivedAt));
-    }
-
-    internal void AttachPortfolio(PortfolioPosition position) => _portfolio.Add(position);
-
-    internal void AttachSentGift(SentGift gift) => _giftsSent.Add(gift);
-
-    internal void AttachReceivedGift(ReceivedGift gift) => _giftsReceived.Add(gift);
 }
 
-internal class PortfolioPosition
+/// <summary>
+/// A token in the sender's portfolio that can be gifted. Mutable because gifting removes tokens.
+/// </summary>
+internal sealed class Tokens
 {
-    public string TokenSymbol { get; }
-    public decimal Quantity { get; private set; }
+    public string Symbol { get; }
+    public int Quantity { get; private set; }
+    public decimal Price { get; }
 
-    internal PortfolioPosition(string tokenSymbol, decimal quantity)
+    internal Tokens(string symbol, int quantity, decimal price)
     {
-        TokenSymbol = tokenSymbol;
+        Symbol = symbol;
         Quantity = quantity;
+        Price = price;
     }
 
-    internal void RemoveQuantity(decimal amount)
+    public bool IsEmpty => Quantity <= 0;
+
+    internal void RemoveQuantity(int amount)
     {
-        if (amount > Quantity)
-            throw new DomainException("Insufficient quantity");
         Quantity -= amount;
     }
-
-    internal void AddQuantity(decimal amount)
-    {
-        Quantity += amount;
-    }
 }
 
-internal class SentGift
-{
-    public Guid GiftId { get; }
-    public long RecipientId { get; }
-    public string TokenSymbol { get; }
-    public decimal Quantity { get; }
-    public decimal PriceAtSend { get; }
-    public GiftStatus Status { get; private set; }
-    public DateTime SentAt { get; }
-
-    internal SentGift(Guid giftId, long recipientId, string tokenSymbol, decimal quantity, decimal priceAtSend, DateTime sentAt)
-    {
-        GiftId = giftId;
-        RecipientId = recipientId;
-        TokenSymbol = tokenSymbol;
-        Quantity = quantity;
-        PriceAtSend = priceAtSend;
-        Status = GiftStatus.Sent;
-        SentAt = sentAt;
-    }
-
-    internal void MarkAsReceived() => Status = GiftStatus.Received;
-}
-
-internal class ReceivedGift
-{
-    public Guid GiftId { get; }
-    public long SenderId { get; }
-    public string TokenSymbol { get; }
-    public decimal Quantity { get; }
-    public GiftStatus Status { get; private set; }
-    public DateTime SentAt { get; }
-    public DateTime? ReceivedAt { get; private set; }
-
-    internal ReceivedGift(Guid giftId, long senderId, string tokenSymbol, decimal quantity, DateTime sentAt)
-    {
-        GiftId = giftId;
-        SenderId = senderId;
-        TokenSymbol = tokenSymbol;
-        Quantity = quantity;
-        Status = GiftStatus.Sent;
-        SentAt = sentAt;
-    }
-
-    internal void MarkAsReceived(DateTime receivedAt)
-    {
-        Status = GiftStatus.Received;
-        ReceivedAt = receivedAt;
-    }
-}
-
-internal enum GiftStatus
-{
-    Sent,
-    Received
-}
+/// <summary>
+/// A gift the sender has already sent, used for the per-recipient cooldown.
+/// </summary>
+internal readonly record struct SentGift(long RecipientId, DateTime SentAt);

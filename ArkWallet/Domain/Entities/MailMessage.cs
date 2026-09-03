@@ -31,6 +31,9 @@ internal class MailMessage
     /// <summary>Количество токенов награды (0, если награда не предполагается)</summary>
     public decimal AmountForReward { get; set; }
 
+    /// <summary>Тип письма (Gift/Reward/Notification)</summary>
+    public string Type { get; set; } = MailType.Notification.ToString();
+
     /// <summary>Статус письма (Sent/Read/Accepted)</summary>
     public string Status { get; set; } = MailMessageStatus.Sent.ToString();
 
@@ -51,7 +54,8 @@ internal class MailMessage
         long? senderId,
         string symbolForReward,
         decimal amountForReward,
-        DateTime createdAt)
+        DateTime createdAt,
+        MailType type = MailType.Notification)
     {
         return new MailMessage
         {
@@ -62,6 +66,7 @@ internal class MailMessage
             SenderId = senderId,
             SymbolForReward = symbolForReward,
             AmountForReward = amountForReward,
+            Type = type.ToString(),
             Status = MailMessageStatus.Sent.ToString(),
             CreatedAt = createdAt
         };
@@ -99,4 +104,19 @@ internal enum MailMessageStatus
 
     /// <summary>Принято — пользователь принял награду из письма</summary>
     Accepted
+}
+
+/// <summary>
+/// Тип письма в почтовом ящике
+/// </summary>
+internal enum MailType
+{
+    /// <summary>Уведомление без награды</summary>
+    Notification,
+
+    /// <summary>Подарок от другого участника</summary>
+    Gift,
+
+    /// <summary>Вознаграждение (награда за цель и т.п.)</summary>
+    Reward
 }
