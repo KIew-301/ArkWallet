@@ -26,6 +26,7 @@ internal class ArkWalletDbContext : DbContext
     public DbSet<GlobalGoal> GlobalGoals { get; set; }
     public DbSet<GlobalGoalHistory> GlobalGoalHistories { get; set; }
     public DbSet<GlobalGoalStep> GlobalGoalSteps { get; set; }
+    public DbSet<MailMessage> MailMessages { get; set; }
 
     public ArkWalletDbContext(DbContextOptions<ArkWalletDbContext> options) : base(options)
     {
@@ -125,6 +126,12 @@ internal class ArkWalletDbContext : DbContext
         {
             step.HasKey(s => s.Id);
             step.HasIndex(s => new { s.GoalId, s.StepNumber }).IsUnique();
+        });
+
+        modelBuilder.Entity<MailMessage>(mail =>
+        {
+            mail.HasKey(m => m.Id);
+            mail.Property(m => m.Status).HasConversion<string>();
         });
 
         var longListComparer = new ValueComparer<List<long>>(
