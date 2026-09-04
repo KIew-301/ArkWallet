@@ -1,5 +1,6 @@
 using ArkWallet.Application.Common;
 using ArkWallet.Application.Contracts.MailServices;
+using ArkWallet.Domain.Entities;
 using ArkWallet.Domain.GlobalGoalContext;
 using ArkWallet.Infrastructure.Data;
 using MediatR;
@@ -16,10 +17,11 @@ internal sealed class GlobalGoalAchievedMailHandler(
 {
     public async Task Handle(GlobalGoalAchievedEvent notification, CancellationToken cancellationToken)
     {
-        var traderIds = await dbContext.Traders
-            .Where(t => !BotFilter.IsBot(t.TelegramId))
+        var allTraderIds = await dbContext.Traders
             .Select(t => t.TelegramId)
             .ToListAsync(cancellationToken);
+
+        var traderIds = allTraderIds.Where(id => !BotFilter.IsBot(id)).ToList();
 
         var title = $"🏆 Цель достигнута: {notification.GoalName}";
         var message = $"Поздравляем! Участники вместе достигли цели «{notification.GoalName}» ({notification.Target:F2}).\n" +
@@ -33,7 +35,8 @@ internal sealed class GlobalGoalAchievedMailHandler(
                 SenderName: "Система",
                 SenderId: null,
                 notification.SymbolForReward,
-                notification.AmountForReward))
+                notification.AmountForReward,
+                Type: MailType.Reward.ToString()))
             .ToList();
 
         await mailMessageService.CreateManyAsync(commands);

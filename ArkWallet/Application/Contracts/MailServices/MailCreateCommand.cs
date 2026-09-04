@@ -10,4 +10,5 @@ public record MailCreateCommand(
     string SenderName,
     long? SenderId,
     string SymbolForReward,
-    decimal AmountForReward);
+    decimal AmountForReward,
+    string Type = "Notification");

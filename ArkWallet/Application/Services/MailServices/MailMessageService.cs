@@ -3,6 +3,7 @@ using ArkWallet.Application.Contracts.MailServices;
 using ArkWallet.Application.Contracts.Other;
 using ArkWallet.Application.Dtos;
 using ArkWallet.Domain.Entities;
+using ArkWallet.Domain.MailContext;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -39,7 +40,7 @@ internal class MailMessageService(
                 var createdAt = timeProvider.GetUtcNow().UtcDateTime;
 
                 var mails = commands
-                    .Select(c => MailMessage.Create(
+                    .Select(c => MailContextMapper.ToRecord(Message.Create(
                         c.TraderId,
                         c.Title,
                         c.Message,
@@ -47,7 +48,8 @@ internal class MailMessageService(
                         c.SenderId,
                         c.SymbolForReward,
                         c.AmountForReward,
-                        createdAt))
+                        ParseType(c.Type),
+                        createdAt)))
                     .ToList();
 
                 dbContext.MailMessages.AddRange(mails);
@@ -64,6 +66,9 @@ internal class MailMessageService(
         }, logger, nameof(MailMessageService));
     }
 
+    private static MailType ParseType(string type)
+        => Enum.TryParse<MailType>(type, ignoreCase: true, out var parsed) ? parsed : MailType.Notification;
+
     private async Task NotifyAsync(IReadOnlyList<MailCreateCommand> commands)
     {
         var traderIds = commands.Select(c => c.TraderId).Distinct().ToList();
@@ -78,7 +83,7 @@ internal class MailMessageService(
 
         var notifications = commands
             .Where(c => notificationOnIds.Contains(c.TraderId))
-            .Select(c => new NotificationEvent(c.TraderId, $"{c.Title}\n\n{c.Message}"))
+            .Select(c => new NotificationEvent(c.TraderId, $"Новое сообщение, проверьте почту: {c.Title}"))
             .ToList();
 
         if (notifications.Count == 0)
