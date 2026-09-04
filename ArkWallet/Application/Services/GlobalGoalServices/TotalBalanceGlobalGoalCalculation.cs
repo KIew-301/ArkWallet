@@ -11,12 +11,15 @@ namespace ArkWallet.Application.Services.GlobalGoalServices;
 /// </summary>
 internal class TotalBalanceGlobalGoalCalculation : IDomainGlobalGoalCalculation
 {
+    private const long BotTraderIdsMin = 100;
+    private const long BotTraderIdsMax = 1000;
+
     public string GoalName => "Общий баланс";
 
     public async Task<decimal> CalculateAsync(ArkWalletDbContext dbContext)
     {
         var sum = await dbContext.BalanceSnapshots
-            .Where(s => !BotFilter.IsBot(s.TraderId))
+            .Where(s => s.TraderId < BotTraderIdsMin || s.TraderId > BotTraderIdsMax)
             .GroupBy(s => s.TraderId)
             .Select(g => g
                 .OrderByDescending(s => s.SnapshotDateTime)

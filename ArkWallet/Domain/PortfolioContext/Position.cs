@@ -8,6 +8,8 @@ namespace ArkWallet.Domain.PortfolioContext;
 /// </summary>
 internal class Position
 {
+    private const string InvalidQuantityMessage = "Количество токенов меньше 0";
+
     public string Id { get; }
     public long TraderTelegramId { get; }
     public string Symbol { get; }
@@ -19,49 +21,26 @@ internal class Position
     public decimal AverageReservePrice { get; private set; }
     public DateTime AcquiredAt { get; }
 
-    private Position(
-        string id,
-        long traderTelegramId,
-        string symbol,
-        int quantity,
-        int sellingQuantity,
-        int reserveQuantity,
-        decimal averageBuyPrice,
-        decimal averageSellPrice,
-        decimal averageReservePrice,
-        DateTime acquiredAt)
+    private Position(PositionData data)
     {
-        Id = id;
-        TraderTelegramId = traderTelegramId;
-        Symbol = symbol;
-        Quantity = quantity;
-        SellingQuantity = sellingQuantity;
-        ReserveQuantity = reserveQuantity;
-        AverageBuyPrice = averageBuyPrice;
-        AverageSellPrice = averageSellPrice;
-        AverageReservePrice = averageReservePrice;
-        AcquiredAt = acquiredAt;
+        Id = data.Id;
+        TraderTelegramId = data.TraderTelegramId;
+        Symbol = data.Symbol;
+        Quantity = data.Quantity;
+        SellingQuantity = data.SellingQuantity;
+        ReserveQuantity = data.ReserveQuantity;
+        AverageBuyPrice = data.AverageBuyPrice;
+        AverageSellPrice = data.AverageSellPrice;
+        AverageReservePrice = data.AverageReservePrice;
+        AcquiredAt = data.AcquiredAt;
     }
 
     /// <summary>
     /// Rehydrates a Position from its persistence record.
     /// </summary>
-    internal static Position Load(
-        string id,
-        long traderTelegramId,
-        string symbol,
-        int quantity,
-        int sellingQuantity,
-        int reserveQuantity,
-        decimal averageBuyPrice,
-        decimal averageSellPrice,
-        decimal averageReservePrice,
-        DateTime acquiredAt)
+    internal static Position Load(PositionData data)
     {
-        return new Position(
-            id, traderTelegramId, symbol, quantity, sellingQuantity,
-            reserveQuantity, averageBuyPrice, averageSellPrice,
-            averageReservePrice, acquiredAt);
+        return new Position(data);
     }
 
     /// <summary>
@@ -72,17 +51,17 @@ internal class Position
         if (quantity <= 0)
             throw new DomainException("Для обновление портфеля необходим минимум один токен");
 
-        return new Position(
-            id: Guid.NewGuid().ToString(),
-            traderTelegramId: traderTelegramId,
-            symbol: symbol,
-            quantity: quantity,
-            sellingQuantity: 0,
-            reserveQuantity: 0,
-            averageBuyPrice: price,
-            averageSellPrice: 0,
-            averageReservePrice: 0,
-            acquiredAt: DateTime.UtcNow);
+        return new Position(new PositionData(
+            Id: Guid.NewGuid().ToString(),
+            TraderTelegramId: traderTelegramId,
+            Symbol: symbol,
+            Quantity: quantity,
+            SellingQuantity: 0,
+            ReserveQuantity: 0,
+            AverageBuyPrice: price,
+            AverageSellPrice: 0,
+            AverageReservePrice: 0,
+            AcquiredAt: DateTime.UtcNow));
     }
 
     /// <summary>
@@ -105,7 +84,7 @@ internal class Position
     /// </summary>
     public void BuyTokens(int quantity, decimal buyPrice)
     {
-        if (quantity <= 0) throw new DomainException("Количество токенов меньше 0");
+        if (quantity <= 0) throw new DomainException(InvalidQuantityMessage);
 
         var totalCost = Quantity * AverageBuyPrice + quantity * buyPrice;
         Quantity += quantity;
@@ -117,7 +96,7 @@ internal class Position
     /// </summary>
     public void ReserveTokens(int quantity, decimal reservePrice)
     {
-        if (quantity <= 0) throw new DomainException("Количество токенов меньше 0");
+        if (quantity <= 0) throw new DomainException(InvalidQuantityMessage);
 
         Quantity -= quantity;
 
@@ -134,7 +113,7 @@ internal class Position
     /// </summary>
     public void SellTokens(int quantity, decimal sellPrice)
     {
-        if (quantity <= 0) throw new DomainException("Количество токенов меньше 0");
+        if (quantity <= 0) throw new DomainException(InvalidQuantityMessage);
 
         ReserveQuantity -= quantity;
 
@@ -151,7 +130,7 @@ internal class Position
     /// </summary>
     public void ReturnTokens(int quantity)
     {
-        if (quantity <= 0) throw new DomainException("Количество токенов меньше 0");
+        if (quantity <= 0) throw new DomainException(InvalidQuantityMessage);
 
         ReserveQuantity -= quantity;
 
@@ -259,3 +238,18 @@ internal class Position
         }
     }
 }
+
+/// <summary>
+/// Flat persistence snapshot of a <see cref="Position"/>.
+/// </summary>
+internal sealed record PositionData(
+    string Id,
+    long TraderTelegramId,
+    string Symbol,
+    int Quantity,
+    int SellingQuantity,
+    int ReserveQuantity,
+    decimal AverageBuyPrice,
+    decimal AverageSellPrice,
+    decimal AverageReservePrice,
+    DateTime AcquiredAt);

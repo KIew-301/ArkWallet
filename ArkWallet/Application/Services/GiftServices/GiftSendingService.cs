@@ -51,15 +51,14 @@ internal class GiftSendingService(
 
                 var giftSent = await user.SendGift(recipientId, createdAt);
 
-                foreach (var entry in cache.Portfolio)
-                {
-                    var record = entry.Item;
-                    var token = user.Portfolio.FirstOrDefault(t => t.Symbol == record.CharacterTokenId);
+                var tokensBySymbol = user.Portfolio.ToDictionary(t => t.Symbol);
 
-                    if (token is null)
-                        dbContext.PortfolioItems.Remove(record);
-                    else
+                foreach (var record in cache.Portfolio.Select(entry => entry.Item))
+                {
+                    if (tokensBySymbol.TryGetValue(record.CharacterTokenId, out var token))
                         GiftContextMapper.ApplyToRecord(record, token);
+                    else
+                        dbContext.PortfolioItems.Remove(record);
                 }
 
                 await dbContext.SaveChangesAsync();
@@ -76,7 +75,7 @@ internal class GiftSendingService(
     private async Task<GiftContextData> LoadContextAsync(
         long senderId,
         long recipientId,
-        IReadOnlyDictionary<string, decimal> tokenPrices)
+        Dictionary<string, decimal> tokenPrices)
     {
         var portfolioItems = await dbContext.PortfolioItems
             .Where(p => p.TraderTelegramId == senderId)

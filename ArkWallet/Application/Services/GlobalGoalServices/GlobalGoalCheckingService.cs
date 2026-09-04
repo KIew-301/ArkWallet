@@ -23,6 +23,7 @@ internal class GlobalGoalCheckingService(
             return await TransactionHandler.ExecuteAsync(dbContext, async () =>
             {
                 var goals = await dbContext.GlobalGoals
+                    .AsSplitQuery()
                     .Include(g => g.Histories)
                     .Include(g => g.Steps)
                     .ToListAsync();
