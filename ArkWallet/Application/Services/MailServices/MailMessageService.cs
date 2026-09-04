@@ -40,7 +40,7 @@ internal class MailMessageService(
                 var createdAt = timeProvider.GetUtcNow().UtcDateTime;
 
                 var mails = commands
-                    .Select(c => MailContextMapper.ToRecord(Message.Create(
+                    .Select(c => MailContextMapper.ToRecord(Message.Create(new MessageDraft(
                         c.TraderId,
                         c.Title,
                         c.Message,
@@ -49,7 +49,7 @@ internal class MailMessageService(
                         c.SymbolForReward,
                         c.AmountForReward,
                         ParseType(c.Type),
-                        createdAt)))
+                        createdAt))))
                     .ToList();
 
                 dbContext.MailMessages.AddRange(mails);

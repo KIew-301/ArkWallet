@@ -11,7 +11,7 @@ internal static class MailContextMapper
 {
     internal static Message ToMessage(Records.MailMessage record)
     {
-        return Message.Load(
+        return Message.Load(new MessageData(
             record.Id,
             record.TraderId,
             record.Title,
@@ -24,7 +24,7 @@ internal static class MailContextMapper
             ParseEnum(record.Status, MailMessageStatus.Sent),
             record.CreatedAt,
             record.ReadAt,
-            record.AcceptedAt);
+            record.AcceptedAt));
     }
 
     internal static void ApplyToRecord(Records.MailMessage record, Message message)

@@ -11,7 +11,7 @@ internal static class GlobalGoalContextMapper
     internal static List<GlobalGoal> ToGoals(List<Records.GlobalGoal> goals)
     {
         return goals
-            .Select(g => GlobalGoal.Load(
+            .Select(g => GlobalGoal.Load(new GlobalGoalData(
                 g.Id,
                 g.Name,
                 g.Description,
@@ -31,7 +31,7 @@ internal static class GlobalGoalContextMapper
                         s.Target,
                         s.SymbolForReward,
                         s.AmountForReward))
-                    .ToList()))
+                    .ToList())))
             .ToList();
     }
 }

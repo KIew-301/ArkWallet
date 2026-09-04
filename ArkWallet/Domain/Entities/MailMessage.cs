@@ -46,29 +46,20 @@ internal class MailMessage
     /// <summary>Дата принятия награды из письма (null, если не принято)</summary>
     public DateTime? AcceptedAt { get; set; }
 
-    public static MailMessage Create(
-        long traderId,
-        string title,
-        string message,
-        string senderName,
-        long? senderId,
-        string symbolForReward,
-        decimal amountForReward,
-        DateTime createdAt,
-        MailType type = MailType.Notification)
+    public static MailMessage Create(MailMessageDraft draft)
     {
         return new MailMessage
         {
-            TraderId = traderId,
-            Title = title,
-            Message = message,
-            SenderName = senderName,
-            SenderId = senderId,
-            SymbolForReward = symbolForReward,
-            AmountForReward = amountForReward,
-            Type = type.ToString(),
+            TraderId = draft.TraderId,
+            Title = draft.Title,
+            Message = draft.Message,
+            SenderName = draft.SenderName,
+            SenderId = draft.SenderId,
+            SymbolForReward = draft.SymbolForReward,
+            AmountForReward = draft.AmountForReward,
+            Type = draft.Type.ToString(),
             Status = MailMessageStatus.Sent.ToString(),
-            CreatedAt = createdAt
+            CreatedAt = draft.CreatedAt
         };
     }
 
@@ -120,3 +111,17 @@ internal enum MailType
     /// <summary>Вознаграждение (награда за цель и т.п.)</summary>
     Reward
 }
+
+/// <summary>
+/// Данные нового письма для создания.
+/// </summary>
+internal sealed record MailMessageDraft(
+    long TraderId,
+    string Title,
+    string Message,
+    string SenderName,
+    long? SenderId,
+    string SymbolForReward,
+    decimal AmountForReward,
+    DateTime CreatedAt,
+    MailType Type = MailType.Notification);

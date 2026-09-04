@@ -32,14 +32,12 @@ internal class GlobalGoal : AggregateRoot
         return new GlobalGoal(id, name, description, target, actual);
     }
 
-    internal static GlobalGoal Load(
-        long id, string name, string description, decimal target, decimal actual, int achievedCount,
-        List<GlobalGoalHistory> history, List<GlobalGoalStep> steps)
+    internal static GlobalGoal Load(GlobalGoalData data)
     {
-        var goal = new GlobalGoal(id, name, description, target, actual);
-        goal.AchievedCount = achievedCount;
-        goal._history.AddRange(history);
-        goal._steps.AddRange(steps);
+        var goal = new GlobalGoal(data.Id, data.Name, data.Description, data.Target, data.Actual);
+        goal.AchievedCount = data.AchievedCount;
+        goal._history.AddRange(data.History);
+        goal._steps.AddRange(data.Steps);
         return goal;
     }
 
@@ -129,3 +127,13 @@ internal class GlobalGoalStep
         AmountForReward = amountForReward;
     }
 }
+
+internal sealed record GlobalGoalData(
+    long Id,
+    string Name,
+    string Description,
+    decimal Target,
+    decimal Actual,
+    int AchievedCount,
+    List<GlobalGoalHistory> History,
+    List<GlobalGoalStep> Steps);

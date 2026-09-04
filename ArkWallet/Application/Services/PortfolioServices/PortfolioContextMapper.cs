@@ -10,7 +10,7 @@ internal static class PortfolioContextMapper
 {
     internal static Position ToPosition(Records.PortfolioItem item)
     {
-        return Position.Load(
+        return Position.Load(new PositionData(
             item.Id,
             item.TraderTelegramId,
             item.CharacterTokenId,
@@ -20,7 +20,7 @@ internal static class PortfolioContextMapper
             item.AverageBuyPrice,
             item.AverageSellPrice,
             item.AverageReservePrice,
-            item.AcquiredAt);
+            item.AcquiredAt));
     }
 
     internal static void ApplyToRecord(Records.PortfolioItem record, Position position)
