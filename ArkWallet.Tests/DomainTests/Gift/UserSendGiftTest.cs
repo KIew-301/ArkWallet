@@ -8,6 +8,7 @@ namespace ArkWallet.Tests.DomainTests.Gift;
 public class UserSendGiftTest
 {
     private static readonly DateTime Now = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+    private static readonly string[] SendableSymbols = ["AAA", "BBB"];
 
     private static User BuildUser(
         long id = 1001,
@@ -111,7 +112,7 @@ public class UserSendGiftTest
         for (var i = 0; i < 20; i++)
         {
             var giftSent = await user.SendGift(2002 + i, Now.AddMinutes(i));
-            Assert.Contains(giftSent.Symbol, new[] { "AAA", "BBB" });
+            Assert.Contains(giftSent.Symbol, SendableSymbols);
         }
     }
 

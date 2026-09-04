@@ -19,7 +19,7 @@ public class PortfolioContextChangePositionTests
     [Fact]
     public async Task ChangePosition_Buy_RecalculatesAverageBuyPrice()
     {
-        using var db = DbTest.CreateInitializedDbContextAsync().GetAwaiter().GetResult();
+        using var db = await DbTest.CreateInitializedDbContextAsync();
         var service = await InitAsync(db);
         await HelpMethods.AddPortfolio(db, 2002, "ZZZ", 10);
 
@@ -35,7 +35,7 @@ public class PortfolioContextChangePositionTests
     [Fact]
     public async Task ChangePosition_Add_IncreasesQuantity_KeepsAverageBuy()
     {
-        using var db = DbTest.CreateInitializedDbContextAsync().GetAwaiter().GetResult();
+        using var db = await DbTest.CreateInitializedDbContextAsync();
         var service = await InitAsync(db);
         await HelpMethods.AddPortfolio(db, 2002, "ZZZ", 10);
 
@@ -51,7 +51,7 @@ public class PortfolioContextChangePositionTests
     [Fact]
     public async Task ChangePosition_Reserve_MovesToReserve()
     {
-        using var db = DbTest.CreateInitializedDbContextAsync().GetAwaiter().GetResult();
+        using var db = await DbTest.CreateInitializedDbContextAsync();
         var service = await InitAsync(db);
         await HelpMethods.AddPortfolio(db, 2002, "ZZZ", 10);
 
@@ -67,7 +67,7 @@ public class PortfolioContextChangePositionTests
     [Fact]
     public async Task ChangePosition_Return_MovesBackToAvailable()
     {
-        using var db = DbTest.CreateInitializedDbContextAsync().GetAwaiter().GetResult();
+        using var db = await DbTest.CreateInitializedDbContextAsync();
         var service = await InitAsync(db);
         await HelpMethods.AddPortfolio(db, 2002, "ZZZ", 10);
         await service.ChangePositionAsync(new PortfolioChangeCommand(2002, "ZZZ", PortfolioChangeType.Reserve, 4, 100m));
@@ -84,7 +84,7 @@ public class PortfolioContextChangePositionTests
     [Fact]
     public async Task ChangePosition_Remove_RemovesQuantity()
     {
-        using var db = DbTest.CreateInitializedDbContextAsync().GetAwaiter().GetResult();
+        using var db = await DbTest.CreateInitializedDbContextAsync();
         var service = await InitAsync(db);
         await HelpMethods.AddPortfolio(db, 2002, "ZZZ", 10);
 
@@ -99,7 +99,7 @@ public class PortfolioContextChangePositionTests
     [Fact]
     public async Task ChangePosition_UnknownType_ReturnsFail()
     {
-        using var db = DbTest.CreateInitializedDbContextAsync().GetAwaiter().GetResult();
+        using var db = await DbTest.CreateInitializedDbContextAsync();
         var service = await InitAsync(db);
         await HelpMethods.AddPortfolio(db, 2002, "ZZZ", 10);
 
@@ -113,12 +113,41 @@ public class PortfolioContextChangePositionTests
     [Fact]
     public async Task ChangePosition_NoExistingPosition_ReturnsFail()
     {
-        using var db = DbTest.CreateInitializedDbContextAsync().GetAwaiter().GetResult();
+        using var db = await DbTest.CreateInitializedDbContextAsync();
         var service = await InitAsync(db);
 
         var result = await service.ChangePositionAsync(
             new PortfolioChangeCommand(2002, "ZZZ", PortfolioChangeType.Remove, 1, 100m));
 
         Assert.False(result.IsSuccess);
+    }
+
+    [Fact]
+    public async Task ChangePosition_BuyWithNoExistingPosition_CreatesPosition()
+    {
+        using var db = await DbTest.CreateInitializedDbContextAsync();
+        var service = await InitAsync(db);
+
+        var result = await service.ChangePositionAsync(
+            new PortfolioChangeCommand(2002, "ZZZ", PortfolioChangeType.Buy, 10, 100m));
+
+        Assert.True(result.IsSuccess);
+        var p = await HelpMethods.GetPortfolio(db, 2002);
+        Assert.Equal(10, p.Quantity);
+    }
+
+    [Fact]
+    public async Task ChangePosition_RemoveAll_RemovesPositionRow()
+    {
+        using var db = await DbTest.CreateInitializedDbContextAsync();
+        var service = await InitAsync(db);
+        await HelpMethods.AddPortfolio(db, 2002, "ZZZ", 10);
+
+        var result = await service.ChangePositionAsync(
+            new PortfolioChangeCommand(2002, "ZZZ", PortfolioChangeType.Remove, 10, 100m));
+
+        Assert.True(result.IsSuccess);
+        var p = await HelpMethods.GetPortfolio(db, 2002);
+        Assert.Null(p);
     }
 }

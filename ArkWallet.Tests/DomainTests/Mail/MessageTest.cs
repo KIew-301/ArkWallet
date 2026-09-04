@@ -12,23 +12,23 @@ public class MessageTest
 
     private static Message CreateRewardMessage(IEventPublisher? publisher = null)
     {
-        var message = Message.Create(
-            traderId: 2002,
-            title: "Title",
-            body: "Body",
-            senderName: "System",
-            senderId: null,
-            symbolForReward: "ZZZ",
-            amountForReward: 5,
-            type: MailType.Reward,
-            createdAt: Now);
+        var message = Message.Create(new MessageDraft(
+            TraderId: 2002,
+            Title: "Title",
+            Body: "Body",
+            SenderName: "System",
+            SenderId: null,
+            SymbolForReward: "ZZZ",
+            AmountForReward: 5,
+            Type: MailType.Reward,
+            CreatedAt: Now));
 
         message.SetEventPublisher(publisher ?? new Mock<IEventPublisher>().Object);
         return message;
     }
 
     private static Message CreatePlainMessage()
-        => Message.Create(2002, "Title", "Body", "System", null, "", 0, MailType.Notification, Now);
+        => Message.Create(new MessageDraft(2002, "Title", "Body", "System", null, "", 0, MailType.Notification, Now));
 
     [Fact]
     public void Create_SetsFieldsAndSentStatus()

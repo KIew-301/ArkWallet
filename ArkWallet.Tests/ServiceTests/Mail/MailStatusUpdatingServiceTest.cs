@@ -22,9 +22,9 @@ public class MailStatusUpdatingServiceTest
         decimal amount,
         MailType type)
     {
-        var mail = MailContextMapper.ToRecord(Message.Create(
+        var mail = MailContextMapper.ToRecord(Message.Create(new MessageDraft(
             traderId, "Title", "Body", "System", null,
-            symbolForReward, amount, type, new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc)));
+            symbolForReward, amount, type, new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc))));
         db.MailMessages.Add(mail);
         db.SaveChanges();
         return mail;
