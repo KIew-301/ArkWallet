@@ -89,7 +89,13 @@ namespace ArkWallet.Infrastructure.Wizard
              "2) /admin_stats\n" +
              "   Show system statistics with volume data.\n\n" +
              "3) /admin_get_ids\n" +
-             "   Get list of all registered traders with Telegram IDs (excluding bots).";
+             "   Get list of all registered traders with Telegram IDs (excluding bots).\n\n" +
+             "4) /admin_send_mail\n" +
+             "   Send a mail message to a single trader, several traders, or all (\"all\").\n" +
+             "   JSON: { \"recipientId\": 123456789, \"title\": \"...\", \"message\": \"...\",\n" +
+             "           \"rewardSymbol\": \"ARK_001\", \"rewardAmount\": 100 }\n" +
+             "   recipientId: Telegram ID, an array of IDs (e.g. [123, 456]), or \"all\" for everyone.\n" +
+             "   rewardSymbol/rewardAmount: optional, omit or use empty/0 for no reward.";
 
         private const string AdminHelpMiningText =
             "Mining commands:\n\n" +
@@ -199,6 +205,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/admin_mining_app_state"][0].Handler = AdminHandleMiningAppState;
             _config.Commands["/admin_access_get"][0].Handler = AdminHandleAccessGet;
             _config.Commands["/admin_access_set"][0].Handler = AdminHandleAccessSet;
+            _config.Commands["/admin_send_mail"][0].Handler = AdminHandleSendMail;
         }
 
         private Task<StepResult> AdminHandleHelp(UserSession session, string input)
