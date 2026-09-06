@@ -1,5 +1,6 @@
 ﻿using ArkWallet.Application.Dtos;
 using ArkWallet.Telegram;
+using MediatR;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -7,6 +8,7 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace ArkWallet.Infrastructure
 {
@@ -43,7 +45,20 @@ namespace ArkWallet.Infrastructure
 
                     if (notifications != null)
                         foreach (var notification in notifications)
-                            await bot.SendMessageToUser(notification.Id, notification.Message);
+                        {
+                            try
+                            {
+                                await bot.SendMessageToUser(notification.Id, notification.Message);
+                                _logger.LogInformation("Сообщение {message}... доставлено по адресу {id}", new string(notification.Message.Take(20).ToArray()), notification.Id);
+                            }
+                            catch (Exception ex)
+                            {
+                                if (ex.Message.Contains("chat not found"))
+                                    _logger.LogWarning("Сообщение {message}... дропнуто по адресу {id}", new string(notification.Message.Take(20).ToArray()), notification.Id);
+                                else
+                                    throw;
+                            }
+                        }
 
                     await channel.BasicAckAsync(ea.DeliveryTag, multiple: false);
                 }

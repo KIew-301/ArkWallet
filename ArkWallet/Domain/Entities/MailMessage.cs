@@ -1,0 +1,127 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace ArkWallet.Domain.Entities;
+
+/// <summary>
+/// Письмо в почтовом ящике пользователя
+/// </summary>
+internal class MailMessage
+{
+    [Key]
+    public long Id { get; set; }
+
+    /// <summary>Telegram ID получателя</summary>
+    public long TraderId { get; set; }
+
+    /// <summary>Название письма</summary>
+    public string Title { get; set; } = string.Empty;
+
+    /// <summary>Текст письма</summary>
+    public string Message { get; set; } = string.Empty;
+
+    /// <summary>Имя отправителя</summary>
+    public string SenderName { get; set; } = string.Empty;
+
+    /// <summary>ID отправителя (null, если системное письмо)</summary>
+    public long? SenderId { get; set; }
+
+    /// <summary>Символ токена награды (пусто, если награда не предполагается)</summary>
+    public string SymbolForReward { get; set; } = string.Empty;
+
+    /// <summary>Количество токенов награды (0, если награда не предполагается)</summary>
+    public decimal AmountForReward { get; set; }
+
+    /// <summary>Тип письма (Gift/Reward/Notification)</summary>
+    public string Type { get; set; } = MailType.Notification.ToString();
+
+    /// <summary>Статус письма (Sent/Read/Accepted)</summary>
+    public string Status { get; set; } = MailMessageStatus.Sent.ToString();
+
+    /// <summary>Дата создания письма</summary>
+    public DateTime CreatedAt { get; set; }
+
+    /// <summary>Дата прочтения письма (null, если не прочитано)</summary>
+    public DateTime? ReadAt { get; set; }
+
+    /// <summary>Дата принятия награды из письма (null, если не принято)</summary>
+    public DateTime? AcceptedAt { get; set; }
+
+    public static MailMessage Create(MailMessageDraft draft)
+    {
+        return new MailMessage
+        {
+            TraderId = draft.TraderId,
+            Title = draft.Title,
+            Message = draft.Message,
+            SenderName = draft.SenderName,
+            SenderId = draft.SenderId,
+            SymbolForReward = draft.SymbolForReward,
+            AmountForReward = draft.AmountForReward,
+            Type = draft.Type.ToString(),
+            Status = MailMessageStatus.Sent.ToString(),
+            CreatedAt = draft.CreatedAt
+        };
+    }
+
+    public void MarkAsRead(DateTime readAt)
+    {
+        if (Status == MailMessageStatus.Sent.ToString())
+        {
+            Status = MailMessageStatus.Read.ToString();
+            ReadAt = readAt;
+        }
+    }
+
+    public void MarkAsAccepted(DateTime acceptedAt)
+    {
+        if (Status == MailMessageStatus.Sent.ToString() || Status == MailMessageStatus.Read.ToString())
+        {
+            Status = MailMessageStatus.Accepted.ToString();
+            AcceptedAt = acceptedAt;
+        }
+    }
+}
+
+/// <summary>
+/// Статус письма в почтовом ящике
+/// </summary>
+internal enum MailMessageStatus
+{
+    /// <summary>Отправлено — письмо создано и доставлено в ящик</summary>
+    Sent,
+
+    /// <summary>Прочитано — пользователь открыл письмо</summary>
+    Read,
+
+    /// <summary>Принято — пользователь принял награду из письма</summary>
+    Accepted
+}
+
+/// <summary>
+/// Тип письма в почтовом ящике
+/// </summary>
+internal enum MailType
+{
+    /// <summary>Уведомление без награды</summary>
+    Notification,
+
+    /// <summary>Подарок от другого участника</summary>
+    Gift,
+
+    /// <summary>Вознаграждение (награда за цель и т.п.)</summary>
+    Reward
+}
+
+/// <summary>
+/// Данные нового письма для создания.
+/// </summary>
+internal sealed record MailMessageDraft(
+    long TraderId,
+    string Title,
+    string Message,
+    string SenderName,
+    long? SenderId,
+    string SymbolForReward,
+    decimal AmountForReward,
+    DateTime CreatedAt,
+    MailType Type = MailType.Notification);

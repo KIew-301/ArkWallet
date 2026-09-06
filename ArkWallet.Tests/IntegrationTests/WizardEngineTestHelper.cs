@@ -1,5 +1,6 @@
 using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Contracts.Decorators;
+using ArkWallet.Application.Contracts.MailServices;
 using ArkWallet.Application.Contracts.GiftServices;
 using ArkWallet.Application.Contracts.Leaders;
 using ArkWallet.Application.Contracts.MarketMaker;
@@ -59,9 +60,10 @@ internal static class WizardEngineTestHelper
         var tokenService = new Mock<ITokenService>();
         var tradingVolumeService = new Mock<ITradingVolumeService>();
         var messageSender = new Mock<IMessageSender>();
-        var giftSendingService = new Mock<IGiftSendingService>();
-        var giftReceivingService = new Mock<IGiftReceivingService>();
-        var giftQueryService = new Mock<IQueryGiftService>();
+        var mailGiftService = new Mock<IGiftSendingService>();
+        var mailMessageService = new Mock<IMailMessageService>();
+        var mailQueryService = new Mock<IMailQueryService>();
+        var mailStatusUpdatingService = new Mock<IMailStatusUpdatingService>();
         var metricsSnapshotService = new Mock<IMetricsSnapshotService>();
 
         var miningGlobalRuleQueryService = new Mock<IMiningGlobalRuleQueryService>();
@@ -119,9 +121,10 @@ internal static class WizardEngineTestHelper
             tokenService.Object,
             tradingVolumeService.Object,
             messageSender.Object,
-            giftSendingService.Object,
-            giftReceivingService.Object,
-            giftQueryService.Object,
+            mailGiftService.Object,
+            mailMessageService.Object,
+            mailQueryService.Object,
+            mailStatusUpdatingService.Object,
             configuration.Object,
             questionDecorator.Object,
             buttonDecorator.Object,
@@ -172,9 +175,10 @@ internal static class WizardEngineTestHelper
             TokenService = tokenService,
             TradingVolume = tradingVolumeService,
             MessageSender = messageSender,
-            GiftSending = giftSendingService,
-            GiftReceiving = giftReceivingService,
-            GiftQuery = giftQueryService,
+            MailGift = mailGiftService,
+            MailMessage = mailMessageService,
+            MailQuery = mailQueryService,
+            MailStatusUpdating = mailStatusUpdatingService,
             Configuration = configuration,
             MiningGlobalRuleQuery = miningGlobalRuleQueryService,
             MiningMachineQuery = miningMachineQueryService,
@@ -221,9 +225,10 @@ internal class ServiceMocks
     public Mock<ITokenService> TokenService { get; init; } = null!;
     public Mock<ITradingVolumeService> TradingVolume { get; init; } = null!;
     public Mock<IMessageSender> MessageSender { get; init; } = null!;
-    public Mock<IGiftSendingService> GiftSending { get; init; } = null!;
-    public Mock<IGiftReceivingService> GiftReceiving { get; init; } = null!;
-    public Mock<IQueryGiftService> GiftQuery { get; init; } = null!;
+    public Mock<IGiftSendingService> MailGift { get; init; } = null!;
+    public Mock<IMailMessageService> MailMessage { get; init; } = null!;
+    public Mock<IMailQueryService> MailQuery { get; init; } = null!;
+    public Mock<IMailStatusUpdatingService> MailStatusUpdating { get; init; } = null!;
     public Mock<IConfiguration> Configuration { get; init; } = null!;
     public Mock<IMiningGlobalRuleQueryService> MiningGlobalRuleQuery { get; init; } = null!;
     public Mock<IMiningMachineQueryService> MiningMachineQuery { get; init; } = null!;

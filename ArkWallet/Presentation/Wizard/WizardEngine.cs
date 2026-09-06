@@ -6,12 +6,13 @@ using ArkWallet.Application.Contracts.MarketMaker;
 using ArkWallet.Application.Contracts.MiningMachineServices;
 using ArkWallet.Application.Contracts.Orchestrators;
 using ArkWallet.Application.Contracts.Other;
-using ArkWallet.Application.Contracts.GiftServices;
 using ArkWallet.Infrastructure.AccessControl;
 using ArkWallet.Application.Contracts.PortfolioServices;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TradeServices;
+using ArkWallet.Application.Contracts.GiftServices;
+using ArkWallet.Application.Contracts.MailServices;
 using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Entities.Configurations;
@@ -95,10 +96,11 @@ namespace ArkWallet.Infrastructure.Wizard
         // BROADCAST
         private readonly IMessageSender _messageSender;
 
-        // GIFT
+        // GIFT / MAIL
         private readonly IGiftSendingService _giftSendingService;
-        private readonly IGiftReceivingService _giftReceivingService;
-        private readonly IQueryGiftService _giftQueryService;
+        private readonly IMailMessageService _mailMessageService;
+        private readonly IMailQueryService _mailQueryService;
+        private readonly IMailStatusUpdatingService _mailStatusUpdatingService;
 
         // DECORATOR SERVICES
         private readonly IQuestionDecorator _questionDecorator;
@@ -139,8 +141,9 @@ namespace ArkWallet.Infrastructure.Wizard
             ITradingVolumeService tradingVolumeService,
             IMessageSender messageSender,
             IGiftSendingService giftSendingService,
-            IGiftReceivingService giftReceivingService,
-            IQueryGiftService giftQueryService,
+            IMailMessageService mailMessageService,
+            IMailQueryService mailQueryService,
+            IMailStatusUpdatingService mailStatusUpdatingService,
             IConfiguration configuration,
             IQuestionDecorator questionDecorator,
             IButtonDecorator buttonDecorator,
@@ -191,8 +194,9 @@ namespace ArkWallet.Infrastructure.Wizard
             _tradingVolumeService = tradingVolumeService;
             _messageSender = messageSender;
             _giftSendingService = giftSendingService;
-            _giftReceivingService = giftReceivingService;
-            _giftQueryService = giftQueryService;
+            _mailMessageService = mailMessageService;
+            _mailQueryService = mailQueryService;
+            _mailStatusUpdatingService = mailStatusUpdatingService;
             _primaryAdminId = long.Parse(configuration["Telegram:AdminId:Main"] ?? "0");
             _questionDecorator = questionDecorator;
             _buttonDecorator = buttonDecorator;
@@ -258,8 +262,6 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/mining_take"][1].Handler = HandleMiningTakeConfirm;
             _config.Commands["/mining_sell"][0].Handler = HandleMiningSellSelectSlot;
             _config.Commands["/mining_sell"][1].Handler = HandleMiningSellConfirm;
-            _config.Commands["/get_gifts_list"][0].Handler = HandleGetGiftsList;
-            _config.Commands["/collect_all_gifts"][0].Handler = HandleCollectAllGifts;
         }
 
         public async Task<WizardResult> ProcessInput(long userId, string input)
@@ -286,10 +288,7 @@ namespace ArkWallet.Infrastructure.Wizard
 
                     bool isGroupGiftCommand = command == "/send_gift";
 
-                    // collect_gift — персональное действие (кнопка в личном чате), в группах недоступно
-                    bool isPrivateOnlyGiftCollection = command == "collect_gift";
-
-                    if (!isCommandOneStep && !isQuickPath && !isGroupGiftCommand || isPrivateOnlyGiftCollection)
+                    if (!isCommandOneStep && !isQuickPath && !isGroupGiftCommand)
                         return new WizardResult { Message = "", ChatType = chatType.Value };
                 }
 
@@ -378,6 +377,21 @@ namespace ArkWallet.Infrastructure.Wizard
                         return await HandleQuickMiningSell(uid, parts[1]);
                 }
 
+                if (inp.StartsWith("/open_mail"))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 1)
+                        return await HandleMailOpen(uid);
+                    if (parts.Length == 2)
+                        return await HandleMailList(uid, parts[1]);
+                    if (parts.Length == 3 && parts[1] == "open")
+                        return await HandleMailRead(uid, parts[2]);
+                    if (parts.Length == 3 && parts[1] == "accept")
+                        return await HandleMailAccept(uid, parts[2]);
+                    if (parts.Length == 2 && parts[1] == "accept_all")
+                        return await HandleMailAcceptAll(uid);
+                }
+
                 if (inp.StartsWith("/send_gift"))
                 {
                     var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -402,20 +416,6 @@ namespace ArkWallet.Infrastructure.Wizard
                         return await HandleQuickGift(uid, parts[1]);
                 }
 
-                if (inp.StartsWith("collect_gift "))
-                {
-                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == 2)
-                        return await HandleCollectGift(uid, parts[1]);
-                }
-
-                if (inp.StartsWith("/collect_gift "))
-                {
-                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == 2)
-                        return await HandleCollectGift(uid, parts[1]);
-                }
-
                 if (_config.Commands.ContainsKey(inp))
                     return await StartCommand(uid, inp);
 
@@ -438,9 +438,9 @@ namespace ArkWallet.Infrastructure.Wizard
                 || input.StartsWith("/mining_buy ")
                 || input.StartsWith("/mining_take ")
                 || input.StartsWith("/mining_sell ")
+                || input.StartsWith("/open_mail")
                 || input.StartsWith("/send_gift")
-                || input.StartsWith("gift_send")
-                || input.StartsWith("collect_gift "))
+                || input.StartsWith("gift_send"))
             {
                 return input.Split(' ', 2)[0];
             }

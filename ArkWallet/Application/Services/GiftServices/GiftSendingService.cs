@@ -7,7 +7,6 @@ using ArkWallet.Domain.GiftContext;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Records = global::ArkWallet.Domain.Entities;
 
 namespace ArkWallet.Application.Services.GiftServices;
 
@@ -26,85 +25,84 @@ internal class GiftSendingService(
             {
                 await dbContext.LockTradersAsync([senderId]);
 
-                var recipientExists = await dbContext.Traders.AnyAsync(t => t.TelegramId == recipientId);
-                if (!recipientExists)
-                    throw new InvalidOperationException("Получатель не найден");
-
-                var allTokens = await tokenQueryService.GetAllActiveTokensAsync();
-                if (!allTokens.TryGetData(out var tokenList))
-                    throw new InvalidOperationException("Токены не найдены");
-
-                var tokenPrices = tokenList.ToDictionary(t => t.TokenInfo.Symbol, t => t.TokenInfo.CurrentPrice);
-
-                var portfolioItems = await dbContext.PortfolioItems
-                    .Where(p => p.TraderTelegramId == senderId)
-                    .ToListAsync();
-
-                var eightHoursAgo = timeProvider.GetUtcNow().UtcDateTime.AddHours(-8);
-                var recentGifts = await dbContext.Gifts
-                    .Where(g => g.SenderId == senderId
-                        && g.RecipientId == recipientId
-                        && g.SentAt > eightHoursAgo)
-                    .ToListAsync();
-
                 var sender = await dbContext.Traders.FindAsync(senderId)
                     ?? throw new InvalidOperationException("Отправитель не найден");
 
-                var user = GiftContextMapper.ToUser(
-                    sender,
-                    recentGifts,
-                    new List<Records.Gift>(),
-                    portfolioItems);
+                var recipientExists = await dbContext.Traders.AnyAsync(t => t.TelegramId == recipientId);
+                if (!recipientExists)
+                    return Result<GiftSendResult>.Fail("Получатель не найден");
+
+                var allTokens = await tokenQueryService.GetAllActiveTokensAsync();
+                if (!allTokens.TryGetData(out var tokenList))
+                    return Result<GiftSendResult>.Fail("Токены не найдены");
+
+                var tokenPrices = tokenList.ToDictionary(t => t.TokenInfo.Symbol, t => t.TokenInfo.CurrentPrice);
+
+                var cache = await LoadContextAsync(senderId, recipientId, tokenPrices);
+                var createdAt = timeProvider.GetUtcNow().UtcDateTime;
+
+                var user = User.Load(
+                    senderId,
+                    sender.Username ?? $"ID {senderId}",
+                    cache.Portfolio.Select(p => GiftContextMapper.ToTokens(p.Item, p.Price)).ToList(),
+                    cache.SentGifts);
 
                 user.SetEventPublisher(eventPublisher);
 
-                var sentAt = timeProvider.GetUtcNow().UtcDateTime;
+                var giftSent = await user.SendGift(recipientId, createdAt);
 
-                await user.SendGift(recipientId, tokenPrices, timeProvider);
+                var tokensBySymbol = user.Portfolio.ToDictionary(t => t.Symbol);
 
-                SyncGiftState(user, recipientId, sentAt, portfolioItems);
+                foreach (var record in cache.Portfolio.Select(entry => entry.Item))
+                {
+                    if (tokensBySymbol.TryGetValue(record.CharacterTokenId, out var token))
+                        GiftContextMapper.ApplyToRecord(record, token);
+                    else
+                        dbContext.PortfolioItems.Remove(record);
+                }
 
                 await dbContext.SaveChangesAsync();
 
-                var lastSent = GetLastSentGift(user);
-                if (lastSent is null)
-                    throw new InvalidOperationException("Ошибка при отправке подарка");
-
-                logger.LogInformation("Gift sent: {GiftId} from {SenderId} to {RecipientId}: 1 {Symbol}",
-                    lastSent.GiftId, senderId, recipientId, lastSent.TokenSymbol);
+                logger.LogInformation("Gift sent: from {SenderId} to {RecipientId}: 1 {Symbol}",
+                    senderId, recipientId, giftSent.Symbol);
 
                 return Result<GiftSendResult>.Ok(new GiftSendResult(
-                    lastSent.GiftId, senderId, recipientId, lastSent.TokenSymbol, 1, lastSent.PriceAtSend));
+                    senderId, recipientId, giftSent.Symbol, giftSent.Quantity));
             });
         }, logger, nameof(GiftSendingService));
     }
 
-    private void SyncGiftState(User user, long recipientId, DateTime sentAt, List<Records.PortfolioItem> portfolioItems)
+    private async Task<GiftContextData> LoadContextAsync(
+        long senderId,
+        long recipientId,
+        Dictionary<string, decimal> tokenPrices)
     {
-        var sentGift = GetLastSentGift(user);
-        if (sentGift is null)
-            return;
+        var portfolioItems = await dbContext.PortfolioItems
+            .Where(p => p.TraderTelegramId == senderId)
+            .ToListAsync();
 
-        var matchingItem = portfolioItems.FirstOrDefault(p => p.CharacterTokenId == sentGift.TokenSymbol);
-        if (matchingItem is not null)
-        {
-            matchingItem.RemoveTokens(1, matchingItem.AverageBuyPrice);
-            if (matchingItem.Quantity == 0)
-                dbContext.PortfolioItems.Remove(matchingItem);
-        }
+        var portfolio = portfolioItems
+            .Where(p => tokenPrices.TryGetValue(p.CharacterTokenId, out var _))
+            .Select(p => new TokenWithPrice(p, tokenPrices[p.CharacterTokenId]))
+            .ToList();
 
-        var giftRecord = Gift.Create(
-            sentGift.GiftId,
-            user.Id,
-            recipientId,
-            sentGift.TokenSymbol,
-            sentGift.Quantity,
-            sentGift.PriceAtSend,
-            sentAt);
+        var eightHoursAgo = timeProvider.GetUtcNow().UtcDateTime.AddHours(-8);
+        var sentGifts = await dbContext.MailMessages
+            .Where(m => m.TraderId == recipientId
+                && m.SenderId == senderId
+                && m.Type == MailType.Gift.ToString()
+                && m.CreatedAt > eightHoursAgo)
+            .Select(m => GiftContextMapper.ToSentGift(m))
+            .ToListAsync();
 
-        dbContext.Gifts.Add(giftRecord);
+        return new GiftContextData(portfolio, sentGifts);
     }
 
-    private static SentGift? GetLastSentGift(User user)
-        => user.GiftsSent.Count > 0 ? user.GiftsSent[user.GiftsSent.Count - 1] : null;
+    private sealed record TokenWithPrice(
+        ArkWallet.Domain.Entities.PortfolioItem Item,
+        decimal Price);
+
+    private sealed record GiftContextData(
+        List<TokenWithPrice> Portfolio,
+        List<SentGift> SentGifts);
 }

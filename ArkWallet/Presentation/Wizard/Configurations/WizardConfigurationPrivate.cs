@@ -517,7 +517,24 @@ namespace ArkWallet.Entities.Configurations
                         "  \"blackList\": [789],\n" +
                         "  \"isGroupAccessEnabled\": false,\n" +
                         "  \"groupWhiteList\": [-1001234567890],\n" +
-                        "  \"groupBlackList\": [-1009876543210]\n" +
+                        "  \"groupBlackList\": [-1009874567890]\n" +
+                        "}"
+                }
+            };
+
+            Commands["/admin_send_mail"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Отправьте JSON, чтобы разослать письмо:\n\n" +
+                        "{\n" +
+                        "  \"recipientId\": 123456789,      // Telegram ID, массив ID [123, 456] или \"all\"\n" +
+                        "  \"title\": \"Заголовок письма\",\n" +
+                        "  \"message\": \"Текст письма\",\n" +
+                        "  \"rewardSymbol\": \"ARK_001\",    // необязательно, без награды - пустая строка\n" +
+                        "  \"rewardAmount\": 100             // необязательно, без награды - 0\n" +
                         "}"
                 }
             };

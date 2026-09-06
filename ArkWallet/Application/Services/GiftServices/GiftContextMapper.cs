@@ -4,39 +4,28 @@ using Records = global::ArkWallet.Domain.Entities;
 namespace ArkWallet.Application.Services.GiftServices;
 
 /// <summary>
-/// Маппинг между записями БД и агрегатом User контекста подарков.
+/// Transports data between persistence records and the aggregates of the Gift context.
 /// </summary>
 internal static class GiftContextMapper
 {
-    internal static User ToUser(
-        Records.Trader trader,
-        List<Records.Gift> sentGifts,
-        List<Records.Gift> receivedGifts,
-        List<Records.PortfolioItem> portfolioItems)
-    {
-        var portfolio = portfolioItems
-            .Select(p => new PortfolioPosition(p.CharacterTokenId, p.Quantity))
-            .ToList();
+    // ---- Records -> aggregate ----
 
-        var giftsSent = sentGifts
-            .Select(g => new SentGift(
-                g.Id,
-                g.RecipientId,
-                g.TokenSymbol,
-                g.Quantity,
-                g.PriceAtSend,
-                g.SentAt))
-            .ToList();
+    internal static Tokens ToTokens(Records.PortfolioItem source, decimal price) => new(
+        source.CharacterTokenId,
+        source.Quantity,
+        price);
 
-        var giftsReceived = receivedGifts
-            .Select(g => new ReceivedGift(
-                g.Id,
-                g.SenderId,
-                g.TokenSymbol,
-                g.Quantity,
-                g.SentAt))
-            .ToList();
+    internal static SentGift ToSentGift(Records.MailMessage source) => new(
+        source.TraderId,
+        source.CreatedAt);
 
-        return User.Load(trader.TelegramId, portfolio, giftsSent, giftsReceived);
-    }
+    // ---- Aggregate -> records (sync) ----
+
+    internal static void ApplyToRecord(Records.PortfolioItem target, Tokens source) => target.ApplyState(
+        source.Quantity,
+        target.SellingQuantity,
+        target.ReserveQuantity,
+        target.AverageBuyPrice,
+        target.AverageSellPrice,
+        target.AverageReservePrice);
 }

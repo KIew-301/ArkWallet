@@ -1,4 +1,5 @@
 ﻿using ArkWallet.Application.Common;
+using ArkWallet.Domain.PortfolioContext;
 
 namespace ArkWallet.Application.Contracts.PortfolioServices
 {
@@ -25,5 +26,10 @@ namespace ArkWallet.Application.Contracts.PortfolioServices
         /// </para>
         /// </remarks>
         Task<Result> CreateOrUpdatePortfolioAsync(long traderId, string symbol, int quantity);
+
+        /// <summary>
+        /// Applies a single portfolio mutation described by the given command.
+        /// </summary>
+        Task<Result> ChangePositionAsync(PortfolioChangeCommand command);
     }
 }
