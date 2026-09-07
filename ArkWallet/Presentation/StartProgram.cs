@@ -391,6 +391,7 @@ class Program
         // GlobalGoalServices
         services.AddScoped<IGlobalGoalCheckingService, GlobalGoalCheckingService>();
         services.AddScoped<IGlobalGoalQueryService, GlobalGoalQueryService>();
+        services.AddScoped<IGlobalGoalCreationService, GlobalGoalCreationService>();
         services.AddScoped<IDomainGlobalGoalCalculation, TotalBalanceGlobalGoalCalculation>();
 
         // MailServices

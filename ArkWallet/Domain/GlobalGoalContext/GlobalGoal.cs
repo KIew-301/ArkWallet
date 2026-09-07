@@ -1,4 +1,5 @@
 using ArkWallet.Domain.Common;
+using ArkWallet.Domain.Exceptions;
 
 namespace ArkWallet.Domain.GlobalGoalContext;
 
@@ -27,9 +28,25 @@ internal class GlobalGoal : AggregateRoot
         Progress = ComputeProgress(target, actual);
     }
 
-    public static GlobalGoal Create(long id, string name, string description, decimal target, decimal actual)
+    public static GlobalGoal CreateNew(
+        long id, string name, string description, decimal target,
+        string symbolForReward, decimal amountForReward)
     {
-        return new GlobalGoal(id, name, description, target, actual);
+        var normalizedName = name?.Trim() ?? string.Empty;
+        var normalizedDescription = description?.Trim() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(normalizedName))
+            throw new DomainException("Имя цели не может быть пустым");
+
+        if (string.IsNullOrWhiteSpace(normalizedDescription))
+            throw new DomainException("Описание цели не может быть пустым");
+
+        if (target <= 0)
+            throw new DomainException("Целевое значение должно быть больше нуля");
+
+        var goal = new GlobalGoal(id, normalizedName, normalizedDescription, target, 0m);
+        goal._steps.Add(new GlobalGoalStep(1, target, symbolForReward?.Trim() ?? string.Empty, amountForReward));
+        return goal;
     }
 
     internal static GlobalGoal Load(GlobalGoalData data)
@@ -51,6 +68,24 @@ internal class GlobalGoal : AggregateRoot
     {
         Target = newTarget;
         Progress = ComputeProgress(newTarget, Actual);
+    }
+
+    /// <summary>
+    /// Добавляет промежуточный шаг цели с собственной наградой.
+    /// Валидация бизнес-правил шага выполняется в домене.
+    /// </summary>
+    public void AddStep(int stepNumber, decimal target, string symbolForReward, decimal amountForReward)
+    {
+        if (stepNumber <= 0)
+            throw new DomainException("Номер шага должен быть больше нуля");
+
+        if (target <= 0)
+            throw new DomainException("Целевое значение шага должно быть больше нуля");
+
+        if (_steps.Any(s => s.StepNumber == stepNumber))
+            throw new DomainException($"Шаг {stepNumber} уже существует");
+
+        _steps.Add(new GlobalGoalStep(stepNumber, target, symbolForReward?.Trim() ?? string.Empty, amountForReward));
     }
 
     public async Task CheckGoal(TimeProvider timeProvider)
