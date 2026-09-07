@@ -1,5 +1,5 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
 
 namespace ArkWallet.Core.General.Application.Contracts.Orchestrators;
 

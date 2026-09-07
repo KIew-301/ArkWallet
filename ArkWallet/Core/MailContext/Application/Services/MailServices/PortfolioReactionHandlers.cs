@@ -1,6 +1,7 @@
-using ArkWallet.Application.Contracts.PortfolioServices;
-using ArkWallet.Domain.MailContext;
-using ArkWallet.Domain.PortfolioContext;
+using ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices;
+using ArkWallet.Core.MailContext.Domain.Message;
+using ArkWallet.Core.MailContext.Domain.Events;
+using ArkWallet.Core.PortfolioContext.Domain.Position;
 using MediatR;
 
 namespace ArkWallet.Core.MailContext.Application.Services.MailServices;

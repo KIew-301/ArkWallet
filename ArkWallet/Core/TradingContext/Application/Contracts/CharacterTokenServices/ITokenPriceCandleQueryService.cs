@@ -1,4 +1,4 @@
-using ArkWallet.Application.Common;
+using ArkWallet.Core.General.Application.Common;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;

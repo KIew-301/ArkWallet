@@ -1,4 +1,4 @@
-using ArkWallet.Application.Contracts.GlobalGoalServices;
+using ArkWallet.Core.GlobalGoalContext.Application.Contracts.GlobalGoalServices;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

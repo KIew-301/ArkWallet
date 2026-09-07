@@ -1,5 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
-using ArkWallet.Domain.Exceptions;
+using ArkWallet.Core.General.Domain.Exceptions;
 using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Core.General.Application.Common;

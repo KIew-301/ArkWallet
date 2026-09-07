@@ -1,5 +1,5 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Domain.Entities;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Infrastructure.Data;
 
 namespace ArkWallet.Core.General.Application.Contracts.Orchestrators;
 

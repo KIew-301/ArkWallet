@@ -1,4 +1,4 @@
-using ArkWallet.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

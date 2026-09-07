@@ -1,5 +1,5 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Dtos;
+using ArkWallet.Core.MiningContext.Application.Dtos;
+using ArkWallet.Core.General.Application.Common;
 
 namespace ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
 

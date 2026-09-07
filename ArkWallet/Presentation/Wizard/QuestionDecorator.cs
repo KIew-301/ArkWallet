@@ -1,8 +1,8 @@
-﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Contracts.Decorators;
-using ArkWallet.Application.Contracts.PortfolioServices;
-using ArkWallet.Application.Contracts.TraderServices;
-using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Core.General.Application.Contracts.Decorators;
+using ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.TraderServices;
+using ArkWallet.Core.General.Domain.ValueObjects;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Presentation.Wizard

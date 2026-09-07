@@ -1,5 +1,6 @@
-using ArkWallet.Domain.Common;
-using ArkWallet.Domain.Exceptions;
+using ArkWallet.Core.General.Domain.Common;
+using ArkWallet.Core.General.Domain.Exceptions;
+using ArkWallet.Core.GlobalGoalContext.Domain.Events;
 
 namespace ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
 

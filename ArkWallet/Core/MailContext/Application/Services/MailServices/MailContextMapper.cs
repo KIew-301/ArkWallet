@@ -1,6 +1,7 @@
-using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.MailContext;
-using Records = global::ArkWallet.Domain.Entities;
+using ArkWallet.Infrastructure.Data;
+using ArkWallet.Core.MailContext.Domain.Message;
+using ArkWallet.Core.MailContext.Domain.Events;
+using Records = global::ArkWallet.Infrastructure.Data;
 
 namespace ArkWallet.Core.MailContext.Application.Services.MailServices;
 

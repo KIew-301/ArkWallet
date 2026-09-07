@@ -1,9 +1,10 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.MailServices;
-using ArkWallet.Application.Contracts.Other;
-using ArkWallet.Application.Dtos;
-using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.MailContext;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.General.Application.Dtos;
+using ArkWallet.Core.MailContext.Application.Contracts.MailServices;
+using ArkWallet.Core.General.Application.Contracts.Other;
+using ArkWallet.Infrastructure.Data;
+using ArkWallet.Core.MailContext.Domain.Message;
+using ArkWallet.Core.MailContext.Domain.Events;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

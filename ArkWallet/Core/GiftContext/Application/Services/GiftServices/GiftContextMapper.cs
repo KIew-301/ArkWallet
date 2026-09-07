@@ -1,5 +1,6 @@
-using ArkWallet.Domain.GiftContext;
-using Records = global::ArkWallet.Domain.Entities;
+using ArkWallet.Core.GiftContext.Domain.User;
+using ArkWallet.Core.GiftContext.Domain.Events;
+using Records = global::ArkWallet.Infrastructure.Data;
 
 namespace ArkWallet.Core.GiftContext.Application.Services.GiftServices;
 

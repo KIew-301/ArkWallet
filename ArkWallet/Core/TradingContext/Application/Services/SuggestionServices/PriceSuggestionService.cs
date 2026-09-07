@@ -1,5 +1,5 @@
-using ArkWallet.Application.Contracts.SuggestionServices;
-using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Core.TradingContext.Application.Contracts.SuggestionServices;
+using ArkWallet.Core.General.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 

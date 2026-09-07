@@ -1,9 +1,9 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.Orchestrators;
-using ArkWallet.Application.Contracts.PortfolioServices;
-using ArkWallet.Application.Contracts.TradeOrderServices;
-using ArkWallet.Application.Contracts.TraderServices;
-using ArkWallet.Domain.Engines;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.General.Application.Contracts.Orchestrators;
+using ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.TraderServices;
+using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

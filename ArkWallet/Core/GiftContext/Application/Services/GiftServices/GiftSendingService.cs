@@ -1,9 +1,10 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Contracts.GiftServices;
-using ArkWallet.Domain.Common;
-using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.GiftContext;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Core.GiftContext.Application.Contracts.GiftServices;
+using ArkWallet.Core.General.Domain.Common;
+using ArkWallet.Infrastructure.Data;
+using ArkWallet.Core.GiftContext.Domain.User;
+using ArkWallet.Core.GiftContext.Domain.Events;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -99,7 +100,7 @@ internal class GiftSendingService(
     }
 
     private sealed record TokenWithPrice(
-        ArkWallet.Domain.Entities.PortfolioItem Item,
+        ArkWallet.Infrastructure.Data.PortfolioItem Item,
         decimal Price);
 
     private sealed record GiftContextData(

@@ -1,6 +1,6 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.MiningMachineServices;
-using ArkWallet.Application.Contracts.Orchestrators;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.General.Application.Contracts.Orchestrators;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.Extensions.Logging;
 

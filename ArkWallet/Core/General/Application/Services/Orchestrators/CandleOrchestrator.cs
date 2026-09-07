@@ -1,6 +1,6 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Contracts.Orchestrators;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Core.General.Application.Contracts.Orchestrators;
 
 namespace ArkWallet.Core.General.Application.Services.Orchestrators;
 

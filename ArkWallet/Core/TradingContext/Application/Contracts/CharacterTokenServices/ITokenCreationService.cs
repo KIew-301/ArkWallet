@@ -1,7 +1,7 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Dtos;
-using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Core.TradingContext.Application.Dtos;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Infrastructure.Data;
+using ArkWallet.Core.General.Domain.ValueObjects;
 
 namespace ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices
 {

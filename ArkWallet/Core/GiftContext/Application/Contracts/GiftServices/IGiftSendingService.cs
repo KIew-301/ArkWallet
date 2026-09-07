@@ -1,4 +1,4 @@
-using ArkWallet.Application.Common;
+using ArkWallet.Core.General.Application.Common;
 
 namespace ArkWallet.Core.GiftContext.Application.Contracts.GiftServices;
 

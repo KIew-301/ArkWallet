@@ -1,5 +1,5 @@
-using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.Exceptions;
+using ArkWallet.Infrastructure.Data;
+using ArkWallet.Core.General.Domain.Exceptions;
 
 namespace ArkWallet.Core.MiningContext.Application.Services.MiningMachineServices;
 

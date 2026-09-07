@@ -1,5 +1,6 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.Other;
+using ArkWallet.Core.TradingContext.Application.Contracts.Other;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.General.Application.Contracts.Other;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -69,7 +70,7 @@ internal class TradingVolumeService(
         }, logger, nameof(TradingVolumeService));
     }
 
-    private static IQueryable<Domain.Entities.Trade> ApplyPeriodFilter(IQueryable<Domain.Entities.Trade> query, int periodDays)
+    private static IQueryable<ArkWallet.Infrastructure.Data.Trade> ApplyPeriodFilter(IQueryable<ArkWallet.Infrastructure.Data.Trade> query, int periodDays)
     {
         if (periodDays > 0)
         {

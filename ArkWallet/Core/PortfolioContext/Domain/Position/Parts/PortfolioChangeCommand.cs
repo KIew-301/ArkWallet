@@ -1,4 +1,4 @@
-namespace ArkWallet.Core.PortfolioContext.Domain.Position.Parts;
+namespace ArkWallet.Core.PortfolioContext.Domain.Position;
 
 /// <summary>
 /// Operation to apply to a portfolio position.

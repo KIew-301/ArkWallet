@@ -1,4 +1,4 @@
-using ArkWallet.Application.Contracts.Orchestrators;
+using ArkWallet.Core.General.Application.Contracts.Orchestrators;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

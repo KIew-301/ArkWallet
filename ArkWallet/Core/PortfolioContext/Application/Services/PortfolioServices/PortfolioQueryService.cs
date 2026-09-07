@@ -1,6 +1,6 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.PortfolioServices;
-using ArkWallet.Application.Dtos;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices;
+using ArkWallet.Core.General.Application.Dtos;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

@@ -1,6 +1,6 @@
-using ArkWallet.Application.Contracts.MailServices;
-using ArkWallet.Application.Contracts.TraderServices;
-using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Core.MailContext.Application.Contracts.MailServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.TraderServices;
+using ArkWallet.Core.General.Domain.ValueObjects;
 
 namespace ArkWallet.Infrastructure.Wizard;
 

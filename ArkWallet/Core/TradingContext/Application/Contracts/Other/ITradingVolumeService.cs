@@ -1,4 +1,5 @@
-using ArkWallet.Application.Common;
+using ArkWallet.Core.TradingContext.Application.Contracts.Other;
+using ArkWallet.Core.General.Application.Common;
 
 namespace ArkWallet.Core.TradingContext.Application.Contracts.Other;
 

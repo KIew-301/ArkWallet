@@ -1,5 +1,6 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.Other;
+using ArkWallet.Core.TradingContext.Application.Contracts.Other;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.General.Application.Contracts.Other;
 using Microsoft.Extensions.Logging;
 using System.Security.Cryptography;
 using System.Text;
@@ -8,7 +9,7 @@ using System.Text.Json.Serialization;
 using System.Web;
 
 namespace ArkWallet.Core.TradingContext.Application.Services.Other;
-using static ArkWallet.Application.Common.Result<TelegramInitData>;
+using static ArkWallet.Core.General.Application.Common.Result<TelegramInitData>;
 
 internal class TraderAuthService(ILogger<TraderAuthService> logger) : ITraderAuthService
 {

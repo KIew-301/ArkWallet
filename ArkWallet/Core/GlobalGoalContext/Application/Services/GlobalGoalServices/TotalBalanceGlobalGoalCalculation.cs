@@ -1,5 +1,5 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.GlobalGoalServices;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.GlobalGoalContext.Application.Contracts.GlobalGoalServices;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 

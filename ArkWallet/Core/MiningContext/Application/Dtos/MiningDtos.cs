@@ -1,3 +1,4 @@
+using ArkWallet.Core.TradingContext.Application.Dtos;
 namespace ArkWallet.Core.MiningContext.Application.Dtos
 {
     /// <summary>

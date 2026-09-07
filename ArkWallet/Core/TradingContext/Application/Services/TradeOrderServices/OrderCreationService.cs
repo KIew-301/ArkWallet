@@ -1,15 +1,19 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.Other;
-using ArkWallet.Application.Contracts.TradeOrderServices;
-using ArkWallet.Application.Dtos;
-using ArkWallet.Domain.Common;
-using ArkWallet.Domain.Engines;
-using ArkWallet.Domain.TradingContext;
+using ArkWallet.Core.TradingContext.Application.Dtos;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.General.Application.Dtos;
+using ArkWallet.Core.General.Application.Contracts.Other;
+using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
+using ArkWallet.Core.General.Domain.Common;
+using ValueObjects = global::ArkWallet.Core.General.Domain.ValueObjects;
+using ArkWallet.Core.TradingContext.Domain.Engines;
+using ArkWallet.Core.TradingContext.Domain.Events;
+using ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
+using ArkWallet.Core.TradingContext.Domain.TokenAggregate;
+using ArkWallet.Core.TradingContext.Domain.TraderAggregate;
+using ArkWallet.Core.TradingContext.Domain.TradeAggregate;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using Records = global::ArkWallet.Domain.Entities;
-using ValueObjects = global::ArkWallet.Domain.ValueObjects;
-
+using Records = global::ArkWallet.Infrastructure.Data;
 namespace ArkWallet.Core.TradingContext.Application.Services.TradeOrderServices;
 
 internal class OrderCreationService(
@@ -82,7 +86,7 @@ internal class OrderCreationService(
         await NotifyAsync(context);
     }
 
-    private void SyncTradersAndPortfolios(TradingContext context)
+    private void SyncTradersAndPortfolios(TradingEngineContext context)
     {
         foreach (var trader in context.Traders.Values)
         {
@@ -103,7 +107,7 @@ internal class OrderCreationService(
         }
     }
 
-    private async Task<TradingContext> PrepareSingleTradingContextAsync(CreateOrderCommand command)
+    private async Task<TradingEngineContext> PrepareSingleTradingContextAsync(CreateOrderCommand command)
     {
         var orderType = OrderValidationService.NormalizeDirection(command.Direction) == OrderDirections.Buy
             ? ValueObjects.OrderType.Buy
@@ -164,7 +168,7 @@ internal class OrderCreationService(
             eventPublisher);
     }
 
-    private async Task<TradingContext> PrepareGroupTradingContextAsync(IEnumerable<CreateOrderCommand> commands)
+    private async Task<TradingEngineContext> PrepareGroupTradingContextAsync(IEnumerable<CreateOrderCommand> commands)
     {
         var commandList = commands.ToList();
         if (commandList.Count == 0)
@@ -298,7 +302,7 @@ internal class OrderCreationService(
         return portfolioItems.ToDictionary(p => p.TraderTelegramId);
     }
 
-    private static async Task<TradingContext> BuildTradingContext(
+    private static async Task<TradingEngineContext> BuildTradingContext(
         IReadOnlyCollection<CreateOrderCommand> commands,
         bool isBuy,
         Dictionary<long, Records.Trader> oldTraders,
@@ -307,7 +311,7 @@ internal class OrderCreationService(
         Records.CharacterToken oldToken,
         IEventPublisher eventPublisher)
     {
-        var context = new TradingContext
+        var context = new TradingEngineContext
         {
             Token = TradingContextMapper.ToToken(oldToken),
             EventPublisher = eventPublisher,
@@ -378,7 +382,7 @@ internal class OrderCreationService(
                 .ToArrayAsync();
     }
 
-    private async Task NotifyAsync(TradingContext context)
+    private async Task NotifyAsync(TradingEngineContext context)
     {
         var ordersToNotify = new List<Records.TradeOrder>();
 

@@ -1,11 +1,11 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.TraderServices;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.TradingContext.Application.Contracts.TraderServices;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Core.TradingContext.Application.Services.TraderServices;
-using static ArkWallet.Application.Common.Result;
+using static ArkWallet.Core.General.Application.Common.Result;
 
 internal class TraderBalanceUpdatingService(ArkWalletDbContext dbContext, ILogger<TraderBalanceUpdatingService> logger) : ITraderBalanceUpdatingService
 {

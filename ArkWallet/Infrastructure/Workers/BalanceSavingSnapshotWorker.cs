@@ -1,4 +1,4 @@
-using ArkWallet.Application.Contracts.TraderServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.TraderServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

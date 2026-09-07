@@ -1,5 +1,6 @@
+using ArkWallet.Core.MiningContext.Domain.Engines;
 using System.Security.Cryptography;
-using ArkWallet.Domain.Exceptions;
+using ArkWallet.Core.General.Domain.Exceptions;
 
 namespace ArkWallet.Core.MiningContext.Domain.Engines;
 

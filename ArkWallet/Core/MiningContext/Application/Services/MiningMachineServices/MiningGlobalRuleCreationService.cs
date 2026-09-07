@@ -1,7 +1,8 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.MiningMachineServices;
-using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.Engines;
+using ArkWallet.Core.MiningContext.Domain.Engines;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Infrastructure.Data;
+using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

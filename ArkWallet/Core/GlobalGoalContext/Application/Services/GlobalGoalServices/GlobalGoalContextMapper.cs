@@ -1,5 +1,6 @@
-using ArkWallet.Domain.GlobalGoalContext;
-using Records = global::ArkWallet.Domain.Entities;
+using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
+using ArkWallet.Core.GlobalGoalContext.Domain.Events;
+using Records = global::ArkWallet.Infrastructure.Data;
 
 namespace ArkWallet.Core.GlobalGoalContext.Application.Services.GlobalGoalServices;
 

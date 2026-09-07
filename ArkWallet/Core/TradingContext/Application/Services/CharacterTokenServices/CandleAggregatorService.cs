@@ -1,5 +1,5 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
 using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Core.TradingContext.Application.Services.CharacterTokenServices;

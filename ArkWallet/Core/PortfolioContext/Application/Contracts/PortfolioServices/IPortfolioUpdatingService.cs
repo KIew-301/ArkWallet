@@ -1,5 +1,5 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Domain.PortfolioContext;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.PortfolioContext.Domain.Position;
 
 namespace ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices
 {

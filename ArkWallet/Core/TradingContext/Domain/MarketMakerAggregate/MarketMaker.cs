@@ -1,6 +1,6 @@
-using ArkWallet.Domain.Exceptions;
+using ArkWallet.Core.General.Domain.Exceptions;
 
-namespace ArkWallet.Core.TradingContext.Domain.MarketMaker;
+namespace ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
 
 /// <summary>Роль бота на рынке: покупатель или продавец.</summary>
 public enum MarketMakerRole

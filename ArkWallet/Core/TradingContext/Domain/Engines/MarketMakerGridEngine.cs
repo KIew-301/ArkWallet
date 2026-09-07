@@ -1,5 +1,5 @@
-using ArkWallet.Application.Contracts.TradeOrderServices;
-using ArkWallet.Domain.Entities;
+using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
+using ArkWallet.Infrastructure.Data;
 
 namespace ArkWallet.Core.TradingContext.Domain.Engines;
 

@@ -1,4 +1,4 @@
-using ArkWallet.Domain.Entities;
+using ArkWallet.Infrastructure.Data;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 

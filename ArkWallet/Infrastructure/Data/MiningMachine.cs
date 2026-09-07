@@ -1,5 +1,6 @@
-using ArkWallet.Domain.Engines;
-using ArkWallet.Domain.Exceptions;
+using ArkWallet.Core.MiningContext.Domain.Engines;
+using ArkWallet.Core.TradingContext.Domain.Engines;
+using ArkWallet.Core.General.Domain.Exceptions;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Infrastructure.Data;

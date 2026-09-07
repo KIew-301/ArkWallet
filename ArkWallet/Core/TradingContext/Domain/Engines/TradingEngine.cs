@@ -1,12 +1,16 @@
-using ArkWallet.Domain.Common;
-using ArkWallet.Domain.Exceptions;
-using ArkWallet.Domain.TradingContext;
-
+using ArkWallet.Core.General.Domain.Common;
+using ArkWallet.Core.General.Domain.Exceptions;
+using ArkWallet.Core.TradingContext.Domain.Engines;
+using ArkWallet.Core.TradingContext.Domain.Events;
+using ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
+using ArkWallet.Core.TradingContext.Domain.TokenAggregate;
+using ArkWallet.Core.TradingContext.Domain.TraderAggregate;
+using ArkWallet.Core.TradingContext.Domain.TradeAggregate;
 namespace ArkWallet.Core.TradingContext.Domain.Engines
 {
     internal class TradingEngine(TimeProvider? timeProvider = null)
     {
-        public async Task ProcessOrder(TradingContext context)
+        public async Task ProcessOrder(TradingEngineContext context)
         {
             if (context.NewOrders == null || context.NewOrders.Count == 0)
                 throw new DomainException("Ордер не может быть null");
@@ -18,7 +22,7 @@ namespace ArkWallet.Core.TradingContext.Domain.Engines
             await UpdateTokenPrice(context);
         }
 
-        public async Task ProcessOrders(TradingContext context)
+        public async Task ProcessOrders(TradingEngineContext context)
         {
             if (context.NewOrders == null || context.NewOrders.Count == 0)
                 throw new DomainException("Список ордеров не может быть пустым");
@@ -29,7 +33,7 @@ namespace ArkWallet.Core.TradingContext.Domain.Engines
             await UpdateTokenPrice(context);
         }
 
-        private async Task ProcessSingleOrder(Order newOrder, TradingContext context)
+        private async Task ProcessSingleOrder(Order newOrder, TradingEngineContext context)
         {
             if (!context.Traders.TryGetValue(newOrder.TraderId, out _))
                 throw new DomainException("Трейдер не найден");
@@ -75,7 +79,7 @@ namespace ArkWallet.Core.TradingContext.Domain.Engines
             }
         }
 
-        private async Task UpdateTokenPrice(TradingContext context)
+        private async Task UpdateTokenPrice(TradingEngineContext context)
         {
             if (context.AllTrades.Count == 0)
                 return;
@@ -94,7 +98,7 @@ namespace ArkWallet.Core.TradingContext.Domain.Engines
         }
     }
 
-    internal class TradingContext
+    internal class TradingEngineContext
     {
         // Исходные данные
         public List<Order> NewOrders { get; set; } = new();

@@ -1,3 +1,4 @@
+using ValueObjects = global::ArkWallet.Core.General.Domain.ValueObjects;
 using System.ComponentModel.DataAnnotations;
 
 namespace ArkWallet.Infrastructure.Data

@@ -1,4 +1,4 @@
-using ArkWallet.Domain.Exceptions;
+using ArkWallet.Core.General.Domain.Exceptions;
 
 namespace ArkWallet.Core.PortfolioContext.Domain.Position;
 

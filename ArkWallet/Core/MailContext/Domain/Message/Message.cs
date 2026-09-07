@@ -1,6 +1,7 @@
-using ArkWallet.Domain.Common;
-using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.Exceptions;
+using ArkWallet.Core.General.Domain.Common;
+using ArkWallet.Infrastructure.Data;
+using ArkWallet.Core.General.Domain.Exceptions;
+using ArkWallet.Core.MailContext.Domain.Events;
 
 namespace ArkWallet.Core.MailContext.Domain.Message;
 

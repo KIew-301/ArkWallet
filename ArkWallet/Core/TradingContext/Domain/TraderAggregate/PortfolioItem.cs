@@ -1,7 +1,7 @@
-using ArkWallet.Domain.Common;
-using ArkWallet.Domain.Exceptions;
+using ArkWallet.Core.General.Domain.Common;
+using ArkWallet.Core.General.Domain.Exceptions;
 
-namespace ArkWallet.Core.TradingContext.Domain.PortfolioItem;
+namespace ArkWallet.Core.TradingContext.Domain.TraderAggregate;
 
 internal class PortfolioItem : AggregateRoot
 {

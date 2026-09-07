@@ -1,5 +1,5 @@
-using ArkWallet.Domain.PortfolioContext;
-using Records = global::ArkWallet.Domain.Entities;
+using ArkWallet.Core.PortfolioContext.Domain.Position;
+using Records = global::ArkWallet.Infrastructure.Data;
 
 namespace ArkWallet.Core.PortfolioContext.Application.Services.PortfolioServices;
 

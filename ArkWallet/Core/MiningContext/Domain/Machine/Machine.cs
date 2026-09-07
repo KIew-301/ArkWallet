@@ -1,5 +1,5 @@
-using ArkWallet.Domain.Exceptions;
-using ArkWallet.Domain.ShoppingContext;
+using ArkWallet.Core.General.Domain.Exceptions;
+using ArkWallet.Core.ShoppingContext.Domain.Machine;
 
 namespace ArkWallet.Core.MiningContext.Domain.Machine;
 

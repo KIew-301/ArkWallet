@@ -1,3 +1,6 @@
+using ArkWallet.Core.TradingContext.Domain.TokenAggregate;
+using ArkWallet.Core.TradingContext.Domain.TraderAggregate;
+using ArkWallet.Core.TradingContext.Domain.TradeAggregate;
 using MediatR;
 
 namespace ArkWallet.Core.TradingContext.Domain.Events;

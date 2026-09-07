@@ -1,7 +1,8 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.MailServices;
-using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.GlobalGoalContext;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.MailContext.Application.Contracts.MailServices;
+using ArkWallet.Infrastructure.Data;
+using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
+using ArkWallet.Core.GlobalGoalContext.Domain.Events;
 using ArkWallet.Infrastructure.Data;
 using MediatR;
 using Microsoft.EntityFrameworkCore;

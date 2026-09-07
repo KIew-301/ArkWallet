@@ -1,11 +1,12 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.GlobalGoalServices;
-using ArkWallet.Domain.Common;
-using ArkWallet.Domain.GlobalGoalContext;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.GlobalGoalContext.Application.Contracts.GlobalGoalServices;
+using ArkWallet.Core.General.Domain.Common;
+using GlobalGoal = ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal.GlobalGoal;
+using ArkWallet.Core.GlobalGoalContext.Domain.Events;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Records = global::ArkWallet.Domain.Entities;
+using Records = global::ArkWallet.Infrastructure.Data;
 
 namespace ArkWallet.Core.GlobalGoalContext.Application.Services.GlobalGoalServices;
 

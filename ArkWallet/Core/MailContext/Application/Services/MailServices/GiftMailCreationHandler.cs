@@ -1,6 +1,7 @@
-using ArkWallet.Application.Contracts.MailServices;
-using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.GiftContext;
+using ArkWallet.Core.MailContext.Application.Contracts.MailServices;
+using ArkWallet.Infrastructure.Data;
+using ArkWallet.Core.GiftContext.Domain.User;
+using ArkWallet.Core.GiftContext.Domain.Events;
 using MediatR;
 
 namespace ArkWallet.Core.MailContext.Application.Services.MailServices;

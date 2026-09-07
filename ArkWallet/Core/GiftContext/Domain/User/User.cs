@@ -1,5 +1,6 @@
-using ArkWallet.Domain.Common;
-using ArkWallet.Domain.Exceptions;
+using ArkWallet.Core.GiftContext.Domain.Events;
+using ArkWallet.Core.General.Domain.Common;
+using ArkWallet.Core.General.Domain.Exceptions;
 
 namespace ArkWallet.Core.GiftContext.Domain.User;
 

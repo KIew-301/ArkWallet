@@ -1,7 +1,11 @@
-using ArkWallet.Domain.TradingContext;
-using Records = global::ArkWallet.Domain.Entities;
-using ValueObjects = global::ArkWallet.Domain.ValueObjects;
-
+using ArkWallet.Core.TradingContext.Domain.Engines;
+using ArkWallet.Core.TradingContext.Domain.Events;
+using ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
+using ArkWallet.Core.TradingContext.Domain.TokenAggregate;
+using ArkWallet.Core.TradingContext.Domain.TraderAggregate;
+using ArkWallet.Core.TradingContext.Domain.TradeAggregate;
+using Records = global::ArkWallet.Infrastructure.Data;
+using ValueObjects = global::ArkWallet.Core.General.Domain.ValueObjects;
 namespace ArkWallet.Core.TradingContext.Application.Services.TradeOrderServices;
 
 /// <summary>

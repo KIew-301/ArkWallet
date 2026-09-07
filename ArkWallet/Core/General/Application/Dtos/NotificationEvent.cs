@@ -1,5 +1,5 @@
-using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Infrastructure.Data;
+using ArkWallet.Core.General.Domain.ValueObjects;
 
 
 namespace ArkWallet.Core.General.Application.Dtos

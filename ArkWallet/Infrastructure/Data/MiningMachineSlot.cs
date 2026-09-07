@@ -1,4 +1,4 @@
-using ArkWallet.Domain.Exceptions;
+using ArkWallet.Core.General.Domain.Exceptions;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Infrastructure.Data;

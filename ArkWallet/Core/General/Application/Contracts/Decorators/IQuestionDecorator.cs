@@ -1,4 +1,4 @@
-using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Core.General.Domain.ValueObjects;
 
 namespace ArkWallet.Core.General.Application.Contracts.Decorators
 {

@@ -1,13 +1,13 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.TraderServices;
-using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.TradingContext.Application.Contracts.TraderServices;
+using ArkWallet.Infrastructure.Data;
+using ArkWallet.Core.General.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Core.TradingContext.Application.Services.TraderServices;
-using static ArkWallet.Application.Common.Result<BalanceSnapshotData>;
+using static ArkWallet.Core.General.Application.Common.Result<BalanceSnapshotData>;
 
 internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnapshotService> logger) : IBalanceSnapshotService
 {

@@ -1,6 +1,6 @@
-using ArkWallet.Domain.Exceptions;
+using ArkWallet.Core.General.Domain.Exceptions;
 
-namespace ArkWallet.Core.TradingContext.Domain.PriceCandle;
+namespace ArkWallet.Core.TradingContext.Domain.TokenAggregate;
 
 internal class PriceCandle
 {

@@ -1,4 +1,5 @@
-namespace ArkWallet.Core.TradingContext.Domain.OrderBook;
+using ArkWallet.Core.TradingContext.Domain.TraderAggregate;
+namespace ArkWallet.Core.TradingContext.Domain.Engines;
 
 internal class OrderBook
 {

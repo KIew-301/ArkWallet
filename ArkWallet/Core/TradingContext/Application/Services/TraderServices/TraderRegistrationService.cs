@@ -1,12 +1,12 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.TraderServices;
-using ArkWallet.Domain.Entities;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.TradingContext.Application.Contracts.TraderServices;
+using ArkWallet.Infrastructure.Data;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Core.TradingContext.Application.Services.TraderServices;
-using static ArkWallet.Application.Common.Result;
+using static ArkWallet.Core.General.Application.Common.Result;
 
 internal class TraderRegistrationService(ArkWalletDbContext dbContext, ILogger<TraderRegistrationService> logger) : ITraderRegistrationService
 {

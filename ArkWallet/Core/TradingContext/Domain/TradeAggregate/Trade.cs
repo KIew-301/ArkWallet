@@ -1,7 +1,8 @@
-using ArkWallet.Domain.Common;
-using ArkWallet.Domain.Exceptions;
+using ArkWallet.Core.General.Domain.Common;
+using ArkWallet.Core.General.Domain.Exceptions;
+using ArkWallet.Core.TradingContext.Domain.Events;
 
-namespace ArkWallet.Core.TradingContext.Domain.Trade;
+namespace ArkWallet.Core.TradingContext.Domain.TradeAggregate;
 
 internal class Trade : AggregateRoot
 {
