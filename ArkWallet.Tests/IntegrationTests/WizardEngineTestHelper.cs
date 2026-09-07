@@ -13,6 +13,7 @@ using ArkWallet.Application.Contracts.SuggestionServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TradeServices;
 using ArkWallet.Application.Contracts.TraderServices;
+using ArkWallet.Application.Contracts.GlobalGoalServices;
 using ArkWallet.Application.Services.Wizard;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Entities.Configurations;
@@ -83,6 +84,9 @@ internal static class WizardEngineTestHelper
         var miningMachineSlotTakingTokenOrchestrator = new Mock<IMiningMachineSlotTakingTokenOrchestrator>();
         var miningMachineSlotSellingOrchestrator = new Mock<IMiningMachineSlotSellingOrchestrator>();
 
+        var globalGoalQueryService = new Mock<IGlobalGoalQueryService>();
+        var globalGoalCreationService = new Mock<IGlobalGoalCreationService>();
+
         var configuration = new Mock<IConfiguration>();
         configuration.Setup(c => c["Telegram:AdminId:Main"]).Returns("999999");
 
@@ -145,6 +149,8 @@ internal static class WizardEngineTestHelper
             miningMachineCreationOrchestrator.Object,
             miningMachineSlotTakingTokenOrchestrator.Object,
             miningMachineSlotSellingOrchestrator.Object,
+            globalGoalQueryService.Object,
+            globalGoalCreationService.Object,
             config,
             DbTest.CreateDbContext(),
             new AccessControlService()
@@ -195,7 +201,9 @@ internal static class WizardEngineTestHelper
             MiningMachineSlotSwitchingOrchestrator = miningMachineSlotSwitchingOrchestrator,
             MiningMachineCreationOrchestrator = miningMachineCreationOrchestrator,
             MiningMachineSlotTakingTokenOrchestrator = miningMachineSlotTakingTokenOrchestrator,
-            MiningMachineSlotSellingOrchestrator = miningMachineSlotSellingOrchestrator
+            MiningMachineSlotSellingOrchestrator = miningMachineSlotSellingOrchestrator,
+            GlobalGoalQuery = globalGoalQueryService,
+            GlobalGoalCreation = globalGoalCreationService
         };
     }
 }
@@ -246,4 +254,6 @@ internal class ServiceMocks
     public Mock<IMiningMachineCreationOrchestrator> MiningMachineCreationOrchestrator { get; init; } = null!;
     public Mock<IMiningMachineSlotTakingTokenOrchestrator> MiningMachineSlotTakingTokenOrchestrator { get; init; } = null!;
     public Mock<IMiningMachineSlotSellingOrchestrator> MiningMachineSlotSellingOrchestrator { get; init; } = null!;
+    public Mock<IGlobalGoalQueryService> GlobalGoalQuery { get; init; } = null!;
+    public Mock<IGlobalGoalCreationService> GlobalGoalCreation { get; init; } = null!;
 }

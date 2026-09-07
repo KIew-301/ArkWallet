@@ -1,4 +1,4 @@
-using ArkWallet.Domain.GlobalGoalContext;
+﻿using ArkWallet.Domain.GlobalGoalContext;
 using ArkWallet.Tests.HelpTools;
 using Goal = ArkWallet.Domain.GlobalGoalContext.GlobalGoal;
 
@@ -14,7 +14,7 @@ public class GlobalGoalTest
     [Fact]
     public void Create_SetsInitialState()
     {
-        var goal = Goal.Create(1, "Goal", "Desc", 1000m, 500m);
+        var goal = CreateExisting(1, "Goal", "Desc", 1000m, 500m);
 
         Assert.Equal(1, goal.Id);
         Assert.Equal("Goal", goal.Name);
@@ -48,7 +48,7 @@ public class GlobalGoalTest
     [Fact]
     public void UpdateActual_RefreshesProgress()
     {
-        var goal = Goal.Create(1, "Goal", "Desc", 1000m, 500m);
+        var goal = CreateExisting(1, "Goal", "Desc", 1000m, 500m);
         goal.UpdateActual(1000m);
 
         Assert.Equal(1000m, goal.Actual);
@@ -58,7 +58,7 @@ public class GlobalGoalTest
     [Fact]
     public async Task CheckGoal_NotAchieved_DoesNothing()
     {
-        var goal = Goal.Create(1, "Goal", "Desc", 1000m, 900m);
+        var goal = CreateExisting(1, "Goal", "Desc", 1000m, 900m);
         goal.SetEventPublisher(new RecordingEventPublisher());
 
         await goal.CheckGoal(Time);
@@ -97,7 +97,7 @@ public class GlobalGoalTest
     public async Task CheckGoal_Achieved_NoStep_UsesEmptyRewardAndKeepsTarget()
     {
         var publisher = new RecordingEventPublisher();
-        var goal = Goal.Create(1, "Goal", "Desc", 1000m, 1000m);
+        var goal = CreateExisting(1, "Goal", "Desc", 1000m, 1000m);
         goal.SetEventPublisher(publisher);
 
         await goal.CheckGoal(Time);
@@ -135,7 +135,7 @@ public class GlobalGoalTest
     [Fact]
     public async Task CheckGoal_WithoutPublisher_Throws()
     {
-        var goal = Goal.Create(1, "Goal", "Desc", 1000m, 1000m);
+        var goal = CreateExisting(1, "Goal", "Desc", 1000m, 1000m);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => goal.CheckGoal(Time));
     }
@@ -153,4 +153,15 @@ public class GlobalGoalTest
             AchievedCount: achievedCount,
             History: history ?? new(),
             Steps: steps ?? new()));
+
+    private static Goal CreateExisting(long id, string name, string description, decimal target, decimal actual)
+        => Goal.Load(new GlobalGoalData(
+            Id: id,
+            Name: name,
+            Description: description,
+            Target: target,
+            Actual: actual,
+            AchievedCount: 0,
+            History: new(),
+            Steps: new()));
 }
