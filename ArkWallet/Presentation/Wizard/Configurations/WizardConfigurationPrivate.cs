@@ -293,6 +293,11 @@ namespace ArkWallet.Entities.Configurations
                 new() { Name = "request", OneStep = true }
             };
 
+            Commands["/admin_help_global_goals"] = new List<WizardStep>
+            {
+                new() { Name = "request", OneStep = true }
+            };
+
             Commands["/admin_mining_create_machine"] = new List<WizardStep>
             {
                 new()
@@ -535,6 +540,41 @@ namespace ArkWallet.Entities.Configurations
                         "  \"message\": \"Текст письма\",\n" +
                         "  \"rewardSymbol\": \"ARK_001\",    // необязательно, без награды - пустая строка\n" +
                         "  \"rewardAmount\": 100             // необязательно, без награды - 0\n" +
+                        "}"
+                }
+            };
+
+            Commands["/admin_global_goal_create"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Отправьте JSON, чтобы создать глобальную цель.\n" +
+                        "Начальный рубеж (target) создаётся сразу с наградой за него:\n\n" +
+                        "{\n" +
+                        "  \"name\": \"Общий баланс\",\n" +
+                        "  \"description\": \"Сумма балансов всех участников сервера\",\n" +
+                        "  \"target\": 1000000,\n" +
+                        "  \"symbolForReward\": \"ARK_001\",  // необязательно, можно пустую строку\n" +
+                        "  \"amountForReward\": 10            // необязательно, если нет награды - 0\n" +
+                        "}"
+                }
+            };
+
+            Commands["/admin_global_goal_add_step"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Отправьте JSON, чтобы добавить промежуточный шаг к цели:\n\n" +
+                        "{\n" +
+                        "  \"goalId\": 1,\n" +
+                        "  \"stepNumber\": 1,\n" +
+                        "  \"target\": 1500000,\n" +
+                        "  \"symbolForReward\": \"ARK_001\",  // необязательно, можно пустую строку\n" +
+                        "  \"amountForReward\": 10            // необязательно, если нет награды - 0\n" +
                         "}"
                 }
             };

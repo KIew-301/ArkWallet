@@ -651,5 +651,17 @@ namespace ArkWallet.Infrastructure.Wizard
             3 => "🥉",
             _ => $"#{position}"
         };
+
+        private async Task<StepResult> HandleGetGlobalGoals(UserSession session, string input)
+        {
+            var result = await _globalGoalQueryService.GetGoalsAsync();
+            if (!result.TryGetData(out var goals))
+                return StepResult.Error(result.Message ?? "Не удалось загрузить глобальные цели.");
+
+            if (goals.Count == 0)
+                return StepResult.Ok("completed", "🎯 Глобальные цели пока не установлены.");
+
+            return StepResult.Ok("completed", GlobalGoalFormatter.FormatGoals(goals));
+        }
     }
 }

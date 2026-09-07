@@ -6,6 +6,7 @@ using ArkWallet.Application.Contracts.TraderServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TradeServices;
 using ArkWallet.Application.Contracts.PortfolioServices;
+using ArkWallet.Application.Contracts.GlobalGoalServices;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Newtonsoft.Json;
@@ -22,6 +23,7 @@ namespace ArkWallet.Infrastructure.Wizard
             "/admin_help_trader — Trader commands\n" +
             "/admin_help_token — Token commands\n" +
             "/admin_help_other — Other commands\n" +
+            "/admin_help_global_goals — Global goals commands\n" +
             "/admin_help_mining — Mining commands\n" +
             "/admin_help_access — Access control";
 
@@ -96,6 +98,23 @@ namespace ArkWallet.Infrastructure.Wizard
              "           \"rewardSymbol\": \"ARK_001\", \"rewardAmount\": 100 }\n" +
              "   recipientId: Telegram ID, an array of IDs (e.g. [123, 456]), or \"all\" for everyone.\n" +
              "   rewardSymbol/rewardAmount: optional, omit or use empty/0 for no reward.";
+
+        private const string AdminHelpGlobalGoalsText =
+             "Global goals commands:\n\n" +
+             "1) /admin_global_goal_create\n" +
+             "   Creates a new global goal (first step is created together with it).\n" +
+             "   JSON: { \"name\": \"Общий баланс\", \"description\": \"Описание\", \"target\": 1000000,\n" +
+             "           \"symbolForReward\": \"ARK_001\", \"amountForReward\": 10 }\n" +
+             "   The target is the first milestone (step 1); its reward is payed on reaching it.\n" +
+             "   symbolForReward: optional, omit or use empty string for no reward.\n" +
+             "   amountForReward: optional, use 0 for no reward.\n\n" +
+             "2) /admin_global_goal_add_step\n" +
+             "   Adds a next milestone to an existing global goal.\n" +
+             "   JSON: { \"goalId\": 1, \"stepNumber\": 2, \"target\": 1500000,\n" +
+             "           \"symbolForReward\": \"ARK_001\", \"amountForReward\": 10 }\n" +
+             "   stepNumber must not duplicate an existing one (step 1 already exists).\n" +
+             "   symbolForReward: optional, omit or use empty string for no reward.\n" +
+             "   amountForReward: optional, use 0 for no reward.";
 
         private const string AdminHelpMiningText =
             "Mining commands:\n\n" +
@@ -188,6 +207,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/admin_metrics"][0].Handler = AdminHandleMetrics;
             _config.Commands["/admin_help_mining"][0].Handler = AdminHandleHelpMining;
             _config.Commands["/admin_help_access"][0].Handler = AdminHandleHelpAccess;
+            _config.Commands["/admin_help_global_goals"][0].Handler = AdminHandleHelpGlobalGoals;
             _config.Commands["/admin_mining_create_machine"][0].Handler = AdminHandleMiningCreateMachine;
             _config.Commands["/admin_mining_create_machines"][0].Handler = AdminHandleMiningCreateMachines;
             _config.Commands["/admin_mining_update_machine"][0].Handler = AdminHandleMiningUpdateMachine;
@@ -206,6 +226,8 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/admin_access_get"][0].Handler = AdminHandleAccessGet;
             _config.Commands["/admin_access_set"][0].Handler = AdminHandleAccessSet;
             _config.Commands["/admin_send_mail"][0].Handler = AdminHandleSendMail;
+            _config.Commands["/admin_global_goal_create"][0].Handler = AdminHandleGlobalGoalCreate;
+            _config.Commands["/admin_global_goal_add_step"][0].Handler = AdminHandleGlobalGoalAddStep;
         }
 
         private Task<StepResult> AdminHandleHelp(UserSession session, string input)
@@ -951,6 +973,9 @@ namespace ArkWallet.Infrastructure.Wizard
         private Task<StepResult> AdminHandleHelpAccess(UserSession session, string input)
             => Task.FromResult(StepResult.Ok("completed", AdminHelpAccessText));
 
+        private Task<StepResult> AdminHandleHelpGlobalGoals(UserSession session, string input)
+            => Task.FromResult(StepResult.Ok("completed", AdminHelpGlobalGoalsText));
+
         private async Task<StepResult> AdminHandleMiningCreateMachine(UserSession session, string input)
         {
             try
@@ -1414,6 +1439,68 @@ namespace ArkWallet.Infrastructure.Wizard
             catch (Exception ex)
             {
                 return StepResult.Ok("completed", $"Error: {ex.Message}");
+            }
+        }
+
+        private async Task<StepResult> AdminHandleGlobalGoalCreate(UserSession session, string input)
+        {
+            try
+            {
+                var rawData = JsonConvert.DeserializeObject<Dictionary<string, object>>(input,
+                    new JsonSerializerSettings { FloatParseHandling = FloatParseHandling.Decimal });
+                if (rawData == null)
+                    return StepResult.Error("Отправьте корректный JSON.");
+
+                var normalized = NormalizeKeysToPascalCase(rawData);
+                var normalizedJson = JsonConvert.SerializeObject(normalized);
+                var command = JsonConvert.DeserializeObject<CreateGlobalGoalCommand>(normalizedJson);
+
+                if (command == null)
+                    return StepResult.Error("Не удалось разобрать данные цели.");
+
+                var result = await _globalGoalCreationService.CreateGoalAsync(command);
+
+                return result.TryGetData(out var goalId)
+                    ? StepResult.Ok("completed",
+                        $"🎯 Глобальная цель «{command.Name}» создана (ID: {goalId}).\n" +
+                        $"Первая ступень (target {command.Target:N0}) создана с наградой " +
+                        (command.AmountForReward > 0
+                            ? $"{command.AmountForReward:N0} {command.SymbolForReward}.\n"
+                            : "без награды.\n") +
+                        "Добавьте следующие рубежи: /admin_global_goal_add_step")
+                    : StepResult.Error(result.Message);
+            }
+            catch (Exception ex)
+            {
+                return StepResult.Error($"Ошибка: {ex.Message}");
+            }
+        }
+
+        private async Task<StepResult> AdminHandleGlobalGoalAddStep(UserSession session, string input)
+        {
+            try
+            {
+                var rawData = JsonConvert.DeserializeObject<Dictionary<string, object>>(input,
+                    new JsonSerializerSettings { FloatParseHandling = FloatParseHandling.Decimal });
+                if (rawData == null)
+                    return StepResult.Error("Отправьте корректный JSON.");
+
+                var normalized = NormalizeKeysToPascalCase(rawData);
+                var normalizedJson = JsonConvert.SerializeObject(normalized);
+                var command = JsonConvert.DeserializeObject<AddGlobalGoalStepCommand>(normalizedJson);
+
+                if (command == null)
+                    return StepResult.Error("Не удалось разобрать данные шага.");
+
+                var result = await _globalGoalCreationService.AddStepAsync(command);
+
+                return result.IsSuccess
+                    ? StepResult.Ok("completed", $"✅ Шаг {command.StepNumber} добавлен к цели {command.GoalId}.")
+                    : StepResult.Error(result.Message);
+            }
+            catch (Exception ex)
+            {
+                return StepResult.Error($"Ошибка: {ex.Message}");
             }
         }
     }

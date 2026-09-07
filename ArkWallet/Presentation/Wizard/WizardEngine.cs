@@ -14,6 +14,7 @@ using ArkWallet.Application.Contracts.TradeServices;
 using ArkWallet.Application.Contracts.GiftServices;
 using ArkWallet.Application.Contracts.MailServices;
 using ArkWallet.Application.Contracts.TraderServices;
+using ArkWallet.Application.Contracts.GlobalGoalServices;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Entities.Configurations;
 using Microsoft.Extensions.Configuration;
@@ -102,6 +103,10 @@ namespace ArkWallet.Infrastructure.Wizard
         private readonly IMailQueryService _mailQueryService;
         private readonly IMailStatusUpdatingService _mailStatusUpdatingService;
 
+        // GLOBAL GOALS
+        private readonly IGlobalGoalQueryService _globalGoalQueryService;
+        private readonly IGlobalGoalCreationService _globalGoalCreationService;
+
         // DECORATOR SERVICES
         private readonly IQuestionDecorator _questionDecorator;
         private readonly IButtonDecorator _buttonDecorator;
@@ -164,6 +169,8 @@ namespace ArkWallet.Infrastructure.Wizard
             IMiningMachineCreationOrchestrator miningMachineCreationOrchestrator,
             IMiningMachineSlotTakingTokenOrchestrator miningMachineSlotTakingTokenOrchestrator,
             IMiningMachineSlotSellingOrchestrator miningMachineSlotSellingOrchestrator,
+            IGlobalGoalQueryService globalGoalQueryService,
+            IGlobalGoalCreationService globalGoalCreationService,
             WizardConfiguration config,
             ArkWalletDbContext dbContext,
             AccessControlService accessControl
@@ -217,6 +224,8 @@ namespace ArkWallet.Infrastructure.Wizard
             _miningMachineCreationOrchestrator = miningMachineCreationOrchestrator;
             _miningMachineSlotTakingTokenOrchestrator = miningMachineSlotTakingTokenOrchestrator;
             _miningMachineSlotSellingOrchestrator = miningMachineSlotSellingOrchestrator;
+            _globalGoalQueryService = globalGoalQueryService;
+            _globalGoalCreationService = globalGoalCreationService;
             _dbContext = dbContext;
             _accessControl = accessControl;
             _config = config;
@@ -262,6 +271,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/mining_take"][1].Handler = HandleMiningTakeConfirm;
             _config.Commands["/mining_sell"][0].Handler = HandleMiningSellSelectSlot;
             _config.Commands["/mining_sell"][1].Handler = HandleMiningSellConfirm;
+            _config.Commands["/global_goals"][0].Handler = HandleGetGlobalGoals;
         }
 
         public async Task<WizardResult> ProcessInput(long userId, string input)

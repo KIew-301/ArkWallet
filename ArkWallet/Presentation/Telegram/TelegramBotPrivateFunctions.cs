@@ -60,6 +60,7 @@ namespace ArkWallet.Telegram
                         new("/mining_sell", "Продать слот."),
                         new("/send_gift", "Отправить подарок."),
                         new("/open_mail", "Открыть почту."),
+                        new("/global_goals", "Глобальные цели."),
                     };
 
                     groupCommands = new List<BotCommand>()
@@ -71,6 +72,7 @@ namespace ArkWallet.Telegram
                         new("/mining_machines", "Майнеры на продажу."),
                         new("/mining_slots", "Мои слоты."),
                         new("/send_gift", "Отправить подарок (ответом на сообщение)."),
+                        new("/global_goals", "Глобальные цели."),
                     };
                     break;
 
