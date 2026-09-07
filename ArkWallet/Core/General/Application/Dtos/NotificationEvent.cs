@@ -1,0 +1,47 @@
+using ArkWallet.Domain.Entities;
+using ArkWallet.Domain.ValueObjects;
+
+
+namespace ArkWallet.Core.General.Application.Dtos
+{
+    internal record NotificationEvent
+    (
+        long Id,
+        string Message
+    )
+    {
+        static internal List<NotificationEvent> FromOrderList<T>(List<TradeOrder> orders, List<Trader> traders, ILogger<T> logger)
+        {
+            try
+            {
+                if (orders == null || orders.Count == 0)
+                    return [];
+
+                var notificationOn = traders.ToDictionary(t => t.TelegramId, t => t.NotificationOn);
+
+                List<NotificationEvent> list = [];
+
+                foreach (var order in orders)
+                {
+                    var traderId = order.TraderTelegramId;
+                    var notifyOn = notificationOn[traderId];
+                    var isBuy = order.Type == OrderType.Buy;
+                    var message = isBuy
+                        ? $"💸 Вам продали {order.Quantity} шт. токенов {order.CharacterTokenId} по {order.AverageExecutePrice:F2}{Descriptor.CurrencySymbol}"
+                        : $"💸 У вас купили {order.Quantity} шт. токенов {order.CharacterTokenId} по {order.AverageExecutePrice:F2}{Descriptor.CurrencySymbol}";
+
+                    if (notifyOn && order.Status == OrderStatus.Filled)
+                        list.Add(new(traderId, message));
+                }
+
+                return list;
+            }
+            catch (Exception ex)
+            {
+                logger.Log(LogLevel.Error, ex, "Ошибка при формировании уведомлений о выполнении ордеров"); 
+                return [];
+            }
+        }
+    };
+
+}
