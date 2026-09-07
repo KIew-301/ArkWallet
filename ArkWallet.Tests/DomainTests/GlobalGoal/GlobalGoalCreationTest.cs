@@ -50,13 +50,13 @@ public class GlobalGoalCreationTest
     [Fact]
     public void CreateNew_NullName_Throws()
     {
-        Assert.Throws<DomainException>(() => Goal.CreateNew(0, null, "Описание", 1000m, "ZZZ", 10m));
+        Assert.Throws<DomainException>(() => Goal.CreateNew(0, null!, "Описание", 1000m, "ZZZ", 10m));
     }
 
     [Fact]
     public void CreateNew_NullDescription_Throws()
     {
-        Assert.Throws<DomainException>(() => Goal.CreateNew(0, "Имя", null, 1000m, "ZZZ", 10m));
+        Assert.Throws<DomainException>(() => Goal.CreateNew(0, "Имя", null!, 1000m, "ZZZ", 10m));
     }
 
     [Theory]
