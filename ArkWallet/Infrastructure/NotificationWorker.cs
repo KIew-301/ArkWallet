@@ -1,5 +1,6 @@
 ﻿using ArkWallet.Application.Dtos;
 using ArkWallet.Telegram;
+using MediatR;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -7,6 +8,7 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace ArkWallet.Infrastructure
 {
@@ -43,20 +45,33 @@ namespace ArkWallet.Infrastructure
 
                     if (notifications != null)
                         foreach (var notification in notifications)
-                            await bot.SendMessageToUser(notification.Id, notification.Message);
+                            SendMessage(bot, notification.Id, notification.Message).GetAwaiter().GetResult();
 
-                    await channel.BasicAckAsync(ea.DeliveryTag, multiple: false);
+                    await channel.BasicAckAsync(ea.DeliveryTag, multiple: false, stoppingToken);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error in NotificationWorker");
-                    await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: true);
+                    await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: true, stoppingToken);
                 }
             };
 
-            await channel.BasicConsumeAsync("notification", autoAck: false, consumer: consumer);
+            await channel.BasicConsumeAsync("notification", autoAck: false, consumer: consumer, stoppingToken);
 
             await Task.Delay(Timeout.Infinite, stoppingToken);
+        }
+
+        private static async Task SendMessage(TelegramBot bot, long userId, string message)
+        {
+            try
+            {
+                await bot.SendMessageToUser(userId, message);
+            }
+            catch (Exception ex)
+            {
+                if (!ex.Message.Contains("chat not found"))
+                    throw;
+            }
         }
     }
 }

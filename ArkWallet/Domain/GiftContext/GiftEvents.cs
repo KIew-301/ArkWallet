@@ -2,33 +2,14 @@ using MediatR;
 
 namespace ArkWallet.Domain.GiftContext;
 
+/// <summary>
+/// Raised when a gift is sent. Reacted to by the Mail context (creates the gift message).
+/// Token removal from the sender's portfolio is handled by the User aggregate itself.
+/// </summary>
 internal sealed record GiftSentEvent(
-    Guid GiftId,
     long SenderId,
     long RecipientId,
-    string TokenSymbol,
-    decimal Quantity,
-    DateTime SentAt
-) : INotification;
-
-internal sealed record GiftReceivedEvent(
-    Guid GiftId,
-    long SenderId,
-    long RecipientId,
-    string TokenSymbol,
-    decimal Quantity,
-    DateTime ReceivedAt
-) : INotification;
-
-internal sealed record AllGiftsReceivedEvent(
-    long RecipientId,
-    IReadOnlyList<GiftReceivedData> Gifts,
-    DateTime ReceivedAt
-) : INotification;
-
-internal sealed record GiftReceivedData(
-    Guid GiftId,
-    long SenderId,
-    string TokenSymbol,
-    decimal Quantity
-);
+    string SenderName,
+    string Symbol,
+    int Quantity,
+    DateTime CreatedAt) : INotification;

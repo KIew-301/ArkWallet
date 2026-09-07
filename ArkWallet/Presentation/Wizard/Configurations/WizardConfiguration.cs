@@ -381,7 +381,7 @@ namespace ArkWallet.Entities.Configurations
                 },
             };
 
-            Commands["/get_gifts_list"] = steps;
+            Commands["/send_gift"] = steps;
 
             steps = new List<WizardStep>
             {
@@ -392,7 +392,7 @@ namespace ArkWallet.Entities.Configurations
                 },
             };
 
-            Commands["/collect_all_gifts"] = steps;
+            Commands["/global_goals"] = steps;
         }
 
         private static List<QuickButton> CreateCountButtons()

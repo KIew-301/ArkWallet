@@ -1,5 +1,6 @@
 using ArkWallet.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Application.Contracts.Decorators;
+using ArkWallet.Application.Contracts.MailServices;
 using ArkWallet.Application.Contracts.GiftServices;
 using ArkWallet.Application.Contracts.Leaders;
 using ArkWallet.Application.Contracts.MarketMaker;
@@ -12,6 +13,7 @@ using ArkWallet.Application.Contracts.SuggestionServices;
 using ArkWallet.Application.Contracts.TradeOrderServices;
 using ArkWallet.Application.Contracts.TradeServices;
 using ArkWallet.Application.Contracts.TraderServices;
+using ArkWallet.Application.Contracts.GlobalGoalServices;
 using ArkWallet.Application.Services.Wizard;
 using ArkWallet.Domain.ValueObjects;
 using ArkWallet.Entities.Configurations;
@@ -59,9 +61,10 @@ internal static class WizardEngineTestHelper
         var tokenService = new Mock<ITokenService>();
         var tradingVolumeService = new Mock<ITradingVolumeService>();
         var messageSender = new Mock<IMessageSender>();
-        var giftSendingService = new Mock<IGiftSendingService>();
-        var giftReceivingService = new Mock<IGiftReceivingService>();
-        var giftQueryService = new Mock<IQueryGiftService>();
+        var mailGiftService = new Mock<IGiftSendingService>();
+        var mailMessageService = new Mock<IMailMessageService>();
+        var mailQueryService = new Mock<IMailQueryService>();
+        var mailStatusUpdatingService = new Mock<IMailStatusUpdatingService>();
         var metricsSnapshotService = new Mock<IMetricsSnapshotService>();
 
         var miningGlobalRuleQueryService = new Mock<IMiningGlobalRuleQueryService>();
@@ -80,6 +83,9 @@ internal static class WizardEngineTestHelper
         var miningMachineCreationOrchestrator = new Mock<IMiningMachineCreationOrchestrator>();
         var miningMachineSlotTakingTokenOrchestrator = new Mock<IMiningMachineSlotTakingTokenOrchestrator>();
         var miningMachineSlotSellingOrchestrator = new Mock<IMiningMachineSlotSellingOrchestrator>();
+
+        var globalGoalQueryService = new Mock<IGlobalGoalQueryService>();
+        var globalGoalCreationService = new Mock<IGlobalGoalCreationService>();
 
         var configuration = new Mock<IConfiguration>();
         configuration.Setup(c => c["Telegram:AdminId:Main"]).Returns("999999");
@@ -119,9 +125,10 @@ internal static class WizardEngineTestHelper
             tokenService.Object,
             tradingVolumeService.Object,
             messageSender.Object,
-            giftSendingService.Object,
-            giftReceivingService.Object,
-            giftQueryService.Object,
+            mailGiftService.Object,
+            mailMessageService.Object,
+            mailQueryService.Object,
+            mailStatusUpdatingService.Object,
             configuration.Object,
             questionDecorator.Object,
             buttonDecorator.Object,
@@ -142,6 +149,8 @@ internal static class WizardEngineTestHelper
             miningMachineCreationOrchestrator.Object,
             miningMachineSlotTakingTokenOrchestrator.Object,
             miningMachineSlotSellingOrchestrator.Object,
+            globalGoalQueryService.Object,
+            globalGoalCreationService.Object,
             config,
             DbTest.CreateDbContext(),
             new AccessControlService()
@@ -172,9 +181,10 @@ internal static class WizardEngineTestHelper
             TokenService = tokenService,
             TradingVolume = tradingVolumeService,
             MessageSender = messageSender,
-            GiftSending = giftSendingService,
-            GiftReceiving = giftReceivingService,
-            GiftQuery = giftQueryService,
+            MailGift = mailGiftService,
+            MailMessage = mailMessageService,
+            MailQuery = mailQueryService,
+            MailStatusUpdating = mailStatusUpdatingService,
             Configuration = configuration,
             MiningGlobalRuleQuery = miningGlobalRuleQueryService,
             MiningMachineQuery = miningMachineQueryService,
@@ -191,7 +201,9 @@ internal static class WizardEngineTestHelper
             MiningMachineSlotSwitchingOrchestrator = miningMachineSlotSwitchingOrchestrator,
             MiningMachineCreationOrchestrator = miningMachineCreationOrchestrator,
             MiningMachineSlotTakingTokenOrchestrator = miningMachineSlotTakingTokenOrchestrator,
-            MiningMachineSlotSellingOrchestrator = miningMachineSlotSellingOrchestrator
+            MiningMachineSlotSellingOrchestrator = miningMachineSlotSellingOrchestrator,
+            GlobalGoalQuery = globalGoalQueryService,
+            GlobalGoalCreation = globalGoalCreationService
         };
     }
 }
@@ -221,9 +233,10 @@ internal class ServiceMocks
     public Mock<ITokenService> TokenService { get; init; } = null!;
     public Mock<ITradingVolumeService> TradingVolume { get; init; } = null!;
     public Mock<IMessageSender> MessageSender { get; init; } = null!;
-    public Mock<IGiftSendingService> GiftSending { get; init; } = null!;
-    public Mock<IGiftReceivingService> GiftReceiving { get; init; } = null!;
-    public Mock<IQueryGiftService> GiftQuery { get; init; } = null!;
+    public Mock<IGiftSendingService> MailGift { get; init; } = null!;
+    public Mock<IMailMessageService> MailMessage { get; init; } = null!;
+    public Mock<IMailQueryService> MailQuery { get; init; } = null!;
+    public Mock<IMailStatusUpdatingService> MailStatusUpdating { get; init; } = null!;
     public Mock<IConfiguration> Configuration { get; init; } = null!;
     public Mock<IMiningGlobalRuleQueryService> MiningGlobalRuleQuery { get; init; } = null!;
     public Mock<IMiningMachineQueryService> MiningMachineQuery { get; init; } = null!;
@@ -241,4 +254,6 @@ internal class ServiceMocks
     public Mock<IMiningMachineCreationOrchestrator> MiningMachineCreationOrchestrator { get; init; } = null!;
     public Mock<IMiningMachineSlotTakingTokenOrchestrator> MiningMachineSlotTakingTokenOrchestrator { get; init; } = null!;
     public Mock<IMiningMachineSlotSellingOrchestrator> MiningMachineSlotSellingOrchestrator { get; init; } = null!;
+    public Mock<IGlobalGoalQueryService> GlobalGoalQuery { get; init; } = null!;
+    public Mock<IGlobalGoalCreationService> GlobalGoalCreation { get; init; } = null!;
 }

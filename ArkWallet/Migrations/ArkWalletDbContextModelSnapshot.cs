@@ -95,41 +95,158 @@ namespace ArkWallet.Migrations
                     b.ToTable("CharacterTokens");
                 });
 
-            modelBuilder.Entity("ArkWallet.Domain.Entities.Gift", b =>
+            modelBuilder.Entity("ArkWallet.Domain.Entities.GlobalGoal", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("PriceAtSend")
-                        .HasColumnType("numeric");
-
-                    b.Property<decimal>("Quantity")
-                        .HasColumnType("numeric");
-
-                    b.Property<DateTime?>("ReceivedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<long>("RecipientId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("SenderId")
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("AchievedCount")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Actual")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Progress")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("Target")
+                        .HasColumnType("numeric");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("GlobalGoals");
+                });
+
+            modelBuilder.Entity("ArkWallet.Domain.Entities.GlobalGoalHistory", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
 
-                    b.Property<DateTime>("SentAt")
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("AchievedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("AmountForReward")
+                        .HasColumnType("numeric");
+
+                    b.Property<long>("GoalId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("SymbolForReward")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Target")
+                        .HasColumnType("numeric");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GoalId");
+
+                    b.ToTable("GlobalGoalHistories");
+                });
+
+            modelBuilder.Entity("ArkWallet.Domain.Entities.GlobalGoalStep", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("AmountForReward")
+                        .HasColumnType("numeric");
+
+                    b.Property<long>("GoalId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("StepNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SymbolForReward")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Target")
+                        .HasColumnType("numeric");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GoalId", "StepNumber")
+                        .IsUnique();
+
+                    b.ToTable("GlobalGoalSteps");
+                });
+
+            modelBuilder.Entity("ArkWallet.Domain.Entities.MailMessage", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("AmountForReward")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("SenderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("SenderName")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("TokenSymbol")
+                    b.Property<string>("SymbolForReward")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long>("TraderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Type")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Gifts");
+                    b.ToTable("MailMessages");
                 });
 
             modelBuilder.Entity("ArkWallet.Domain.Entities.MarketMakerBot", b =>
@@ -606,6 +723,24 @@ namespace ArkWallet.Migrations
                     b.Navigation("Trader");
                 });
 
+            modelBuilder.Entity("ArkWallet.Domain.Entities.GlobalGoalHistory", b =>
+                {
+                    b.HasOne("ArkWallet.Domain.Entities.GlobalGoal", null)
+                        .WithMany("Histories")
+                        .HasForeignKey("GoalId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ArkWallet.Domain.Entities.GlobalGoalStep", b =>
+                {
+                    b.HasOne("ArkWallet.Domain.Entities.GlobalGoal", null)
+                        .WithMany("Steps")
+                        .HasForeignKey("GoalId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("ArkWallet.Domain.Entities.MiningGlobalRule", b =>
                 {
                     b.HasOne("ArkWallet.Domain.Entities.CharacterToken", "CharacterToken")
@@ -752,6 +887,13 @@ namespace ArkWallet.Migrations
                     b.Navigation("CharacterToken");
 
                     b.Navigation("Trader");
+                });
+
+            modelBuilder.Entity("ArkWallet.Domain.Entities.GlobalGoal", b =>
+                {
+                    b.Navigation("Histories");
+
+                    b.Navigation("Steps");
                 });
 
             modelBuilder.Entity("ArkWallet.Domain.Entities.MiningMachine", b =>
