@@ -2,10 +2,10 @@ using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Core.GiftContext.Application.Contracts.GiftServices;
 using ArkWallet.Core.General.Domain.Common;
+using ArkWallet.Core.MailContext.Domain.Message;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Core.GiftContext.Domain.User;
 using ArkWallet.Core.GiftContext.Domain.Events;
-using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 

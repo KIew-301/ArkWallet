@@ -1,5 +1,4 @@
 using ArkWallet.Core.General.Domain.Common;
-using ArkWallet.Infrastructure.Data;
 using ArkWallet.Core.General.Domain.Exceptions;
 using ArkWallet.Core.MailContext.Domain.Events;
 

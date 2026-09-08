@@ -1,4 +1,5 @@
 using ArkWallet.Core.MailContext.Application.Contracts.MailServices;
+using ArkWallet.Core.MailContext.Domain.Message;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Core.GiftContext.Domain.User;
 using ArkWallet.Core.GiftContext.Domain.Events;
