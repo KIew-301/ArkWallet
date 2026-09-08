@@ -1,6 +1,7 @@
-﻿using ArkWallet.Application.Contracts.TradeOrderServices;
-using ArkWallet.Application.Contracts.TradeServices;
-using ArkWallet.Domain.ValueObjects;
+using ValueObjects = global::ArkWallet.Core.General.Domain.ValueObjects;
+using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.TradeServices;
+using ArkWallet.Core.General.Domain.ValueObjects;
 using Microsoft.CodeAnalysis;
 
 namespace ArkWallet.Infrastructure.Wizard
@@ -91,7 +92,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 return StepResult.Error(result.Message);
 
             var order = data.Order;
-            var isBuy = order.Direction == Domain.ValueObjects.OrderType.Buy;
+            var isBuy = order.Direction == ValueObjects.OrderType.Buy;
 
             var message = isBuy
                 ? $"⏳ Ожидаем, когда вам продадут {order.Quantity} шт. токенов {order.Symbol} по {order.Price:F2}{Descriptor.CurrencySymbol}"

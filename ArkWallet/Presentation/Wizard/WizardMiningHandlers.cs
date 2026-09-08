@@ -1,7 +1,8 @@
-using ArkWallet.Application.Contracts.MiningMachineServices;
-using ArkWallet.Application.Contracts.Orchestrators;
-using ArkWallet.Domain.Engines;
-using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Core.MiningContext.Domain.Engines;
+using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.General.Application.Contracts.Orchestrators;
+using ArkWallet.Core.TradingContext.Domain.Engines;
+using ArkWallet.Core.General.Domain.ValueObjects;
 
 namespace ArkWallet.Infrastructure.Wizard
 {

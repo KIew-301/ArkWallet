@@ -1,16 +1,20 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Contracts.Leaders;
-using ArkWallet.Application.Contracts.MarketMaker;
-using ArkWallet.Application.Contracts.Other;
-using ArkWallet.Application.Contracts.PortfolioServices;
-using ArkWallet.Application.Contracts.TradeOrderServices;
-using ArkWallet.Application.Contracts.TradeServices;
-using ArkWallet.Application.Contracts.TraderServices;
-using ArkWallet.Application.Dtos;
-using ArkWallet.Application.Services.TraderServices;
-using ArkWallet.Application.Services.Wizard;
-using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Core.General.Application.Contracts.Leaders;
+using ArkWallet.Core.TradingContext.Application.Contracts.MarketMaker;
+using ArkWallet.Core.General.Application.Contracts.Other;
+using ArkWallet.Core.TradingContext.Application.Contracts.Other;
+using ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
+using ArkWallet.Core.TradingContext.Application.Services.TradeOrderServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.TradeServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.TraderServices;
+using ArkWallet.Core.General.Application.Dtos;
+using ArkWallet.Core.MiningContext.Application.Dtos;
+using ArkWallet.Core.TradingContext.Application.Dtos;
+using ArkWallet.Core.TradingContext.Application.Services.TraderServices;
+using ArkWallet.Core.General.Application.Services.Wizard;
+using ArkWallet.Core.General.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Wizard;
 using Moq;
 
@@ -229,8 +233,8 @@ public class UserWizardCommandsTest : IDisposable
             .Setup(s => s.ValidatePrice(100m))
             .Returns(new ValidationResult(true));
 
-        var orderDto = new OrderDto("order-1", Domain.ValueObjects.OrderType.Buy, UserId, "ZZZ", 5, 100m,
-            Domain.ValueObjects.OrderStatus.Active, DateTime.UtcNow);
+        var orderDto = new OrderDto("order-1", OrderType.Buy, UserId, "ZZZ", 5, 100m,
+            OrderStatus.Active, DateTime.UtcNow);
         _m.OrderCreation
             .Setup(s => s.CreateOrderAsync(It.IsAny<CreateOrderCommand>()))
             .ReturnsAsync(Result<OrderCreationData>.Ok(new OrderCreationData(false, orderDto)));
@@ -270,8 +274,8 @@ public class UserWizardCommandsTest : IDisposable
             .Setup(s => s.ValidatePrice(150m))
             .Returns(new ValidationResult(true));
 
-        var orderDto = new OrderDto("order-2", Domain.ValueObjects.OrderType.Sell, UserId, "ZZZ", 10, 150m,
-            Domain.ValueObjects.OrderStatus.Active, DateTime.UtcNow);
+        var orderDto = new OrderDto("order-2", OrderType.Sell, UserId, "ZZZ", 10, 150m,
+            OrderStatus.Active, DateTime.UtcNow);
         _m.OrderCreation
             .Setup(s => s.CreateOrderAsync(It.IsAny<CreateOrderCommand>()))
             .ReturnsAsync(Result<OrderCreationData>.Ok(new OrderCreationData(false, orderDto)));

@@ -1,8 +1,11 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Contracts.MiningMachineServices;
-using ArkWallet.Application.Dtos;
-using ArkWallet.Domain.Engines;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.General.Application.Dtos;
+using ArkWallet.Core.MiningContext.Application.Dtos;
+using ArkWallet.Core.TradingContext.Application.Dtos;
+using ArkWallet.Core.MiningContext.Domain.Engines;
+using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Infrastructure.Wizard;
 using Moq;
 

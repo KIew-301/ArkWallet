@@ -1,4 +1,4 @@
-using ArkWallet.Application.Dtos;
+using ArkWallet.Core.MiningContext.Application.Dtos;
 
 namespace ArkWallet.Presentation.DTOs
 {
