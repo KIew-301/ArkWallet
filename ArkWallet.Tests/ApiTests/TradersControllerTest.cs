@@ -1,6 +1,6 @@
-﻿using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.TraderServices;
-using ArkWallet.Application.Services.TraderServices;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.TradingContext.Application.Contracts.TraderServices;
+using ArkWallet.Core.TradingContext.Application.Services.TraderServices;
 using ArkWallet.Presentation.API;
 using ArkWallet.Presentation.DTOs;
 using ArkWallet.Tests.HelpTools;

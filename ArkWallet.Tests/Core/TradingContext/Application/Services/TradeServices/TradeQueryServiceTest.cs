@@ -1,0 +1,178 @@
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.TradingContext.Application.Contracts.TradeServices;
+using ArkWallet.Core.TradingContext.Application.Services.TradeServices;
+using ArkWallet.Core.General.Domain.ValueObjects;
+using ArkWallet.Core.TradingContext.Domain.TraderAggregate;
+using ArkWallet.Core.TradingContext.Domain.TokenAggregate;
+using ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
+using ArkWallet.Core.TradingContext.Domain.TradeAggregate;
+using ArkWallet.Core.TradingContext.Domain.Engines;
+using ArkWallet.Core.PortfolioContext.Domain.Position;
+using ArkWallet.Core.GiftContext.Domain.User;
+using ArkWallet.Core.MailContext.Domain.Message;
+using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
+using ArkWallet.Core.MiningContext.Domain.Machine;
+using ArkWallet.Core.MiningContext.Domain.GlobalRule;
+using ArkWallet.Core.MiningContext.Domain.Engines;
+using ArkWallet.Core.General.Domain.ValueObjects;
+using ArkWallet.Infrastructure.Data;
+using ArkWallet.Tests.HelpTools;
+using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
+
+namespace ArkWallet.Tests.Core.TradingContext.Application.Services.TradeServices;
+
+public class TradeQueryServiceTest
+{
+    [Fact]
+    public async Task GetTraderTradesAsync_WhenNoTrades_ReturnsEmptyList()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 1001);
+
+        var logger = NullLogger<TradeQueryService>.Instance;
+        var service = new TradeQueryService(db, logger);
+
+        var result = await service.GetTraderTradesAsync(1001);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var data));
+        Assert.Empty(data);
+    }
+
+    [Fact]
+    public async Task GetTraderTradesAsync_WhenTradesExist_ReturnsAllTrades()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
+        await HelpMethods.CreateToken(db, "ZZZ", "Zero");
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 10);
+
+        await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
+
+        var logger = NullLogger<TradeQueryService>.Instance;
+        var service = new TradeQueryService(db, logger);
+
+        var result = await service.GetTraderTradesAsync(1001);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var data));
+        Assert.Single(data);
+    }
+
+    [Fact]
+    public async Task GetTraderTradesAsync_AsBuyer_ReturnsCorrectProfit()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
+        await HelpMethods.CreateToken(db, "ZZZ", "Zero");
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 10);
+
+        await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
+
+        var logger = NullLogger<TradeQueryService>.Instance;
+        var service = new TradeQueryService(db, logger);
+
+        var result = await service.GetTraderTradesAsync(1001);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var data));
+
+        var trade = data.First();
+        Assert.Equal("Buyer", trade.TraderRole);
+        Assert.Equal(-500m, trade.Profit);
+    }
+
+    [Fact]
+    public async Task GetTraderTradesAsync_AsSeller_ReturnsCorrectProfit()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
+        await HelpMethods.CreateToken(db, "ZZZ", "Zero");
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 10);
+
+        await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
+
+        var logger = NullLogger<TradeQueryService>.Instance;
+        var service = new TradeQueryService(db, logger);
+
+        var result = await service.GetTraderTradesAsync(1002);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var data));
+
+        var trade = data.First();
+        Assert.Equal("Seller", trade.TraderRole);
+        Assert.Equal(500m, trade.Profit);
+    }
+
+    [Fact]
+    public async Task GetTraderTradesAsync_ReturnsCorrectTradeInfo()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
+        await HelpMethods.CreateToken(db, "ZZZ", "Zero");
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 10);
+
+        await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
+
+        var logger = NullLogger<TradeQueryService>.Instance;
+        var service = new TradeQueryService(db, logger);
+
+        var result = await service.GetTraderTradesAsync(1001);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var data));
+
+        var trade = data.First();
+        Assert.NotNull(trade.TokenInfo);
+        Assert.Equal("ZZZ", trade.TokenInfo.Symbol);
+        Assert.Equal(100m, trade.ExecutionPrice);
+        Assert.Equal(5m, trade.Quantity);
+    }
+
+    [Fact]
+    public async Task GetTraderTradesAsync_WithTokenInfo_ReturnsIcon()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002);
+        await HelpMethods.CreateToken(db, "ZZZ", "Zero", CharacterRarity.FourStar, 1000, 100m, true, "image.png", "icon.png");
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 10);
+
+        await HelpMethods.PlaceOrder(db, 1002, "продать", "ZZZ", 5, 100);
+        await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 5, 100);
+
+        var logger = NullLogger<TradeQueryService>.Instance;
+        var service = new TradeQueryService(db, logger);
+
+        var result = await service.GetTraderTradesAsync(1001, withTokenInfo: true);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var data));
+
+        var trade = data.First();
+        Assert.NotNull(trade.TokenInfo);
+        Assert.Equal("icon.png", trade.TokenInfo.IconUrl);
+    }
+}
