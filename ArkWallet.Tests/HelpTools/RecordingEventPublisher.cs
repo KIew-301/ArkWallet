@@ -1,4 +1,4 @@
-using ArkWallet.Domain.Common;
+using ArkWallet.Core.General.Domain.Common;
 using MediatR;
 
 namespace ArkWallet.Tests.HelpTools;

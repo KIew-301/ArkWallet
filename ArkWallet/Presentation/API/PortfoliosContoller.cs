@@ -1,4 +1,4 @@
-﻿using ArkWallet.Application.Contracts.PortfolioServices;
+using ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices;
 using ArkWallet.Presentation.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

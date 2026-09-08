@@ -1,14 +1,28 @@
-﻿using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Contracts.Other;
-using ArkWallet.Application.Contracts.TradeOrderServices;
-using ArkWallet.Application.Services.CharacterTokenServices;
-using ArkWallet.Application.Services.PortfolioServices;
-using ArkWallet.Application.Services.TradeOrderServices;
-using ArkWallet.Application.Services.TraderServices;
-using ArkWallet.Domain.Engines;
-using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Core.General.Application.Contracts.Other;
+using ArkWallet.Core.TradingContext.Application.Contracts.Other;
+using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
+using ArkWallet.Core.TradingContext.Application.Services.TradeOrderServices;
+using ArkWallet.Core.TradingContext.Application.Services.CharacterTokenServices;
+using ArkWallet.Core.PortfolioContext.Application.Services.PortfolioServices;
+using ArkWallet.Core.TradingContext.Application.Services.TradeOrderServices;
+using ArkWallet.Core.TradingContext.Application.Services.TraderServices;
+using ArkWallet.Core.MiningContext.Domain.Engines;
+using ArkWallet.Core.TradingContext.Domain.Engines;
+using ArkWallet.Core.General.Domain.ValueObjects;
+using ArkWallet.Core.TradingContext.Domain.TokenAggregate;
+using ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
+using ArkWallet.Core.TradingContext.Domain.TradeAggregate;
+using ArkWallet.Core.TradingContext.Domain.Engines;
+using ArkWallet.Core.PortfolioContext.Domain.Position;
+using ArkWallet.Core.GiftContext.Domain.User;
+using ArkWallet.Core.MailContext.Domain.Message;
+using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
+using ArkWallet.Core.MiningContext.Domain.Machine;
+using ArkWallet.Core.MiningContext.Domain.GlobalRule;
+using ArkWallet.Core.MiningContext.Domain.Engines;
+using ArkWallet.Core.General.Domain.ValueObjects;
 using ArkWallet.Infrastructure;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +30,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace ArkWallet.Tests.HelpTools;
+
+using PriceCandle = global::ArkWallet.Infrastructure.Data.PriceCandle;
 
 internal class HelpMethods
 {

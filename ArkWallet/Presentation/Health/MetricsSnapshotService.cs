@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.Other;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.General.Application.Contracts.Other;
 
 namespace ArkWallet.Presentation.Health;
 

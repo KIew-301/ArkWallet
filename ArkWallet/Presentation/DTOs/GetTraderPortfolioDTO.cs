@@ -1,5 +1,5 @@
-﻿using ArkWallet.Application.Contracts.PortfolioServices;
-using ArkWallet.Application.Dtos;
+using ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices;
+using ArkWallet.Core.General.Application.Dtos;
 
 namespace ArkWallet.Presentation.DTOs
 {

@@ -1,7 +1,8 @@
-using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Contracts.MailServices;
-using ArkWallet.Application.Contracts.Other;
-using ArkWallet.Application.Services.MailServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Core.MailContext.Application.Contracts.MailServices;
+using ArkWallet.Core.General.Application.Contracts.Other;
+using ArkWallet.Core.TradingContext.Application.Contracts.Other;
+using ArkWallet.Core.MailContext.Application.Services.MailServices;
 using ArkWallet.Infrastructure;
 using ArkWallet.Infrastructure.Data;
 using MediatR;
