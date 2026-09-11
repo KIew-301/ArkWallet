@@ -52,7 +52,8 @@ public class ArchitectureDomainRules
             }
 
             var deniedInContext = ArkKinds.DomainOf(ownContext)
-                .Where(d => d != root && d != part);
+                .Where(d => d != root && d != part
+                    && ArkKinds.DomainFolder(d) != "Events");
 
             var denied = ArkKinds.DomainExcept(ownContext, ArkArchitecture.GeneralContext)
                 .Concat(deniedInContext);
@@ -86,7 +87,28 @@ public class ArchitectureDomainRules
                             && !o.IsCompilerGenerated
                             && o.FullName != part.FullName
                             && o.FullName != root.FullName)
-                .Select(o => o.FullName)
+                .Where(o =>
+                {
+                    if (o.Name.EndsWith("Mapper", StringComparison.Ordinal)
+                        || o.Name.EndsWith("Data", StringComparison.Ordinal)
+                        || o.Name.EndsWith("Dto", StringComparison.Ordinal)
+                        || o.Name.EndsWith("EventHandler", StringComparison.Ordinal))
+                    {
+                        return false;
+                    }
+
+                    if (o is Class cls && ArkKinds.IsDomain(cls))
+                    {
+                        var folder = ArkKinds.DomainFolder(cls);
+                        if (folder is "Events" or "Engines")
+                        {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                })
+                .Select(o => o.FullName!)
                 .Distinct()
                 .ToArray();
 
@@ -97,7 +119,66 @@ public class ArchitectureDomainRules
         }
 
         Assert.True(violations.Count == 0,
-            $"К частям агрегата обращается только корень агрегата (правило 14).{Environment.NewLine}{string.Join(Environment.NewLine, violations)}");
+            $"К частям агрегата обращается только корень агрегата, мапперы и Domain Events (правило 14).{Environment.NewLine}{string.Join(Environment.NewLine, violations)}");
+    }
+
+    [Fact]
+    public void Rule16_DomainEventsAreDefinedOnlyInDomainEventsFolder()
+    {
+        var violations = ArkArchitecture.Model.Classes
+            .Where(c => !c.IsCompilerGenerated
+                        && c.ImplementedInterfaces.Any(i => i.Name == "INotification`1"))
+            .Where(c => !ArkKinds.IsDomain(c) || ArkKinds.DomainFolder(c) != "Events")
+            .Select(c => c.FullName)
+            .ToArray();
+
+        Assert.True(violations.Length == 0,
+            $"Domain Events (INotification) должны располагаться в Domain/Events каждого контекста (правило 16).{Environment.NewLine}{string.Join(Environment.NewLine, violations)}");
+    }
+
+    [Fact]
+    public void Rule17_DomainEventsDependOnlyOnDomainTypes()
+    {
+        var violations = new List<string>();
+        var domainEvents = ArkArchitecture.Model.Classes
+            .Where(c => !c.IsCompilerGenerated
+                        && ArkKinds.IsDomain(c)
+                        && ArkKinds.DomainFolder(c) == "Events")
+            .ToArray();
+
+        foreach (var evt in domainEvents)
+        {
+            foreach (var dep in evt.Dependencies)
+            {
+                var target = dep.Target?.FullName;
+                if (target == null || target == evt.FullName)
+                {
+                    continue;
+                }
+
+                if (target.StartsWith("ArkWallet.Core.", StringComparison.Ordinal))
+                {
+                    if (ArkArchitecture.InNamespace(dep.Target, ArkNamespaces.DomainPattern))
+                    {
+                        continue;
+                    }
+
+                    violations.Add($"{evt.FullName} -> {target}");
+                    continue;
+                }
+
+                if (target.StartsWith("MediatR.", StringComparison.Ordinal)
+                    || target.StartsWith("System.", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                violations.Add($"{evt.FullName} -> {target}");
+            }
+        }
+
+        Assert.True(violations.Count == 0,
+            $"Domain Events ссылаются только на Domain-типы (правило 17).{Environment.NewLine}{string.Join(Environment.NewLine, violations)}");
     }
 
     [Fact]

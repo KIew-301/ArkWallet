@@ -117,7 +117,7 @@ public static class ArkKinds
     private static readonly Lazy<Class[]> ApplicationClasses = LazyOf(() =>
         AllClasses.Value.Where(IsApplication).ToArray());
 
-    private static string DomainFolder(Class c)
+    internal static string DomainFolder(Class c)
     {
         const string marker = ".Domain.";
         var ns = c.Namespace!.FullName;
@@ -168,6 +168,13 @@ public static class ArkKinds
         }
 
         if (c.BaseClass?.FullName == "System.Enum")
+        {
+            return false;
+        }
+
+        if (c.Name.EndsWith("Data", StringComparison.Ordinal)
+            || c.Name.EndsWith("Dto", StringComparison.Ordinal)
+            || c.Name.EndsWith("Command", StringComparison.Ordinal))
         {
             return false;
         }
