@@ -26,7 +26,7 @@ internal class MiningMachineRuleUpdateService(ArkWalletDbContext dbContext, ILog
                 if (rule is null)
                     return Fail($"Правило майнинга с Id '{command.MiningRuleId}' не найдено");
 
-                rule.UpdateCoefficient(command.MiningCoefficient);
+                rule.Update(command.MiningCoefficient);
                 await MiningMachineRecomputeHelper.RecomputeMachinesAsync(dbContext, [rule.MiningMachineId]);
                 await dbContext.SaveChangesAsync();
 

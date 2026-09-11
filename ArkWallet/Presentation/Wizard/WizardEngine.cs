@@ -24,7 +24,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using ArkWallet.Core.ShoppingContext.Application.Orchestrators;
+using ArkWallet.Core.ShoppingContext.Application.Contracts.Orchestrators;
 
 namespace ArkWallet.Infrastructure.Wizard
 {

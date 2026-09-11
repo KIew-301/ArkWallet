@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ArkWallet.Infrastructure.Data;
 
-internal class GlobalGoalStep
+internal class GlobalGoalStep : EntityData
 {
     [Key]
     public long Id { get; set; }

@@ -65,7 +65,9 @@ public class MiningMachineSlotBuyingServiceTest
         Assert.Equal(machine.SwitchingTime, slot.SwitchingTime);
         Assert.Equal(machine.Efficiency, slot.Efficiency);
         Assert.Equal(machine.Image, slot.Image);
-        Assert.Equal(machine.GetSellingPrice(), slot.Cost);
+        Assert.Equal(
+            ArkWallet.Core.ShoppingContext.Domain.Machine.Machine.CalculateSellingPrice(machine.Cost, machine.Reusability),
+            slot.Cost);
         Assert.Equal(MiningMachineSlotStatus.Passive, slot.Status);
         Assert.Empty(await db.MiningMachineSlotRules.Where(r => r.MiningMachineSlotId == slot.Id).ToListAsync());
     }

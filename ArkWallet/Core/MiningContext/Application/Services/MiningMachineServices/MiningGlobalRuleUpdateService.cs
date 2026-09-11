@@ -1,7 +1,6 @@
 using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
 using ArkWallet.Infrastructure.Data;
-using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -59,10 +58,6 @@ internal class MiningGlobalRuleUpdateService(ArkWalletDbContext dbContext, ILogg
         decimal? futureCoefficient,
         decimal? baseTokenMiningSpeed)
     {
-        if (currentCoefficient.HasValue)
-            rule.UpdateCoefficients(currentCoefficient.Value, futureCoefficient!.Value);
-
-        if (baseTokenMiningSpeed.HasValue)
-            rule.UpdateBaseTokenMiningSpeed(baseTokenMiningSpeed.Value);
+        rule.Update(currentCoefficient, futureCoefficient, baseTokenMiningSpeed);
     }
 }

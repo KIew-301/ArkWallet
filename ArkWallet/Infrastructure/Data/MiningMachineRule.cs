@@ -5,7 +5,7 @@ namespace ArkWallet.Infrastructure.Data;
 /// <summary>
 /// Правило майнинга: коэффициент добычи конкретного токена на конкретной машине
 /// </summary>
-internal class MiningMachineRule
+internal class MiningMachineRule : EntityData
 {
     public long Id { get; }
     public long MiningMachineId { get; private set; }
@@ -22,7 +22,8 @@ internal class MiningMachineRule
     {
         if (string.IsNullOrWhiteSpace(characterTokenId))
             throw new DomainException("Токен не указан");
-        ValidateCoefficient(miningCoefficient);
+        if (miningCoefficient < MinMiningCoefficient || miningCoefficient > MaxMiningCoefficient)
+            throw new DomainException($"Коэффициент майнинга должен быть от {MinMiningCoefficient} до {MaxMiningCoefficient}");
 
         return new MiningMachineRule
         {
@@ -32,15 +33,20 @@ internal class MiningMachineRule
         };
     }
 
-    public void UpdateCoefficient(decimal miningCoefficient)
-    {
-        ValidateCoefficient(miningCoefficient);
-        MiningCoefficient = miningCoefficient;
-    }
-
-    private static void ValidateCoefficient(decimal miningCoefficient)
+    public void Update(decimal miningCoefficient)
     {
         if (miningCoefficient < MinMiningCoefficient || miningCoefficient > MaxMiningCoefficient)
             throw new DomainException($"Коэффициент майнинга должен быть от {MinMiningCoefficient} до {MaxMiningCoefficient}");
+        MiningCoefficient = miningCoefficient;
+    }
+
+    public MiningMachineRule Copy()
+    {
+        return new MiningMachineRule
+        {
+            MiningMachineId = MiningMachineId,
+            CharacterTokenId = CharacterTokenId,
+            MiningCoefficient = MiningCoefficient
+        };
     }
 }

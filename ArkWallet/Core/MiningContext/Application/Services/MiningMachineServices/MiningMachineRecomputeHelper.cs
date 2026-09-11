@@ -1,5 +1,4 @@
 using ArkWallet.Infrastructure.Data;
-using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace ArkWallet.Core.MiningContext.Application.Services.MiningMachineServices;
@@ -21,7 +20,7 @@ internal static class MiningMachineRecomputeHelper
             .ToListAsync();
 
         foreach (var machine in machines)
-            machine.RecomputeNameAndCost();
+            machine.Update();
 
         await dbContext.SaveChangesAsync();
     }

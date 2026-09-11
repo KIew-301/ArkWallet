@@ -87,7 +87,7 @@ internal class MiningMachineDeletionService(ArkWalletDbContext dbContext, ILogge
                 if (!machine.IsActiveForSale)
                     return Result.Fail($"Майнинг-машина с Id '{machineId}' уже деактивирована");
 
-                machine.SetActiveForSale(false);
+                machine.Update(isActiveForSale: false);
                 await dbContext.SaveChangesAsync();
 
                 return Result.Ok();

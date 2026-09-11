@@ -20,8 +20,7 @@ internal static class MiningContextMapper
 
     internal static void AdvanceRule(MiningGlobalRule rule, decimal newFutureCoefficient, decimal baseTokenMiningSpeed)
     {
-        rule.AdvanceCoefficient(newFutureCoefficient);
-        rule.UpdateBaseTokenMiningSpeed(baseTokenMiningSpeed);
+        rule.Update(rule.FutureCoefficient, newFutureCoefficient, baseTokenMiningSpeed);
     }
 
     internal static TokensMiningRuleData BuildRuleData(

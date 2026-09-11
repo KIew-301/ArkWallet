@@ -4,7 +4,7 @@ namespace ArkWallet.Infrastructure.Data;
 /// Правило майнинга слота: копия правила каталогной машины,
 /// зафиксированная на момент покупки.
 /// </summary>
-internal class MiningMachineSlotRule
+internal class MiningMachineSlotRule : EntityData
 {
     public long Id { get; }
     public long MiningMachineSlotId { get; }

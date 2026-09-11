@@ -1,6 +1,6 @@
 namespace ArkWallet.Infrastructure.Data
 {
-    internal class BalanceSnapshot
+    internal class BalanceSnapshot : EntityData
     {
         public long Id { get; set; }
         public decimal TotalBalance { get; private set; }

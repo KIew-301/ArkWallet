@@ -1,11 +1,12 @@
-using ArkWallet.Core.General.Domain.Exceptions;
+using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 
 namespace ArkWallet.Infrastructure.Data;
 
 /// <summary>
-/// Глобальное правило майнинга токена: коэффициенты и базовая скорость добычи токена
+/// Глобальное правило майнинга токена: коэффициенты и базовая скорость добычи токена.
+/// Данные-сущность: только операции создания, обновления и копирования (правило 18).
 /// </summary>
-internal class MiningGlobalRule
+internal class MiningGlobalRule : EntityData
 {
     public long Id { get; }
     public string TokenId { get; private set; } = string.Empty;
@@ -21,51 +22,42 @@ internal class MiningGlobalRule
         decimal futureCoefficient,
         decimal baseTokenMiningSpeed)
     {
-        if (string.IsNullOrWhiteSpace(tokenId))
-            throw new DomainException("Токен не указан");
-        if (currentCoefficient <= 0)
-            throw new DomainException("Текущий коэффициент должен быть больше нуля");
-        if (futureCoefficient <= 0)
-            throw new DomainException("Будущий коэффициент должен быть больше нуля");
-        if (baseTokenMiningSpeed <= 0)
-            throw new DomainException("Базовая скорость должна быть больше нуля");
-
+        var rule = GlobalRule.Create(tokenId, currentCoefficient, futureCoefficient, baseTokenMiningSpeed);
         return new MiningGlobalRule
         {
             TokenId = tokenId,
-            CurrentCoefficient = currentCoefficient,
-            FutureCoefficient = futureCoefficient,
-            BaseTokenMiningSpeed = baseTokenMiningSpeed
+            CurrentCoefficient = rule.CurrentCoefficient,
+            FutureCoefficient = rule.FutureCoefficient,
+            BaseTokenMiningSpeed = rule.BaseTokenMiningSpeed
         };
     }
 
-    /// <summary>Сдвигает коэффициенты: текущий становится будущим, будущий обновляется</summary>
-    public void AdvanceCoefficient(decimal newFutureCoefficient)
+    /// <summary>
+    /// Обновляет переданные поля правила. Null-значения игнорируются.
+    /// Коэффициенты задаются парой — передача только одного вызывает ошибку.
+    /// </summary>
+    public void Update(
+        decimal? currentCoefficient = null,
+        decimal? futureCoefficient = null,
+        decimal? baseTokenMiningSpeed = null)
     {
-        if (newFutureCoefficient <= 0)
-            throw new DomainException("Будущий коэффициент должен быть больше нуля");
+        var rule = GlobalRule.Load(TokenId, CurrentCoefficient, FutureCoefficient, BaseTokenMiningSpeed);
+        rule.Update(currentCoefficient, futureCoefficient, baseTokenMiningSpeed);
 
-        CurrentCoefficient = FutureCoefficient;
-        FutureCoefficient = newFutureCoefficient;
+        CurrentCoefficient = rule.CurrentCoefficient;
+        FutureCoefficient = rule.FutureCoefficient;
+        BaseTokenMiningSpeed = rule.BaseTokenMiningSpeed;
     }
 
-    /// <summary>Обновляет коэффициенты токена напрямую (текущий и будущий)</summary>
-    public void UpdateCoefficients(decimal currentCoefficient, decimal futureCoefficient)
+    /// <summary>Создаёт независимую копию правила</summary>
+    public MiningGlobalRule Copy()
     {
-        if (currentCoefficient <= 0)
-            throw new DomainException("Текущий коэффициент должен быть больше нуля");
-        if (futureCoefficient <= 0)
-            throw new DomainException("Будущий коэффициент должен быть больше нуля");
-
-        CurrentCoefficient = currentCoefficient;
-        FutureCoefficient = futureCoefficient;
-    }
-
-    public void UpdateBaseTokenMiningSpeed(decimal baseTokenMiningSpeed)
-    {
-        if (baseTokenMiningSpeed <= 0)
-            throw new DomainException("Базовая скорость должна быть больше нуля");
-
-        BaseTokenMiningSpeed = baseTokenMiningSpeed;
+        return new MiningGlobalRule
+        {
+            TokenId = TokenId,
+            CurrentCoefficient = CurrentCoefficient,
+            FutureCoefficient = FutureCoefficient,
+            BaseTokenMiningSpeed = BaseTokenMiningSpeed
+        };
     }
 }

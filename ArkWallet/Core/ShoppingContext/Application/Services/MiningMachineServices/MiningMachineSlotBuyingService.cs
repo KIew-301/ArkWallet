@@ -1,4 +1,5 @@
 using ArkWallet.Core.MiningContext.Domain.Engines;
+using ArkWallet.Core.ShoppingContext.Domain.Machine;
 using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.ShoppingContext.Application.Contracts.MiningMachineServices;
 using ArkWallet.Infrastructure.Data;
@@ -31,7 +32,7 @@ internal class MiningMachineSlotBuyingService(
                 var slot = MiningMachineSlot.Create(
                     traderId,
                     purchase.Machine,
-                    purchase.Machine.GetSellingPrice(),
+                    Machine.CalculateSellingPrice(purchase.Machine.Cost, purchase.Machine.Reusability),
                     now);
                 await dbContext.MiningMachineSlots.AddAsync(slot);
 
