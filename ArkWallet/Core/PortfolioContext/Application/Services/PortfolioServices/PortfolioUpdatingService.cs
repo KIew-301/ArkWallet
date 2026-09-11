@@ -1,8 +1,8 @@
 using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices;
-using ArkWallet.Infrastructure.Data;
 using ArkWallet.Core.PortfolioContext.Domain.Position;
 using ArkWallet.Infrastructure.Data;
+using Records = global::ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -32,19 +32,15 @@ internal class PortfolioUpdatingService(ArkWalletDbContext dbContext, ILogger<Po
 
                 if (item == null)
                 {
-                    var position = Position.Create(traderId, symbol, quantity, token.CurrentPrice);
-                    await dbContext.PortfolioItems.AddAsync(PortfolioContextMapper.ToRecord(position));
+                    var position = CreateNewPosition(traderId, symbol, quantity, token.CurrentPrice);
+                    return await SaveNewAsync(position);
                 }
                 else
                 {
-                    var position = PortfolioContextMapper.ToPosition(item);
+                    var position = ToExistingPosition(item);
                     position.CreateOrUpdate(quantity, token.CurrentPrice);
-                    PortfolioContextMapper.ApplyToRecord(item, position);
+                    return await SaveUpdatedAsync(item, position);
                 }
-
-                await dbContext.SaveChangesAsync();
-
-                return Ok();
             });
         }, logger, nameof(PortfolioUpdatingService));
     }
@@ -65,25 +61,23 @@ internal class PortfolioUpdatingService(ArkWalletDbContext dbContext, ILogger<Po
                     if (command.Type is PortfolioChangeType.Buy or PortfolioChangeType.Add)
                     {
                         var price = await GetTokenPriceAsync(command.Symbol);
-                        var position = Position.Create(command.TraderId, command.Symbol, command.Quantity, price);
-                        await dbContext.PortfolioItems.AddAsync(PortfolioContextMapper.ToRecord(position));
-                        await dbContext.SaveChangesAsync();
-                        return Ok();
+                        var position = CreateNewPosition(command.TraderId, command.Symbol, command.Quantity, price);
+                        return await SaveNewAsync(position);
                     }
 
                     return Fail("Позиция в портфеле не найдена");
                 }
 
-                var aggregate = PortfolioContextMapper.ToPosition(item);
+                var aggregate = ToExistingPosition(item);
                 aggregate.ChangePosition(command);
-                PortfolioContextMapper.ApplyToRecord(item, aggregate);
 
                 if (aggregate.IsEmpty)
+                {
                     dbContext.PortfolioItems.Remove(item);
+                    return await SaveChangesAsync();
+                }
 
-                await dbContext.SaveChangesAsync();
-
-                return Ok();
+                return await SaveUpdatedAsync(item, aggregate);
             });
         }, logger, nameof(PortfolioUpdatingService));
     }
@@ -93,4 +87,29 @@ internal class PortfolioUpdatingService(ArkWalletDbContext dbContext, ILogger<Po
         var token = await dbContext.CharacterTokens.FirstOrDefaultAsync(t => t.Symbol == symbol);
         return token?.CurrentPrice ?? 0;
     }
+
+    private async Task<Result> SaveNewAsync(Position position)
+    {
+        await dbContext.PortfolioItems.AddAsync(PortfolioContextMapper.ToRecord(position));
+        await dbContext.SaveChangesAsync();
+        return Ok();
+    }
+
+    private async Task<Result> SaveUpdatedAsync(Records.PortfolioItem item, Position position)
+    {
+        PortfolioContextMapper.ApplyToRecord(item, position);
+        return await SaveChangesAsync();
+    }
+
+    private async Task<Result> SaveChangesAsync()
+    {
+        await dbContext.SaveChangesAsync();
+        return Ok();
+    }
+
+    private static Position CreateNewPosition(long traderId, string symbol, int quantity, decimal price)
+        => Position.Create(traderId, symbol, quantity, price);
+
+    private static Position ToExistingPosition(Records.PortfolioItem item)
+        => PortfolioContextMapper.ToPosition(item);
 }
