@@ -5,6 +5,8 @@ using ArkWallet.Core.General.Application.Contracts.Decorators;
 using ArkWallet.Core.General.Application.Contracts.Leaders;
 using ArkWallet.Core.TradingContext.Application.Contracts.MarketMaker;
 using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.ShoppingContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.MiningContext.Application.Contracts.Orchestrators;
 using ArkWallet.Core.General.Application.Contracts.Orchestrators;
 using ArkWallet.Core.General.Application.Contracts.Other;
 using ArkWallet.Infrastructure.AccessControl;
@@ -22,6 +24,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using ArkWallet.Core.ShoppingContext.Application.Orchestrators;
 
 namespace ArkWallet.Infrastructure.Wizard
 {

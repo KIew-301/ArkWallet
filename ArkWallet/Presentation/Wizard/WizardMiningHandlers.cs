@@ -1,6 +1,7 @@
 using ArkWallet.Core.MiningContext.Domain.Engines;
 using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
-using ArkWallet.Core.General.Application.Contracts.Orchestrators;
+using ArkWallet.Core.ShoppingContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.MiningContext.Application.Contracts.Orchestrators;
 using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Core.General.Domain.ValueObjects;
 

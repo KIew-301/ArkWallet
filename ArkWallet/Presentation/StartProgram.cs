@@ -6,6 +6,8 @@ using ArkWallet.Core.General.Application.Contracts.Decorators;
 using ArkWallet.Core.General.Application.Contracts.Leaders;
 using ArkWallet.Core.TradingContext.Application.Contracts.MarketMaker;
 using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.ShoppingContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.MiningContext.Application.Contracts.Orchestrators;
 using ArkWallet.Core.General.Application.Contracts.Orchestrators;
 using ArkWallet.Core.General.Application.Contracts.Other;
 using ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices;
@@ -20,6 +22,8 @@ using ArkWallet.Core.TradingContext.Application.Services.CharacterTokenServices;
 using ArkWallet.Core.General.Application.Services.Leaders;
 using ArkWallet.Core.TradingContext.Application.Services.MarketMaker;
 using ArkWallet.Core.MiningContext.Application.Services.MiningMachineServices;
+using ArkWallet.Core.ShoppingContext.Application.Services.MiningMachineServices;
+using ArkWallet.Core.ShoppingContext.Application.Services.Orchestrators;
 using ArkWallet.Core.General.Application.Services.Orchestrators;
 using ArkWallet.Core.TradingContext.Application.Services.Other;
 using ArkWallet.Core.GlobalGoalContext.Application.Services.GlobalGoalServices;
@@ -62,6 +66,8 @@ using System.Reflection;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Threading.RateLimiting;
+using ArkWallet.Core.ShoppingContext.Application.Contracts.Orchestrators;
+using ArkWallet.Core.MiningContext.Application.Services.Orchestrators;
 
 [ExcludeFromCodeCoverage(Justification = "Точка входа приложения: конфигурация DI, middleware и инфраструктуры. Не содержит бизнес-логики.")]
 class Program

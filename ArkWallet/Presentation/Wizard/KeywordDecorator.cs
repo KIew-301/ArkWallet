@@ -1,6 +1,7 @@
 using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Core.General.Application.Contracts.Decorators;
 using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.ShoppingContext.Application.Contracts.MiningMachineServices;
 using ArkWallet.Core.TradingContext.Application.Contracts.SuggestionServices;
 using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
 using ArkWallet.Core.General.Domain.ValueObjects;

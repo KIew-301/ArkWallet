@@ -5,7 +5,9 @@ using ArkWallet.Core.GiftContext.Application.Contracts.GiftServices;
 using ArkWallet.Core.General.Application.Contracts.Leaders;
 using ArkWallet.Core.TradingContext.Application.Contracts.MarketMaker;
 using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.MiningContext.Application.Contracts.Orchestrators;
 using ArkWallet.Core.General.Application.Contracts.Orchestrators;
+using ArkWallet.Core.ShoppingContext.Application.Contracts.MiningMachineServices;
 using ArkWallet.Core.General.Application.Contracts.Other;
 using ArkWallet.Core.TradingContext.Application.Contracts.Other;
 using ArkWallet.Infrastructure.AccessControl;
@@ -25,6 +27,7 @@ using ArkWallet.Tests.HelpTools;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using ArkWallet.Core.ShoppingContext.Application.Contracts.Orchestrators;
 
 namespace ArkWallet.Tests.IntegrationTests;
 
