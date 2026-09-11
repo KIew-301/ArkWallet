@@ -2,8 +2,6 @@ using ArkWallet.Core.MiningContext.Domain.Engines;
 using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
 using ArkWallet.Infrastructure.Data;
-using ArkWallet.Core.TradingContext.Domain.Engines;
-using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -31,32 +29,24 @@ internal class MiningMachineSlotCalculationService(
                     .Where(s => s.Status == MiningMachineSlotStatus.Active)
                     .ToListAsync();
 
-                var processed = 0;
-                foreach (var slot in slots)
-                {
-                    if (slot.MiningGlobalRule == null)
-                        continue;
-
-                    var machineRule = slot.MiningMachineSlotRules
-                        .FirstOrDefault(r => r.CharacterTokenId == slot.TokenId);
-                    if (machineRule == null)
-                        continue;
-
-                    var cash = miningEngine.CalculateCash(
-                        slot.MiningGlobalRule.CurrentCoefficient,
-                        machineRule.MiningCoefficient,
-                        slot.Efficiency,
-                        timingCoeff,
-                        slot.MiningGlobalRule.BaseTokenMiningSpeed);
-
-                    slot.AddTokens(cash);
-                    processed++;
-                }
+                var processed = ProcessSlots(slots, timingCoeff);
 
                 await dbContext.SaveChangesAsync();
 
                 return Result<int>.Ok(processed);
             });
         }, logger, nameof(MiningMachineSlotCalculationService));
+    }
+
+    private int ProcessSlots(List<MiningMachineSlot> slots, decimal timingCoeff)
+    {
+        var processed = 0;
+        foreach (var slot in slots)
+        {
+            if (MiningContextMapper.AccumulateTokens(miningEngine, slot, timingCoeff))
+                processed++;
+        }
+
+        return processed;
     }
 }

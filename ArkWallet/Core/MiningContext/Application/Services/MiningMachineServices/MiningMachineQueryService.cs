@@ -3,8 +3,6 @@ using ArkWallet.Core.MiningContext.Application.Dtos;
 using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
 using ArkWallet.Infrastructure.Data;
-using ArkWallet.Core.TradingContext.Domain.Engines;
-using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -64,48 +62,5 @@ internal class MiningMachineQueryService(
         MiningMachine machine,
         Dictionary<string, CharacterToken> tokens,
         Dictionary<string, MiningGlobalRule> globalRules)
-    {
-        var effective = new List<TokensMiningData>();
-        var stable = new List<TokensMiningData>();
-        foreach (var rule in machine.MiningMachineRules)
-        {
-            if (!tokens.TryGetValue(rule.CharacterTokenId, out var token))
-                continue;
-
-            var globalRule = globalRules.GetValueOrDefault(token.Symbol);
-            var miningSpeed = miningEngine.CalculateMiningSpeed(
-                globalRule?.CurrentCoefficient ?? 0m,
-                rule.MiningCoefficient,
-                machine.Efficiency,
-                globalRule?.BaseTokenMiningSpeed ?? 0m);
-            var profit = miningEngine.CalculateProfit(miningSpeed, token.CurrentPrice);
-            var tokenData = new TokensMiningData(token.IconUrl, token.Symbol, miningSpeed, profit);
-
-            if (rule.MiningCoefficient >= MiningEngine.EffectiveMiningCoefficientMin
-                && rule.MiningCoefficient <= MiningEngine.EffectiveMiningCoefficientMax)
-            {
-                effective.Add(tokenData);
-            }
-            else if (rule.MiningCoefficient >= MiningEngine.StableMiningCoefficientMin
-                && rule.MiningCoefficient < MiningEngine.StableMiningCoefficientMax)
-            {
-                stable.Add(tokenData);
-            }
-        }
-
-        var effectiveSorted = effective.OrderByDescending(d => d.Profit).ToList();
-        var stableSorted = stable.OrderByDescending(d => d.Profit).ToList();
-        var maxProfit = effectiveSorted.Concat(stableSorted).Select(d => d.Profit).DefaultIfEmpty(0m).Max();
-
-        return new MiningMachineData(
-            machine.Id,
-            machine.Name,
-            machine.Type.ToString(),
-            maxProfit,
-            machine.SwitchingTime,
-            machine.Reusability,
-            machine.Cost,
-            effectiveSorted,
-            stableSorted);
-    }
+        => MiningContextMapper.BuildMachineData(miningEngine, machine, tokens, globalRules);
 }

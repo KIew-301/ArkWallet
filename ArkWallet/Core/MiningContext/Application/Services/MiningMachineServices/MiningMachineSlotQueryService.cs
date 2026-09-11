@@ -3,8 +3,6 @@ using ArkWallet.Core.MiningContext.Application.Dtos;
 using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
 using ArkWallet.Infrastructure.Data;
-using ArkWallet.Core.TradingContext.Domain.Engines;
-using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -64,73 +62,5 @@ internal class MiningMachineSlotQueryService(
         Dictionary<string, CharacterToken> tokens,
         Dictionary<string, MiningGlobalRule> globalRules,
         DateTime now)
-    {
-        var switchingPercent = miningEngine.CalculateSwitchingPercent(
-            now, slot.StartSwitchingDateTime, slot.EndSwitchingDateTime);
-
-        var activeToken = ActiveTokenMiningData.Empty();
-        if (slot.TokenId != null && tokens.TryGetValue(slot.TokenId, out var activeTokenEntity))
-        {
-            var machineRule = slot.MiningMachineSlotRules
-                .FirstOrDefault(r => r.CharacterTokenId == slot.TokenId);
-            var globalRule = slot.MiningGlobalRule
-                ?? globalRules.GetValueOrDefault(slot.TokenId);
-
-            var miningSpeed = miningEngine.CalculateMiningSpeed(
-                globalRule?.CurrentCoefficient ?? 0m,
-                machineRule?.MiningCoefficient ?? 0m,
-                slot?.Efficiency ?? 0m,
-                globalRule?.BaseTokenMiningSpeed ?? 0m);
-            var profit = miningEngine.CalculateProfit(miningSpeed, activeTokenEntity.CurrentPrice);
-
-            activeToken = new ActiveTokenMiningData(
-                activeTokenEntity.IconUrl,
-                activeTokenEntity.Symbol,
-                miningSpeed,
-                profit);
-        }
-
-        var effective = new List<TokensMiningData>();
-        var stable = new List<TokensMiningData>();
-        foreach (var rule in slot.MiningMachineSlotRules ?? [])
-        {
-            if (rule.CharacterTokenId == slot.TokenId)
-                continue;
-            if (!tokens.TryGetValue(rule.CharacterTokenId, out var token))
-                continue;
-
-            var globalRule = globalRules.GetValueOrDefault(token.Symbol);
-            var miningSpeed = miningEngine.CalculateMiningSpeed(
-                globalRule?.CurrentCoefficient ?? 0m,
-                rule.MiningCoefficient,
-                slot.Efficiency,
-                globalRule?.BaseTokenMiningSpeed ?? 0m);
-            var profit = miningEngine.CalculateProfit(miningSpeed, token.CurrentPrice);
-            var tokenData = new TokensMiningData(token.IconUrl, token.Symbol, miningSpeed, profit);
-
-            if (rule.MiningCoefficient >= MiningEngine.EffectiveMiningCoefficientMin
-                && rule.MiningCoefficient <= MiningEngine.EffectiveMiningCoefficientMax)
-            {
-                effective.Add(tokenData);
-            }
-            else if (rule.MiningCoefficient >= MiningEngine.StableMiningCoefficientMin
-                && rule.MiningCoefficient < MiningEngine.StableMiningCoefficientMax)
-            {
-                stable.Add(tokenData);
-            }
-        }
-
-        return new MiningMachineSlotData(
-            slot.Id,
-            slot.Name,
-            slot.Type.ToString(),
-            slot.Status.ToString(),
-            slot.TokensAmountCollected,
-            switchingPercent,
-            slot.SwitchingTime,
-            slot.Cost,
-            activeToken,
-            effective.OrderByDescending(d => d.Profit).ToList(),
-            stable.OrderByDescending(d => d.Profit).ToList());
-    }
+        => MiningContextMapper.BuildSlotData(miningEngine, slot, tokens, globalRules, now);
 }
