@@ -355,7 +355,6 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
         return new OrderCreationService(
             db,
             engine,
-            validator.Object,
             new MediatREventPublisher(TestMediatorFactory.Create(db, candle.Object)),
             dispatcher.Object,
             logger);

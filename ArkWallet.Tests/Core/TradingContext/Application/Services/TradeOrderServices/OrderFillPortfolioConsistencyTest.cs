@@ -57,7 +57,6 @@ public class OrderFillPortfolioConsistencyTest : IDisposable
         return new OrderCreationService(
             db,
             new TradingEngine(),
-            new OrderValidationService(db),
             new MediatREventPublisher(TestMediatorFactory.Create(db, candleUpdateService)),
             new Mock<ITaskDispatcher>().Object,
             NullLogger<OrderCreationService>.Instance);

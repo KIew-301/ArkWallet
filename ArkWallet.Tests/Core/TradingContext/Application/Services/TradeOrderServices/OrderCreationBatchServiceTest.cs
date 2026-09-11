@@ -35,7 +35,6 @@ public class OrderCreationBatchServiceTest
         return new OrderCreationService(
             db,
             new TradingEngine(),
-            new OrderValidationService(db),
             new MediatREventPublisher(TestMediatorFactory.Create(db, candleUpdateService)),
             new Mock<ITaskDispatcher>().Object,
             NullLogger<OrderCreationService>.Instance);
@@ -209,7 +208,6 @@ public class OrderCreationBatchServiceTest
         var service = new OrderCreationService(
             db,
             new TradingEngine(),
-            new OrderValidationService(db),
             new MediatREventPublisher(TestMediatorFactory.Create(db, candleService.Object)),
             new Mock<ITaskDispatcher>().Object,
             NullLogger<OrderCreationService>.Instance);

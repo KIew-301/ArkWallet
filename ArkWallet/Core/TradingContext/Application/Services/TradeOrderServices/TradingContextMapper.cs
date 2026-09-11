@@ -1,11 +1,15 @@
+using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
+using ArkWallet.Core.TradingContext.Application.Dtos;
 using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Core.TradingContext.Domain.Events;
 using ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
 using ArkWallet.Core.TradingContext.Domain.TokenAggregate;
 using ArkWallet.Core.TradingContext.Domain.TraderAggregate;
 using ArkWallet.Core.TradingContext.Domain.TradeAggregate;
+using ArkWallet.Core.General.Domain.Common;
 using Records = global::ArkWallet.Infrastructure.Data;
 using ValueObjects = global::ArkWallet.Core.General.Domain.ValueObjects;
+using Microsoft.EntityFrameworkCore;
 namespace ArkWallet.Core.TradingContext.Application.Services.TradeOrderServices;
 
 /// <summary>
@@ -128,4 +132,128 @@ internal static class TradingContextMapper
 
     internal static void ApplyTo(Records.CharacterToken target, Token source)
         => target.UpdatePrice(source.CurrentPrice);
+
+    // ---- Построение контекста движка (записи БД -> агрегаты) ----
+
+    internal static async Task<TradingEngineContext> BuildContext(
+        IReadOnlyCollection<CreateOrderCommand> commands,
+        bool isBuy,
+        Dictionary<long, Records.Trader> oldTraders,
+        Records.TradeOrder[] activeOrders,
+        Dictionary<long, Records.PortfolioItem> oldPortfolios,
+        Records.CharacterToken oldToken,
+        IEventPublisher eventPublisher)
+    {
+        var context = new TradingEngineContext
+        {
+            Token = ToToken(oldToken),
+            EventPublisher = eventPublisher,
+        };
+        context.Token.SetEventPublisher(eventPublisher);
+
+        var traderIds = commands.Select(c => c.TraderId)
+            .Concat(activeOrders.Select(o => o.TraderTelegramId))
+            .Distinct();
+
+        foreach (var traderId in traderIds)
+        {
+            if (!oldTraders.TryGetValue(traderId, out var oldTrader))
+                throw new InvalidOperationException("Трейдер не найден");
+
+            var trader = ToTrader(oldTrader);
+            trader.SetEventPublisher(eventPublisher);
+            context.Traders[traderId] = trader;
+
+            if (oldPortfolios.TryGetValue(traderId, out var oldPortfolio))
+                trader.AttachPortfolio(ToPortfolioItem(oldPortfolio));
+        }
+
+        foreach (var oldOrder in activeOrders)
+        {
+            var order = ToOrder(oldOrder);
+            order.SetEventPublisher(eventPublisher);
+            context.ExistingOrders.Add(order);
+
+            if (context.Traders.TryGetValue(oldOrder.TraderTelegramId, out var owner))
+                owner.AttachOrder(order);
+        }
+
+        var orderType = isBuy ? OrderType.Buy : OrderType.Sell;
+
+        var placedOrders = new List<Order>();
+        foreach (var command in commands)
+        {
+            var trader = context.Traders[command.TraderId];
+            placedOrders.Add(await trader.PlaceOrder(orderType, command.Symbol, command.Price, command.Quantity));
+        }
+
+        context.NewOrders = isBuy
+            ? placedOrders.OrderBy(o => o.Price).ToList()
+            : placedOrders.OrderByDescending(o => o.Price).ToList();
+
+        return context;
+    }
+
+    // ---- Синхронизация агрегатов -> записи БД ----
+
+    internal static void SyncTradersAndPortfolios(TradingEngineContext context, Records.ArkWalletDbContext dbContext)
+    {
+        foreach (var trader in context.Traders.Values)
+        {
+            var trackedTrader = dbContext.Traders.Local.FirstOrDefault(t => t.TelegramId == trader.Id);
+            if (trackedTrader != null)
+                ApplyTo(trackedTrader, trader);
+
+            foreach (var item in trader.Portfolio)
+            {
+                var trackedItem = dbContext.PortfolioItems.Local
+                    .FirstOrDefault(p => p.Id == item.Id);
+
+                if (trackedItem is null)
+                    dbContext.PortfolioItems.Add(ToPortfolio(trader.Id, item));
+                else
+                    ApplyTo(trackedItem, item);
+            }
+        }
+    }
+
+    internal static void SyncToken(TradingEngineContext context, Records.ArkWalletDbContext dbContext)
+    {
+        var trackedToken = dbContext.CharacterTokens.Local.FirstOrDefault(t => t.Symbol == context.Token.Symbol);
+        if (trackedToken != null)
+            ApplyTo(trackedToken, context.Token);
+    }
+
+    // ---- Сбор записей для уведомлений ----
+
+    internal static List<Records.TradeOrder> CollectFilledOrderRecords(
+        TradingEngineContext context,
+        Records.ArkWalletDbContext dbContext)
+    {
+        var ordersToNotify = new List<Records.TradeOrder>();
+
+        foreach (var order in context.ExistingOrders.Where(o => o.Status == OrderStatus.Filled))
+        {
+            var tracked = dbContext.TradeOrders.Local.FirstOrDefault(o => o.Id == order.Id);
+            if (tracked != null)
+                ordersToNotify.Add(tracked);
+        }
+
+        foreach (var order in context.NewOrders.Where(o => o.IsFilled()))
+        {
+            var tracked = dbContext.TradeOrders.Local.FirstOrDefault(o => o.Id == order.Id);
+            if (tracked != null)
+                ordersToNotify.Add(tracked);
+        }
+
+        return ordersToNotify;
+    }
+
+    // ---- Конверсия результатов движка в DTO ----
+
+    internal static OrderCreationData ToOrderCreationData(Order source)
+        => new(source.IsFilled(), OrderDto.FromAggregate(source, source.TraderId));
+
+    internal static List<OrderCreationData> ToOrderCreationResults(TradingEngineContext context)
+        => context.NewOrders.Select(ToOrderCreationData).ToList();
 }

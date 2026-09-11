@@ -9,7 +9,6 @@ using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Core.TradingContext.Domain.Events;
 using ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
 using ArkWallet.Core.TradingContext.Domain.TokenAggregate;
-using ArkWallet.Core.TradingContext.Domain.TraderAggregate;
 using ArkWallet.Core.TradingContext.Domain.TradeAggregate;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +18,6 @@ namespace ArkWallet.Core.TradingContext.Application.Services.TradeOrderServices;
 internal class OrderCreationService(
     ArkWalletDbContext dbContext,
     TradingEngine tradingEngine,
-    IOrderValidationService orderValidationService,
     IEventPublisher eventPublisher,
     ITaskDispatcher taskDispatcher,
     ILogger<OrderCreationService> logger) : IOrderCreationService
@@ -34,13 +32,13 @@ internal class OrderCreationService(
 
                 await tradingEngine.ProcessOrder(context);
 
-                SyncTradersAndPortfolios(context);
+                TradingContextMapper.SyncTradersAndPortfolios(context, dbContext);
+                TradingContextMapper.SyncToken(context, dbContext);
                 await dbContext.SaveChangesAsync();
 
                 await NotifyAsync(context);
 
-                var order = context.NewOrders[0];
-                return Result<OrderCreationData>.Ok(new(order.IsFilled(), OrderDto.FromAggregate(order, order.TraderId)));
+                return Result<OrderCreationData>.Ok(TradingContextMapper.ToOrderCreationResults(context)[0]);
             });
         }, logger, nameof(OrderCreationService));
     }
@@ -77,39 +75,23 @@ internal class OrderCreationService(
 
         await tradingEngine.ProcessOrders(context);
 
-        SyncTradersAndPortfolios(context);
+        TradingContextMapper.SyncTradersAndPortfolios(context, dbContext);
+        TradingContextMapper.SyncToken(context, dbContext);
         await dbContext.SaveChangesAsync();
 
-        allResults.AddRange(context.NewOrders
-            .Select(order => new OrderCreationData(order.IsFilled(), OrderDto.FromAggregate(order, order.TraderId))));
+        allResults.AddRange(TradingContextMapper.ToOrderCreationResults(context));
 
         await NotifyAsync(context);
     }
 
     private void SyncTradersAndPortfolios(TradingEngineContext context)
     {
-        foreach (var trader in context.Traders.Values)
-        {
-            var trackedTrader = dbContext.Traders.Local.FirstOrDefault(t => t.TelegramId == trader.Id);
-            if (trackedTrader != null)
-                TradingContextMapper.ApplyTo(trackedTrader, trader);
-
-            foreach (var item in trader.Portfolio)
-            {
-                var trackedItem = dbContext.PortfolioItems.Local
-                    .FirstOrDefault(p => p.Id == item.Id);
-
-                if (trackedItem is null)
-                    dbContext.PortfolioItems.Add(TradingContextMapper.ToPortfolio(trader.Id, item));
-                else
-                    TradingContextMapper.ApplyTo(trackedItem, item);
-            }
-        }
+        TradingContextMapper.SyncTradersAndPortfolios(context, dbContext);
     }
 
     private async Task<TradingEngineContext> PrepareSingleTradingContextAsync(CreateOrderCommand command)
     {
-        var orderType = OrderValidationService.NormalizeDirection(command.Direction) == OrderDirections.Buy
+        var orderType = NormalizeDirection(command.Direction) == OrderDirections.Buy
             ? ValueObjects.OrderType.Buy
             : ValueObjects.OrderType.Sell;
 
@@ -127,7 +109,7 @@ internal class OrderCreationService(
         var token = await dbContext.CharacterTokens.FindAsync(command.Symbol)
             ?? throw new InvalidOperationException("Токена не существует");
 
-        var validationResult = await orderValidationService.ValidateFullOrderAsync(command);
+        var validationResult = await ValidateFullOrderAsync(command);
         if (!validationResult.IsValid)
             throw new InvalidOperationException(validationResult.Message);
 
@@ -158,7 +140,7 @@ internal class OrderCreationService(
 
         var portfolios = portfolioItems.ToDictionary(p => p.TraderTelegramId);
 
-        return await BuildTradingContext(
+        return await TradingContextMapper.BuildContext(
             new[] { command },
             order.IsLong(),
             traders,
@@ -174,7 +156,7 @@ internal class OrderCreationService(
         if (commandList.Count == 0)
             throw new InvalidOperationException("Нет команд для обработки");
 
-        var validationResult = await orderValidationService.ValidateFullOrdersAsync(commandList);
+        var validationResult = await ValidateFullOrdersAsync(commandList);
         if (!validationResult.IsValid)
             throw new InvalidOperationException(validationResult.Message);
 
@@ -199,7 +181,7 @@ internal class OrderCreationService(
         var traders = await LoadGroupTradersAsync(activeOrders, commandList);
         var portfolios = await LoadGroupPortfoliosAsync(activeOrders, commandList, targetOrder.CharacterTokenId);
 
-        return await BuildTradingContext(
+        return await TradingContextMapper.BuildContext(
             commandList,
             isBuy,
             traders,
@@ -215,7 +197,7 @@ internal class OrderCreationService(
         var orders = new List<Records.TradeOrder>(commandList.Count);
         foreach (var command in commandList)
         {
-            var orderType = OrderValidationService.NormalizeDirection(command.Direction) == OrderDirections.Buy
+            var orderType = NormalizeDirection(command.Direction) == OrderDirections.Buy
                 ? ValueObjects.OrderType.Buy
                 : ValueObjects.OrderType.Sell;
 
@@ -302,65 +284,6 @@ internal class OrderCreationService(
         return portfolioItems.ToDictionary(p => p.TraderTelegramId);
     }
 
-    private static async Task<TradingEngineContext> BuildTradingContext(
-        IReadOnlyCollection<CreateOrderCommand> commands,
-        bool isBuy,
-        Dictionary<long, Records.Trader> oldTraders,
-        Records.TradeOrder[] activeOrders,
-        Dictionary<long, Records.PortfolioItem> oldPortfolios,
-        Records.CharacterToken oldToken,
-        IEventPublisher eventPublisher)
-    {
-        var context = new TradingEngineContext
-        {
-            Token = TradingContextMapper.ToToken(oldToken),
-            EventPublisher = eventPublisher,
-        };
-        context.Token.SetEventPublisher(eventPublisher);
-
-        var traderIds = commands.Select(c => c.TraderId)
-            .Concat(activeOrders.Select(o => o.TraderTelegramId))
-            .Distinct();
-
-        foreach (var traderId in traderIds)
-        {
-            if (!oldTraders.TryGetValue(traderId, out var oldTrader))
-                throw new InvalidOperationException("Трейдер не найден");
-
-            var trader = TradingContextMapper.ToTrader(oldTrader);
-            trader.SetEventPublisher(eventPublisher);
-            context.Traders[traderId] = trader;
-
-            if (oldPortfolios.TryGetValue(traderId, out var oldPortfolio))
-                trader.AttachPortfolio(TradingContextMapper.ToPortfolioItem(oldPortfolio));
-        }
-
-        foreach (var oldOrder in activeOrders)
-        {
-            var order = TradingContextMapper.ToOrder(oldOrder);
-            order.SetEventPublisher(eventPublisher);
-            context.ExistingOrders.Add(order);
-
-            if (context.Traders.TryGetValue(oldOrder.TraderTelegramId, out var owner))
-                owner.AttachOrder(order);
-        }
-
-        var orderType = isBuy ? OrderType.Buy : OrderType.Sell;
-
-        var placedOrders = new List<Order>();
-        foreach (var command in commands)
-        {
-            var trader = context.Traders[command.TraderId];
-            placedOrders.Add(await trader.PlaceOrder(orderType, command.Symbol, command.Price, command.Quantity));
-        }
-
-        context.NewOrders = isBuy
-            ? placedOrders.OrderBy(o => o.Price).ToList()
-            : placedOrders.OrderByDescending(o => o.Price).ToList();
-
-        return context;
-    }
-
     private async Task<long[]> GetTakerIdsForMatchingAsync(Records.TradeOrder order)
     {
         return order.IsLong()
@@ -384,21 +307,7 @@ internal class OrderCreationService(
 
     private async Task NotifyAsync(TradingEngineContext context)
     {
-        var ordersToNotify = new List<Records.TradeOrder>();
-
-        foreach (var order in context.ExistingOrders.Where(o => o.Status == OrderStatus.Filled))
-        {
-            var tracked = dbContext.TradeOrders.Local.FirstOrDefault(o => o.Id == order.Id);
-            if (tracked != null)
-                ordersToNotify.Add(tracked);
-        }
-
-        foreach (var order in context.NewOrders.Where(o => o.IsFilled()))
-        {
-            var tracked = dbContext.TradeOrders.Local.FirstOrDefault(o => o.Id == order.Id);
-            if (tracked != null)
-                ordersToNotify.Add(tracked);
-        }
+        var ordersToNotify = TradingContextMapper.CollectFilledOrderRecords(context, dbContext);
 
         if (ordersToNotify.Count > 0)
         {
@@ -411,5 +320,47 @@ internal class OrderCreationService(
             await taskDispatcher.SendTaskAsync("notification",
                 NotificationEvent.FromOrderList(ordersToNotify, traders, logger));
         }
+    }
+
+    private async Task<ValidationResult> ValidateFullOrderAsync(CreateOrderCommand request)
+    {
+        if (request.Price <= 0)
+            return ValidationResult.Failed("Цена должна быть больше 0");
+
+        if (request.Quantity <= 0)
+            return ValidationResult.Failed("Количество должно быть больше 0");
+
+        return await Task.FromResult(ValidationResult.Success());
+    }
+
+    private async Task<ValidationResult> ValidateFullOrdersAsync(IReadOnlyCollection<CreateOrderCommand> requests)
+    {
+        if (requests.Count == 0)
+            return ValidationResult.Success();
+
+        foreach (var request in requests)
+        {
+            if (request.Price <= 0)
+                return ValidationResult.Failed("Цена должна быть больше 0");
+
+            if (request.Quantity <= 0)
+                return ValidationResult.Failed("Количество должно быть больше 0");
+        }
+
+        return ValidationResult.Success();
+    }
+
+    private static string? NormalizeDirection(string? direction)
+    {
+        if (string.IsNullOrWhiteSpace(direction))
+            return null;
+
+        var trimmed = direction.Trim();
+        if (trimmed.Equals(OrderDirections.Buy, StringComparison.CurrentCultureIgnoreCase))
+            return OrderDirections.Buy;
+        if (trimmed.Equals(OrderDirections.Sell, StringComparison.CurrentCultureIgnoreCase))
+            return OrderDirections.Sell;
+
+        return null;
     }
 }

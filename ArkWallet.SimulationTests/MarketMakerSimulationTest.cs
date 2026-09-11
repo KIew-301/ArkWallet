@@ -120,7 +120,6 @@ public class MarketMakerSimulationTest
         var orderCreationService = new OrderCreationService(
             db,
             new TradingEngine(timeProvider),
-            new OrderValidationService(db),
             new MediatREventPublisher(TestMediatorFactory.Create(db, candleUpdateService)),
             mockTaskDispatcher.Object,
             NullLogger<OrderCreationService>.Instance);
@@ -154,7 +153,6 @@ public class MarketMakerSimulationTest
         var orderCreationService = new OrderCreationService(
             db,
             new TradingEngine(timeProvider),
-            new OrderValidationService(db),
             new MediatREventPublisher(TestMediatorFactory.Create(db, candleUpdateService)),
             mockTaskDispatcher.Object,
             NullLogger<OrderCreationService>.Instance);

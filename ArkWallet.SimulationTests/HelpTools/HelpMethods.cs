@@ -100,7 +100,6 @@ internal class HelpMethods
         var service = new OrderCreationService(
             db,
             engine,
-            mockValidator.Object,
             new MediatREventPublisher(TestMediatorFactory.Create(db, tokenPriceCandleUpdateService)),
             mockTaskDispatcher.Object,
             logger);

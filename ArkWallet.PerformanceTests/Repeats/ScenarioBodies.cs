@@ -168,7 +168,6 @@ internal static class ScenarioBodies
         return new OrderCreationService(
             db,
             new TradingEngine(),
-            new OrderValidationService(db),
             new MediatREventPublisher(TestMediatorFactory.Create(db, candleUpdateService)),
             new FakeTaskDispatcher(),
             NullLogger<OrderCreationService>.Instance);
@@ -182,7 +181,6 @@ internal static class ScenarioBodies
         var orderCreationService = new OrderCreationService(
             db,
             new TradingEngine(),
-            new OrderValidationService(db),
             new MediatREventPublisher(TestMediatorFactory.Create(db, candleUpdateService)),
             new FakeTaskDispatcher(),
             NullLogger<OrderCreationService>.Instance);
