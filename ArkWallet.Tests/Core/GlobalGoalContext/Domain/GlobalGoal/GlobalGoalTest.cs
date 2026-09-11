@@ -145,7 +145,7 @@ public class GlobalGoalTest
         int achievedCount = 0,
         List<GlobalGoalStep>? steps = null,
         List<GlobalGoalHistory>? history = null)
-        => Goal.Load(new GlobalGoalData(
+        => Goal.Load(new GlobalGoalAggregateData(
             Id: 2,
             Name: "Goal",
             Description: "Desc",
@@ -156,7 +156,7 @@ public class GlobalGoalTest
             Steps: steps ?? new()));
 
     private static Goal CreateExisting(long id, string name, string description, decimal target, decimal actual)
-        => Goal.Load(new GlobalGoalData(
+        => Goal.Load(new GlobalGoalAggregateData(
             Id: id,
             Name: name,
             Description: description,

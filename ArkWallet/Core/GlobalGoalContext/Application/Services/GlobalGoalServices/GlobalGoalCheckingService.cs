@@ -36,14 +36,14 @@ internal class GlobalGoalCheckingService(
                     goal.SetEventPublisher(eventPublisher);
                     await UpdateActualAsync(goal);
 
-                    var historyCountBefore = goal.History.Count;
+                    var historyCountBefore = goal.HistoryCount;
                     await goal.CheckGoal(timeProvider);
 
                     if (goal.History.Count > historyCountBefore)
                         logger.LogInformation("Global goal achieved: {Name} (achieved {Count} times)", goal.Name, goal.AchievedCount);
                 }
 
-                SyncGoalState(goals, context);
+                SyncState(goals, context);
                 await dbContext.SaveChangesAsync();
 
                 return Result.Ok();
@@ -60,26 +60,8 @@ internal class GlobalGoalCheckingService(
         goal.UpdateActual(await calculation.CalculateAsync(dbContext));
     }
 
-    private void SyncGoalState(List<Records.GlobalGoal> goals, List<GlobalGoal> context)
+    private void SyncState(List<Records.GlobalGoal> goals, List<GlobalGoal> context)
     {
-        foreach (var goal in context)
-        {
-            var record = goals.First(g => g.Id == goal.Id);
-            record.Actual = goal.Actual;
-            record.Target = goal.Target;
-            record.Progress = goal.Progress;
-            record.AchievedCount = goal.AchievedCount;
-
-            foreach (var entry in goal.History)
-            {
-                var alreadySaved = record.Histories.Any(h => h.AchievedAt == entry.AchievedAt);
-
-                if (!alreadySaved)
-                {
-                    dbContext.GlobalGoalHistories.Add(Records.GlobalGoalHistory.Create(
-                        goal.Id, entry.AchievedAt, entry.Target, entry.SymbolForReward, entry.AmountForReward));
-                }
-            }
-        }
+        GlobalGoalContextMapper.SyncGoalsToRecords(goals, context, dbContext);
     }
 }

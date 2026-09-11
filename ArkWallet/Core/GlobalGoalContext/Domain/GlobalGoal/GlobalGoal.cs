@@ -18,6 +18,7 @@ internal class GlobalGoal : AggregateRoot
     public int AchievedCount { get; private set; }
     public IReadOnlyList<GlobalGoalHistory> History => _history;
     public IReadOnlyList<GlobalGoalStep> Steps => _steps;
+    public int HistoryCount => _history.Count;
 
     private GlobalGoal(long id, string name, string description, decimal target, decimal actual)
     {
@@ -50,7 +51,7 @@ internal class GlobalGoal : AggregateRoot
         return goal;
     }
 
-    internal static GlobalGoal Load(GlobalGoalData data)
+    internal static GlobalGoal Load(GlobalGoalAggregateData data)
     {
         var goal = new GlobalGoal(data.Id, data.Name, data.Description, data.Target, data.Actual);
         goal.AchievedCount = data.AchievedCount;
@@ -164,7 +165,11 @@ internal class GlobalGoalStep
     }
 }
 
-internal sealed record GlobalGoalData(
+/// <summary>
+/// Слепок состояния агрегата GlobalGoal для гидратации из БД.
+/// Представляет весь агрегат целиком, поэтому ссылается на его части (History, Steps).
+/// </summary>
+internal sealed record GlobalGoalAggregateData(
     long Id,
     string Name,
     string Description,
