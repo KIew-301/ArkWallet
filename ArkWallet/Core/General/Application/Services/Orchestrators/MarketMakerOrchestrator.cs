@@ -6,10 +6,11 @@ using ArkWallet.Core.General.Application.Contracts.Other;
 using ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices;
 using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
 using ArkWallet.Core.TradingContext.Application.Contracts.TraderServices;
+using ArkWallet.Core.TradingContext.Application.Services.MarketMaker;
 using ArkWallet.Core.TradingContext.Domain.Engines;
+using GeneralOrderStatus = ArkWallet.Core.General.Domain.ValueObjects.OrderStatus;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Core.General.Domain.ValueObjects;
-using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -226,7 +227,7 @@ internal class MarketMakerOrchestrator(
     {
         var symbols = bots.Select(b => b.Symbol).Distinct().ToArray();
         await dbContext.TradeOrders
-            .Where(o => symbols.Contains(o.CharacterTokenId) && o.Status == OrderStatus.Active)
+            .Where(o => symbols.Contains(o.CharacterTokenId) && o.Status == GeneralOrderStatus.Active)
             .Include(o => o.Trader)
             .ToListAsync();
     }
@@ -292,10 +293,11 @@ internal class MarketMakerOrchestrator(
         var existingOrders = dbContext.TradeOrders.Local
             .Where(o => o.CharacterTokenId == bot.Symbol
                         && o.TraderTelegramId == bot.TraderId
-                        && o.Status == OrderStatus.Active)
+                        && o.Status == GeneralOrderStatus.Active)
             .ToList();
 
-        var commands = marketMakerGridEngine.GetOrdersToPlace(bot, token.CurrentPrice, existingOrders);
+        var commands = MarketMakerGridMapper.CollectGridCommands(
+            marketMakerGridEngine, bot, token.CurrentPrice, existingOrders);
 
         logger.LogDebug("Grid collected for bot {BotId}, {Count} commands", bot.Id, commands.Count);
         return commands;

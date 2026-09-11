@@ -43,6 +43,16 @@ internal class MarketMaker
         return new MarketMaker(traderId, symbol, role, initialPower, createdAt);
     }
 
+    internal static MarketMaker Load(long id, long traderId, string symbol, MarketMakerRole role, decimal basePower, bool isActive, DateTime createdAt)
+    {
+        var marketMaker = new MarketMaker(traderId, symbol, role, basePower, createdAt)
+        {
+            Id = id,
+            IsActive = isActive
+        };
+        return marketMaker;
+    }
+
     public void UpdatePower(decimal minPower, decimal maxPower)
     {
         if (minPower >= maxPower)

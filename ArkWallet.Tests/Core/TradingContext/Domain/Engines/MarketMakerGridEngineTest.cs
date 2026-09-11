@@ -1,9 +1,8 @@
-using ArkWallet.Core.General.Domain.ValueObjects;
-using ArkWallet.Infrastructure.Data;
 using ArkWallet.Core.TradingContext.Domain.TokenAggregate;
 using ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
 using ArkWallet.Core.TradingContext.Domain.TradeAggregate;
 using ArkWallet.Core.TradingContext.Domain.Engines;
+using ArkWallet.Core.TradingContext.Domain.TraderAggregate;
 using ArkWallet.Core.PortfolioContext.Domain.Position;
 using ArkWallet.Core.GiftContext.Domain.User;
 using ArkWallet.Core.MailContext.Domain.Message;
@@ -11,9 +10,7 @@ using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
 using ArkWallet.Core.MiningContext.Domain.Machine;
 using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Core.MiningContext.Domain.Engines;
-using ArkWallet.Core.MiningContext.Domain.Engines;
 using ArkWallet.Core.TradingContext.Domain.Engines;
-using ArkWallet.Core.General.Domain.ValueObjects;
 
 namespace ArkWallet.Tests.Core.TradingContext.Domain.Engines;
 
@@ -24,10 +21,10 @@ public class MarketMakerGridEngineTest
     [Fact]
     public void GetOrdersToPlace_BuyerRole_ReturnsCommands()
     {
-        var bot = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 50);
+        var bot = MarketMaker.Create(101, "ZZZ", MarketMakerRole.Buyer, 50);
 
         var currentPrice = 1000m;
-        var existingOrders = new List<TradeOrder>();
+        var existingOrders = new List<Order>();
 
         var commands = _engine.GetOrdersToPlace(bot, currentPrice, existingOrders);
 
@@ -43,10 +40,10 @@ public class MarketMakerGridEngineTest
     [Fact]
     public void GetOrdersToPlace_SellerRole_ReturnsCommands()
     {
-        var bot = MarketMakerBot.Create(101, "ZZZ", BotRole.Seller, 50);
+        var bot = MarketMaker.Create(101, "ZZZ", MarketMakerRole.Seller, 50);
 
         var currentPrice = 1000m;
-        var existingOrders = new List<TradeOrder>();
+        var existingOrders = new List<Order>();
 
         var commands = _engine.GetOrdersToPlace(bot, currentPrice, existingOrders);
 
@@ -62,10 +59,10 @@ public class MarketMakerGridEngineTest
     [Fact]
     public void GetOrdersToPlace_WhenOrdersExistInAllRanges_ReturnsEmpty()
     {
-        var bot = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 50);
+        var bot = MarketMaker.Create(101, "ZZZ", MarketMakerRole.Buyer, 50);
 
         var currentPrice = 1000m;
-        var existingOrders = new List<TradeOrder>();
+        var existingOrders = new List<Order>();
 
         var grid = new FixedGridEngine().GetGridBelowPrice(currentPrice, 21);
 
@@ -75,7 +72,7 @@ public class MarketMakerGridEngineTest
             var upper = grid[i];
             var price = (lower + upper) / 2;
 
-            var order = TradeOrder.Create(OrderType.Buy, "ZZZ", 101, price, 5);
+            var order = Order.Create(OrderType.Buy, "ZZZ", price, 5);
             existingOrders.Add(order);
         }
 
@@ -87,10 +84,10 @@ public class MarketMakerGridEngineTest
     [Fact]
     public void GetOrdersToPlace_BuyerGrid_PriceWithinBounds()
     {
-        var bot = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 50);
+        var bot = MarketMaker.Create(101, "ZZZ", MarketMakerRole.Buyer, 50);
 
         var currentPrice = 1000m;
-        var existingOrders = new List<TradeOrder>();
+        var existingOrders = new List<Order>();
 
         var commands = _engine.GetOrdersToPlace(bot, currentPrice, existingOrders, stepsCount: 20);
 
@@ -104,10 +101,10 @@ public class MarketMakerGridEngineTest
     [Fact]
     public void GetOrdersToPlace_SellerGrid_PriceWithinBounds()
     {
-        var bot = MarketMakerBot.Create(101, "ZZZ", BotRole.Seller, 50);
+        var bot = MarketMaker.Create(101, "ZZZ", MarketMakerRole.Seller, 50);
 
         var currentPrice = 1000m;
-        var existingOrders = new List<TradeOrder>();
+        var existingOrders = new List<Order>();
 
         var commands = _engine.GetOrdersToPlace(bot, currentPrice, existingOrders, stepsCount: 20);
 
@@ -121,11 +118,11 @@ public class MarketMakerGridEngineTest
     [Fact]
     public void GetOrdersToPlace_DifferentBotPower_QuantityScales()
     {
-        var botWeak = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 10);
-        var botStrong = MarketMakerBot.Create(102, "ZZZ", BotRole.Buyer, 100);
+        var botWeak = MarketMaker.Create(101, "ZZZ", MarketMakerRole.Buyer, 10);
+        var botStrong = MarketMaker.Create(102, "ZZZ", MarketMakerRole.Buyer, 100);
 
         var currentPrice = 1000m;
-        var existingOrders = new List<TradeOrder>();
+        var existingOrders = new List<Order>();
 
         var commandsWeak = _engine.GetOrdersToPlace(botWeak, currentPrice, existingOrders);
         var commandsStrong = _engine.GetOrdersToPlace(botStrong, currentPrice, existingOrders);
@@ -139,12 +136,12 @@ public class MarketMakerGridEngineTest
     [Fact]
     public void GetOrdersToPlace_OnlyMissingRanges_Filled()
     {
-        var bot = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 50);
+        var bot = MarketMaker.Create(101, "ZZZ", MarketMakerRole.Buyer, 50);
 
         var currentPrice = 1000m;
-        var existingOrders = new List<TradeOrder>();
+        var existingOrders = new List<Order>();
 
-        var existingOrder = TradeOrder.Create(OrderType.Buy, "ZZZ", 101, 985m, 5);
+        var existingOrder = Order.Create(OrderType.Buy, "ZZZ", 985m, 5);
         existingOrders.Add(existingOrder);
 
         var commands = _engine.GetOrdersToPlace(bot, currentPrice, existingOrders);
@@ -156,13 +153,13 @@ public class MarketMakerGridEngineTest
     [Fact]
     public void GetOrdersToPlace_ExistingOrdersIgnoredIfInactive()
     {
-        var bot = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 50);
+        var bot = MarketMaker.Create(101, "ZZZ", MarketMakerRole.Buyer, 50);
 
         var currentPrice = 1000m;
-        var existingOrders = new List<TradeOrder>();
+        var existingOrders = new List<Order>();
 
-        var order = TradeOrder.Create(OrderType.Buy, "ZZZ", 101, 985m, 5);
-        order.Cancel(101);
+        var order = Order.Create(OrderType.Buy, "ZZZ", 985m, 5);
+        order.Cancel();
         existingOrders.Add(order);
 
         var commands = _engine.GetOrdersToPlace(bot, currentPrice, existingOrders);
@@ -173,10 +170,10 @@ public class MarketMakerGridEngineTest
     [Fact]
     public void GetOrdersToPlace_DefaultParameters_WorkCorrectly()
     {
-        var bot = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 50);
+        var bot = MarketMaker.Create(101, "ZZZ", MarketMakerRole.Buyer, 50);
 
         var currentPrice = 1000m;
-        var existingOrders = new List<TradeOrder>();
+        var existingOrders = new List<Order>();
 
         var commands = _engine.GetOrdersToPlace(bot, currentPrice, existingOrders);
 
@@ -188,18 +185,17 @@ public class MarketMakerGridEngineTest
     [Fact]
     public void GetOrdersToPlace_WhenOrderExistsInRange_ShouldNotCreateDuplicate()
     {
-        var bot = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 20);
+        var bot = MarketMaker.Create(101, "ZZZ", MarketMakerRole.Buyer, 20);
         var currentPrice = 100m;
 
-        var existingOrder = TradeOrder.Create(
+        var existingOrder = Order.Create(
             OrderType.Buy,
             "ZZZ",
-            101,
             99.5m,
             5
         );
 
-        var existingOrders = new List<TradeOrder> { existingOrder };
+        var existingOrders = new List<Order> { existingOrder };
 
         var commands = _engine.GetOrdersToPlace(bot, currentPrice, existingOrders);
 
@@ -210,18 +206,17 @@ public class MarketMakerGridEngineTest
     [Fact]
     public void GetOrdersToPlace_WhenPriceRounding_ShouldStillDetectExistingOrder()
     {
-        var bot = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 20);
+        var bot = MarketMaker.Create(101, "ZZZ", MarketMakerRole.Buyer, 20);
         var currentPrice = 100m;
 
-        var existingOrder = TradeOrder.Create(
+        var existingOrder = Order.Create(
             OrderType.Buy,
             "ZZZ",
-            101,
             98.7654321m,
             5
         );
 
-        var existingOrders = new List<TradeOrder> { existingOrder };
+        var existingOrders = new List<Order> { existingOrder };
 
         var commands = _engine.GetOrdersToPlace(bot, currentPrice, existingOrders);
 
