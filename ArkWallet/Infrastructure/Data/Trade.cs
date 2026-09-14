@@ -3,35 +3,27 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ArkWallet.Infrastructure.Data
 {
-    internal class Trade
+    internal class Trade : EntityData
     {
         [Key]
         public string Id { get; set; } = Guid.NewGuid().ToString();
 
-        // Участники сделки
-        public long BuyerId { get; set; }           // Покупатель
-        public long SellerId { get; set; }          // Продавец
-        public string CharacterTokenId { get; set; } // Какой токен
+        public long BuyerId { get; set; }
+        public long SellerId { get; set; }
+        public string CharacterTokenId { get; set; } = string.Empty;
 
-        // Детали сделки
-        public decimal Price { get; set; }          // Цена исполнения
-        public int Quantity { get; set; }           // Количество
+        public decimal Price { get; set; }
+        public int Quantity { get; set; }
         public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
 
-        // Навигационные свойства
-        public virtual Trader Buyer { get; set; }
-        public virtual Trader Seller { get; set; }
-        public virtual CharacterToken CharacterToken { get; set; }
+        public virtual Trader Buyer { get; set; } = null!;
+        public virtual Trader Seller { get; set; } = null!;
+        public virtual CharacterToken CharacterToken { get; set; } = null!;
 
-        // Методы
-        public decimal GetTotalValue() => Price * Quantity;
+        /// <summary>Общая стоимость сделки</summary>
+        public decimal GetTotalValue => Price * Quantity;
 
-        public bool InvolvesTrader(long telegramId)
-            => BuyerId == telegramId || SellerId == telegramId;
-
-        public string GetDescription()
-        {
-            return $"{Quantity} {CharacterTokenId} по {Price}{ValueObjects.Descriptor.CurrencySymbol}";
-        }
+        /// <summary>Описание сделки в читаемом формате</summary>
+        public string GetDescription => $"{Quantity} {CharacterTokenId} по {Price}{ValueObjects.Descriptor.CurrencySymbol}";
     }
 }

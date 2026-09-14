@@ -1,19 +1,19 @@
 namespace ArkWallet.Infrastructure.Data
 {
-    internal class PriceCandle
+    internal class PriceCandle : EntityData
     {
-        public long Id { get; private set; }
-        public decimal OpenPrice { get; private set; }
-        public decimal HighPrice { get; private set; }
-        public decimal LowPrice { get; private set; }
-        public decimal ClosePrice { get; private set; }
-        public DateTime Timestamp { get; private set; }
+        public long Id { get; internal set; }
+        public decimal OpenPrice { get; internal set; }
+        public decimal HighPrice { get; internal set; }
+        public decimal LowPrice { get; internal set; }
+        public decimal ClosePrice { get; internal set; }
+        public DateTime Timestamp { get; internal set; }
 
-        public string CharacterTokenId { get; private set; }
+        public string CharacterTokenId { get; internal set; } = string.Empty;
 
-        public CharacterToken CharacterToken { get; set; }
+        public CharacterToken CharacterToken { get; internal set; } = null!;
 
-        public static PriceCandle CreateNew(string characterTokenId, decimal openPrice, DateTime ts)
+        public static PriceCandle Create(string characterTokenId, decimal openPrice, DateTime ts)
         {
             return new PriceCandle
             {
@@ -24,15 +24,6 @@ namespace ArkWallet.Infrastructure.Data
                 ClosePrice = openPrice,
                 Timestamp = ts
             };
-        }
-
-        public void Update(decimal newPrice)
-        {
-            if (newPrice > HighPrice)
-                HighPrice = newPrice;
-            if (newPrice < LowPrice)
-                LowPrice = newPrice;
-            ClosePrice = newPrice;
         }
     }
 }

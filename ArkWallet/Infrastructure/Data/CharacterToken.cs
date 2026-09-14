@@ -3,18 +3,22 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ArkWallet.Infrastructure.Data
 {
-    internal class CharacterToken
+    internal class CharacterToken : EntityData
     {
         [Key]
         public string Symbol { get; private set; }
         public string Name { get; private set; }
         public CharacterRarity Rarity { get; private set; }
-        public decimal CurrentPrice { get; private set; }
+        public decimal CurrentPrice { get; set; }
         public int TotalSupply { get; private set; }
-        public bool IsActive { get; private set; } = true;
+        public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
-        public string ImageUrl { get; private set; }
-        public string IconUrl { get; private set; }
+        public string ImageUrl { get; set; }
+        public string IconUrl { get; set; }
+
+        // Computed properties (правило 18: разрешены get_ свойства)
+        public bool CanBeTraded => IsActive && TotalSupply > 0;
+        public decimal CalculateMarketCap => CurrentPrice * TotalSupply;
 
         public static CharacterToken Create(
             string symbol,
@@ -56,31 +60,5 @@ namespace ArkWallet.Infrastructure.Data
                 CreatedAt = DateTime.UtcNow
             };
         }
-
-        public bool CanBeTraded() => IsActive && TotalSupply > 0;
-
-        public void Deactivate() => IsActive = false;
-
-        public void Activate() => IsActive = true;
-
-        public void UpdatePrice(decimal newPrice)
-        {
-            if (newPrice < 0)
-                throw new ArgumentException("Price cannot be negative");
-            CurrentPrice = newPrice;
-        }
-
-        public void UpdateMedia(string iconUrl, string imageUrl)
-        {
-            if (string.IsNullOrWhiteSpace(iconUrl))
-                throw new ArgumentException("Icon URL cannot be empty");
-            if (string.IsNullOrWhiteSpace(imageUrl))
-                throw new ArgumentException("Image URL cannot be empty");
-
-            IconUrl = iconUrl;
-            ImageUrl = imageUrl;
-        }
-
-        public decimal CalculateMarketCap() => CurrentPrice * TotalSupply;
     }
 }

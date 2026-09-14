@@ -6,7 +6,7 @@ namespace ArkWallet.Infrastructure.Data;
 /// <summary>
 /// Письмо в почтовом ящике пользователя
 /// </summary>
-internal class MailMessage
+internal class MailMessage : EntityData
 {
     [Key]
     public long Id { get; set; }
@@ -62,24 +62,6 @@ internal class MailMessage
             Status = MailMessageStatus.Sent.ToString(),
             CreatedAt = draft.CreatedAt
         };
-    }
-
-    public void MarkAsRead(DateTime readAt)
-    {
-        if (Status == MailMessageStatus.Sent.ToString())
-        {
-            Status = MailMessageStatus.Read.ToString();
-            ReadAt = readAt;
-        }
-    }
-
-    public void MarkAsAccepted(DateTime acceptedAt)
-    {
-        if (Status == MailMessageStatus.Sent.ToString() || Status == MailMessageStatus.Read.ToString())
-        {
-            Status = MailMessageStatus.Accepted.ToString();
-            AcceptedAt = acceptedAt;
-        }
     }
 }
 

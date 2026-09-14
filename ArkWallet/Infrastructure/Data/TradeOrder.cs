@@ -8,7 +8,7 @@ namespace ArkWallet.Infrastructure.Data
     /// Представляет торговый ордер на покупку или продажу токенов.
     /// Ордер может быть активным, исполненным или отменённым.
     /// </summary>
-    internal class TradeOrder
+    internal class TradeOrder : EntityData
     {
         /// <summary>Уникальный идентификатор ордера (генерируется автоматически).</summary>
         [Key]
@@ -21,7 +21,7 @@ namespace ArkWallet.Infrastructure.Data
         public OrderStatus Status { get; set; } = OrderStatus.Active;
 
         /// <summary>Идентификатор токена, с которым работает ордер (например, "BTC", "ETH").</summary>
-        public string CharacterTokenId { get; set; }
+        public string CharacterTokenId { get; set; } = string.Empty;
 
         /// <summary>Telegram ID трейдера, разместившего ордер.</summary>
         public long TraderTelegramId { get; set; }
@@ -50,44 +50,26 @@ namespace ArkWallet.Infrastructure.Data
         /// <summary>Связанный токен (навигационное свойство).</summary>
         public virtual CharacterToken? CharacterToken { get; set; }
 
-        /// <summary>Проверяет, полностью ли исполнен ордер.</summary>
-        public bool IsFilled() => FilledQuantity >= Quantity;
+        // Computed properties (правило 18: разрешены get_ свойства)
+        /// <summary>Полностью ли исполнен ордер</summary>
+        public bool IsFilled => FilledQuantity >= Quantity;
 
-        /// <summary>Проверяет, активен ли ордер (не исполнен и не отменён).</summary>
-        public bool IsActive() => Status == OrderStatus.Active;
+        /// <summary>Активен ли ордер (не исполнен и не отменён)</summary>
+        public bool IsActive => Status == OrderStatus.Active;
 
-        /// <summary>Проверяет, является ли ордер на покупку.</summary>
-        public bool IsLong() => Type == OrderType.Buy;
+        /// <summary>Является ли ордер на покупку</summary>
+        public bool IsLong => Type == OrderType.Buy;
 
-        /// <summary>Проверяет, является ли ордер на продажу.</summary>
-        public bool IsShort() => Type == OrderType.Sell;
+        /// <summary>Является ли ордер на продажу</summary>
+        public bool IsShort => Type == OrderType.Sell;
 
-        /// <summary>Проверяет, принадлежит ли ордер указанному трейдеру.</summary>
-        public bool IsTraderOrder(long initiatorId) => TraderTelegramId == initiatorId;
+        /// <summary>Осталось токенов для исполнения</summary>
+        public int RemainingQuantity => Quantity - FilledQuantity;
 
-        /// <summary>Возвращает оставшееся количество токенов, ещё не исполненных по ордеру.</summary>
-        public int GetRemainingQuantity() => Quantity - FilledQuantity;
+        /// <summary>Сумма, зарезервированная под оставшуюся часть ордера</summary>
+        public decimal ReservedBalance => RemainingQuantity * Price;
 
-        /// <summary>Возвращает сумму, зарезервированную под оставшуюся часть ордера (цена × остаток).</summary>
-        public decimal GetReservedBalance() => GetRemainingQuantity() * Price;
-
-        /// <summary>Отмечает ордер как полностью исполненный.</summary>
-        public void MarkAsFilled()
-        {
-            Status = OrderStatus.Filled;
-            ExecutedAt = DateTime.UtcNow;
-            FilledQuantity = Quantity;
-        }
-
-        /// <summary>
-        /// Создаёт новый экземпляр ордера с валидацией входных параметров.
-        /// </summary>
-        /// <param name="orderType">Тип ордера (Buy/Sell).</param>
-        /// <param name="symbol">Символ токена.</param>
-        /// <param name="traderId">Telegram ID трейдера.</param>
-        /// <param name="price">Цена за токен (должна быть > 0).</param>
-        /// <param name="quantity">Количество токенов (должно быть > 0).</param>
-        /// <returns>Новый активный ордер.</returns>
+        /// <summary>Создаёт новый ордер с валидацией входных параметров.</summary>
         public static TradeOrder Create(OrderType orderType, string symbol,
             long traderId, decimal price, int quantity)
         {
@@ -108,59 +90,16 @@ namespace ArkWallet.Infrastructure.Data
             };
         }
 
-        /// <summary>
-        /// Заполняет ордер.
-        /// </summary>
-        /// <param name="filledQuantity">На какое количество токенов заполнен ордер.</param>
-        /// <param name="price">По какой цене заполнен ордер.</param>
-        public void UpdateOrderFill(int filledQuantity, decimal price)
+        /// <summary>Отменяет ордер (если он активен и принадлежит отменяющему).</summary>
+        public void Update(long initiatorTraderId)
         {
-            var totalCost = FilledQuantity * AverageExecutePrice + filledQuantity * price;
-            FilledQuantity += filledQuantity;
-            AverageExecutePrice = totalCost / FilledQuantity;
-
-            if (IsFilled())
-                MarkAsFilled();
-        }
-
-        /// <summary>
-        /// Отменяет ордер (если он активен и принадлежит указанному трейдеру).
-        /// </summary>
-        /// <param name="initiatorId">Telegram ID инициатора отмены.</param>
-        public void Cancel(long initiatorId)
-        {
-            if (!IsTraderOrder(initiatorId))
-                throw new DomainException("Нельзя отменить чужой ордер.");
-
-            if (!IsActive())
+            if (!IsActive)
                 throw new DomainException("Можно отменить только активный ордер.");
 
+            if (TraderTelegramId != initiatorTraderId)
+                throw new DomainException("Нельзя отменить чужой ордер.");
+
             Status = OrderStatus.Cancelled;
-        }
-
-        /// <summary>
-        /// Создаёт новый ордер с уменьшенным количеством токенов.
-        /// Используется для частичного исполнения, когда ордер не полностью заполнен.
-        /// </summary>
-        /// <param name="newQuantity">Новое количество токенов (> 0).</param>
-        /// <returns>Новый активный ордер с обновлённым количеством и сброшенным FilledQuantity.</returns>
-        public TradeOrder WithQuantity(int newQuantity)
-        {
-            if (newQuantity <= 0)
-                throw new DomainException("Количество должно быть больше 0");
-
-            return new TradeOrder
-            {
-                Id = Guid.NewGuid().ToString(), // Новый Id
-                Quantity = newQuantity,
-                FilledQuantity = 0, // Сбрасываем исполненное количество
-                Price = Price,
-                Type = Type,
-                TraderTelegramId = TraderTelegramId,
-                CharacterTokenId = CharacterTokenId,
-                Status = OrderStatus.Active, // Новый статус
-                CreatedAt = DateTime.UtcNow // Новое время создания
-            };
         }
     }
 }
