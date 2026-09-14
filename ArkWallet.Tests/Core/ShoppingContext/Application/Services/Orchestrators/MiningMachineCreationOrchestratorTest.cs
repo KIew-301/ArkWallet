@@ -23,22 +23,22 @@ public class MiningMachineCreationOrchestratorTest
                 ? [new MiningMachineRuleCreationCommand(0, "AAA", 1.5m)]
                 : null);
 
-    private static MiningMachineCreationOrchestrator CreateOrchestrator(
+    private static MachineCreationOrchestrator CreateOrchestrator(
         ArkWalletDbContext db,
-        Mock<IMiningMachineCreationService> machineService,
+        Mock<IMachineCreationService> machineService,
         Mock<IMiningMachineRuleCreationService> ruleService) =>
         new(
             db,
             machineService.Object,
             ruleService.Object,
-            NullLogger<MiningMachineCreationOrchestrator>.Instance);
+            NullLogger<MachineCreationOrchestrator>.Instance);
 
     [Fact]
     public async Task CreateMachineAsync_WithRules_CreatesMachineAndRules()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
 
-        var machineService = new Mock<IMiningMachineCreationService>();
+        var machineService = new Mock<IMachineCreationService>();
         machineService
             .Setup(x => x.CreateMachineAsync(It.IsAny<MiningMachineCreationCommand>()))
             .ReturnsAsync(Result<MiningMachineCreationData>.Ok(new MiningMachineCreationData(5, "SM-01")));
@@ -68,7 +68,7 @@ public class MiningMachineCreationOrchestratorTest
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
 
-        var machineService = new Mock<IMiningMachineCreationService>();
+        var machineService = new Mock<IMachineCreationService>();
         machineService
             .Setup(x => x.CreateMachineAsync(It.IsAny<MiningMachineCreationCommand>()))
             .ReturnsAsync(Result<MiningMachineCreationData>.Ok(new MiningMachineCreationData(5, "SM-01")));
@@ -88,7 +88,7 @@ public class MiningMachineCreationOrchestratorTest
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
 
-        var machineService = new Mock<IMiningMachineCreationService>();
+        var machineService = new Mock<IMachineCreationService>();
         machineService
             .Setup(x => x.CreateMachineAsync(It.IsAny<MiningMachineCreationCommand>()))
             .ReturnsAsync(Result<MiningMachineCreationData>.Fail("Некорректные данные"));
@@ -109,7 +109,7 @@ public class MiningMachineCreationOrchestratorTest
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
 
-        var machineService = new Mock<IMiningMachineCreationService>();
+        var machineService = new Mock<IMachineCreationService>();
         machineService
             .Setup(x => x.CreateMachineAsync(It.IsAny<MiningMachineCreationCommand>()))
             .ReturnsAsync(Result<MiningMachineCreationData>.Ok(new MiningMachineCreationData(5, "SM-01")));
@@ -138,7 +138,7 @@ public class MiningMachineCreationOrchestratorTest
             BuildCommand()
         };
 
-        var machineService = new Mock<IMiningMachineCreationService>();
+        var machineService = new Mock<IMachineCreationService>();
         machineService
             .Setup(x => x.CreateMachinesAsync(It.IsAny<IEnumerable<MiningMachineCreationCommand>>()))
             .ReturnsAsync(Result<List<MiningMachineCreationData>>.Ok(
@@ -170,7 +170,7 @@ public class MiningMachineCreationOrchestratorTest
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
 
-        var machineService = new Mock<IMiningMachineCreationService>();
+        var machineService = new Mock<IMachineCreationService>();
         var ruleService = new Mock<IMiningMachineRuleCreationService>();
 
         var orchestrator = CreateOrchestrator(db, machineService, ruleService);

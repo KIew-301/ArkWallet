@@ -10,7 +10,6 @@ using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Core.PortfolioContext.Domain.Position;
 using ArkWallet.Core.GiftContext.Domain.User;
 using ArkWallet.Core.MailContext.Domain.Message;
-using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
 using ArkWallet.Core.MiningContext.Domain.Machine;
 using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Core.MiningContext.Domain.Engines;
@@ -35,7 +34,7 @@ public class MailStatusUpdatingServiceTest
         decimal amount,
         MailType type)
     {
-        var mail = MailContextMapper.ToRecord(Message.Create(new MessageDraft(
+        var mail = Mapper.ToRecord(Message.Create(new MessageDraft(
             traderId, "Title", "Body", "System", null,
             symbolForReward, amount, type, new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc))));
         db.MailMessages.Add(mail);
@@ -43,13 +42,13 @@ public class MailStatusUpdatingServiceTest
         return mail;
     }
 
-    private static MailStatusUpdatingService BuildService(
+    private static StatusUpdatingService BuildService(
         ArkWalletDbContext db,
         IEventPublisher? publisher = null)
-        => new MailStatusUpdatingService(
+        => new StatusUpdatingService(
             db,
             publisher ?? new Mock<IEventPublisher>().Object,
-            NullLogger<MailStatusUpdatingService>.Instance,
+            NullLogger<StatusUpdatingService>.Instance,
             new TestTimeProvider());
 
     [Fact]

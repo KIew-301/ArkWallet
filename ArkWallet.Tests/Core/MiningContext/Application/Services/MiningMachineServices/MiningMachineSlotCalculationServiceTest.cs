@@ -10,7 +10,6 @@ using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Core.PortfolioContext.Domain.Position;
 using ArkWallet.Core.GiftContext.Domain.User;
 using ArkWallet.Core.MailContext.Domain.Message;
-using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
 using ArkWallet.Core.MiningContext.Domain.Machine;
 using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Core.MiningContext.Domain.Engines;
@@ -49,8 +48,10 @@ public class MiningMachineSlotCalculationServiceTest
         await db.SaveChangesAsync();
 
         var slot = MiningMachineSlot.Create(traderId, machine, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-        slot.SwitchTargetToken(traderId, symbol, globalRule.Id, 10, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-        slot.CompleteSwitching();
+        var m = MiningContextMapper.MachineFrom(slot);
+        m.StartSwitching(traderId, symbol, globalRule.Id, new TestTimeProvider());
+        m.CompleteSwitching();
+        slot.Update(m);
         db.MiningMachineSlots.Add(slot);
 
         await db.SaveChangesAsync();
@@ -160,7 +161,9 @@ public class MiningMachineSlotCalculationServiceTest
 
         var passive = MiningMachineSlot.Create(traderId: 111, machine, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         var switching = MiningMachineSlot.Create(traderId: 111, machine, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-        switching.SwitchTargetToken(111, "AAA", globalRule.Id, 10, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var sm = MiningContextMapper.MachineFrom(switching);
+        sm.StartSwitching(111, "AAA", globalRule.Id, new TestTimeProvider());
+        switching.Update(sm);
         db.MiningMachineSlots.AddRange(passive, switching);
         await db.SaveChangesAsync();
 

@@ -67,7 +67,7 @@ public class PortfolioUpdatingServiceTest
 
         await HelpMethods.RegisterTrader(db, 101);
 
-        var service = new PortfolioUpdatingService(db, NullLogger<PortfolioUpdatingService>.Instance);
+        var service = new UpdatingService(db, NullLogger<UpdatingService>.Instance);
         var result = await service.CreateOrUpdatePortfolioAsync(101, "NONEXISTENT", 10);
 
         Assert.False(result.IsSuccess);

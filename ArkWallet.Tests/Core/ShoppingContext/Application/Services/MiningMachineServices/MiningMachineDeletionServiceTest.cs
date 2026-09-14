@@ -8,7 +8,7 @@ using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Core.PortfolioContext.Domain.Position;
 using ArkWallet.Core.GiftContext.Domain.User;
 using ArkWallet.Core.MailContext.Domain.Message;
-using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
+using ArkWallet.Core.MiningContext.Application.Services.MiningMachineServices;
 using ArkWallet.Core.MiningContext.Domain.Machine;
 using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Core.MiningContext.Domain.Engines;
@@ -33,7 +33,7 @@ public class MiningMachineDeletionServiceTest
     public async Task DeleteMachineAsync_MachineNotFound_ReturnsFail()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
-        var service = new MiningMachineDeletionService(db, NullLogger<MiningMachineDeletionService>.Instance);
+        var service = new MachineDeletionService(db, NullLogger<MachineDeletionService>.Instance);
 
         var result = await service.DeleteMachineAsync(999);
 
@@ -53,7 +53,7 @@ public class MiningMachineDeletionServiceTest
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
 
-        var service = new MiningMachineDeletionService(db, NullLogger<MiningMachineDeletionService>.Instance);
+        var service = new MachineDeletionService(db, NullLogger<MachineDeletionService>.Instance);
 
         var result = await service.DeleteMachineAsync(machineId);
 
@@ -77,12 +77,15 @@ public class MiningMachineDeletionServiceTest
         await db.SaveChangesAsync();
 
         var slot = MiningMachineSlot.Create(1001, machine!, 500m, DateTime.UtcNow);
-        slot.SwitchTargetToken(1001, "ZZZ", globalRule.Id, 10, DateTime.UtcNow);
+        var m = MiningContextMapper.MachineFrom(slot);
+        m.StartSwitching(1001, "ZZZ", globalRule.Id, TimeProvider.System);
+        m.CompleteSwitching();
+        slot.Update(m);
         db.MiningMachineSlots.Add(slot);
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
 
-        var service = new MiningMachineDeletionService(db, NullLogger<MiningMachineDeletionService>.Instance);
+        var service = new MachineDeletionService(db, NullLogger<MachineDeletionService>.Instance);
 
         var result = await service.DeleteMachineAsync(machineId);
 
@@ -96,7 +99,7 @@ public class MiningMachineDeletionServiceTest
     public async Task DeleteMachinesAsync_EmptyIds_ReturnsOk()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
-        var service = new MiningMachineDeletionService(db, NullLogger<MiningMachineDeletionService>.Instance);
+        var service = new MachineDeletionService(db, NullLogger<MachineDeletionService>.Instance);
 
         var result = await service.DeleteMachinesAsync([]);
 
@@ -109,7 +112,7 @@ public class MiningMachineDeletionServiceTest
         await using var db = await DbTest.CreateInitializedDbContextAsync();
         var machineId = await CreateMachine(db);
         db.ChangeTracker.Clear();
-        var service = new MiningMachineDeletionService(db, NullLogger<MiningMachineDeletionService>.Instance);
+        var service = new MachineDeletionService(db, NullLogger<MachineDeletionService>.Instance);
 
         var result = await service.DeleteMachinesAsync([machineId, 999]);
 
@@ -133,7 +136,7 @@ public class MiningMachineDeletionServiceTest
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
 
-        var service = new MiningMachineDeletionService(db, NullLogger<MiningMachineDeletionService>.Instance);
+        var service = new MachineDeletionService(db, NullLogger<MachineDeletionService>.Instance);
 
         var result = await service.DeleteMachinesAsync([firstId, secondId]);
 
@@ -147,7 +150,7 @@ public class MiningMachineDeletionServiceTest
     public async Task DeactivateMachineAsync_MachineNotFound_ReturnsFail()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
-        var service = new MiningMachineDeletionService(db, NullLogger<MiningMachineDeletionService>.Instance);
+        var service = new MachineDeletionService(db, NullLogger<MachineDeletionService>.Instance);
 
         var result = await service.DeactivateMachineAsync(999);
 
@@ -161,7 +164,7 @@ public class MiningMachineDeletionServiceTest
         await using var db = await DbTest.CreateInitializedDbContextAsync();
         var machineId = await CreateMachine(db, isActiveForSale: false);
         db.ChangeTracker.Clear();
-        var service = new MiningMachineDeletionService(db, NullLogger<MiningMachineDeletionService>.Instance);
+        var service = new MachineDeletionService(db, NullLogger<MachineDeletionService>.Instance);
 
         var result = await service.DeactivateMachineAsync(machineId);
 
@@ -175,7 +178,7 @@ public class MiningMachineDeletionServiceTest
         await using var db = await DbTest.CreateInitializedDbContextAsync();
         var machineId = await CreateMachine(db);
         db.ChangeTracker.Clear();
-        var service = new MiningMachineDeletionService(db, NullLogger<MiningMachineDeletionService>.Instance);
+        var service = new MachineDeletionService(db, NullLogger<MachineDeletionService>.Instance);
 
         var result = await service.DeactivateMachineAsync(machineId);
 

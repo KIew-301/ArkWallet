@@ -11,7 +11,6 @@ using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Core.PortfolioContext.Domain.Position;
 using ArkWallet.Core.GiftContext.Domain.User;
 using ArkWallet.Core.MailContext.Domain.Message;
-using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
 using ArkWallet.Core.MiningContext.Domain.Machine;
 using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Core.MiningContext.Domain.Engines;
@@ -28,14 +27,14 @@ public class MailMessageServiceTest
     private static ArkWalletDbContext CreateDb() =>
         DbTest.CreateInitializedDbContextAsync().GetAwaiter().GetResult();
 
-    private static MailMessageService BuildService(
+    private static MessageService BuildService(
         ArkWalletDbContext db,
         ITaskDispatcher? dispatcher = null,
         TestTimeProvider? timeProvider = null)
-        => new MailMessageService(
+        => new MessageService(
             db,
             dispatcher ?? new Mock<ITaskDispatcher>().Object,
-            NullLogger<MailMessageService>.Instance,
+            NullLogger<MessageService>.Instance,
             timeProvider ?? new TestTimeProvider());
 
     [Fact]
@@ -44,7 +43,7 @@ public class MailMessageServiceTest
         using var db = CreateDb();
 
         var service = BuildService(db);
-        var result = await service.CreateAsync(new MailCreateCommand(
+        var result = await service.CreateAsync(new CreateCommand(
             TraderId: 2002, Title: "T", Message: "M", SenderName: "S", SenderId: null,
             SymbolForReward: "", AmountForReward: 0));
 
@@ -63,7 +62,7 @@ public class MailMessageServiceTest
         using var db = CreateDb();
 
         var service = BuildService(db);
-        var result = await service.CreateAsync(new MailCreateCommand(
+        var result = await service.CreateAsync(new CreateCommand(
             TraderId: 2002, Title: "T", Message: "M", SenderName: "S", SenderId: null,
             SymbolForReward: "ZZZ", AmountForReward: 5, Type: "Reward"));
 
@@ -80,7 +79,7 @@ public class MailMessageServiceTest
         using var db = CreateDb();
 
         var service = BuildService(db);
-        var result = await service.CreateAsync(new MailCreateCommand(
+        var result = await service.CreateAsync(new CreateCommand(
             TraderId: 2002, Title: "T", Message: "M", SenderName: "S", SenderId: null,
             SymbolForReward: "", AmountForReward: 0, Type: "Bogus"));
 
@@ -98,7 +97,7 @@ public class MailMessageServiceTest
         var dispatcher = new Mock<ITaskDispatcher>();
         var service = BuildService(db, dispatcher.Object);
 
-        await service.CreateAsync(new MailCreateCommand(
+        await service.CreateAsync(new CreateCommand(
             TraderId: 2002, Title: "T", Message: "M", SenderName: "S", SenderId: null,
             SymbolForReward: "", AmountForReward: 0));
 
@@ -117,7 +116,7 @@ public class MailMessageServiceTest
         var dispatcher = new Mock<ITaskDispatcher>();
         var service = BuildService(db, dispatcher.Object);
 
-        await service.CreateAsync(new MailCreateCommand(
+        await service.CreateAsync(new CreateCommand(
             TraderId: 2002, Title: "T", Message: "M", SenderName: "S", SenderId: null,
             SymbolForReward: "", AmountForReward: 0));
 
@@ -130,7 +129,7 @@ public class MailMessageServiceTest
         using var db = CreateDb();
 
         var service = BuildService(db);
-        var result = await service.CreateManyAsync(new List<MailCreateCommand>());
+        var result = await service.CreateManyAsync(new List<CreateCommand>());
 
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var ids));
@@ -144,7 +143,7 @@ public class MailMessageServiceTest
         using var db = CreateDb();
 
         var service = BuildService(db);
-        var result = await service.CreateManyAsync(new List<MailCreateCommand>
+        var result = await service.CreateManyAsync(new List<CreateCommand>
         {
             new(2002, "T1", "M1", "S", null, "", 0),
             new(3003, "T2", "M2", "S", null, "", 0)

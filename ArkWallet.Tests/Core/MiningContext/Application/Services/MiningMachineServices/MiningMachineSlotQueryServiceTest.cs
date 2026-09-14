@@ -10,7 +10,6 @@ using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Core.PortfolioContext.Domain.Position;
 using ArkWallet.Core.GiftContext.Domain.User;
 using ArkWallet.Core.MailContext.Domain.Message;
-using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
 using ArkWallet.Core.MiningContext.Domain.Machine;
 using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Core.MiningContext.Domain.Engines;
@@ -62,9 +61,11 @@ public class MiningMachineSlotQueryServiceTest
 
         var slot = MiningMachineSlot.Create(
             111, machine, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-        slot.SwitchTargetToken(111, "AAA", globalRule.Id, 10, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-        slot.CompleteSwitching();
-        slot.AddTokens(5.5m);
+        var m = MiningContextMapper.MachineFrom(slot);
+        m.StartSwitching(111, "AAA", globalRule.Id, new TestTimeProvider());
+        m.CompleteSwitching();
+        m.AddTokens(5.5m);
+        slot.Update(m);
         db.MiningMachineSlots.Add(slot);
         await db.SaveChangesAsync();
 
@@ -108,8 +109,10 @@ public class MiningMachineSlotQueryServiceTest
 
         var slot = MiningMachineSlot.Create(
             111, machine, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-        slot.SwitchTargetToken(111, "AAA", globalRuleId, 10, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-        slot.CompleteSwitching();
+        var m = MiningContextMapper.MachineFrom(slot);
+        m.StartSwitching(111, "AAA", globalRuleId, new TestTimeProvider());
+        m.CompleteSwitching();
+        slot.Update(m);
         db.MiningMachineSlots.Add(slot);
         await db.SaveChangesAsync();
 
@@ -168,9 +171,10 @@ public class MiningMachineSlotQueryServiceTest
 
         var slot = MiningMachineSlot.Create(
             111, machine, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-        slot.SwitchTargetToken(
-            111, "AAA", globalRule.Id, 10,
-            new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMinutes(-2));
+        var m = MiningContextMapper.MachineFrom(slot);
+        m.StartSwitching(111, "AAA", globalRule.Id,
+            new TestTimeProvider { DateTimeOffsetNow = new DateTimeOffset(2025, 12, 31, 23, 58, 0, TimeSpan.Zero) });
+        slot.Update(m);
         db.MiningMachineSlots.Add(slot);
         await db.SaveChangesAsync();
 
@@ -212,7 +216,9 @@ public class MiningMachineSlotQueryServiceTest
 
         var machine = await CreateMachineAsync(db);
         var sold = MiningMachineSlot.Create(111, machine, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-        sold.Sell(111, new DateTime(2026, 1, 2, 0, 0, 0, DateTimeKind.Utc));
+        var sm = MiningContextMapper.MachineFrom(sold);
+        sm.Sell(new TestTimeProvider { DateTimeOffsetNow = new DateTimeOffset(2026, 1, 2, 0, 0, 0, TimeSpan.Zero) });
+        sold.Update(sm);
         var active = MiningMachineSlot.Create(111, machine, 400, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         db.MiningMachineSlots.AddRange(sold, active);
         await db.SaveChangesAsync();

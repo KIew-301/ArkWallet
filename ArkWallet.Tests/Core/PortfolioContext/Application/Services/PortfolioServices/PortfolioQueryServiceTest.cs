@@ -13,7 +13,7 @@ public class PortfolioQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        var portfolioQueryService = GetPortfolioQueryService(db);
+        var QueryService = GetPortfolioQueryService(db);
 
         await HelpMethods.RegisterTrader(db, 101);
         await HelpMethods.CreateToken(db, "ZZZ", price: 1000);
@@ -27,7 +27,7 @@ public class PortfolioQueryServiceTest
         await HelpMethods.RemoveToken(db, 101, "ZZZ", 6);
         await HelpMethods.GiveToken(db, 101, "XXX", 4);
 
-        var result = await portfolioQueryService.GetTraderTokensAsync(101);
+        var result = await QueryService.GetTraderTokensAsync(101);
 
         Assert.True(result.TryGetData(out var data));
         Assert.Equal(3, data.Length);
@@ -59,11 +59,11 @@ public class PortfolioQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        var portfolioQueryService = GetPortfolioQueryService(db);
+        var QueryService = GetPortfolioQueryService(db);
 
         await HelpMethods.RegisterTrader(db, 101);
 
-        var result = await portfolioQueryService.GetTraderTokensAsync(101);
+        var result = await QueryService.GetTraderTokensAsync(101);
 
         Assert.True(result.TryGetData(out var data));
         Assert.Empty(data);
@@ -75,9 +75,9 @@ public class PortfolioQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        var portfolioQueryService = GetPortfolioQueryService(db);
+        var QueryService = GetPortfolioQueryService(db);
 
-        var result = await portfolioQueryService.GetTraderTokensAsync(101);
+        var result = await QueryService.GetTraderTokensAsync(101);
 
         Assert.True(result.TryGetData(out var data));
         Assert.Empty(data);
@@ -89,13 +89,13 @@ public class PortfolioQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        var portfolioQueryService = GetPortfolioQueryService(db);
+        var QueryService = GetPortfolioQueryService(db);
 
         await HelpMethods.RegisterTrader(db, 201);
         await HelpMethods.CreateToken(db, "AAA", price: 500);
         await HelpMethods.AddPortfolio(db, 201, "AAA", 10);
 
-        var result = await portfolioQueryService.GetTokenBalanceAsync(201, "AAA");
+        var result = await QueryService.GetTokenBalanceAsync(201, "AAA");
 
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var data));
@@ -109,19 +109,19 @@ public class PortfolioQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        var portfolioQueryService = GetPortfolioQueryService(db);
+        var QueryService = GetPortfolioQueryService(db);
 
         await HelpMethods.RegisterTrader(db, 201);
 
-        var result = await portfolioQueryService.GetTokenBalanceAsync(201, "ZZZ");
+        var result = await QueryService.GetTokenBalanceAsync(201, "ZZZ");
 
         Assert.False(result.IsSuccess);
     }
 
-    private PortfolioQueryService GetPortfolioQueryService(ArkWalletDbContext db)
+    private QueryService GetPortfolioQueryService(ArkWalletDbContext db)
     {
-        var logger = NullLogger<PortfolioQueryService>.Instance;
-        var portfolioQueryService = new PortfolioQueryService(db, logger);
-        return portfolioQueryService;
+        var logger = NullLogger<QueryService>.Instance;
+        var QueryService = new QueryService(db, logger);
+        return QueryService;
     }
 }

@@ -1,6 +1,6 @@
 using ArkWallet.Core.General.Domain.Exceptions;
 using ArkWallet.Tests.HelpTools;
-using Goal = ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal.GlobalGoal;
+using Goal = ArkWallet.Core.GlobalGoalContext.Domain.Goal.Goal;
 
 namespace ArkWallet.Tests.Core.GlobalGoalContext.Domain.GlobalGoal;
 

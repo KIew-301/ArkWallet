@@ -12,7 +12,6 @@ using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Core.PortfolioContext.Domain.Position;
 using ArkWallet.Core.GiftContext.Domain.User;
 using ArkWallet.Core.MailContext.Domain.Message;
-using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
 using ArkWallet.Core.MiningContext.Domain.Machine;
 using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Core.MiningContext.Domain.Engines;
@@ -36,7 +35,7 @@ public class MarketWallBlockerOrchestratorTest
         registration.Setup(x => x.RegisterTraderAsync(It.IsAny<long>(), It.IsAny<string>(), It.IsAny<bool>()))
             .ReturnsAsync(Result.Ok());
 
-        var portfolio = new Mock<IPortfolioUpdatingService>();
+        var portfolio = new Mock<IUpdatingService>();
         portfolio.Setup(x => x.CreateOrUpdatePortfolioAsync(It.IsAny<long>(), It.IsAny<string>(), It.IsAny<int>()))
             .ReturnsAsync(Result.Ok());
 
@@ -132,7 +131,7 @@ public class MarketWallBlockerOrchestratorTest
         await db.Traders.AddAsync(trader);
         await db.SaveChangesAsync();
 
-        var portfolio = new Mock<IPortfolioUpdatingService>();
+        var portfolio = new Mock<IUpdatingService>();
         portfolio.Setup(x => x.CreateOrUpdatePortfolioAsync(It.IsAny<long>(), It.IsAny<string>(), It.IsAny<int>()))
             .ReturnsAsync(Result.Ok());
 

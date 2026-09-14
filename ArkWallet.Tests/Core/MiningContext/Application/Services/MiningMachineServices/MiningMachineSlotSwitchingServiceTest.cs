@@ -8,7 +8,6 @@ using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Core.PortfolioContext.Domain.Position;
 using ArkWallet.Core.GiftContext.Domain.User;
 using ArkWallet.Core.MailContext.Domain.Message;
-using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
 using ArkWallet.Core.MiningContext.Domain.Machine;
 using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Core.MiningContext.Domain.Engines;
@@ -94,9 +93,11 @@ public class MiningMachineSlotSwitchingServiceTest
         var (machine, _) = await CreateMachineWithRuleAsync(db, machineEfficiency: 1.5m);
         var globalRule = await CreateGlobalRuleAsync(db, "AAA");
         var slot = await CreateSlotAsync(db, 111, machine, globalRule.Id);
-        slot.AddTokens(2.75m);
-        slot.SwitchTargetToken(111, "AAA", globalRule.Id, 10, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-        slot.CompleteSwitching();
+        var m = MiningContextMapper.MachineFrom(slot);
+        m.AddTokens(2.75m);
+        m.StartSwitching(111, "AAA", globalRule.Id, new TestTimeProvider());
+        m.CompleteSwitching();
+        slot.Update(m);
         await db.SaveChangesAsync();
 
         var result = await CreateService(db).SwitchTargetTokenAsync(111, slot.Id, "AAA");

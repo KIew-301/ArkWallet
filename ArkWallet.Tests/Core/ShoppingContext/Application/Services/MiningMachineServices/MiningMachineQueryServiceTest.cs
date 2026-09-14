@@ -10,7 +10,7 @@ using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Core.PortfolioContext.Domain.Position;
 using ArkWallet.Core.GiftContext.Domain.User;
 using ArkWallet.Core.MailContext.Domain.Message;
-using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
+using ArkWallet.Core.MiningContext.Application.Services.MiningMachineServices;
 using ArkWallet.Core.MiningContext.Domain.Machine;
 using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Core.MiningContext.Domain.Engines;
@@ -23,8 +23,8 @@ namespace ArkWallet.Tests.Core.ShoppingContext.Application.Services.MiningMachin
 
 public class MiningMachineQueryServiceTest
 {
-    private static MiningMachineQueryService CreateService(ArkWalletDbContext db) =>
-        new(db, new MiningEngine(), NullLogger<MiningMachineQueryService>.Instance);
+    private static MachineQueryService CreateService(ArkWalletDbContext db) =>
+        new(db, new MiningEngine(), NullLogger<MachineQueryService>.Instance);
 
     private static async Task<CharacterToken> CreateTokenAsync(
         ArkWalletDbContext db, string symbol, decimal price = 100)
@@ -214,7 +214,9 @@ public class MiningMachineQueryServiceTest
 
         var slot = MiningMachineSlot.Create(
             111, machine, 80, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-        slot.Sell(111, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var m = MiningContextMapper.MachineFrom(slot);
+        m.Sell(new TestTimeProvider { DateTimeOffsetNow = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero) });
+        slot.Update(m);
         db.MiningMachineSlots.Add(slot);
         await db.SaveChangesAsync();
 

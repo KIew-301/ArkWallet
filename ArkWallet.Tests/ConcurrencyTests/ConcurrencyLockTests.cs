@@ -20,7 +20,6 @@ using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Core.PortfolioContext.Domain.Position;
 using ArkWallet.Core.GiftContext.Domain.User;
 using ArkWallet.Core.MailContext.Domain.Message;
-using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
 using ArkWallet.Core.MiningContext.Domain.Machine;
 using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Core.MiningContext.Domain.Engines;
@@ -316,11 +315,11 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
         await using var waiterTx = await waiter.Database.BeginTransactionAsync();
         await waiter.Database.ExecuteSqlRawAsync("SET LOCAL lock_timeout = '300ms'");
 
-        var service = new GiftSendingService(
+        var service = new SendingService(
             waiter,
             new Mock<ITokenQueryService>().Object,
             new Mock<IEventPublisher>().Object,
-            NullLogger<GiftSendingService>.Instance,
+            NullLogger<SendingService>.Instance,
             new TestTimeProvider());
 
         var blocked = await Assert.ThrowsAsync<PostgresException>(

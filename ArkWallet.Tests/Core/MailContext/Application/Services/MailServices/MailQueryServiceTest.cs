@@ -8,7 +8,6 @@ using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Core.PortfolioContext.Domain.Position;
 using ArkWallet.Core.GiftContext.Domain.User;
 using ArkWallet.Core.MailContext.Domain.Message;
-using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
 using ArkWallet.Core.MiningContext.Domain.Machine;
 using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Core.MiningContext.Domain.Engines;
@@ -40,7 +39,7 @@ public class MailQueryServiceTest
             new DateTime(2026, 1, 1, 10, 0, 0))));
         await db.SaveChangesAsync();
 
-        var service = new MailQueryService(db, NullLogger<MailQueryService>.Instance);
+        var service = new QueryService(db, NullLogger<QueryService>.Instance);
         var result = await service.GetUserMailsAsync(2002);
 
         Assert.True(result.IsSuccess);
@@ -56,7 +55,7 @@ public class MailQueryServiceTest
     {
         using var db = CreateDb();
 
-        var service = new MailQueryService(db, NullLogger<MailQueryService>.Instance);
+        var service = new QueryService(db, NullLogger<QueryService>.Instance);
         var result = await service.GetUserMailsAsync(2002);
 
         Assert.True(result.IsSuccess);

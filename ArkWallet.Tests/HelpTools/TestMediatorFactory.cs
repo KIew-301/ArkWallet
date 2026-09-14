@@ -22,10 +22,10 @@ internal static class TestMediatorFactory
         services.AddSingleton(candleUpdateService);
         var taskDispatcher = new Mock<ITaskDispatcher>().Object;
         services.AddSingleton(taskDispatcher);
-        services.AddSingleton<IMailMessageService>(new MailMessageService(
+        services.AddSingleton<IMessageService>(new MessageService(
             db,
             taskDispatcher,
-            NullLogger<MailMessageService>.Instance,
+            NullLogger<MessageService>.Instance,
             TimeProvider.System));
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<OrderPlacedEventHandler>());
         return services.BuildServiceProvider().GetRequiredService<IMediator>();

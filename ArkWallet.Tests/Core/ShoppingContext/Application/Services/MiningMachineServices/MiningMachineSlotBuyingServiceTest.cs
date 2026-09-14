@@ -8,7 +8,7 @@ using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Core.PortfolioContext.Domain.Position;
 using ArkWallet.Core.GiftContext.Domain.User;
 using ArkWallet.Core.MailContext.Domain.Message;
-using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
+using ArkWallet.Core.MiningContext.Application.Services.MiningMachineServices;
 using ArkWallet.Core.MiningContext.Domain.Machine;
 using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Core.MiningContext.Domain.Engines;
@@ -21,8 +21,8 @@ namespace ArkWallet.Tests.Core.ShoppingContext.Application.Services.MiningMachin
 
 public class MiningMachineSlotBuyingServiceTest
 {
-    private static MiningMachineSlotBuyingService CreateService(ArkWalletDbContext db) =>
-        new(db, NullLogger<MiningMachineSlotBuyingService>.Instance);
+    private static MachineSlotBuyingService CreateService(ArkWalletDbContext db) =>
+        new(db, NullLogger<MachineSlotBuyingService>.Instance);
 
     private static readonly decimal[] CategoryEfficiencies =
         [0.003m, 0.006m, 0.011m, 0.018m, 0.033m, 0.046m, 0.084m, 0.157m, 0.373m, 0.763m, 1.476m];
@@ -168,7 +168,9 @@ public class MiningMachineSlotBuyingServiceTest
         }
 
         var soldSlot = await db.MiningMachineSlots.FirstAsync(s => s.TraderId == 111);
-        soldSlot.Sell(111, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var sm = MiningContextMapper.MachineFrom(soldSlot);
+        sm.Sell(new TestTimeProvider());
+        soldSlot.Update(sm);
         await db.SaveChangesAsync();
 
         var afterSell = await service.BuyMachineAsync(111, machines[10].Id);

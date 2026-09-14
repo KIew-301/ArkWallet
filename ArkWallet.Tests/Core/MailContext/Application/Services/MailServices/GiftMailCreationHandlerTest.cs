@@ -9,7 +9,6 @@ using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Core.PortfolioContext.Domain.Position;
 using ArkWallet.Core.GiftContext.Domain.User;
 using ArkWallet.Core.MailContext.Domain.Message;
-using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
 using ArkWallet.Core.MiningContext.Domain.Machine;
 using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Core.MiningContext.Domain.Engines;
@@ -25,7 +24,7 @@ public class GiftMailCreationHandlerTest
     [Fact]
     public async Task Handle_SendsGiftMailCommandToMailMessageService()
     {
-        var mailService = new Mock<IMailMessageService>();
+        var mailService = new Mock<IMessageService>();
         var handler = new GiftMailCreationHandler(mailService.Object);
 
         await handler.Handle(new GiftSentEvent(
@@ -36,7 +35,7 @@ public class GiftMailCreationHandlerTest
             Quantity: 1,
             CreatedAt: new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc)), CancellationToken.None);
 
-        mailService.Verify(m => m.CreateAsync(It.Is<MailCreateCommand>(c =>
+        mailService.Verify(m => m.CreateAsync(It.Is<CreateCommand>(c =>
             c.TraderId == 2002 &&
             c.SenderId == 1001 &&
             c.SenderName == "Sender" &&

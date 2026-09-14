@@ -1,7 +1,7 @@
-using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
 using ArkWallet.Core.GlobalGoalContext.Domain.Events;
+using ArkWallet.Core.GlobalGoalContext.Domain.Goal;
 using ArkWallet.Tests.HelpTools;
-using Goal = ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal.GlobalGoal;
+using Goal = ArkWallet.Core.GlobalGoalContext.Domain.Goal.Goal;
 
 namespace ArkWallet.Tests.Core.GlobalGoalContext.Domain.GlobalGoal;
 

@@ -10,11 +10,9 @@ using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Core.PortfolioContext.Domain.Position;
 using ArkWallet.Core.GiftContext.Domain.User;
 using ArkWallet.Core.MailContext.Domain.Message;
-using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
 using ArkWallet.Core.MiningContext.Domain.Machine;
 using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Core.MiningContext.Domain.Engines;
-using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
 using ArkWallet.Core.GlobalGoalContext.Domain.Events;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Tests.HelpTools;
@@ -33,12 +31,12 @@ public class GlobalGoalAchievedMailHandlerTest
         await HelpMethods.RegisterTrader(db, 3003);
         await HelpMethods.RegisterTrader(db, 101);
 
-        List<MailCreateCommand>? captured = null;
-        var mailService = new Mock<IMailMessageService>();
+        List<CreateCommand>? captured = null;
+        var mailService = new Mock<IMessageService>();
         mailService
-            .Setup(m => m.CreateManyAsync(It.IsAny<IReadOnlyList<MailCreateCommand>>()))
+            .Setup(m => m.CreateManyAsync(It.IsAny<IReadOnlyList<CreateCommand>>()))
             .ReturnsAsync(Result<List<MailCreateResult>>.Ok(new()))
-            .Callback<IReadOnlyList<MailCreateCommand>>(c => captured = c.ToList());
+            .Callback<IReadOnlyList<CreateCommand>>(c => captured = c.ToList());
 
         var handler = new GlobalGoalAchievedMailHandler(db, mailService.Object);
         await handler.Handle(new GlobalGoalAchievedEvent(
@@ -65,15 +63,15 @@ public class GlobalGoalAchievedMailHandlerTest
         using var db = await DbTest.CreateInitializedDbContextAsync();
         await HelpMethods.RegisterTrader(db, 101);
 
-        var mailService = new Mock<IMailMessageService>();
+        var mailService = new Mock<IMessageService>();
         mailService
-            .Setup(m => m.CreateManyAsync(It.IsAny<IReadOnlyList<MailCreateCommand>>()))
+            .Setup(m => m.CreateManyAsync(It.IsAny<IReadOnlyList<CreateCommand>>()))
             .ReturnsAsync(Result<List<MailCreateResult>>.Ok(new()));
 
         var handler = new GlobalGoalAchievedMailHandler(db, mailService.Object);
         await handler.Handle(new GlobalGoalAchievedEvent(
             "Goal1", DateTime.UtcNow, 10000m, "ZZZ", 10m), CancellationToken.None);
 
-        mailService.Verify(m => m.CreateManyAsync(It.IsAny<IReadOnlyList<MailCreateCommand>>()), Times.Once);
+        mailService.Verify(m => m.CreateManyAsync(It.IsAny<IReadOnlyList<CreateCommand>>()), Times.Once);
     }
 }

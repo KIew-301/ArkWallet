@@ -217,7 +217,7 @@ public class PositionTest
     {
         var p = CreatePosition(quantity: 10, price: 10m);
 
-        p.ChangePosition(new PortfolioChangeCommand(1001, "ZZZ", type, 5, type == PortfolioChangeType.Buy ? 20m : 0m));
+        p.ChangePosition(new ChangeCommand(1001, "ZZZ", type, 5, type == PortfolioChangeType.Buy ? 20m : 0m));
 
         Assert.Equal(15, p.Quantity);
         if (type == PortfolioChangeType.Buy)
@@ -231,7 +231,7 @@ public class PositionTest
     {
         var p = CreatePosition(quantity: 10, price: 10m);
 
-        p.ChangePosition(new PortfolioChangeCommand(1001, "ZZZ", PortfolioChangeType.Reserve, 4, 20m));
+        p.ChangePosition(new ChangeCommand(1001, "ZZZ", PortfolioChangeType.Reserve, 4, 20m));
 
         Assert.Equal(6, p.Quantity);
         Assert.Equal(4, p.ReserveQuantity);
@@ -243,7 +243,7 @@ public class PositionTest
         var p = CreatePosition(quantity: 10, price: 10m);
         p.ReserveTokens(4, 20m);
 
-        p.ChangePosition(new PortfolioChangeCommand(1001, "ZZZ", PortfolioChangeType.Sell, 4, 30m));
+        p.ChangePosition(new ChangeCommand(1001, "ZZZ", PortfolioChangeType.Sell, 4, 30m));
 
         Assert.Equal(4, p.SellingQuantity);
         Assert.Equal(0, p.ReserveQuantity);
@@ -255,7 +255,7 @@ public class PositionTest
         var p = CreatePosition(quantity: 10, price: 10m);
         p.ReserveTokens(4, 20m);
 
-        p.ChangePosition(new PortfolioChangeCommand(1001, "ZZZ", PortfolioChangeType.Return, 4, 0m));
+        p.ChangePosition(new ChangeCommand(1001, "ZZZ", PortfolioChangeType.Return, 4, 0m));
 
         Assert.Equal(10, p.Quantity);
         Assert.Equal(0, p.ReserveQuantity);
@@ -266,7 +266,7 @@ public class PositionTest
     {
         var p = CreatePosition(quantity: 10, price: 10m);
 
-        p.ChangePosition(new PortfolioChangeCommand(1001, "ZZZ", PortfolioChangeType.Remove, 4, 10m));
+        p.ChangePosition(new ChangeCommand(1001, "ZZZ", PortfolioChangeType.Remove, 4, 10m));
 
         Assert.Equal(6, p.Quantity);
     }
@@ -278,7 +278,7 @@ public class PositionTest
         var unknown = (PortfolioChangeType)999;
 
         var ex = Assert.Throws<DomainException>(() =>
-            p.ChangePosition(new PortfolioChangeCommand(1001, "ZZZ", unknown, 1, 10m)));
+            p.ChangePosition(new ChangeCommand(1001, "ZZZ", unknown, 1, 10m)));
 
         Assert.Equal("Неизвестная операция над портфелем", ex.Message);
     }

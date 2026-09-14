@@ -9,11 +9,11 @@ namespace ArkWallet.Tests.Core.PortfolioContext.Application.Services.PortfolioSe
 
 public class PortfolioContextChangePositionTests
 {
-    private static async Task<PortfolioUpdatingService> InitAsync(ArkWalletDbContext db)
+    private static async Task<UpdatingService> InitAsync(ArkWalletDbContext db)
     {
         await HelpMethods.RegisterTrader(db, 2002);
         await HelpMethods.CreateToken(db, "ZZZ", price: 100m);
-        return new PortfolioUpdatingService(db, NullLogger<PortfolioUpdatingService>.Instance);
+        return new UpdatingService(db, NullLogger<UpdatingService>.Instance);
     }
 
     [Fact]
@@ -24,7 +24,7 @@ public class PortfolioContextChangePositionTests
         await HelpMethods.AddPortfolio(db, 2002, "ZZZ", 10);
 
         var result = await service.ChangePositionAsync(
-            new PortfolioChangeCommand(2002, "ZZZ", PortfolioChangeType.Buy, 10, 150m));
+            new ChangeCommand(2002, "ZZZ", PortfolioChangeType.Buy, 10, 150m));
 
         Assert.True(result.IsSuccess);
         var p = await HelpMethods.GetPortfolio(db, 2002);
@@ -40,7 +40,7 @@ public class PortfolioContextChangePositionTests
         await HelpMethods.AddPortfolio(db, 2002, "ZZZ", 10);
 
         var result = await service.ChangePositionAsync(
-            new PortfolioChangeCommand(2002, "ZZZ", PortfolioChangeType.Add, 5, 0m));
+            new ChangeCommand(2002, "ZZZ", PortfolioChangeType.Add, 5, 0m));
 
         Assert.True(result.IsSuccess);
         var p = await HelpMethods.GetPortfolio(db, 2002);
@@ -56,7 +56,7 @@ public class PortfolioContextChangePositionTests
         await HelpMethods.AddPortfolio(db, 2002, "ZZZ", 10);
 
         var result = await service.ChangePositionAsync(
-            new PortfolioChangeCommand(2002, "ZZZ", PortfolioChangeType.Reserve, 4, 100m));
+            new ChangeCommand(2002, "ZZZ", PortfolioChangeType.Reserve, 4, 100m));
 
         Assert.True(result.IsSuccess);
         var p = await HelpMethods.GetPortfolio(db, 2002);
@@ -70,10 +70,10 @@ public class PortfolioContextChangePositionTests
         using var db = await DbTest.CreateInitializedDbContextAsync();
         var service = await InitAsync(db);
         await HelpMethods.AddPortfolio(db, 2002, "ZZZ", 10);
-        await service.ChangePositionAsync(new PortfolioChangeCommand(2002, "ZZZ", PortfolioChangeType.Reserve, 4, 100m));
+        await service.ChangePositionAsync(new ChangeCommand(2002, "ZZZ", PortfolioChangeType.Reserve, 4, 100m));
 
         var result = await service.ChangePositionAsync(
-            new PortfolioChangeCommand(2002, "ZZZ", PortfolioChangeType.Return, 4, 0m));
+            new ChangeCommand(2002, "ZZZ", PortfolioChangeType.Return, 4, 0m));
 
         Assert.True(result.IsSuccess);
         var p = await HelpMethods.GetPortfolio(db, 2002);
@@ -89,7 +89,7 @@ public class PortfolioContextChangePositionTests
         await HelpMethods.AddPortfolio(db, 2002, "ZZZ", 10);
 
         var result = await service.ChangePositionAsync(
-            new PortfolioChangeCommand(2002, "ZZZ", PortfolioChangeType.Remove, 4, 100m));
+            new ChangeCommand(2002, "ZZZ", PortfolioChangeType.Remove, 4, 100m));
 
         Assert.True(result.IsSuccess);
         var p = await HelpMethods.GetPortfolio(db, 2002);
@@ -104,7 +104,7 @@ public class PortfolioContextChangePositionTests
         await HelpMethods.AddPortfolio(db, 2002, "ZZZ", 10);
 
         var result = await service.ChangePositionAsync(
-            new PortfolioChangeCommand(2002, "ZZZ", (PortfolioChangeType)999, 1, 100m));
+            new ChangeCommand(2002, "ZZZ", (PortfolioChangeType)999, 1, 100m));
 
         Assert.False(result.IsSuccess);
         Assert.Equal("Неизвестная операция над портфелем", result.Message);
@@ -117,7 +117,7 @@ public class PortfolioContextChangePositionTests
         var service = await InitAsync(db);
 
         var result = await service.ChangePositionAsync(
-            new PortfolioChangeCommand(2002, "ZZZ", PortfolioChangeType.Remove, 1, 100m));
+            new ChangeCommand(2002, "ZZZ", PortfolioChangeType.Remove, 1, 100m));
 
         Assert.False(result.IsSuccess);
     }
@@ -129,7 +129,7 @@ public class PortfolioContextChangePositionTests
         var service = await InitAsync(db);
 
         var result = await service.ChangePositionAsync(
-            new PortfolioChangeCommand(2002, "ZZZ", PortfolioChangeType.Buy, 10, 100m));
+            new ChangeCommand(2002, "ZZZ", PortfolioChangeType.Buy, 10, 100m));
 
         Assert.True(result.IsSuccess);
         var p = await HelpMethods.GetPortfolio(db, 2002);
@@ -144,7 +144,7 @@ public class PortfolioContextChangePositionTests
         await HelpMethods.AddPortfolio(db, 2002, "ZZZ", 10);
 
         var result = await service.ChangePositionAsync(
-            new PortfolioChangeCommand(2002, "ZZZ", PortfolioChangeType.Remove, 10, 100m));
+            new ChangeCommand(2002, "ZZZ", PortfolioChangeType.Remove, 10, 100m));
 
         Assert.True(result.IsSuccess);
         var p = await HelpMethods.GetPortfolio(db, 2002);

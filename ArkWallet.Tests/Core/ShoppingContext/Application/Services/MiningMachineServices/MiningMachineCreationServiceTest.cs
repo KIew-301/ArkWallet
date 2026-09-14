@@ -10,7 +10,6 @@ using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Core.PortfolioContext.Domain.Position;
 using ArkWallet.Core.GiftContext.Domain.User;
 using ArkWallet.Core.MailContext.Domain.Message;
-using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
 using ArkWallet.Core.MiningContext.Domain.Machine;
 using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Core.MiningContext.Domain.Engines;
@@ -23,8 +22,8 @@ namespace ArkWallet.Tests.Core.ShoppingContext.Application.Services.MiningMachin
 
 public class MiningMachineCreationServiceTest
 {
-    private static MiningMachineCreationService CreateService(ArkWalletDbContext db) =>
-        new(db, NullLogger<MiningMachineCreationService>.Instance);
+    private static MachineCreationService CreateService(ArkWalletDbContext db) =>
+        new(db, NullLogger<MachineCreationService>.Instance);
 
     private static MiningMachineCreationCommand BuildCommand(
         string type = "SMAI",

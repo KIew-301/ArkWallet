@@ -14,7 +14,7 @@ public class MiningMachineSlotSwitchingOrchestratorTest
     private static MiningMachineSlotSwitchingOrchestrator CreateOrchestrator(
         ArkWalletDbContext db,
         Mock<IMiningMachineSlotSwitchingService> switchingService,
-        Mock<IPortfolioUpdatingService> portfolioService) =>
+        Mock<IUpdatingService> portfolioService) =>
         new(
             db,
             switchingService.Object,
@@ -31,7 +31,7 @@ public class MiningMachineSlotSwitchingOrchestratorTest
             .Setup(x => x.SwitchTargetTokenAsync(111, 1, "AAA"))
             .ReturnsAsync(Result<MiningTokenCollectionResult>.Ok(new MiningTokenCollectionResult("AAA", 5)));
 
-        var portfolioService = new Mock<IPortfolioUpdatingService>();
+        var portfolioService = new Mock<IUpdatingService>();
         portfolioService
             .Setup(x => x.CreateOrUpdatePortfolioAsync(111, "AAA", 5))
             .ReturnsAsync(Result.Ok());
@@ -54,7 +54,7 @@ public class MiningMachineSlotSwitchingOrchestratorTest
             .Setup(x => x.SwitchTargetTokenAsync(It.IsAny<long>(), It.IsAny<long>(), It.IsAny<string>()))
             .ReturnsAsync(Result<MiningTokenCollectionResult>.Ok(new MiningTokenCollectionResult(string.Empty, 0)));
 
-        var portfolioService = new Mock<IPortfolioUpdatingService>();
+        var portfolioService = new Mock<IUpdatingService>();
 
         var orchestrator = CreateOrchestrator(db, switchingService, portfolioService);
 
@@ -74,7 +74,7 @@ public class MiningMachineSlotSwitchingOrchestratorTest
             .Setup(x => x.SwitchTargetTokenAsync(111, 1, "AAA"))
             .ReturnsAsync(Result<MiningTokenCollectionResult>.Fail("Слота не существует"));
 
-        var portfolioService = new Mock<IPortfolioUpdatingService>();
+        var portfolioService = new Mock<IUpdatingService>();
 
         var orchestrator = CreateOrchestrator(db, switchingService, portfolioService);
 
@@ -95,7 +95,7 @@ public class MiningMachineSlotSwitchingOrchestratorTest
             .Setup(x => x.SwitchTargetTokenAsync(111, 1, "AAA"))
             .ReturnsAsync(Result<MiningTokenCollectionResult>.Ok(new MiningTokenCollectionResult("AAA", 5)));
 
-        var portfolioService = new Mock<IPortfolioUpdatingService>();
+        var portfolioService = new Mock<IUpdatingService>();
         portfolioService
             .Setup(x => x.CreateOrUpdatePortfolioAsync(111, "AAA", 5))
             .ReturnsAsync(Result.Fail("Не удалось обновить портфель"));

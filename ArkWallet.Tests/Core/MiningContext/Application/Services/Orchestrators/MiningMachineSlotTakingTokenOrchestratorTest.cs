@@ -11,7 +11,6 @@ using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Core.PortfolioContext.Domain.Position;
 using ArkWallet.Core.GiftContext.Domain.User;
 using ArkWallet.Core.MailContext.Domain.Message;
-using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
 using ArkWallet.Core.MiningContext.Domain.Machine;
 using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Core.MiningContext.Domain.Engines;
@@ -29,7 +28,7 @@ public class MiningMachineSlotTakingTokenOrchestratorTest
     private static MiningMachineSlotTakingTokenOrchestrator CreateOrchestrator(
         ArkWalletDbContext db,
         IMiningMachineSlotTakingTokenService takingTokenService,
-        IPortfolioUpdatingService portfolioService) =>
+        IUpdatingService portfolioService) =>
         new(
             db,
             takingTokenService,
@@ -39,7 +38,7 @@ public class MiningMachineSlotTakingTokenOrchestratorTest
     private static MiningMachineSlotTakingTokenOrchestrator CreateOrchestrator(
         ArkWalletDbContext db,
         Mock<IMiningMachineSlotTakingTokenService> takingTokenService,
-        Mock<IPortfolioUpdatingService> portfolioService) =>
+        Mock<IUpdatingService> portfolioService) =>
         new(
             db,
             takingTokenService.Object,
@@ -56,7 +55,7 @@ public class MiningMachineSlotTakingTokenOrchestratorTest
             .Setup(x => x.TakeTokensFromMachineAsync(111, 1))
             .ReturnsAsync(Result<MiningTokenCollectionResult>.Ok(new MiningTokenCollectionResult("AAA", 3)));
 
-        var portfolioService = new Mock<IPortfolioUpdatingService>();
+        var portfolioService = new Mock<IUpdatingService>();
         portfolioService
             .Setup(x => x.CreateOrUpdatePortfolioAsync(111, "AAA", 3))
             .ReturnsAsync(Result.Ok());
@@ -79,7 +78,7 @@ public class MiningMachineSlotTakingTokenOrchestratorTest
             .Setup(x => x.TakeTokensFromMachineAsync(111, 1))
             .ReturnsAsync(Result<MiningTokenCollectionResult>.Ok(new MiningTokenCollectionResult(string.Empty, 0)));
 
-        var portfolioService = new Mock<IPortfolioUpdatingService>();
+        var portfolioService = new Mock<IUpdatingService>();
 
         var orchestrator = CreateOrchestrator(db, takingTokenService, portfolioService);
 
@@ -99,7 +98,7 @@ public class MiningMachineSlotTakingTokenOrchestratorTest
             .Setup(x => x.TakeTokensFromMachineAsync(111, 1))
             .ReturnsAsync(Result<MiningTokenCollectionResult>.Fail("Слота не существует"));
 
-        var portfolioService = new Mock<IPortfolioUpdatingService>();
+        var portfolioService = new Mock<IUpdatingService>();
 
         var orchestrator = CreateOrchestrator(db, takingTokenService, portfolioService);
 
@@ -125,7 +124,7 @@ public class MiningMachineSlotTakingTokenOrchestratorTest
                     new("BBB", 2)
                 }));
 
-        var portfolioService = new Mock<IPortfolioUpdatingService>();
+        var portfolioService = new Mock<IUpdatingService>();
         portfolioService
             .Setup(x => x.CreateOrUpdatePortfolioAsync(It.IsAny<long>(), It.IsAny<string>(), It.IsAny<int>()))
             .ReturnsAsync(Result.Ok());
@@ -150,7 +149,7 @@ public class MiningMachineSlotTakingTokenOrchestratorTest
             .ReturnsAsync(Result<List<MiningTokenCollectionResult>>.Ok(
                 new List<MiningTokenCollectionResult> { new("AAA", 3) }));
 
-        var portfolioService = new Mock<IPortfolioUpdatingService>();
+        var portfolioService = new Mock<IUpdatingService>();
         portfolioService
             .Setup(x => x.CreateOrUpdatePortfolioAsync(111, "AAA", 3))
             .ReturnsAsync(Result.Fail("Не удалось обновить портфель"));
@@ -179,7 +178,7 @@ public class MiningMachineSlotTakingTokenOrchestratorTest
             .Setup(x => x.TakeTokensFromMachineAsync(111, 1))
             .ReturnsAsync(Result<MiningTokenCollectionResult>.Ok(new MiningTokenCollectionResult("AAA", 15)));
 
-        var portfolioService = new PortfolioUpdatingService(db, NullLogger<PortfolioUpdatingService>.Instance);
+        var portfolioService = new UpdatingService(db, NullLogger<UpdatingService>.Instance);
         var orchestrator = CreateOrchestrator(db, takingTokenService.Object, portfolioService);
 
         var result = await orchestrator.TakeTokensFromMachineAsync(111, 1);
@@ -211,7 +210,7 @@ public class MiningMachineSlotTakingTokenOrchestratorTest
                     new("AAA", 8)
                 }));
 
-        var portfolioService = new PortfolioUpdatingService(db, NullLogger<PortfolioUpdatingService>.Instance);
+        var portfolioService = new UpdatingService(db, NullLogger<UpdatingService>.Instance);
         var orchestrator = CreateOrchestrator(db, takingTokenService.Object, portfolioService);
 
         var result = await orchestrator.TakeTokensFromMachinesAsync(111);

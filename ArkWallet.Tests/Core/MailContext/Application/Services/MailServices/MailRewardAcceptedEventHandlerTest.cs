@@ -12,7 +12,7 @@ public class MailRewardAcceptedEventHandlerTest
     [Fact]
     public async Task Handle_ChangePositionAddsRewardTokens()
     {
-        var portfolioService = new Mock<IPortfolioUpdatingService>();
+        var portfolioService = new Mock<IUpdatingService>();
         var handler = new MailRewardAcceptedEventHandler(portfolioService.Object);
 
         await handler.Handle(
@@ -21,7 +21,7 @@ public class MailRewardAcceptedEventHandlerTest
 
         portfolioService.Verify(
             s => s.ChangePositionAsync(
-                It.Is<PortfolioChangeCommand>(c =>
+                It.Is<ChangeCommand>(c =>
                     c.TraderId == 2002 &&
                     c.Symbol == "ZZZ" &&
                     c.Type == PortfolioChangeType.Add &&

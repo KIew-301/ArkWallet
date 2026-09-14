@@ -11,7 +11,6 @@ using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Core.PortfolioContext.Domain.Position;
 using ArkWallet.Core.GiftContext.Domain.User;
 using ArkWallet.Core.MailContext.Domain.Message;
-using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
 using ArkWallet.Core.MiningContext.Domain.Machine;
 using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Core.MiningContext.Domain.Engines;
@@ -41,7 +40,7 @@ public class GiftSendingServiceTest
         return mock.Object;
     }
 
-    private static GiftSendingService BuildService(
+    private static SendingService BuildService(
         ArkWalletDbContext db,
         ITokenQueryService tokenQueryService,
         IEventPublisher? publisher = null,
@@ -54,11 +53,11 @@ public class GiftSendingServiceTest
 
         publisher ??= new MediatREventPublisher(TestMediatorFactory.Create(db, candle.Object));
 
-        return new GiftSendingService(
+        return new SendingService(
             db,
             tokenQueryService,
             publisher,
-            NullLogger<GiftSendingService>.Instance,
+            NullLogger<SendingService>.Instance,
             timeProvider ?? new TestTimeProvider());
     }
 

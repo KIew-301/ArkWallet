@@ -15,7 +15,6 @@ using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Core.PortfolioContext.Domain.Position;
 using ArkWallet.Core.GiftContext.Domain.User;
 using ArkWallet.Core.MailContext.Domain.Message;
-using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
 using ArkWallet.Core.MiningContext.Domain.Machine;
 using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Core.MiningContext.Domain.Engines;
@@ -222,7 +221,7 @@ public class MarketMakerOrchestratorTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        var mockPortfolioUpdatingService = new Mock<IPortfolioUpdatingService>();
+        var mockPortfolioUpdatingService = new Mock<IUpdatingService>();
 
         var logger = NullLogger<MarketMakerOrchestrator>.Instance;
         var orchestrator = new MarketMakerOrchestrator(
@@ -252,7 +251,7 @@ public class MarketMakerOrchestratorTest
         await db.Traders.AddAsync(trader);
         await db.SaveChangesAsync();
 
-        var mockPortfolioUpdatingService = new Mock<IPortfolioUpdatingService>();
+        var mockPortfolioUpdatingService = new Mock<IUpdatingService>();
         mockPortfolioUpdatingService
             .Setup(x => x.CreateOrUpdatePortfolioAsync(It.IsAny<long>(), It.IsAny<string>(), It.IsAny<int>()))
             .ReturnsAsync(Result.Ok());
@@ -288,7 +287,7 @@ public class MarketMakerOrchestratorTest
         await db.Traders.AddAsync(trader);
         await db.SaveChangesAsync();
 
-        var mockPortfolioUpdatingService = new Mock<IPortfolioUpdatingService>();
+        var mockPortfolioUpdatingService = new Mock<IUpdatingService>();
         mockPortfolioUpdatingService
             .Setup(x => x.CreateOrUpdatePortfolioAsync(It.IsAny<long>(), It.IsAny<string>(), It.IsAny<int>()))
             .ReturnsAsync(Result.Ok());
@@ -323,7 +322,7 @@ public class MarketMakerOrchestratorTest
         await db.Traders.AddAsync(trader);
         await db.SaveChangesAsync();
 
-        var mockPortfolioUpdatingService = new Mock<IPortfolioUpdatingService>();
+        var mockPortfolioUpdatingService = new Mock<IUpdatingService>();
         mockPortfolioUpdatingService
             .Setup(x => x.CreateOrUpdatePortfolioAsync(It.IsAny<long>(), "ZZZ", 100_000_000))
             .ReturnsAsync(Result.Ok());
@@ -362,7 +361,7 @@ public class MarketMakerOrchestratorTest
         await db.Traders.AddAsync(trader);
         await db.SaveChangesAsync();
 
-        var mockPortfolioUpdatingService = new Mock<IPortfolioUpdatingService>();
+        var mockPortfolioUpdatingService = new Mock<IUpdatingService>();
         mockPortfolioUpdatingService
             .Setup(x => x.CreateOrUpdatePortfolioAsync(It.IsAny<long>(), "ZZZ", 100_000_000))
             .ReturnsAsync(Result.Fail("Portfolio update failed"));
@@ -679,7 +678,7 @@ public class MarketMakerOrchestratorTest
         await db.Traders.AddAsync(trader);
         await db.SaveChangesAsync();
 
-        var mockPortfolioUpdatingService = new Mock<IPortfolioUpdatingService>();
+        var mockPortfolioUpdatingService = new Mock<IUpdatingService>();
         mockPortfolioUpdatingService
             .Setup(x => x.CreateOrUpdatePortfolioAsync(It.IsAny<long>(), It.IsAny<string>(), It.IsAny<int>()))
             .ThrowsAsync(new InvalidOperationException("portfolio error"));
