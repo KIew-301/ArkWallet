@@ -79,7 +79,7 @@ internal class OrderBookService(
 
         return query
             .Take(count)
-            .Select(o => new OrderBookEntry(direction, o.Price, o.GetRemainingQuantity(), o.Price * o.GetRemainingQuantity()))
+            .Select(o => new OrderBookEntry(direction, o.Price, o.RemainingQuantity, o.Price * o.RemainingQuantity))
             .ToList();
     }
 }

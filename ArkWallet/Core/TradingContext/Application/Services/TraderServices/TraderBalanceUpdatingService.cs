@@ -27,7 +27,7 @@ internal class TraderBalanceUpdatingService(ArkWalletDbContext dbContext, ILogge
                 if (trader == null)
                     return Fail("Трейдера не существует");
 
-                trader.AddToBalance(amount);
+                trader.Balance += amount;
 
                 dbContext.Traders.Update(trader);
                 await dbContext.SaveChangesAsync();

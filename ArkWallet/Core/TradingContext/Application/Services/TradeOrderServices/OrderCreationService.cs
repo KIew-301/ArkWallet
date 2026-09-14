@@ -113,14 +113,14 @@ internal class OrderCreationService(
         if (!validationResult.IsValid)
             throw new InvalidOperationException(validationResult.Message);
 
-        var counterType = order.IsLong() ? ValueObjects.OrderType.Sell : ValueObjects.OrderType.Buy;
+        var counterType = order.IsLong ? ValueObjects.OrderType.Sell : ValueObjects.OrderType.Buy;
 
         var activeOrders = await dbContext.TradeOrders
             .Include(o => o.Trader)
             .Where(o => o.CharacterTokenId == order.CharacterTokenId &&
                        o.Status == ValueObjects.OrderStatus.Active &&
                        o.Type == counterType &&
-                       (order.IsLong() ? o.Price <= order.Price : o.Price >= order.Price))
+                       (order.IsLong ? o.Price <= order.Price : o.Price >= order.Price))
             .ToArrayAsync();
 
         var traderIds = activeOrders.Select(o => o.TraderTelegramId)
@@ -142,7 +142,7 @@ internal class OrderCreationService(
 
         return await TradingContextMapper.BuildContext(
             new[] { command },
-            order.IsLong(),
+            order.IsLong,
             traders,
             activeOrders,
             portfolios,
@@ -161,7 +161,7 @@ internal class OrderCreationService(
             throw new InvalidOperationException(validationResult.Message);
 
         var orders = CreateOrderEntities(commandList);
-        var isBuy = orders[0].IsLong();
+        var isBuy = orders[0].IsLong;
         var targetOrder = SelectTargetOrder(orders, isBuy);
 
         var commandTraderIds = commandList.Select(c => c.TraderId).Distinct().ToArray();
@@ -286,7 +286,7 @@ internal class OrderCreationService(
 
     private async Task<long[]> GetTakerIdsForMatchingAsync(Records.TradeOrder order)
     {
-        return order.IsLong()
+        return order.IsLong
             ? await dbContext.TradeOrders
                 .Where(o => o.CharacterTokenId == order.CharacterTokenId &&
                            o.Status == ValueObjects.OrderStatus.Active &&

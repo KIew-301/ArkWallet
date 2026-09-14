@@ -22,7 +22,7 @@ internal static class Mapper
 
     // ---- Aggregate -> records (sync) ----
 
-    internal static void ApplyToRecord(Records.PortfolioItem target, Tokens source) => target.ApplyState(
+    internal static void ApplyToRecord(Records.PortfolioItem target, Tokens source) => target.Update(
         source.Quantity,
         target.SellingQuantity,
         target.ReserveQuantity,

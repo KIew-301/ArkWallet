@@ -92,7 +92,7 @@ internal static class TradingContextMapper
     internal static Records.PortfolioItem ToPortfolio(long traderId, PortfolioItem source)
     {
         var item = Records.PortfolioItem.Create(traderId, source.TokenSymbol, source.Quantity, source.AverageBuyPrice);
-        item.ApplyState(
+        item.Update(
             source.Quantity,
             source.SellingQuantity,
             source.ReserveQuantity,
@@ -119,7 +119,7 @@ internal static class TradingContextMapper
         target.ExecutedAt = source.ExecutedAt;
     }
 
-    internal static void ApplyTo(Records.PortfolioItem target, PortfolioItem source) => target.ApplyState(
+    internal static void ApplyTo(Records.PortfolioItem target, PortfolioItem source) => target.Update(
         source.Quantity,
         source.SellingQuantity,
         source.ReserveQuantity,
@@ -128,10 +128,10 @@ internal static class TradingContextMapper
         source.AverageReservePrice);
 
     internal static void ApplyTo(Records.Trader target, Trader source)
-        => target.AddToBalance(source.Balance - target.Balance);
+        => target.Balance = source.Balance;
 
     internal static void ApplyTo(Records.CharacterToken target, Token source)
-        => target.UpdatePrice(source.CurrentPrice);
+        => target.CurrentPrice = source.CurrentPrice;
 
     // ---- Построение контекста движка (записи БД -> агрегаты) ----
 

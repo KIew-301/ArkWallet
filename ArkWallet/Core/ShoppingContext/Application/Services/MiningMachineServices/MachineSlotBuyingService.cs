@@ -36,7 +36,7 @@ internal class MachineSlotBuyingService(
                     now);
                 await dbContext.MiningMachineSlots.AddAsync(slot);
 
-                purchase.Trader.AddToBalance(-purchase.Machine.Cost);
+                purchase.Trader.Balance -= purchase.Machine.Cost;
                 await dbContext.SaveChangesAsync();
 
                 return Ok(slot.Id);
@@ -68,7 +68,7 @@ internal class MachineSlotBuyingService(
         if (await HasReachedMachinesLimitAsync(traderId))
             return Result<PurchaseContext>.Fail($"Нельзя купить больше {MiningEngine.MaxMachinesPerTrader} машин");
 
-        if (!trader.CanAfford(machine.Cost))
+        if (trader.Balance < machine.Cost)
             return Result<PurchaseContext>.Fail("Недостаточно средств для покупки машины");
 
         return Result<PurchaseContext>.Ok(new PurchaseContext(trader, machine));

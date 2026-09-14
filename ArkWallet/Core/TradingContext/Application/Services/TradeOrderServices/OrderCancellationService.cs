@@ -2,7 +2,6 @@ using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Core.General.Domain.ValueObjects;
-using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -28,10 +27,10 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
                 if (order == null)
                     return Fail("Ордера не существует");
 
-                if (!order.IsActive())
+                if (!order.IsActive)
                     return Fail("Можно отменить только активный ордер");
 
-                order.Cancel(traderId);
+                order.Update(traderId);
                 RefundSingleOrder(trader, order, traderId);
 
                 dbContext.TradeOrders.Update(order);
@@ -87,7 +86,7 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
     private async Task<Dictionary<string, PortfolioItem>> LoadShortPortfolioItems(long traderId, TradeOrder[] orders)
     {
         var shortTokens = orders
-            .Where(o => o.IsShort())
+            .Where(o => o.IsShort)
             .Select(o => o.CharacterTokenId)
             .Distinct()
             .ToArray();
@@ -120,15 +119,23 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
 
     private void RefundSingleOrder(Trader trader, TradeOrder order, long traderId)
     {
-        if (order.IsLong())
+        if (order.IsLong)
         {
-            trader.AddToBalance(order.GetReservedBalance());
+            trader.Balance += order.ReservedBalance;
         }
         else
         {
             var portfolioItem = dbContext.PortfolioItems
                 .FirstOrDefault(p => p.TraderTelegramId == traderId && p.CharacterTokenId == order.CharacterTokenId);
-            portfolioItem?.ReturnTokens(order.GetRemainingQuantity());
+            if (portfolioItem is not null)
+            {
+                portfolioItem.ReserveQuantity -= order.RemainingQuantity;
+                var totalCost = portfolioItem.Quantity * portfolioItem.AverageBuyPrice + order.RemainingQuantity * portfolioItem.AverageReservePrice;
+                portfolioItem.Quantity += order.RemainingQuantity;
+                portfolioItem.AverageBuyPrice = totalCost / portfolioItem.Quantity;
+                if (portfolioItem.ReserveQuantity == 0)
+                    portfolioItem.AverageReservePrice = 0;
+            }
         }
     }
 
@@ -139,13 +146,18 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
     {
         foreach (var order in orders)
         {
-            if (order.IsLong())
+            if (order.IsLong)
             {
-                trader.AddToBalance(order.GetReservedBalance());
+                trader.Balance += order.ReservedBalance;
             }
             else if (portfolioItems.TryGetValue(order.CharacterTokenId, out var portfolioItem))
             {
-                portfolioItem.ReturnTokens(order.GetRemainingQuantity());
+                portfolioItem.ReserveQuantity -= order.RemainingQuantity;
+                var totalCost = portfolioItem.Quantity * portfolioItem.AverageBuyPrice + order.RemainingQuantity * portfolioItem.AverageReservePrice;
+                portfolioItem.Quantity += order.RemainingQuantity;
+                portfolioItem.AverageBuyPrice = totalCost / portfolioItem.Quantity;
+                if (portfolioItem.ReserveQuantity == 0)
+                    portfolioItem.AverageReservePrice = 0;
             }
         }
     }

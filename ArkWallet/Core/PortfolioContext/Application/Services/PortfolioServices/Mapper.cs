@@ -25,7 +25,7 @@ internal static class Mapper
 
     internal static void ApplyToRecord(Records.PortfolioItem record, Position position)
     {
-        record.ApplyState(
+        record.Update(
             position.Quantity,
             position.SellingQuantity,
             position.ReserveQuantity,

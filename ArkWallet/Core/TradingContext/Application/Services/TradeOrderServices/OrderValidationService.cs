@@ -38,10 +38,10 @@ namespace ArkWallet.Core.TradingContext.Application.Services.TradeOrderServices
             if (order == null)
                 return new ValidationResult(false, "Такого ордера не существует");
 
-            if (!order.IsActive())
+            if (!order.IsActive)
                 return new ValidationResult(false, "Нельзя отменить неактивный ордер");
 
-            if (!order.IsTraderOrder(traderId))
+            if (order.TraderTelegramId != traderId)
                 return new ValidationResult(false, "Нельзя отменить не своей ордер");
 
             return new ValidationResult(true);

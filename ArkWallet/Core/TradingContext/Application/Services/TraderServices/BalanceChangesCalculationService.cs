@@ -89,7 +89,7 @@ internal class BalanceChangesCalculationService(
     {
         var currentBalance = currentSelector(currentSnapshot);
         var previousBalance = previousSnapshot == null
-            ? Trader.GetDefaultBalance()
+            ? Trader.DefaultBalance
             : previousSelector(previousSnapshot);
 
         var changeAbsolute = currentBalance - previousBalance;

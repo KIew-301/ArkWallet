@@ -39,7 +39,7 @@ internal class MiningMachineSlotSellingService(
                 machine.Sell(timeProvider);
                 slot.Update(machine);
 
-                trader.AddToBalance(slot.Cost);
+                trader.Balance += slot.Cost;
                 await dbContext.SaveChangesAsync();
 
                 return Ok(new(symbol, collected));
