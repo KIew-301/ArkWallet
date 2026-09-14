@@ -95,24 +95,28 @@ public class ArchitectureServiceRules
         var mismatches = new List<string>();
         foreach (var iface in contractInterfaces)
         {
-            var implementation = ArkArchitecture.Model.Classes
-                .FirstOrDefault(c => c.Name == iface.Name[1..] && !c.IsNested);
-
-            if (implementation == null)
-            {
-                continue;
-            }
-
             var contractContext = ArkArchitecture.ContextOf(iface);
-            var implementationContext = ArkArchitecture.ContextOf(implementation);
-            if (contractContext == null || implementationContext == null)
+            if (contractContext == null)
             {
                 continue;
             }
 
-            if (contractContext != implementationContext)
+            var implementations = ArkArchitecture.Model.Classes
+                .Where(c => c.Name == iface.Name[1..] && !c.IsNested)
+                .Select(c => (Class: c, Context: ArkArchitecture.ContextOf(c)))
+                .Where(p => p.Context != null)
+                .ToArray();
+
+            if (implementations.Length == 0)
             {
-                mismatches.Add($"{iface.FullName} -> {implementation.FullName}");
+                continue;
+            }
+
+            if (!implementations.Any(p => p.Context == contractContext))
+            {
+                mismatches.AddRange(implementations
+                    .Select(p => $"{iface.FullName} -> {p.Class.FullName}")
+                    .Distinct());
             }
         }
 
