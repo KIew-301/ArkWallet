@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 
 namespace ArkWallet.Infrastructure.Workers;
 
@@ -65,7 +66,7 @@ internal class GlobalGoalUpdateWorker(
         using var scope = sp.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ArkWalletDbContext>();
         var state = await dbContext.AppStates.FindAsync([LastRunKey], ct);
-        return state?.GetValue<DateTime>() ?? DateTime.MinValue;
+        return state == null ? DateTime.MinValue : JsonSerializer.Deserialize<DateTime>(state.Value);
     }
 
     private static async Task SaveLastRunAsync(ArkWalletDbContext dbContext, DateTime value, CancellationToken ct)
@@ -74,7 +75,7 @@ internal class GlobalGoalUpdateWorker(
         if (state is null)
             dbContext.AppStates.Add(AppState.Create(LastRunKey, value));
         else
-            state.UpdateValue(value);
+            state.Update(value);
 
         await dbContext.SaveChangesAsync(ct);
     }

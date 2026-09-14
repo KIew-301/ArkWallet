@@ -183,7 +183,9 @@ internal class MarketMakerOrchestrator(
             {
                 if (now >= bot.NextPowerChange)
                 {
-                    bot.UpdatePower(10, 50, timeProvider);
+                    var change = Random.Shared.Next(-35, 35);
+                    bot.BasePower = Math.Clamp(bot.BasePower + change, 10, 50);
+                    bot.NextPowerChange = (timeProvider ?? TimeProvider.System).GetUtcNow().UtcDateTime.AddMinutes(Random.Shared.Next(2, 5));
                     logger.LogDebug("Bot {BotId} power updated to {Power}", bot.Id, bot.BasePower);
                 }
 
@@ -192,7 +194,7 @@ internal class MarketMakerOrchestrator(
                     var gridCommands = CollectGridCommands(bot, tokens.GetValueOrDefault(bot.Symbol));
                     allGridCommands.AddRange(gridCommands);
 
-                    bot.UpdateRebalanced(timeProvider);
+                    bot.NextRebalance = (timeProvider ?? TimeProvider.System).GetUtcNow().UtcDateTime.AddMinutes(10);
                     logger.LogDebug("Bot {BotId} grid collected, {Count} commands", bot.Id, gridCommands.Count);
                 }
             }
@@ -272,7 +274,7 @@ internal class MarketMakerOrchestrator(
 
                 if (trader.Balance < 1_000_000_000m)
                 {
-                    trader.AddToBalance(1_000_000_000m - trader.Balance);
+                    trader.Balance = 1_000_000_000m;
                     await dbContext.SaveChangesAsync();
                     logger.LogInformation("Trader {TraderId} balance replenished", traderId);
                 }

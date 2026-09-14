@@ -73,7 +73,7 @@ internal class TokenDeletionService(ArkWalletDbContext dbContext, ILogger<TokenD
                 .Where(b => b.Symbol == actualSymbol)
                 .ExecuteDeleteAsync();
 
-            token.Deactivate();
+            token.IsActive = false;
             await dbContext.SaveChangesAsync();
 
             return Result.Ok();

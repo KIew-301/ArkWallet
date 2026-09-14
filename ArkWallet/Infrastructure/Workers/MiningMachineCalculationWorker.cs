@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 
 namespace ArkWallet.Infrastructure.Workers;
 
@@ -71,7 +72,7 @@ internal class MiningMachineCalculationWorker : BackgroundService
         using var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ArkWalletDbContext>();
         var state = await dbContext.AppStates.FindAsync([LastCalculationKey], stoppingToken);
-        return state?.GetValue<DateTime>() ?? DateTime.UtcNow;
+        return state == null ? DateTime.UtcNow : JsonSerializer.Deserialize<DateTime>(state.Value);
     }
 
     private static async Task SaveLastCalculationAsync(ArkWalletDbContext dbContext, DateTime now, CancellationToken stoppingToken)
@@ -80,7 +81,7 @@ internal class MiningMachineCalculationWorker : BackgroundService
         if (state == null)
             dbContext.AppStates.Add(AppState.Create(LastCalculationKey, now));
         else
-            state.UpdateValue(now);
+            state.Update(now);
 
         await dbContext.SaveChangesAsync(stoppingToken);
     }

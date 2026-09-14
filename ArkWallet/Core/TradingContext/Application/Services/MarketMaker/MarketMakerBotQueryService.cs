@@ -1,7 +1,6 @@
 using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.TradingContext.Application.Contracts.MarketMaker;
 using ArkWallet.Infrastructure.Data;
-using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -51,16 +50,16 @@ internal class MarketMakerBotQueryService(
                 return Result.Fail($"Bot with ID {botId} not found");
 
             if (basePower.HasValue)
-                bot.SetBasePower(basePower.Value);
+                bot.BasePower = basePower.Value;
 
             if (role != null)
             {
                 var parsed = Enum.Parse<BotRole>(role, ignoreCase: true);
-                bot.SetRole(parsed);
+                bot.Role = parsed;
             }
 
             if (isActive.HasValue)
-                bot.SetActive(isActive.Value);
+                bot.IsActive = isActive.Value;
 
             await dbContext.SaveChangesAsync();
             return Result.Ok();

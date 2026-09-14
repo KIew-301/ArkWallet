@@ -4,6 +4,7 @@ using ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices;
 using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
 using ArkWallet.Core.TradingContext.Application.Contracts.TraderServices;
 using ArkWallet.Core.TradingContext.Domain.Engines;
+using System.Text.Json;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -66,7 +67,7 @@ internal class MarketWallBlockerOrchestrator(
 
                 if (trader.Balance < TargetBalance)
                 {
-                    trader.AddToBalance(TargetBalance - trader.Balance);
+                    trader.Balance = TargetBalance;
                     await dbContext.SaveChangesAsync();
                     logger.LogInformation("WallBlocker trader {TraderId} balance replenished", WallBlockerTraderId);
                 }
@@ -102,7 +103,7 @@ internal class MarketWallBlockerOrchestrator(
             var now = (timeProvider ?? TimeProvider.System).GetUtcNow().UtcDateTime;
 
             var state = await dbContext.AppStates.FindAsync(NextExecutionKey);
-            if (state is { } existing && existing.GetValue<DateTime>() is { } nextExecution && now < nextExecution)
+            if (state is { } existing && JsonSerializer.Deserialize<DateTime>(existing.Value) is { } nextExecution && now < nextExecution)
                 return Result.Ok();
 
             var tokens = await LoadActiveTokensAsync();
@@ -190,6 +191,6 @@ internal class MarketWallBlockerOrchestrator(
         if (state == null)
             dbContext.AppStates.Add(AppState.Create(NextExecutionKey, nextExecutionTime));
         else
-            state.UpdateValue(nextExecutionTime);
+            state.Update(nextExecutionTime);
     }
 }

@@ -28,7 +28,8 @@ internal class TokenMediaUpdateService(
             if (token is null)
                 return Result.Fail($"Токен '{symbol}' не найден");
 
-            token.UpdateMedia(iconUrl, imageUrl);
+            token.IconUrl = iconUrl;
+            token.ImageUrl = imageUrl;
 
             await dbContext.SaveChangesAsync();
 

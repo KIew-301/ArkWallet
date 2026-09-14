@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 
 namespace ArkWallet.Infrastructure.Workers;
 
@@ -72,7 +73,7 @@ internal class MiningGlobalRuleCreationWorker : BackgroundService
         using var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ArkWalletDbContext>();
         var state = await dbContext.AppStates.FindAsync([LastUpdateKey], stoppingToken);
-        return state?.GetValue<DateTime>() ?? DateTime.MinValue;
+        return state == null ? DateTime.MinValue : JsonSerializer.Deserialize<DateTime>(state.Value);
     }
 
     private static async Task SaveLastUpdateAsync(ArkWalletDbContext dbContext, DateTime now, CancellationToken stoppingToken)
@@ -81,7 +82,7 @@ internal class MiningGlobalRuleCreationWorker : BackgroundService
         if (state == null)
             dbContext.AppStates.Add(AppState.Create(LastUpdateKey, now));
         else
-            state.UpdateValue(now);
+            state.Update(now);
 
         await dbContext.SaveChangesAsync(stoppingToken);
     }

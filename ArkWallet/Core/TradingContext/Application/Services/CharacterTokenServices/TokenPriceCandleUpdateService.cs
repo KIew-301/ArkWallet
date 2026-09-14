@@ -1,7 +1,6 @@
 using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Infrastructure.Data;
-using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -31,19 +30,26 @@ internal class TokenPriceCandleUpdateService(
 
             if (lastCandle == null)
             {
-                var newCandle = PriceCandle.CreateNew(symbol, newPrice, dateTimeNow);
+                var newCandle = PriceCandle.Create(symbol, newPrice, dateTimeNow);
                 await dbContext.PriceCandles.AddAsync(newCandle);
             }
             else if (lastCandle.Timestamp.AddMinutes(SavingTimeFrameInMinute) <= dateTimeNow)
             {
-                var newCandle = PriceCandle.CreateNew(symbol, lastCandle.ClosePrice, dateTimeNow);
-                newCandle.Update(newPrice);
+                var newCandle = PriceCandle.Create(symbol, lastCandle.ClosePrice, dateTimeNow);
+                newCandle.ClosePrice = newPrice;
+                if (newPrice > newCandle.HighPrice)
+                    newCandle.HighPrice = newPrice;
+                if (newPrice < newCandle.LowPrice)
+                    newCandle.LowPrice = newPrice;
                 await dbContext.PriceCandles.AddAsync(newCandle);
             }
             else
             {
-                lastCandle.Update(newPrice);
-                dbContext.PriceCandles.Update(lastCandle);
+                lastCandle.ClosePrice = newPrice;
+                if (newPrice > lastCandle.HighPrice)
+                    lastCandle.HighPrice = newPrice;
+                if (newPrice < lastCandle.LowPrice)
+                    lastCandle.LowPrice = newPrice;
             }
 
             return Ok();
