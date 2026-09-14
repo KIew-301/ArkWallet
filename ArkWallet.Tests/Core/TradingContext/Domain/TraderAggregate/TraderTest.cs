@@ -46,7 +46,7 @@ public class TraderTest
     [Fact]
     public void GetDefaultBalance_Returns1000()
     {
-        Assert.Equal(1000m, Trader.GetDefaultBalance());
+        Assert.Equal(1000m, Trader.DefaultBalance);
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public class TraderTest
     {
         var trader = Trader.Create(101L, "user");
 
-        Assert.True(trader.CanAfford(500m));
+        Assert.True(trader.Balance >= 500m);
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public class TraderTest
     {
         var trader = Trader.Create(101L, "user");
 
-        Assert.False(trader.CanAfford(2000m));
+        Assert.False(trader.Balance >= 2000m);
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public class TraderTest
     {
         var trader = Trader.Create(101L, "user");
 
-        trader.AddToBalance(500m);
+        trader.Balance += 500m;
 
         Assert.Equal(1500m, trader.Balance);
     }

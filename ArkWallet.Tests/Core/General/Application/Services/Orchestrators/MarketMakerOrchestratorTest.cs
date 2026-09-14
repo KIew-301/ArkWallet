@@ -247,7 +247,7 @@ public class MarketMakerOrchestratorTest
         await HelpMethods.CreateToken(db, "ZZZ", price: 100);
 
         var trader = Trader.Create(101, "MarketMakerBot_ZZZ_101");
-        trader.AddToBalance(500_000_000m);
+        trader.Balance += 500_000_000m;
         await db.Traders.AddAsync(trader);
         await db.SaveChangesAsync();
 
@@ -283,7 +283,7 @@ public class MarketMakerOrchestratorTest
         await HelpMethods.CreateToken(db, "ZZZ", price: 100);
 
         var trader = Trader.Create(101, "MarketMakerBot_ZZZ_101");
-        trader.AddToBalance(1_499_999_000m);
+        trader.Balance += 1_499_999_000m;
         await db.Traders.AddAsync(trader);
         await db.SaveChangesAsync();
 
@@ -863,7 +863,7 @@ public class MarketMakerOrchestratorTest
         await HelpMethods.CreateToken(db, "ZZZ", price: 100);
 
         var token = await db.CharacterTokens.FirstAsync(t => t.Symbol == "ZZZ");
-        token.Deactivate();
+        token.IsActive = false;
         await db.SaveChangesAsync();
 
         var botForInactive = MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 20);

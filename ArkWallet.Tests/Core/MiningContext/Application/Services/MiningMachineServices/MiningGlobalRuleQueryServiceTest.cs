@@ -34,7 +34,7 @@ public class MiningGlobalRuleQueryServiceTest
         Assert.True(result.IsSuccess, result.Message);
         var token = await db.CharacterTokens.SingleAsync(t => t.Symbol == symbol);
         if (!isActive)
-            token.Deactivate();
+            token.IsActive = false;
         await db.SaveChangesAsync();
         return token;
     }

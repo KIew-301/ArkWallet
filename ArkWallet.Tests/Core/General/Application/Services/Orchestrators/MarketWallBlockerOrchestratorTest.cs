@@ -127,7 +127,7 @@ public class MarketWallBlockerOrchestratorTest
         await HelpMethods.CreateToken(db, "ZZZ", price: 100);
 
         var trader = Trader.Create(TraderId, "WallBlocker");
-        trader.AddToBalance(500_000_000m);
+        trader.Balance += 500_000_000m;
         await db.Traders.AddAsync(trader);
         await db.SaveChangesAsync();
 

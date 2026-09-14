@@ -32,7 +32,7 @@ public class MiningGlobalRuleCreationServiceTest
         Assert.True(result.IsSuccess, result.Message);
         var token = await db.CharacterTokens.SingleAsync(t => t.Symbol == symbol);
         if (!isActive)
-            token.Deactivate();
+            token.IsActive = false;
         await db.SaveChangesAsync();
         return token;
     }
@@ -88,7 +88,7 @@ public class MiningGlobalRuleCreationServiceTest
         await CreateTokenAsync(db, "VALID", price: 100);
         await CreateTokenAsync(db, "FREE", price: 100);
         var freeToken = await db.CharacterTokens.SingleAsync(t => t.Symbol == "FREE");
-        freeToken.UpdatePrice(0);
+        freeToken.CurrentPrice = 0;
         await db.SaveChangesAsync();
 
         var result = await CreateService(db).CreateRulesAsync();

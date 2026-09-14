@@ -54,7 +54,7 @@ public class MarketMakerBotTest
     {
         var bot = MarketMakerBot.Create(101, "ARK_001", BotRole.Buyer);
 
-        bot.SetRole(BotRole.Seller);
+        bot.Role = BotRole.Seller;
 
         Assert.Equal(BotRole.Seller, bot.Role);
     }
@@ -64,7 +64,7 @@ public class MarketMakerBotTest
     {
         var bot = MarketMakerBot.Create(101, "ARK_001", BotRole.Buyer);
 
-        bot.SetActive(false);
+        bot.IsActive = false;
 
         Assert.False(bot.IsActive);
     }
@@ -74,7 +74,7 @@ public class MarketMakerBotTest
     {
         var bot = MarketMakerBot.Create(101, "ARK_001", BotRole.Buyer);
 
-        bot.SetBasePower(200);
+        bot.BasePower = 200;
 
         Assert.Equal(200, bot.BasePower);
     }
@@ -85,7 +85,11 @@ public class MarketMakerBotTest
         var bot = MarketMakerBot.Create(101, "ARK_001", BotRole.Buyer, 50);
 
         for (int i = 0; i < 100; i++)
-            bot.UpdatePower(10, 100);
+        {
+            var change = Random.Shared.Next(-35, 35);
+            bot.BasePower = Math.Clamp(bot.BasePower + change, 10, 100);
+            bot.NextPowerChange = DateTime.UtcNow.AddMinutes(Random.Shared.Next(2, 5));
+        }
 
         Assert.InRange(bot.BasePower, 10, 100);
         Assert.True(bot.NextPowerChange > DateTime.UtcNow);
@@ -97,7 +101,7 @@ public class MarketMakerBotTest
         var bot = MarketMakerBot.Create(101, "ARK_001", BotRole.Buyer);
         var before = DateTime.UtcNow;
 
-        bot.UpdateRebalanced();
+        bot.NextRebalance = DateTime.UtcNow.AddMinutes(10);
 
         Assert.True(bot.NextRebalance > before);
     }

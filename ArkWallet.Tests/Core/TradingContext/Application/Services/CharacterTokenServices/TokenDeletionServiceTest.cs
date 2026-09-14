@@ -144,7 +144,7 @@ public class TokenDeletionServiceTest
         var token = await db.CharacterTokens.FindAsync("ZZZ");
         Assert.NotNull(token);
         Assert.False(token!.IsActive);
-        Assert.False(token.CanBeTraded());
+        Assert.False(token.CanBeTraded);
     }
 
     [Fact]

@@ -1,15 +1,4 @@
-using ArkWallet.Core.General.Domain.ValueObjects;
-using ArkWallet.Infrastructure.Data;
-using ArkWallet.Core.TradingContext.Domain.TokenAggregate;
-using ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
-using ArkWallet.Core.TradingContext.Domain.TradeAggregate;
-using ArkWallet.Core.TradingContext.Domain.Engines;
-using ArkWallet.Core.PortfolioContext.Domain.Position;
-using ArkWallet.Core.GiftContext.Domain.User;
-using ArkWallet.Core.MailContext.Domain.Message;
-using ArkWallet.Core.MiningContext.Domain.Machine;
-using ArkWallet.Core.MiningContext.Domain.GlobalRule;
-using ArkWallet.Core.MiningContext.Domain.Engines;
+using ArkWallet.Core.TradingContext.Domain.TraderAggregate;
 using ArkWallet.Core.General.Domain.Exceptions;
 
 namespace ArkWallet.Tests.Core.TradingContext.Domain.TraderAggregate;
@@ -21,17 +10,13 @@ public class PortfolioItemTest
         decimal price = 10m) =>
         PortfolioItem.Create(101L, "AAA", quantity, price);
 
-    private static CharacterToken CreateToken(decimal currentPrice = 15m) =>
-        CharacterToken.Create("AAA", "Token A", CharacterRarity.OneStar,
-            currentPrice, 1000, "https://img.png", "https://icon.png");
-
     [Fact]
     public void Create_ValidData_ReturnsItem()
     {
         var item = CreateItem();
 
-        Assert.Equal(101L, item.TraderTelegramId);
-        Assert.Equal("AAA", item.CharacterTokenId);
+        Assert.Equal(101L, item.TraderId);
+        Assert.Equal("AAA", item.TokenSymbol);
         Assert.Equal(100, item.Quantity);
         Assert.Equal(10m, item.AverageBuyPrice);
     }
@@ -71,19 +56,17 @@ public class PortfolioItemTest
     public void GetCurrentValue_ReturnsQuantityTimesCurrentPrice()
     {
         var item = CreateItem(quantity: 10, price: 5m);
-        var token = CreateToken(currentPrice: 30m);
 
-        Assert.Equal(300m, item.GetCurrentValue(token));
+        Assert.Equal(300m, item.GetCurrentValue(30m));
     }
 
     [Fact]
     public void GetProfitLoss_ReturnsDifference()
     {
         var item = CreateItem(quantity: 10, price: 5m);
-        var token = CreateToken(currentPrice: 8m);
 
         // TotalValue=50, CurrentValue=80, ProfitLoss=30
-        Assert.Equal(30m, item.GetProfitLoss(token));
+        Assert.Equal(30m, item.GetProfitLoss(8m));
     }
 
     [Fact]
@@ -182,7 +165,7 @@ public class PortfolioItemTest
     {
         var item = CreateItem(quantity: 100, price: 10m);
 
-        item.RemoveTokens(30, 10m);
+        item.RemoveTokens(30);
 
         Assert.Equal(70, item.Quantity);
     }
@@ -192,7 +175,7 @@ public class PortfolioItemTest
     {
         var item = CreateItem();
 
-        Assert.Throws<DomainException>(() => item.RemoveTokens(0, 10m));
+        Assert.Throws<DomainException>(() => item.RemoveTokens(0));
     }
 
     [Fact]
@@ -200,7 +183,7 @@ public class PortfolioItemTest
     {
         var item = CreateItem(quantity: 10);
 
-        Assert.Throws<DomainException>(() => item.RemoveTokens(20, 10m));
+        Assert.Throws<DomainException>(() => item.RemoveTokens(20));
     }
 
     [Fact]
@@ -208,7 +191,7 @@ public class PortfolioItemTest
     {
         var item = CreateItem(quantity: 10, price: 10m);
 
-        item.RemoveTokens(10, 10m);
+        item.RemoveTokens(10);
 
         Assert.Equal(0, item.Quantity);
         Assert.Equal(0m, item.AverageBuyPrice);

@@ -45,7 +45,9 @@ public class NotificationEventTest
         trader.NotificationOn = true;
 
         var order = TradeOrder.Create(OrderType.Buy, "ZZZ", 101, 100m, 10);
-        order.MarkAsFilled();
+        order.Status = OrderStatus.Filled;
+        order.ExecutedAt = DateTime.UtcNow;
+        order.FilledQuantity = order.Quantity;
 
         var result = NotificationEvent.FromOrderList(
             new List<TradeOrder> { order },
@@ -64,7 +66,9 @@ public class NotificationEventTest
         trader.NotificationOn = false;
 
         var order = TradeOrder.Create(OrderType.Buy, "ZZZ", 101, 100m, 10);
-        order.MarkAsFilled();
+        order.Status = OrderStatus.Filled;
+        order.ExecutedAt = DateTime.UtcNow;
+        order.FilledQuantity = order.Quantity;
 
         var result = NotificationEvent.FromOrderList(
             new List<TradeOrder> { order },
@@ -99,7 +103,9 @@ public class NotificationEventTest
         trader2.NotificationOn = false;
 
         var filledOrder = TradeOrder.Create(OrderType.Buy, "ZZZ", 101, 100m, 10);
-        filledOrder.MarkAsFilled();
+        filledOrder.Status = OrderStatus.Filled;
+        filledOrder.ExecutedAt = DateTime.UtcNow;
+        filledOrder.FilledQuantity = filledOrder.Quantity;
 
         var activeOrder = TradeOrder.Create(OrderType.Sell, "ZZZ", 102, 200m, 5);
 

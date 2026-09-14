@@ -1,4 +1,5 @@
 using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.General.Domain.Exceptions;
 using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Core.General.Application.Contracts.Other;
 using ArkWallet.Core.TradingContext.Application.Contracts.Other;
@@ -79,13 +80,25 @@ internal class HelpMethods
     public static async Task GiveToken(ArkWalletDbContext db, long traderId, string symbol, int quantity)
     {
         var item = await db.PortfolioItems.FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
-        if (item != null) item.BuyTokens(quantity, item.AverageBuyPrice);
+        if (item != null)
+        {
+            var totalCost = item.Quantity * item.AverageBuyPrice + quantity * item.AverageBuyPrice;
+            item.Quantity += quantity;
+            item.AverageBuyPrice = totalCost / item.Quantity;
+        }
     }
 
     public static async Task RemoveToken(ArkWalletDbContext db, long traderId, string symbol, int quantity)
     {
         var item = await db.PortfolioItems.FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
-        if (item != null) item.RemoveTokens(quantity, item.AverageBuyPrice);
+        if (item != null)
+        {
+            if (quantity <= 0) throw new DomainException("Количество токенов меньше или равно 0");
+            if (quantity > item.Quantity) throw new DomainException("Больше токенов недостаточно");
+            item.Quantity -= quantity;
+            if (item.Quantity == 0)
+                item.AverageBuyPrice = 0;
+        }
     }
 
     public static async Task<Result<OrderCreationData>> PlaceOrder(ArkWalletDbContext db, long traderId, string direction,
@@ -220,7 +233,7 @@ internal class HelpMethods
 
     public static async Task CreatePriceCandle(ArkWalletDbContext db, string symbol, decimal price, DateTime timestamp)
     {
-        var candle = PriceCandle.CreateNew(symbol, price, timestamp);
+        var candle = PriceCandle.Create(symbol, price, timestamp);
         await db.PriceCandles.AddAsync(candle);
         await db.SaveChangesAsync();
     }

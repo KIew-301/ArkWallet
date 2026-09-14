@@ -22,7 +22,7 @@ internal static class GatesSeed
             tokens.Add(CharacterToken.Create(symbol, $"Token {i}", CharacterRarity.FourStar, BasePrice, 1_000_000, $"img{i}.png", $"icon{i}.png"));
 
             if (withCandles)
-                candles.Add(PriceCandle.CreateNew(symbol, BasePrice, now));
+                candles.Add(PriceCandle.Create(symbol, BasePrice, now));
         }
 
         await db.CharacterTokens.AddRangeAsync(tokens);
@@ -70,7 +70,7 @@ internal static class GatesSeed
 
             traders.Add(trader);
             tokens.Add(CharacterToken.Create(symbol, $"Token {i}", CharacterRarity.FourStar, BasePrice, 1_000_000, $"img{i}.png", $"icon{i}.png"));
-            candles.Add(PriceCandle.CreateNew(symbol, BasePrice, now));
+            candles.Add(PriceCandle.Create(symbol, BasePrice, now));
             portfolios.Add(PortfolioItem.Create(i + 1, symbol, 10, BasePrice));
         }
 
@@ -103,7 +103,7 @@ internal static class GatesSeed
             var symbol = Symbol(i);
 
             tokens.Add(CharacterToken.Create(symbol, $"Token {i}", CharacterRarity.FourStar, BasePrice, 1_000_000, $"img{i}.png", $"icon{i}.png"));
-            candles.Add(PriceCandle.CreateNew(symbol, BasePrice, now));
+            candles.Add(PriceCandle.Create(symbol, BasePrice, now));
             bots.Add(MarketMakerBot.Create(101, symbol, BotRole.Buyer, 10m));
             bots.Add(MarketMakerBot.Create(102, symbol, BotRole.Seller, 10m));
             portfolios.Add(PortfolioItem.Create(101, symbol, 1_000_000, BasePrice));

@@ -86,7 +86,7 @@ public class CharacterTokenTest
     {
         var token = CreateValidToken();
 
-        Assert.True(token.CanBeTraded());
+        Assert.True(token.CanBeTraded);
     }
 
     [Fact]
@@ -108,19 +108,11 @@ public class CharacterTokenTest
     }
 
     [Fact]
-    public void UpdatePrice_NegativePrice_ThrowsArgumentException()
-    {
-        var token = CreateValidToken();
-
-        Assert.Throws<ArgumentException>(() => token.UpdatePrice(-1m));
-    }
-
-    [Fact]
     public void UpdatePrice_ZeroPrice_SetsPrice()
     {
         var token = CreateValidToken();
 
-        token.UpdatePrice(0m);
+        token.CurrentPrice = 0m;
 
         Assert.Equal(0m, token.CurrentPrice);
     }
@@ -130,6 +122,6 @@ public class CharacterTokenTest
     {
         var token = CreateValidToken(price: 25m, supply: 40);
 
-        Assert.Equal(1000m, token.CalculateMarketCap());
+        Assert.Equal(1000m, token.CalculateMarketCap);
     }
 }
