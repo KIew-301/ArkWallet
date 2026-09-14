@@ -34,7 +34,7 @@ public class GlobalRule
             throw new DomainException("Токен не указан");
         if (currentCoefficient <= 0)
             throw new DomainException("Текущий коэффициент должен быть больше нуля");
-            if (futureCoefficient <= 0)
+        if (futureCoefficient <= 0)
             throw new DomainException(CoefficientMustBePositive);
         if (baseTokenMiningSpeed <= 0)
             throw new DomainException("Базовая скорость должна быть больше нуля");
@@ -110,7 +110,7 @@ public class GlobalRule
     {
         if (currentCoefficient <= 0)
             throw new DomainException("Текущий коэффициент должен быть больше нуля");
-            if (futureCoefficient <= 0)
+        if (futureCoefficient <= 0)
             throw new DomainException(CoefficientMustBePositive);
 
         CurrentCoefficient = currentCoefficient;

@@ -15,15 +15,25 @@ public enum MachineType
     BMP
 }
 
+/// <summary>Команда восстановления машины из каталога покупок.</summary>
 public record ShoppingMachineLoadCommand(
+    /// <summary>Идентификатор машины.</summary>
     long Id,
+    /// <summary>Тип майнинг-машины.</summary>
     MachineType Type,
+    /// <summary>Время переключения в секундах.</summary>
     int SwitchingTime,
+    /// <summary>Повторная используемость (ресурс).</summary>
     decimal Reusability,
+    /// <summary>Активна ли для продажи.</summary>
     bool IsActiveForSale,
+    /// <summary>URL изображения машины.</summary>
     string Image,
+    /// <summary>Эффективность машины.</summary>
     decimal Efficiency,
+    /// <summary>Название машины.</summary>
     string Name,
+    /// <summary>Стоимость машины.</summary>
     decimal Cost);
 
 /// <summary>

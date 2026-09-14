@@ -3,20 +3,35 @@ using ArkWallet.Core.ShoppingContext.Domain.Machine;
 
 namespace ArkWallet.Core.MiningContext.Domain.Machine;
 
+/// <summary>Команда восстановления машины майнинга из хранилища.</summary>
 public record MachineLoadCommand(
+    /// <summary>Идентификатор трейдера.</summary>
     long TraderId,
+    /// <summary>Тип майнинг-машины.</summary>
     ArkWallet.Core.ShoppingContext.Domain.Machine.MachineType Type,
+    /// <summary>Время переключения в секундах.</summary>
     int SwitchingTime,
+    /// <summary>Эффективность машины.</summary>
     decimal Efficiency,
+    /// <summary>URL изображения машины.</summary>
     string Image,
+    /// <summary>Стоимость машины.</summary>
     decimal Cost,
+    /// <summary>Дата создания записи.</summary>
     DateTime CreatedAt,
+    /// <summary>Символ токена.</summary>
     string? TokenSymbol,
+    /// <summary>ID глобального правила.</summary>
     long? GlobalRuleId,
+    /// <summary>Статус машины.</summary>
     MachineStatus Status,
+    /// <summary>Дата начала переключения.</summary>
     DateTime? StartSwitchingAt,
+    /// <summary>Дата окончания переключения.</summary>
     DateTime? EndSwitchingAt,
+    /// <summary>Количество собранных токенов.</summary>
     decimal TokensCollected,
+    /// <summary>Дата продажи.</summary>
     DateTime? SoldAt);
 
 /// <summary>Статус майнинг-машины в слоте трейдера.</summary>
@@ -127,6 +142,11 @@ public class Machine
         return machine;
     }
 
+    /// <summary>Запускает переключение машины в режим майнинга.</summary>
+    /// <param name="traderId">Идентификатор трейдера.</param>
+    /// <param name="tokenSymbol">Символ токена для подсчёта добычи.</param>
+    /// <param name="globalRuleId">ID глобального правила.</param>
+    /// <param name="timeProvider">Поставщик времени (по умолчанию — SystemTime.Now).</param>
     public void StartSwitching(
         long traderId,
         string tokenSymbol,
