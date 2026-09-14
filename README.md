@@ -38,7 +38,7 @@
 
 ## 🧠 Overview
 
-**ArkWallet** is a **high-load token trading platform** built as a mini-app for Telegram. It simulates a full-featured trading ecosystem with real-time order matching, balance snapshots, candle aggregation, an automated market-making system, and built-in performance & observability tooling.
+**ArkWallet** is a **high-load token trading platform** built as a mini-app for Telegram. It simulates a full-featured trading ecosystem with real-time order matching, balance snapshots, candle aggregation, an automated market-making system, an in-app mail inbox with rewards, a gift system, global goals, and built-in performance & observability tooling.
 
 > **Key Objective:** Demonstrate production-ready architecture, clean code principles, and deep understanding of distributed systems — not just a working prototype.
 
@@ -53,7 +53,11 @@
 | **📊 Balance Snapshots** | Periodic full-state balance snapshots with historical analytics (batched for multiple traders) |
 | **🕯️ Candle Aggregation** | Flexible timeframe aggregation (1m, 5m, 15m, 1h, etc.) |
 | **🤖 Market Maker Bots** | Automated liquidity providers with dynamic pricing grids, batched grid order placement |
+| **📬 In-App Mail** | Unified inbox (`/open_mail`): notification, reward and gift mail with collectable rewards; admin broadcast via `/admin_send_mail` |
+| **🎁 Gift System** | Send tokens from your portfolio to another user (`/send_gift`), collect pending gifts; per-recipient cooldown and eligibility rules |
+| **🎯 Global Goals** | Balance-based global goals with achievement validation and reward mail |
 | **📨 Notification System** | RabbitMQ-based event bus with Telegram notifications |
+| **🌐 Resilient Telegram Bot** | Webhook delivery with retry/backoff, per-chat parallel processing, and per-endpoint rate limiting (429 with `Retry-After`) |
 | **🔐 Concurrency Control** | Pessimistic row locking (`SELECT ... FOR UPDATE`) and transaction wrapper to serialize trades and price updates |
 | **📈 Observability** | Health checks, OpenTelemetry metrics, Prometheus scraping, Grafana dashboards, `/admin_metrics` bot command |
 | **⚡ Performance Gates** | Dedicated perf-testing project with EF query counters, budget gates, and HTML reports |
@@ -62,7 +66,7 @@
 
 ## 🧱 Architecture
 
-The project follows **Clean Architecture** with **Domain-Driven Design** principles, strictly separated into four layers:
+The project follows **Clean Architecture** with **Domain-Driven Design** principles, strictly separated into four layers. Code is organized into `ArkWallet/Core/<Context>/{Domain,Application}` folders (`TradingContext`, `General`, `GiftContext`, `PortfolioContext`, `MailContext`, `MiningContext`, `ShoppingContext`); the EF persistence layer lives in `Infrastructure/Data` as anemic `EntityData` records (no behavior — only properties, `Create`/`Update` factories) validated by architectural `ArchitectureLayerRules` (Rule 18). Business logic resides entirely in the domain aggregates.
 
 <div align="center">
 <br>
@@ -99,9 +103,9 @@ Engines
 ### Design Principles Applied
 
 - ✅ **SOLID** — Single Responsibility, Dependency Injection
-- ✅ **Domain-Driven Design** — Rich domain model, value objects, invariants
+- ✅ **Domain-Driven Design** — Rich domain model, value objects, invariants; EF `Infrastructure.Data` records are anemic (Rule 18) — all behavior lives in domain aggregates
 - ✅ **Result Pattern** — Explicit error handling without exceptions
-- ✅ **Unit Testing** — xUnit + Moq + Coverlet (570+ tests), Testcontainers for PostgreSQL race scenarios
+- ✅ **Unit Testing** — xUnit + Moq + Coverlet (990+ tests), Testcontainers for PostgreSQL race scenarios
 - ✅ **Code Quality** — SonarCloud integration (coverage, duplications, hotspots)
 
 ---
@@ -169,6 +173,9 @@ The domain layer contains a rich set of entities with encapsulated business logi
 | **🔄 Trade** | Executed exchange record | Always links buyer and seller |
 | **🕯️ PriceCandle** | OHLC price data per timeframe | Open ≤ High, Low ≤ Close |
 | **🤖 MarketMakerBot** | Automated liquidity provider | Dynamic power with randomized intervals |
+| **📬 Message** | Mail inbox entity with status transitions | Status: unread → read / accepted; reward collected on accept |
+| **🎁 Gift** | Token transfer between users | Self-gift forbidden; 8h cooldown per recipient; only tokens ≤ 1000 stg with balance ≥ 1 |
+| **🎯 GlobalGoal** | Balance-based achievement definition | Target balance triggers reward mail event |
 
 
 ### Business Invariants
@@ -183,6 +190,8 @@ The domain layer contains a rich set of entities with encapsulated business logi
 | **PortfolioItem** | Cannot sell more than reserved |
 | **CharacterToken** | Price cannot be negative |
 | **BalanceSnapshot** | Immutable after creation |
+| **Message** | Must have reward to accept |
+| **Gift** | Cannot self-gift; max 1 gift per recipient per 8 hours |
 
 ---
 
@@ -247,6 +256,15 @@ All services follow the **Single Responsibility Principle** and are organized by
 |---------|---------|
 | `IMarketMakerOrchestrator` | Manage bot lifecycle (registration, balance, grids, orders) |
 | `ICandleOrchestrator` | Fetch and aggregate candles |
+| `IMarketWallBlockerOrchestrator` | Detect and cancel anti-pattern orders (blocker bots) |
+
+### Mail, Gift & Global Goal Services
+
+| Service | Purpose |
+|---------|---------|
+| `IMailMessageService` / `IMailStatusUpdatingService` / `IMailQueryService` | Create, read and collect rewards from mail |
+| `IGiftSendingService` / `IGiftReceivingService` / `IQueryGiftService` | Send, receive and list gifts |
+| `TotalBalanceGlobalGoalCalculation` | Evaluate global-goal achievements and trigger reward mail |
 
 ### Suggestion Services
 
@@ -287,6 +305,9 @@ All services follow the **Single Responsibility Principle** and are organized by
 | **Trades** | GET | `/api/trades` | Get trade history |
 | **Health** | GET | `/health` | Liveness/readiness probe (DB check) for Docker healthcheck |
 | **Metrics** | GET | `/metrics` | Prometheus-compatible OpenTelemetry metrics |
+| **Bot** | POST | `/bot/webhook` | Telegram webhook endpoint (secret-token validated) |
+
+> **Rate Limiting:** API endpoints are rate-limited per `(client IP, endpoint)` — 1 request/second per endpoint, global cap 3 requests/second per client; auth endpoints are stricter (1 per 5s). Bot commands are capped at 3 per second per chat. Over-limit responses return `429 Too Many Requests` with `Retry-After`.
 
 ---
 
@@ -303,6 +324,13 @@ All services follow the **Single Responsibility Principle** and are organized by
 - **Protected metrics** — `/metrics` requires `Authorization: Bearer <Metrics__ApiKey>` (`MetricsApiKeyMiddleware`), so only services/admins with the key can read the endpoint.
 - **Protected Grafana** — access only for admins: login `admin` / password = `METRICS_API_KEY` (same secret), anonymous access and sign-up disabled.
 - **Deploy** — `METRICS_API_KEY` is injected into `.env` and rendered into `prometheus.yml` from GitHub Secrets during deploy.
+
+### Telegram Integration
+
+- **Webhook delivery** — updates arrive via `POST /bot/webhook` (validated by `X-Telegram-Bot-Api-Secret-Token`), processed off the request path; falls back to legacy `getUpdates` polling when no webhook URL is configured.
+- **Resilient sends** — every outgoing Bot API call is wrapped in a retry policy (15s attempt timeout, 3 attempts, exponential backoff, honors `429 Retry-After`), swallowing benign "message is not modified".
+- **Per-chat parallelism** — update handlers run concurrently per chat, so a hung API request no longer stalls the whole bot.
+- **Anti-spam** — per-chat command rate cap (3/s) protects the `WizardEngine` state from bursts.
 
 ---
 
