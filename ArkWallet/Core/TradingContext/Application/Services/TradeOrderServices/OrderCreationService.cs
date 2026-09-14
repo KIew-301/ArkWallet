@@ -84,11 +84,6 @@ internal class OrderCreationService(
         await NotifyAsync(context);
     }
 
-    private void SyncTradersAndPortfolios(TradingEngineContext context)
-    {
-        TradingContextMapper.SyncTradersAndPortfolios(context, dbContext);
-    }
-
     private async Task<TradingEngineContext> PrepareSingleTradingContextAsync(CreateOrderCommand command)
     {
         var orderType = NormalizeDirection(command.Direction) == OrderDirections.Buy
@@ -322,7 +317,7 @@ internal class OrderCreationService(
         }
     }
 
-    private async Task<ValidationResult> ValidateFullOrderAsync(CreateOrderCommand request)
+    private static async Task<ValidationResult> ValidateFullOrderAsync(CreateOrderCommand request)
     {
         if (request.Price <= 0)
             return ValidationResult.Failed("Цена должна быть больше 0");
@@ -333,7 +328,7 @@ internal class OrderCreationService(
         return await Task.FromResult(ValidationResult.Success());
     }
 
-    private async Task<ValidationResult> ValidateFullOrdersAsync(IReadOnlyCollection<CreateOrderCommand> requests)
+    private static async Task<ValidationResult> ValidateFullOrdersAsync(List<CreateOrderCommand> requests)
     {
         if (requests.Count == 0)
             return ValidationResult.Success();

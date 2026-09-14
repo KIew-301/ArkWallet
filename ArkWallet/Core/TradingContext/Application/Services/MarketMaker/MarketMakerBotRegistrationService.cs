@@ -2,7 +2,6 @@ using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.TradingContext.Application.Contracts.MarketMaker;
 using ArkWallet.Core.TradingContext.Application.Contracts.TraderServices;
 using ArkWallet.Infrastructure.Data;
-using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 

@@ -11,7 +11,6 @@ using ArkWallet.Core.MiningContext.Domain.Machine;
 using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Core.MiningContext.Domain.Engines;
 using ArkWallet.Core.General.Domain.Exceptions;
-using ArkWallet.Core.General.Domain.ValueObjects;
 
 namespace ArkWallet.Tests.Core.TradingContext.Domain.TraderAggregate;
 

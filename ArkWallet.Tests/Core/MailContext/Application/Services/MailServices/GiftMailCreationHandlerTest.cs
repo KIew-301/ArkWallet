@@ -12,7 +12,6 @@ using ArkWallet.Core.MailContext.Domain.Message;
 using ArkWallet.Core.MiningContext.Domain.Machine;
 using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Core.MiningContext.Domain.Engines;
-using ArkWallet.Core.GiftContext.Domain.User;
 using ArkWallet.Core.GiftContext.Domain.Events;
 using ArkWallet.Infrastructure.Data;
 using Moq;

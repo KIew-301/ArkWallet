@@ -19,7 +19,7 @@ internal static class TradingContextMapper
 {
     // ---- Записи БД -> агрегаты контекста ----
 
-    internal static Token ToToken(Records.CharacterToken source) => Token.Load(
+    internal static Token ToToken(Records.CharacterToken source) => Token.Load(new TokenLoadCommand(
         source.Symbol,
         source.Name,
         (TokenRarity)(int)source.Rarity,
@@ -28,16 +28,18 @@ internal static class TradingContextMapper
         source.IsActive,
         source.ImageUrl,
         source.IconUrl,
-        source.CreatedAt);
+        source.CreatedAt));
 
-    internal static Trader ToTrader(Records.Trader source) => Trader.Load(
+    internal static Trader ToTrader(Records.Trader source) => Trader.Load(new TraderLoadCommand(
         source.TelegramId,
         source.Username,
         source.Balance,
         source.NotificationOn,
-        source.JoinedAt);
+        source.JoinedAt,
+        Array.Empty<OrderLoadCommand>(),
+        Array.Empty<PortfolioItemLoadCommand>()));
 
-    internal static PortfolioItem ToPortfolioItem(Records.PortfolioItem source) => PortfolioItem.Load(
+    internal static PortfolioItem ToPortfolioItem(Records.PortfolioItem source) => PortfolioItem.Reconstruct(new PortfolioItemLoadCommand(
         source.TraderTelegramId,
         source.Id,
         source.CharacterTokenId,
@@ -47,19 +49,18 @@ internal static class TradingContextMapper
         source.AverageBuyPrice,
         source.AverageSellPrice,
         source.AverageReservePrice,
-        source.AcquiredAt);
+        source.AcquiredAt));
 
-    internal static Order ToOrder(Records.TradeOrder source) => Order.Load(
+    internal static Order ToOrder(Records.TradeOrder source) => Order.Reconstruct(new OrderLoadCommand(
         source.Id,
         (OrderType)(int)source.Type,
-        (OrderStatus)(int)source.Status,
         source.CharacterTokenId,
         source.Price,
-        source.AverageExecutePrice,
         source.Quantity,
         source.FilledQuantity,
+        (OrderStatus)(int)source.Status,
         source.CreatedAt,
-        source.ExecutedAt);
+        source.ExecutedAt));
 
     // ---- Агрегаты контекста -> записи БД ----
 

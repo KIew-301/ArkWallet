@@ -89,7 +89,7 @@ internal class MiningMachineSlot : EntityData
             MachineStatus.Passive => MiningMachineSlotStatus.Passive,
             MachineStatus.Switching => MiningMachineSlotStatus.Switching,
             MachineStatus.Sold => MiningMachineSlotStatus.Sold,
-            _ => throw new ArgumentOutOfRangeException(nameof(machine.Status))
+            _ => throw new ArgumentOutOfRangeException(nameof(machine), machine.Status, "Unknown machine status")
         };
         StartSwitchingDateTime = machine.StartSwitchingAt;
         EndSwitchingDateTime = machine.EndSwitchingAt;

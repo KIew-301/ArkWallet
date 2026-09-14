@@ -40,15 +40,14 @@ internal static class MarketMakerGridMapper
             .ToList();
     }
 
-    private static Order ToOrder(Records.TradeOrder source) => Order.Load(
+    private static Order ToOrder(Records.TradeOrder source) => Order.Reconstruct(new OrderLoadCommand(
         source.Id,
         (TradingOrderType)(int)source.Type,
-        (TradingOrderStatus)(int)source.Status,
         source.CharacterTokenId,
         source.Price,
-        source.AverageExecutePrice,
         source.Quantity,
         source.FilledQuantity,
+        (TradingOrderStatus)(int)source.Status,
         source.CreatedAt,
-        source.ExecutedAt);
+        source.ExecutedAt));
 }

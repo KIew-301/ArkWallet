@@ -68,7 +68,7 @@ internal class MiningMachine : EntityData
         string? image = null,
         decimal? efficiency = null)
     {
-        var machine = Machine.Load(
+        var machine = Machine.Load(new ShoppingMachineLoadCommand(
             Id,
             (MachineType)Type,
             SwitchingTime,
@@ -77,7 +77,7 @@ internal class MiningMachine : EntityData
             Image,
             Efficiency,
             Name,
-            Cost);
+            Cost));
 
         machine.Update(
             type.HasValue ? (MachineType)type.Value : null,

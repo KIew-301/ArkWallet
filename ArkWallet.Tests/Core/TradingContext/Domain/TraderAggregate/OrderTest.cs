@@ -61,17 +61,16 @@ public class OrderTest
     [Fact]
     public void Cancel_NotActive_ThrowsDomainException()
     {
-        var order = Order.Load(
-            "test-id",
-            OrderType.Buy,
-            OrderStatus.Filled,
-            "ZZZ",
-            100m,
-            0m,
-            10,
-            10,
-            DateTime.UtcNow,
-            DateTime.UtcNow);
+        var order = Order.Reconstruct(new OrderLoadCommand(
+            Id: "test-id",
+            Type: OrderType.Buy,
+            CharacterTokenId: "ZZZ",
+            Price: 100m,
+            Quantity: 10,
+            FilledQuantity: 10,
+            Status: OrderStatus.Filled,
+            CreatedAt: DateTime.UtcNow,
+            FilledAt: DateTime.UtcNow));
 
         var ex = Assert.Throws<DomainException>(() => order.Cancel());
 

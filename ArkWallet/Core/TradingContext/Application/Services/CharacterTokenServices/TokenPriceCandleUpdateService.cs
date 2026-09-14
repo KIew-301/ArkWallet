@@ -28,31 +28,42 @@ internal class TokenPriceCandleUpdateService(
 
             var dateTimeNow = timeProvider.GetUtcNow().UtcDateTime;
 
-            if (lastCandle == null)
-            {
-                var newCandle = PriceCandle.Create(symbol, newPrice, dateTimeNow);
-                await dbContext.PriceCandles.AddAsync(newCandle);
-            }
-            else if (lastCandle.Timestamp.AddMinutes(SavingTimeFrameInMinute) <= dateTimeNow)
-            {
-                var newCandle = PriceCandle.Create(symbol, lastCandle.ClosePrice, dateTimeNow);
-                newCandle.ClosePrice = newPrice;
-                if (newPrice > newCandle.HighPrice)
-                    newCandle.HighPrice = newPrice;
-                if (newPrice < newCandle.LowPrice)
-                    newCandle.LowPrice = newPrice;
-                await dbContext.PriceCandles.AddAsync(newCandle);
-            }
-            else
-            {
-                lastCandle.ClosePrice = newPrice;
-                if (newPrice > lastCandle.HighPrice)
-                    lastCandle.HighPrice = newPrice;
-                if (newPrice < lastCandle.LowPrice)
-                    lastCandle.LowPrice = newPrice;
-            }
+            await UpsertCandleAsync(symbol, lastCandle, dateTimeNow, newPrice, SavingTimeFrameInMinute);
 
             return Ok();
         }, logger, nameof(TokenPriceCandleUpdateService));
+    }
+
+    private async Task UpsertCandleAsync(
+        string symbol,
+        PriceCandle? lastCandle,
+        DateTime dateTimeNow,
+        decimal newPrice,
+        int savingTimeFrameInMinute)
+    {
+        if (lastCandle == null)
+        {
+            var newCandle = PriceCandle.Create(symbol, newPrice, dateTimeNow);
+            await dbContext.PriceCandles.AddAsync(newCandle);
+        }
+        else if (lastCandle.Timestamp.AddMinutes(savingTimeFrameInMinute) <= dateTimeNow)
+        {
+            var newCandle = PriceCandle.Create(symbol, lastCandle.ClosePrice, dateTimeNow);
+            ApplyPrice(newCandle, newPrice);
+            await dbContext.PriceCandles.AddAsync(newCandle);
+        }
+        else
+        {
+            ApplyPrice(lastCandle, newPrice);
+        }
+    }
+
+    private static void ApplyPrice(PriceCandle candle, decimal newPrice)
+    {
+        candle.ClosePrice = newPrice;
+        if (newPrice > candle.HighPrice)
+            candle.HighPrice = newPrice;
+        if (newPrice < candle.LowPrice)
+            candle.LowPrice = newPrice;
     }
 }

@@ -4,7 +4,7 @@ namespace ArkWallet.Core.TradingContext.Domain.TokenAggregate;
 
 internal class PriceCandle
 {
-    public long Id { get; private set; }
+    public long Id { get; }
     public decimal OpenPrice { get; }
     public decimal HighPrice { get; private set; }
     public decimal LowPrice { get; private set; }

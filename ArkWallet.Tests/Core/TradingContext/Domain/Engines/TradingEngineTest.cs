@@ -6,7 +6,6 @@ using ArkWallet.Core.TradingContext.Domain.TokenAggregate;
 using ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
 using ArkWallet.Core.TradingContext.Domain.TradeAggregate;
 using ArkWallet.Core.TradingContext.Domain.Events;
-using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Tests.HelpTools;
 
 namespace ArkWallet.Tests.Core.TradingContext.Domain.Engines;
@@ -17,7 +16,7 @@ public class TradingEngineTest
     private readonly RecordingEventPublisher _publisher = new();
 
     private static Token CreateToken(string symbol = "ZZZ", decimal price = 100m)
-        => Token.Create(symbol, "Test Token", TokenRarity.FourStar, price, 1000, "img", "icon");
+        => Token.Create(new TokenCreationCommand(symbol, "Test Token", TokenRarity.FourStar, price, 1000, "img", "icon"));
 
     private Trader CreateTrader(long id, decimal balance = 1000m)
     {

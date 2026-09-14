@@ -5,7 +5,6 @@ using ArkWallet.Core.TradingContext.Application.Contracts.Other;
 using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
 using ArkWallet.Core.TradingContext.Application.Services.TradeOrderServices;
 using ArkWallet.Core.TradingContext.Application.Services.CharacterTokenServices;
-using ArkWallet.Core.TradingContext.Application.Services.TradeOrderServices;
 using ArkWallet.Core.MiningContext.Domain.Engines;
 using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Infrastructure;

@@ -1,6 +1,5 @@
 using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
 using ArkWallet.Core.TradingContext.Application.Services.TradeOrderServices;
-using ArkWallet.Core.TradingContext.Application.Services.TradeOrderServices;
 using ArkWallet.Tests.HelpTools;
 
 namespace ArkWallet.Tests.Core.TradingContext.Application.Services.TradeOrderServices;

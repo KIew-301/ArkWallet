@@ -7,4 +7,8 @@ namespace ArkWallet.Infrastructure.Data;
 /// </summary>
 public abstract class EntityData
 {
+    /// <summary>
+    /// Вызывается перед сохранением сущности в контексте для дополнительной валидации данных.
+    /// </summary>
+    public virtual void Validate() { }
 }

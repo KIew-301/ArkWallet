@@ -87,7 +87,7 @@ public class ArchitectureServiceRules
     public void Rule10_ServiceImplementationContextMatchesItsContractContext()
     {
         var contractInterfaces = ArkKinds.ContractInterfacesCollection
-            .Where(i => i.Name.StartsWith("I", StringComparison.Ordinal)
+            .Where(i => i.Name.StartsWith('I')
                        && (i.Name.EndsWith("Service", StringComparison.Ordinal)
                            || i.Name.EndsWith("Orchestrator", StringComparison.Ordinal)))
             .ToArray();

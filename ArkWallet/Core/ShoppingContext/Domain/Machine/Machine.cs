@@ -15,6 +15,17 @@ public enum MachineType
     BMP
 }
 
+public record ShoppingMachineLoadCommand(
+    long Id,
+    MachineType Type,
+    int SwitchingTime,
+    decimal Reusability,
+    bool IsActiveForSale,
+    string Image,
+    decimal Efficiency,
+    string Name,
+    decimal Cost);
+
 /// <summary>
 /// Агрегат майнинг-машины в каталоге. Владеет бизнес-логикой валидации,
 /// формирования имени, расчёта стоимости и цены продажи. Data-сущности (EF)
@@ -48,16 +59,26 @@ public class Machine
 
     private Machine() { }
 
+    /// <summary>Идентификатор машины в каталоге.</summary>
     public long Id { get; private set; }
+    /// <summary>Сформированное имя машины.</summary>
     public string Name { get; private set; } = string.Empty;
+    /// <summary>Тип машины.</summary>
     public MachineType Type { get; private set; }
+    /// <summary>Время переключения в минутах.</summary>
     public int SwitchingTime { get; private set; }
+    /// <summary>Процент возврата при продаже.</summary>
     public decimal Reusability { get; private set; }
+    /// <summary>Доступна ли машина для продажи в каталоге.</summary>
     public bool IsActiveForSale { get; private set; }
+    /// <summary>Стоимость покупки.</summary>
     public decimal Cost { get; private set; }
+    /// <summary>Эффективность добычи.</summary>
     public decimal Efficiency { get; private set; }
+    /// <summary>Ссылка на изображение машины.</summary>
     public string Image { get; private set; } = string.Empty;
 
+    /// <summary>Создаёт машину в каталоге с валидацией параметров.</summary>
     public static Machine Create(
         MachineType type,
         int switchingTime,
@@ -80,28 +101,19 @@ public class Machine
     }
 
     /// <summary>Восстанавливает агрегат из данных сущности без повторной валидации.</summary>
-    public static Machine Load(
-        long id,
-        MachineType type,
-        int switchingTime,
-        decimal reusability,
-        bool isActiveForSale,
-        string image,
-        decimal efficiency,
-        string name,
-        decimal cost)
+    public static Machine Load(ShoppingMachineLoadCommand data)
     {
         return new Machine
         {
-            Id = id,
-            Type = type,
-            SwitchingTime = switchingTime,
-            Reusability = reusability,
-            IsActiveForSale = isActiveForSale,
-            Image = image,
-            Efficiency = efficiency,
-            Name = name,
-            Cost = cost
+            Id = data.Id,
+            Type = data.Type,
+            SwitchingTime = data.SwitchingTime,
+            Reusability = data.Reusability,
+            IsActiveForSale = data.IsActiveForSale,
+            Image = data.Image,
+            Efficiency = data.Efficiency,
+            Name = data.Name,
+            Cost = data.Cost
         };
     }
 

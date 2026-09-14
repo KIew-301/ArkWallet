@@ -10,7 +10,6 @@ using ArkWallet.Core.MailContext.Domain.Message;
 using ArkWallet.Core.MiningContext.Domain.Machine;
 using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Core.MiningContext.Domain.Engines;
-using ArkWallet.Core.General.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 
 namespace ArkWallet.Tests.Core.TradingContext.Domain.TokenAggregate;

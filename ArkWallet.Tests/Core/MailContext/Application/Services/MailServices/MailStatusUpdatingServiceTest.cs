@@ -13,7 +13,6 @@ using ArkWallet.Core.MailContext.Domain.Message;
 using ArkWallet.Core.MiningContext.Domain.Machine;
 using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Core.MiningContext.Domain.Engines;
-using ArkWallet.Core.MailContext.Domain.Message;
 using ArkWallet.Core.MailContext.Domain.Events;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Tests.HelpTools;

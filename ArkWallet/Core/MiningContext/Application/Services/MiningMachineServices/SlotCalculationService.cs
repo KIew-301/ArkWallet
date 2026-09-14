@@ -40,13 +40,6 @@ internal class MiningMachineSlotCalculationService(
 
     private int ProcessSlots(List<MiningMachineSlot> slots, decimal timingCoeff)
     {
-        var processed = 0;
-        foreach (var slot in slots)
-        {
-            if (MiningContextMapper.AccumulateTokens(miningEngine, slot, timingCoeff))
-                processed++;
-        }
-
-        return processed;
+        return slots.Count(slot => MiningContextMapper.AccumulateTokens(miningEngine, slot, timingCoeff));
     }
 }

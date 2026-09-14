@@ -18,7 +18,7 @@ public static class ArkNamespaces
     public const string MediatrIPublisherFullName = "MediatR.IPublisher";
 }
 
-public static class ArkArchitecture
+public static partial class ArkArchitecture
 {
     private static readonly Lazy<ArchUnitNET.Domain.Architecture> LazyModel = new(() => new ArchLoader()
         .LoadAssemblies(typeof(Program).Assembly)
@@ -40,13 +40,19 @@ public static class ArkArchitecture
     }
 
     private static readonly string[] DerivedBusinessContexts = Model.Namespaces
-        .Where(ns => Regex.IsMatch(ns.FullName, ArkNamespaces.DomainPattern)
-                     || Regex.IsMatch(ns.FullName, ArkNamespaces.ApplicationPattern))
-        .Select(ns => CoreSegment(ns.FullName))
+        .Where(ns => DomainPatternRegex().IsMatch(ns.FullName)
+                     || ApplicationPatternRegex().IsMatch(ns.FullName))
+        .Select(ns => CoreSegment(ns.FullName)!)
         .Where(segment => segment != null && segment != GeneralContext)
         .Distinct()
         .OrderBy(segment => segment, StringComparer.Ordinal)
         .ToArray();
+
+    [GeneratedRegex(ArkNamespaces.DomainPattern)]
+    private static partial Regex DomainPatternRegex();
+
+    [GeneratedRegex(ArkNamespaces.ApplicationPattern)]
+    private static partial Regex ApplicationPatternRegex();
 
     public static string[] BusinessContexts => DerivedBusinessContexts;
 
@@ -71,7 +77,7 @@ public static class ArkArchitecture
         Model.Types.FirstOrDefault(t => t.FullName == fullName)
         ?? Model.ReferencedTypes.FirstOrDefault(t => t.FullName == fullName);
 
-    public static IObjectProvider<IType> Of(IEnumerable<IType> types, string description = null)
+    public static IObjectProvider<IType> Of(IEnumerable<IType> types, string? description = null)
     {
         var materialized = types.Distinct().ToArray();
         var key = string.IsNullOrEmpty(description)
@@ -293,10 +299,10 @@ public static class ArkKinds
 
     public static bool DependsOn(Class source, IEnumerable<Class> targets)
     {
-        var fullNames = targets.Select(t => t.FullName).ToHashSet();
+        var fullNames = targets.Select(t => t.FullName).Where(n => n != null).ToHashSet();
         return source.Dependencies
             .Select(d => d.Target?.FullName)
-            .Any(fullNames.Contains);
+            .Any(f => f != null && fullNames.Contains(f));
     }
 
     public static IReadOnlyList<(string Source, string Target)> ViolatingDependencies(

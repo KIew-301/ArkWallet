@@ -8,14 +8,22 @@ namespace ArkWallet.Core.MiningContext.Domain.GlobalRule;
 /// </summary>
 public class GlobalRule
 {
-    public long Id { get; private set; }
+    private const string CoefficientMustBePositive = "Будущий коэффициент должен быть больше нуля";
+
+    /// <summary>Идентификатор правила (задаётся хранилищем).</summary>
+    public long Id { get; }
+    /// <summary>Символ токена, для которого задано правило.</summary>
     public string TokenSymbol { get; private set; } = string.Empty;
+    /// <summary>Текущий коэффициент добычи.</summary>
     public decimal CurrentCoefficient { get; private set; }
+    /// <summary>Будущий коэффициент добычи.</summary>
     public decimal FutureCoefficient { get; private set; }
+    /// <summary>Базовая скорость добычи токена.</summary>
     public decimal BaseTokenMiningSpeed { get; private set; }
 
     private GlobalRule() { }
 
+    /// <summary>Создаёт новое правило с валидацией входных параметров.</summary>
     public static GlobalRule Create(
         string tokenSymbol,
         decimal currentCoefficient,
@@ -26,8 +34,8 @@ public class GlobalRule
             throw new DomainException("Токен не указан");
         if (currentCoefficient <= 0)
             throw new DomainException("Текущий коэффициент должен быть больше нуля");
-        if (futureCoefficient <= 0)
-            throw new DomainException("Будущий коэффициент должен быть больше нуля");
+            if (futureCoefficient <= 0)
+            throw new DomainException(CoefficientMustBePositive);
         if (baseTokenMiningSpeed <= 0)
             throw new DomainException("Базовая скорость должна быть больше нуля");
 
@@ -40,6 +48,7 @@ public class GlobalRule
         };
     }
 
+    /// <summary>Восстанавливает правило из постоянного хранилища без валидации.</summary>
     public static GlobalRule Load(
         string tokenSymbol,
         decimal currentCoefficient,
@@ -73,7 +82,7 @@ public class GlobalRule
             if (currentCoefficient.Value <= 0)
                 throw new DomainException("Текущий коэффициент должен быть больше нуля");
             if (futureCoefficient!.Value <= 0)
-                throw new DomainException("Будущий коэффициент должен быть больше нуля");
+                throw new DomainException(CoefficientMustBePositive);
             CurrentCoefficient = currentCoefficient.Value;
             FutureCoefficient = futureCoefficient.Value;
         }
@@ -90,7 +99,7 @@ public class GlobalRule
     public void AdvanceCoefficient(decimal newFutureCoefficient)
     {
         if (newFutureCoefficient <= 0)
-            throw new DomainException("Будущий коэффициент должен быть больше нуля");
+            throw new DomainException(CoefficientMustBePositive);
 
         CurrentCoefficient = FutureCoefficient;
         FutureCoefficient = newFutureCoefficient;
@@ -101,13 +110,14 @@ public class GlobalRule
     {
         if (currentCoefficient <= 0)
             throw new DomainException("Текущий коэффициент должен быть больше нуля");
-        if (futureCoefficient <= 0)
-            throw new DomainException("Будущий коэффициент должен быть больше нуля");
+            if (futureCoefficient <= 0)
+            throw new DomainException(CoefficientMustBePositive);
 
         CurrentCoefficient = currentCoefficient;
         FutureCoefficient = futureCoefficient;
     }
 
+    /// <summary>Обновляет базовую скорость добычи, требуя положительного значения.</summary>
     public void UpdateBaseTokenMiningSpeed(decimal baseTokenMiningSpeed)
     {
         if (baseTokenMiningSpeed <= 0)

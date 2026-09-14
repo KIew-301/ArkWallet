@@ -5,6 +5,8 @@ namespace ArkWallet.Core.TradingContext.Domain.TraderAggregate;
 
 internal class PortfolioItem : AggregateRoot
 {
+    private const string QuantityMustBePositive = "Quantity must be greater than 0";
+
     public string Id { get; internal set; } = Guid.NewGuid().ToString();
     public long TraderId { get; }
     public string TokenSymbol { get; }
@@ -30,7 +32,7 @@ internal class PortfolioItem : AggregateRoot
         if (string.IsNullOrWhiteSpace(tokenSymbol))
             throw new DomainException("Token symbol cannot be empty");
         if (quantity <= 0)
-            throw new DomainException("Quantity must be greater than 0");
+            throw new DomainException(QuantityMustBePositive);
         if (buyPrice < 0)
             throw new DomainException("Buy price cannot be negative");
 
@@ -39,28 +41,18 @@ internal class PortfolioItem : AggregateRoot
         return item;
     }
 
-    internal static PortfolioItem Load(
-        long traderId,
-        string id,
-        string tokenSymbol,
-        int quantity,
-        int sellingQuantity,
-        int reserveQuantity,
-        decimal averageBuyPrice,
-        decimal averageSellPrice,
-        decimal averageReservePrice,
-        DateTime acquiredAt)
+    internal static PortfolioItem Reconstruct(PortfolioItemLoadCommand cmd)
     {
-        if (string.IsNullOrWhiteSpace(tokenSymbol))
+        if (string.IsNullOrWhiteSpace(cmd.TokenSymbol))
             throw new DomainException("Token symbol cannot be empty");
 
-        return new PortfolioItem(traderId, tokenSymbol, quantity, averageBuyPrice, acquiredAt)
+        return new PortfolioItem(cmd.TraderId, cmd.TokenSymbol, cmd.Quantity, cmd.AverageBuyPrice, cmd.AcquiredAt)
         {
-            Id = id,
-            SellingQuantity = sellingQuantity,
-            ReserveQuantity = reserveQuantity,
-            AverageSellPrice = averageSellPrice,
-            AverageReservePrice = averageReservePrice
+            Id = cmd.Id,
+            SellingQuantity = cmd.SellingQuantity,
+            ReserveQuantity = cmd.ReserveQuantity,
+            AverageSellPrice = cmd.AverageSellPrice,
+            AverageReservePrice = cmd.AverageReservePrice
         };
     }
 
@@ -73,7 +65,7 @@ internal class PortfolioItem : AggregateRoot
     public void BuyTokens(int quantity, decimal buyPrice)
     {
         if (quantity <= 0)
-            throw new DomainException("Quantity must be greater than 0");
+            throw new DomainException(QuantityMustBePositive);
         if (buyPrice < 0)
             throw new DomainException("Buy price cannot be negative");
 
@@ -85,7 +77,7 @@ internal class PortfolioItem : AggregateRoot
     public void ReserveTokens(int quantity, decimal reservePrice)
     {
         if (quantity <= 0)
-            throw new DomainException("Quantity must be greater than 0");
+            throw new DomainException(QuantityMustBePositive);
         if (quantity > Quantity)
             throw new DomainException("Not enough tokens in portfolio");
 
@@ -103,7 +95,7 @@ internal class PortfolioItem : AggregateRoot
     public void SellTokens(int quantity, decimal sellPrice)
     {
         if (quantity <= 0)
-            throw new DomainException("Quantity must be greater than 0");
+            throw new DomainException(QuantityMustBePositive);
         if (quantity > ReserveQuantity)
             throw new DomainException("Not enough reserved tokens");
 
@@ -121,7 +113,7 @@ internal class PortfolioItem : AggregateRoot
     public void ReturnTokens(int quantity)
     {
         if (quantity <= 0)
-            throw new DomainException("Quantity must be greater than 0");
+            throw new DomainException(QuantityMustBePositive);
         if (quantity > ReserveQuantity)
             throw new DomainException("Not enough reserved tokens");
 
@@ -139,7 +131,7 @@ internal class PortfolioItem : AggregateRoot
     public void RemoveTokens(int quantity)
     {
         if (quantity <= 0)
-            throw new DomainException("Quantity must be greater than 0");
+            throw new DomainException(QuantityMustBePositive);
         if (quantity > Quantity)
             throw new DomainException("Not enough tokens in portfolio");
 

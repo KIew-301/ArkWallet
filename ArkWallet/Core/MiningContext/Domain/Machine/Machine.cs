@@ -3,6 +3,22 @@ using ArkWallet.Core.ShoppingContext.Domain.Machine;
 
 namespace ArkWallet.Core.MiningContext.Domain.Machine;
 
+public record MachineLoadCommand(
+    long TraderId,
+    ArkWallet.Core.ShoppingContext.Domain.Machine.MachineType Type,
+    int SwitchingTime,
+    decimal Efficiency,
+    string Image,
+    decimal Cost,
+    DateTime CreatedAt,
+    string? TokenSymbol,
+    long? GlobalRuleId,
+    MachineStatus Status,
+    DateTime? StartSwitchingAt,
+    DateTime? EndSwitchingAt,
+    decimal TokensCollected,
+    DateTime? SoldAt);
+
 /// <summary>Статус майнинг-машины в слоте трейдера.</summary>
 public enum MachineStatus
 {
@@ -26,19 +42,33 @@ public enum MachineStatus
 /// </summary>
 public class Machine
 {
+    /// <summary>Идентификатор трейдера-владельца.</summary>
     public long TraderId { get; }
+    /// <summary>Тип каталогной машины (характеристики скопированы при покупке).</summary>
     public MachineType Type { get; }
+    /// <summary>Время переключения машины в минутах.</summary>
     public int SwitchingTime { get; }
+    /// <summary>Эффективность добычи.</summary>
     public decimal Efficiency { get; }
+    /// <summary>Строковый идентификатор изображения машины.</summary>
     public string Image { get; }
+    /// <summary>Цена продажи машины.</summary>
     public decimal Cost { get; }
+    /// <summary>Момент создания слота.</summary>
     public DateTime CreatedAt { get; }
+    /// <summary>Текущий токен добычи (null пока машина не переключена).</summary>
     public string? TokenSymbol { get; private set; }
+    /// <summary>Активное глобальное правило для текущего токена.</summary>
     public long? GlobalRuleId { get; private set; }
+    /// <summary>Текущий статус машины.</summary>
     public MachineStatus Status { get; private set; }
+    /// <summary>Начало переключения (null если не переключается).</summary>
     public DateTime? StartSwitchingAt { get; private set; }
+    /// <summary>Окончание переключения.</summary>
     public DateTime? EndSwitchingAt { get; private set; }
+    /// <summary>Накопленные, ещё не собранные токены.</summary>
     public decimal TokensCollected { get; private set; }
+    /// <summary>Момент продажи (null если не продана).</summary>
     public DateTime? SoldAt { get; private set; }
 
     private Machine(
@@ -60,6 +90,7 @@ public class Machine
         CreatedAt = createdAt;
     }
 
+    /// <summary>Создаёт новую машину в статусе Passive с валидацией входных параметров.</summary>
     public static Machine Purchase(
         long traderId,
         MachineType type,
@@ -82,30 +113,17 @@ public class Machine
         return new Machine(traderId, type, switchingTime, efficiency, image, cost, createdAt);
     }
 
-    public static Machine Load(
-        long traderId,
-        MachineType type,
-        int switchingTime,
-        decimal efficiency,
-        string image,
-        decimal cost,
-        DateTime createdAt,
-        string? tokenSymbol,
-        long? globalRuleId,
-        MachineStatus status,
-        DateTime? startSwitchingAt,
-        DateTime? endSwitchingAt,
-        decimal tokensCollected,
-        DateTime? soldAt)
+    /// <summary>Восстанавливает машину из постоянного хранилища без валидации.</summary>
+    public static Machine Load(MachineLoadCommand data)
     {
-        var machine = new Machine(traderId, type, switchingTime, efficiency, image, cost, createdAt);
-        machine.TokenSymbol = tokenSymbol;
-        machine.GlobalRuleId = globalRuleId;
-        machine.Status = status;
-        machine.StartSwitchingAt = startSwitchingAt;
-        machine.EndSwitchingAt = endSwitchingAt;
-        machine.TokensCollected = tokensCollected;
-        machine.SoldAt = soldAt;
+        var machine = new Machine(data.TraderId, data.Type, data.SwitchingTime, data.Efficiency, data.Image, data.Cost, data.CreatedAt);
+        machine.TokenSymbol = data.TokenSymbol;
+        machine.GlobalRuleId = data.GlobalRuleId;
+        machine.Status = data.Status;
+        machine.StartSwitchingAt = data.StartSwitchingAt;
+        machine.EndSwitchingAt = data.EndSwitchingAt;
+        machine.TokensCollected = data.TokensCollected;
+        machine.SoldAt = data.SoldAt;
         return machine;
     }
 
@@ -130,6 +148,7 @@ public class Machine
         Status = MachineStatus.Switching;
     }
 
+    /// <summary>Завершает переключение и переводит машину в Active.</summary>
     public void CompleteSwitching()
     {
         if (Status != MachineStatus.Switching)
@@ -140,8 +159,10 @@ public class Machine
         Status = MachineStatus.Active;
     }
 
+    /// <summary>Добавляет накопленные токены.</summary>
     public void AddTokens(decimal amount) => TokensCollected += amount;
 
+    /// <summary>Возвращает целую часть накопленных токенов и вычитает её из накопления.</summary>
     public int CollectWholeTokens()
     {
         var whole = (int)TokensCollected;
@@ -149,6 +170,7 @@ public class Machine
         return whole;
     }
 
+    /// <summary>Продаёт машину и фиксирует SoldAt.</summary>
     public void Sell(TimeProvider? timeProvider = null)
     {
         if (Status == MachineStatus.Sold)

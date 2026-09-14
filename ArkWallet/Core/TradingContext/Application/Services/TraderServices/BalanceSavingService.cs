@@ -1,7 +1,6 @@
 using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.TradingContext.Application.Contracts.TraderServices;
 using ArkWallet.Infrastructure.Data;
-using ArkWallet.Infrastructure.Data;
 using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Core.TradingContext.Application.Services.TraderServices;

@@ -4,6 +4,38 @@ using ArkWallet.Core.TradingContext.Domain.Events;
 
 namespace ArkWallet.Core.TradingContext.Domain.TraderAggregate;
 
+internal record TraderLoadCommand(
+    long Id,
+    string? Username,
+    decimal Balance,
+    bool NotificationOn,
+    DateTime JoinedAt,
+    IReadOnlyList<OrderLoadCommand> Orders,
+    IReadOnlyList<PortfolioItemLoadCommand> Portfolios);
+
+internal record OrderLoadCommand(
+    string Id,
+    OrderType Type,
+    string CharacterTokenId,
+    decimal Price,
+    int Quantity,
+    decimal FilledQuantity,
+    OrderStatus Status,
+    DateTime CreatedAt,
+    DateTime? FilledAt);
+
+internal record PortfolioItemLoadCommand(
+    long TraderId,
+    string Id,
+    string TokenSymbol,
+    int Quantity,
+    int SellingQuantity,
+    int ReserveQuantity,
+    decimal AverageBuyPrice,
+    decimal AverageSellPrice,
+    decimal AverageReservePrice,
+    DateTime AcquiredAt);
+
 internal class Trader : AggregateRoot
 {
     private const decimal DefaultBalance = 1000m;
@@ -38,15 +70,14 @@ internal class Trader : AggregateRoot
         return new Trader(id, username, initialBalance, joinedAt);
     }
 
-    internal static Trader Load(
-        long id,
-        string? username,
-        decimal balance,
-        bool notificationOn,
-        DateTime joinedAt)
+    internal static Trader Load(TraderLoadCommand cmd)
     {
-        var trader = new Trader(id, username, balance, joinedAt);
-        trader.NotificationOn = notificationOn;
+        var trader = new Trader(cmd.Id, cmd.Username, cmd.Balance, cmd.JoinedAt);
+        trader.NotificationOn = cmd.NotificationOn;
+        foreach (var orderCmd in cmd.Orders)
+            trader.AttachOrder(Order.Reconstruct(orderCmd));
+        foreach (var portfolioCmd in cmd.Portfolios)
+            trader.AttachPortfolio(PortfolioItem.Reconstruct(portfolioCmd));
         return trader;
     }
 

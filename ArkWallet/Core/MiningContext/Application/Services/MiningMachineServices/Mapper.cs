@@ -174,7 +174,7 @@ internal static class MiningContextMapper
     /// <summary>Восстанавливает доменную машину слота из сущности для переходов бизнес-логики.</summary>
     internal static Machine MachineFrom(MiningMachineSlot slot)
     {
-        return Machine.Load(
+        return Machine.Load(new MachineLoadCommand(
             slot.TraderId,
             (ArkWallet.Core.ShoppingContext.Domain.Machine.MachineType)slot.Type,
             slot.SwitchingTime,
@@ -188,7 +188,7 @@ internal static class MiningContextMapper
             slot.StartSwitchingDateTime,
             slot.EndSwitchingDateTime,
             slot.TokensAmountCollected,
-            slot.SoldAt);
+            slot.SoldAt));
     }
 
     private static MachineStatus Map(MiningMachineSlotStatus status)

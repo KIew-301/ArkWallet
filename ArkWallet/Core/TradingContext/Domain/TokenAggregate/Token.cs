@@ -26,6 +26,26 @@ public enum TokenRarity
     SixStar = 6
 }
 
+internal record TokenLoadCommand(
+    string Symbol,
+    string Name,
+    TokenRarity Rarity,
+    decimal CurrentPrice,
+    int TotalSupply,
+    bool IsActive,
+    string ImageUrl,
+    string IconUrl,
+    DateTime CreatedAt);
+
+internal record TokenCreationCommand(
+    string Symbol,
+    string Name,
+    TokenRarity Rarity,
+    decimal InitialPrice,
+    int TotalSupply,
+    string ImageUrl,
+    string IconUrl);
+
 internal class Token : AggregateRoot
 {
     private const int PriceCandleTimeframeMinutes = 1;
@@ -44,76 +64,51 @@ internal class Token : AggregateRoot
 
     public IReadOnlyList<PriceCandle> PriceHistory => _priceHistory;
 
-    private Token(
-        string symbol,
-        string name,
-        TokenRarity rarity,
-        decimal initialPrice,
-        int totalSupply,
-        string imageUrl,
-        string iconUrl,
-        DateTime createdAt)
+    private Token(TokenCreationCommand cmd, DateTime createdAt)
     {
-        Symbol = symbol;
-        Name = name;
-        Rarity = rarity;
-        CurrentPrice = initialPrice;
-        TotalSupply = totalSupply;
+        Symbol = cmd.Symbol;
+        Name = cmd.Name;
+        Rarity = cmd.Rarity;
+        CurrentPrice = cmd.InitialPrice;
+        TotalSupply = cmd.TotalSupply;
         IsActive = true;
         CreatedAt = createdAt;
-        ImageUrl = imageUrl;
-        IconUrl = iconUrl;
+        ImageUrl = cmd.ImageUrl;
+        IconUrl = cmd.IconUrl;
     }
 
-    public static Token Create(
-        string symbol,
-        string name,
-        TokenRarity rarity,
-        decimal initialPrice,
-        int totalSupply,
-        string imageUrl,
-        string iconUrl,
-        TimeProvider? timeProvider = null)
+    public static Token Create(TokenCreationCommand cmd, TimeProvider? timeProvider = null)
     {
-        if (string.IsNullOrWhiteSpace(symbol))
+        if (string.IsNullOrWhiteSpace(cmd.Symbol))
             throw new DomainException("Token symbol cannot be empty");
-        if (string.IsNullOrWhiteSpace(name))
+        if (string.IsNullOrWhiteSpace(cmd.Name))
             throw new DomainException("Token name cannot be empty");
-        if (initialPrice <= 0)
+        if (cmd.InitialPrice <= 0)
             throw new DomainException("Initial price must be greater than 0");
-        if (totalSupply <= 0)
+        if (cmd.TotalSupply <= 0)
             throw new DomainException("Total supply must be greater than 0");
-        if (string.IsNullOrWhiteSpace(imageUrl))
+        if (string.IsNullOrWhiteSpace(cmd.ImageUrl))
             throw new DomainException("Image URL cannot be empty");
-        if (string.IsNullOrWhiteSpace(iconUrl))
+        if (string.IsNullOrWhiteSpace(cmd.IconUrl))
             throw new DomainException("Icon URL cannot be empty");
 
         var createdAt = (timeProvider ?? TimeProvider.System).GetUtcNow().UtcDateTime;
-        return new Token(symbol, name, rarity, initialPrice, totalSupply, imageUrl, iconUrl, createdAt);
+        return new Token(cmd, createdAt);
     }
 
-    internal static Token Load(
-        string symbol,
-        string name,
-        TokenRarity rarity,
-        decimal currentPrice,
-        int totalSupply,
-        bool isActive,
-        string imageUrl,
-        string iconUrl,
-        DateTime createdAt)
+    internal static Token Load(TokenLoadCommand data)
     {
-        if (string.IsNullOrWhiteSpace(symbol))
+        if (string.IsNullOrWhiteSpace(data.Symbol))
             throw new DomainException("Token symbol cannot be empty");
-        if (string.IsNullOrWhiteSpace(name))
+        if (string.IsNullOrWhiteSpace(data.Name))
             throw new DomainException("Token name cannot be empty");
-        if (currentPrice < 0)
+        if (data.CurrentPrice < 0)
             throw new DomainException("Price cannot be negative");
-        if (totalSupply <= 0)
+        if (data.TotalSupply <= 0)
             throw new DomainException("Total supply must be greater than 0");
 
-        var token = new Token(symbol, name, rarity, currentPrice, totalSupply, imageUrl, iconUrl, createdAt);
-        token.IsActive = isActive;
+        var token = new Token(new TokenCreationCommand(data.Symbol, data.Name, data.Rarity, data.CurrentPrice, data.TotalSupply, data.ImageUrl, data.IconUrl), data.CreatedAt);
+        token.IsActive = data.IsActive;
         return token;
     }
 

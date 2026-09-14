@@ -67,28 +67,15 @@ internal class Order : AggregateRoot
         return new Order(type, tokenSymbol, price, quantity, createdAt);
     }
 
-    internal static Order Load(
-        string id,
-        OrderType type,
-        OrderStatus status,
-        string tokenSymbol,
-        decimal price,
-        decimal averageExecutePrice,
-        int quantity,
-        int filledQuantity,
-        DateTime createdAt,
-        DateTime? executedAt)
+    internal static Order Reconstruct(OrderLoadCommand cmd)
     {
-        if (string.IsNullOrWhiteSpace(tokenSymbol))
-            throw new DomainException("Token symbol cannot be empty");
-
-        return new Order(type, tokenSymbol, price, quantity, createdAt)
+        return new Order(cmd.Type, cmd.CharacterTokenId, cmd.Price, cmd.Quantity, cmd.CreatedAt)
         {
-            Id = id,
-            Status = status,
-            AverageExecutePrice = averageExecutePrice,
-            FilledQuantity = filledQuantity,
-            ExecutedAt = executedAt
+            Id = cmd.Id,
+            Status = cmd.Status,
+            AverageExecutePrice = 0m,
+            FilledQuantity = (int)cmd.FilledQuantity,
+            ExecutedAt = cmd.FilledAt
         };
     }
 

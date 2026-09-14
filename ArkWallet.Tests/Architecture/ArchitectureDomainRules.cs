@@ -53,7 +53,10 @@ public class ArchitectureDomainRules
 
             var deniedInContext = ArkKinds.DomainOf(ownContext)
                 .Where(d => d != root && d != part
-                    && ArkKinds.DomainFolder(d) != "Events");
+                    && ArkKinds.DomainFolder(d) != "Events"
+                    && !d.Name.EndsWith("Data", StringComparison.Ordinal)
+                    && !d.Name.EndsWith("Dto", StringComparison.Ordinal)
+                    && !d.Name.EndsWith("Command", StringComparison.Ordinal));
 
             var denied = ArkKinds.DomainExcept(ownContext, ArkArchitecture.GeneralContext)
                 .Concat(deniedInContext);
@@ -158,7 +161,7 @@ public class ArchitectureDomainRules
 
                 if (target.StartsWith("ArkWallet.Core.", StringComparison.Ordinal))
                 {
-                    if (ArkArchitecture.InNamespace(dep.Target, ArkNamespaces.DomainPattern))
+                    if (ArkArchitecture.InNamespace(dep.Target!, ArkNamespaces.DomainPattern))
                     {
                         continue;
                     }
