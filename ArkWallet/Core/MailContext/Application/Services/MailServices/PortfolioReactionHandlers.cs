@@ -11,11 +11,11 @@ namespace ArkWallet.Core.MailContext.Application.Services.MailServices;
 /// without changing the average buy price.
 /// </summary>
 internal sealed class MailRewardAcceptedEventHandler(
-    IPortfolioUpdatingService portfolioUpdatingService) : INotificationHandler<MailRewardAcceptedEvent>
+    IUpdatingService portfolioUpdatingService) : INotificationHandler<MailRewardAcceptedEvent>
 {
     public async Task Handle(MailRewardAcceptedEvent notification, CancellationToken cancellationToken)
     {
-        await portfolioUpdatingService.ChangePositionAsync(new PortfolioChangeCommand(
+        await portfolioUpdatingService.ChangePositionAsync(new ChangeCommand(
             notification.TraderId,
             notification.Symbol,
             PortfolioChangeType.Add,

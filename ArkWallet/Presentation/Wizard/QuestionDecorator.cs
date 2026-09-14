@@ -8,7 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace ArkWallet.Presentation.Wizard
 {
     [ExcludeFromCodeCoverage(Justification = "UI-декоратор: форматирование текста вопросов для Telegram-интерфейса. Не содержит бизнес-логики.")]
-    internal class QuestionDecorator(ITokenQueryService tokenQueryService, ITraderQueryService traderQueryService, IPortfolioQueryService portfolioQueryService) : IQuestionDecorator
+    internal class QuestionDecorator(ITokenQueryService tokenQueryService, ITraderQueryService traderQueryService, ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices.IQueryService portfolioQueryService) : IQuestionDecorator
     {
         private const string Buy = "купить";
         private const string Sell = "продать";

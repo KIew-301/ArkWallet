@@ -18,7 +18,7 @@ namespace ArkWallet.Presentation.API;
 [Route("api/v1/[controller]")]
 public class MiningSlotsController(
     IMiningMachineSlotQueryService slotQueryService,
-    IMiningMachineSlotBuyingService slotBuyingService,
+    IMachineSlotBuyingService slotBuyingService,
     IMiningMachineSlotSwitchingOrchestrator switchingOrchestrator,
     IMiningMachineSlotTakingTokenOrchestrator takingTokenOrchestrator,
     IMiningMachineSlotSellingOrchestrator sellingOrchestrator) : ControllerBase

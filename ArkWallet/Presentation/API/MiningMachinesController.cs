@@ -13,7 +13,7 @@ namespace ArkWallet.Presentation.API;
 [ExcludeFromCodeCoverage(Justification = "API-контроллер: только маршрутизация HTTP-запросов к сервисам. Не содержит бизнес-логики, тестируется интеграционно.")]
 [ApiController]
 [Route("api/v1/[controller]")]
-public class MiningMachinesController(IMiningMachineQueryService miningMachineQueryService) : ControllerBase
+public class MiningMachinesController(IMachineQueryService miningMachineQueryService) : ControllerBase
 {
     /// <summary>
     /// Получение списка майнинг-машин, доступных для покупки

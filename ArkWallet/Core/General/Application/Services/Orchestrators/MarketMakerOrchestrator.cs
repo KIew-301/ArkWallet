@@ -20,7 +20,7 @@ namespace ArkWallet.Core.General.Application.Services.Orchestrators;
 internal class MarketMakerOrchestrator(
     ArkWalletDbContext dbContext,
     IMarketMakerBotRegistrationService botRegistrationService,
-    IPortfolioUpdatingService portfolioUpdatingService,
+    IUpdatingService portfolioUpdatingService,
     IOrderCreationService orderCreationService,
     IMarketMakerOrderService marketMakerOrderService,
     MarketMakerGridEngine marketMakerGridEngine,

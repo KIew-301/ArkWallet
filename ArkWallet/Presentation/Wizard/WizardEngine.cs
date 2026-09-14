@@ -25,6 +25,7 @@ using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using ArkWallet.Core.ShoppingContext.Application.Contracts.Orchestrators;
+using MailQueryService = ArkWallet.Core.MailContext.Application.Contracts.MailServices.IQueryService;
 
 namespace ArkWallet.Infrastructure.Wizard
 {
@@ -51,8 +52,8 @@ namespace ArkWallet.Infrastructure.Wizard
         private readonly IOrderQueryService _orderQueryService;
 
         // PORTFOLIO & TOKEN SERVICES
-        private readonly IPortfolioQueryService _portfolioQueryService;
-        private readonly IPortfolioUpdatingService _portfolioUpdatingService;
+        private readonly ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices.IQueryService _portfolioQueryService;
+        private readonly IUpdatingService _portfolioUpdatingService;
         private readonly ITokenCreationService _tokenCreationServices;
         private readonly ITokenQueryService _tokenQueryService;
         private readonly ITokenMediaUpdateService _tokenMediaUpdateService;
@@ -80,20 +81,20 @@ namespace ArkWallet.Infrastructure.Wizard
 
         // MINING SERVICES
         private readonly IMiningGlobalRuleQueryService _miningGlobalRuleQueryService;
-        private readonly IMiningMachineQueryService _miningMachineQueryService;
+        private readonly IMachineQueryService _machineQueryService;
         private readonly IMiningMachineSlotQueryService _miningMachineSlotQueryService;
-        private readonly IMiningMachineSlotBuyingService _miningMachineSlotBuyingService;
-        private readonly IMiningMachineCreationService _miningMachineCreationService;
+        private readonly IMachineSlotBuyingService _machineSlotBuyingService;
+        private readonly IMachineCreationService _machineCreationService;
         private readonly IMiningMachineRuleCreationService _miningMachineRuleCreationService;
-        private readonly IMiningMachineDeletionService _miningMachineDeletionService;
+        private readonly IMachineDeletionService _machineDeletionService;
         private readonly IMiningMachineRuleDeletionService _miningMachineRuleDeletionService;
-        private readonly IMiningMachineUpdateService _miningMachineUpdateService;
+        private readonly IMachineUpdateService _machineUpdateService;
         private readonly IMiningMachineRuleUpdateService _miningMachineRuleUpdateService;
         private readonly IMiningGlobalRuleUpdateService _miningGlobalRuleUpdateService;
         private readonly IAppStateQueryService _appStateQueryService;
 
         // MINING ORCHESTRATORS
-        private readonly IMiningMachineCreationOrchestrator _miningMachineCreationOrchestrator;
+        private readonly IMachineCreationOrchestrator _machineCreationOrchestrator;
         private readonly IMiningMachineSlotSwitchingOrchestrator _miningMachineSlotSwitchingOrchestrator;
         private readonly IMiningMachineSlotTakingTokenOrchestrator _miningMachineSlotTakingTokenOrchestrator;
         private readonly IMiningMachineSlotSellingOrchestrator _miningMachineSlotSellingOrchestrator;
@@ -102,10 +103,10 @@ namespace ArkWallet.Infrastructure.Wizard
         private readonly IMessageSender _messageSender;
 
         // GIFT / MAIL
-        private readonly IGiftSendingService _giftSendingService;
-        private readonly IMailMessageService _mailMessageService;
-        private readonly IMailQueryService _mailQueryService;
-        private readonly IMailStatusUpdatingService _mailStatusUpdatingService;
+        private readonly ISendingService _sendingService;
+        private readonly IMessageService _mailMessageService;
+        private readonly MailQueryService _mailQueryService;
+        private readonly IStatusUpdatingService _mailStatusUpdatingService;
 
         // GLOBAL GOALS
         private readonly IGlobalGoalQueryService _globalGoalQueryService;
@@ -135,8 +136,8 @@ namespace ArkWallet.Infrastructure.Wizard
             IOrderCancellationService cancelOrderService,
             IOrderBookService orderBookService,
             IOrderQueryService orderQueryService,
-            IPortfolioQueryService portfolioQueryService,
-            IPortfolioUpdatingService portfolioUpdatingService,
+            ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices.IQueryService portfolioQueryService,
+            IUpdatingService portfolioUpdatingService,
             ITokenCreationService tokenCreationServices,
             ITokenQueryService tokenQueryService,
             ITokenMediaUpdateService tokenMediaUpdateService,
@@ -149,28 +150,28 @@ namespace ArkWallet.Infrastructure.Wizard
             ITokenService tokenService,
             ITradingVolumeService tradingVolumeService,
             IMessageSender messageSender,
-            IGiftSendingService giftSendingService,
-            IMailMessageService mailMessageService,
-            IMailQueryService mailQueryService,
-            IMailStatusUpdatingService mailStatusUpdatingService,
+            ISendingService sendingService,
+            IMessageService MessageService,
+            MailQueryService QueryService,
+            IStatusUpdatingService StatusUpdatingService,
             IConfiguration configuration,
             IQuestionDecorator questionDecorator,
             IButtonDecorator buttonDecorator,
             IMetricsSnapshotService metricsSnapshotService,
             IMiningGlobalRuleQueryService miningGlobalRuleQueryService,
-            IMiningMachineQueryService miningMachineQueryService,
+            IMachineQueryService miningMachineQueryService,
             IMiningMachineSlotQueryService miningMachineSlotQueryService,
-            IMiningMachineSlotBuyingService miningMachineSlotBuyingService,
-            IMiningMachineCreationService miningMachineCreationService,
+            IMachineSlotBuyingService miningMachineSlotBuyingService,
+            IMachineCreationService miningMachineCreationService,
             IMiningMachineRuleCreationService miningMachineRuleCreationService,
-            IMiningMachineDeletionService miningMachineDeletionService,
+            IMachineDeletionService miningMachineDeletionService,
             IMiningMachineRuleDeletionService miningMachineRuleDeletionService,
-            IMiningMachineUpdateService miningMachineUpdateService,
+            IMachineUpdateService miningMachineUpdateService,
             IMiningMachineRuleUpdateService miningMachineRuleUpdateService,
             IMiningGlobalRuleUpdateService miningGlobalRuleUpdateService,
             IAppStateQueryService appStateQueryService,
             IMiningMachineSlotSwitchingOrchestrator miningMachineSlotSwitchingOrchestrator,
-            IMiningMachineCreationOrchestrator miningMachineCreationOrchestrator,
+            IMachineCreationOrchestrator miningMachineCreationOrchestrator,
             IMiningMachineSlotTakingTokenOrchestrator miningMachineSlotTakingTokenOrchestrator,
             IMiningMachineSlotSellingOrchestrator miningMachineSlotSellingOrchestrator,
             IGlobalGoalQueryService globalGoalQueryService,
@@ -204,28 +205,28 @@ namespace ArkWallet.Infrastructure.Wizard
             _tokenService = tokenService;
             _tradingVolumeService = tradingVolumeService;
             _messageSender = messageSender;
-            _giftSendingService = giftSendingService;
-            _mailMessageService = mailMessageService;
-            _mailQueryService = mailQueryService;
-            _mailStatusUpdatingService = mailStatusUpdatingService;
+            _sendingService = sendingService;
+            _mailMessageService = MessageService;
+            _mailQueryService = QueryService;
+            _mailStatusUpdatingService = StatusUpdatingService;
             _primaryAdminId = long.Parse(configuration["Telegram:AdminId:Main"] ?? "0");
             _questionDecorator = questionDecorator;
             _buttonDecorator = buttonDecorator;
             _metricsSnapshotService = metricsSnapshotService;
             _miningGlobalRuleQueryService = miningGlobalRuleQueryService;
-            _miningMachineQueryService = miningMachineQueryService;
+            _machineQueryService = miningMachineQueryService;
             _miningMachineSlotQueryService = miningMachineSlotQueryService;
-            _miningMachineSlotBuyingService = miningMachineSlotBuyingService;
-            _miningMachineCreationService = miningMachineCreationService;
+            _machineSlotBuyingService = miningMachineSlotBuyingService;
+            _machineCreationService = miningMachineCreationService;
             _miningMachineRuleCreationService = miningMachineRuleCreationService;
-            _miningMachineDeletionService = miningMachineDeletionService;
+            _machineDeletionService = miningMachineDeletionService;
             _miningMachineRuleDeletionService = miningMachineRuleDeletionService;
-            _miningMachineUpdateService = miningMachineUpdateService;
+            _machineUpdateService = miningMachineUpdateService;
             _miningMachineRuleUpdateService = miningMachineRuleUpdateService;
             _miningGlobalRuleUpdateService = miningGlobalRuleUpdateService;
             _appStateQueryService = appStateQueryService;
             _miningMachineSlotSwitchingOrchestrator = miningMachineSlotSwitchingOrchestrator;
-            _miningMachineCreationOrchestrator = miningMachineCreationOrchestrator;
+            _machineCreationOrchestrator = miningMachineCreationOrchestrator;
             _miningMachineSlotTakingTokenOrchestrator = miningMachineSlotTakingTokenOrchestrator;
             _miningMachineSlotSellingOrchestrator = miningMachineSlotSellingOrchestrator;
             _globalGoalQueryService = globalGoalQueryService;

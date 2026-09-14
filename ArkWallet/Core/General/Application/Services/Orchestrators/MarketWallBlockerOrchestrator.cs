@@ -14,7 +14,7 @@ namespace ArkWallet.Core.General.Application.Services.Orchestrators;
 internal class MarketWallBlockerOrchestrator(
     ArkWalletDbContext dbContext,
     ITraderRegistrationService traderRegistrationService,
-    IPortfolioUpdatingService portfolioUpdatingService,
+    IUpdatingService portfolioUpdatingService,
     IOrderCancellationService orderCancellationService,
     IOrderCreationService orderCreationService,
     WallBlockerEngine wallBlockerEngine,

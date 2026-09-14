@@ -1,5 +1,5 @@
 using ArkWallet.Core.General.Domain.Exceptions;
-using System.Diagnostics.CodeAnalysis;
+using ArkWallet.Core.MiningContext.Domain.Machine;
 
 namespace ArkWallet.Infrastructure.Data;
 
@@ -24,8 +24,11 @@ public enum MiningMachineSlotStatus
 /// <summary>
 /// Слот майнинг-машины, принадлежащий трейдеру.
 /// При покупке копирует характеристики каталогной машины и не зависит от неё.
+/// Данные-сущность: содержит только операции создания и обновления. Бизнес-логика
+/// переключения, накопления, сбора и продажи живёт в доменном агрегате
+/// <see cref="Machine"/> (правило 18).
 /// </summary>
-internal class MiningMachineSlot
+internal class MiningMachineSlot : EntityData
 {
     public long Id { get; }
     public long TraderId { get; private set; }
@@ -73,60 +76,24 @@ internal class MiningMachineSlot
     }
 
     /// <summary>
-    /// Запускает переключение слота на другой токен. Токен и глобальное правило фиксируются сразу,
-    /// но майнинг начнётся только после завершения переключения.
+    /// Применяет состояние доменной машины к сущности. Сами переходы (переключение,
+    /// завершение переключения, накопление, сбор, продажа) выполняются на <see cref="Machine"/>.
     /// </summary>
-    public void SwitchTargetToken(
-        long traderId,
-        string symbol,
-        long globalRuleId,
-        int switchingTime,
-        DateTime now)
+    public void Update(Machine machine)
     {
-        if (TraderId != traderId)
-            throw new DomainException("Трейдер не владеет данной машиной");
-        if (Status == MiningMachineSlotStatus.Sold)
-            throw new DomainException("Машина уже продана");
-
-        TokenId = symbol;
-        MiningGlobalRuleId = globalRuleId;
-        StartSwitchingDateTime = now;
-        EndSwitchingDateTime = now.AddMinutes(switchingTime);
-        Status = MiningMachineSlotStatus.Switching;
-    }
-
-    /// <summary>Завершает переключение: слот переходит в статус active</summary>
-    public void CompleteSwitching()
-    {
-        if (Status != MiningMachineSlotStatus.Switching)
-            throw new DomainException("Слот не находится в статусе переключения");
-
-        StartSwitchingDateTime = null;
-        EndSwitchingDateTime = null;
-        Status = MiningMachineSlotStatus.Active;
-    }
-
-    /// <summary>Добавляет накопленные токены (дробное количество)</summary>
-    public void AddTokens(decimal cash)
-        => TokensAmountCollected += cash;
-
-    /// <summary>Забирает целую часть накопленных токенов, дробную оставляет на слоте</summary>
-    public int CollectWholeTokens()
-    {
-        var whole = (int)TokensAmountCollected;
-        TokensAmountCollected -= whole;
-        return whole;
-    }
-
-    /// <summary>Продаёт слот: зачисляет выручку и переводит в статус sold</summary>
-    public void Sell(long traderId, DateTime soldAt)
-    {
-        if (TraderId != traderId)
-            throw new DomainException("Трейдер не владеет данной машиной");
-        if (Status == MiningMachineSlotStatus.Sold)
-            throw new DomainException("Машина уже продана");
-
-        Status = MiningMachineSlotStatus.Sold;
-        SoldAt = soldAt;
+        TokenId = machine.TokenSymbol;
+        MiningGlobalRuleId = machine.GlobalRuleId;
+        Status = machine.Status switch
+        {
+            MachineStatus.Active => MiningMachineSlotStatus.Active,
+            MachineStatus.Passive => MiningMachineSlotStatus.Passive,
+            MachineStatus.Switching => MiningMachineSlotStatus.Switching,
+            MachineStatus.Sold => MiningMachineSlotStatus.Sold,
+            _ => throw new ArgumentOutOfRangeException(nameof(machine.Status))
+        };
+        StartSwitchingDateTime = machine.StartSwitchingAt;
+        EndSwitchingDateTime = machine.EndSwitchingAt;
+        TokensAmountCollected = machine.TokensCollected;
+        SoldAt = machine.SoldAt;
     }
 }

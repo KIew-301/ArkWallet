@@ -211,7 +211,7 @@ internal class Position
     /// Applies a single portfolio mutation described by the command. The aggregate decides which
     /// operation runs and throws on any invalid transition.
     /// </summary>
-    public void ChangePosition(PortfolioChangeCommand command)
+    public void ChangePosition(ChangeCommand command)
     {
         switch (command.Type)
         {

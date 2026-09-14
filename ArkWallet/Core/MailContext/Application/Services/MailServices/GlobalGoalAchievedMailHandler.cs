@@ -2,7 +2,7 @@ using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.MailContext.Application.Contracts.MailServices;
 using ArkWallet.Core.MailContext.Domain.Message;
 using ArkWallet.Infrastructure.Data;
-using ArkWallet.Core.GlobalGoalContext.Domain.GlobalGoal;
+using ArkWallet.Core.GlobalGoalContext.Domain.Goal;
 using ArkWallet.Core.GlobalGoalContext.Domain.Events;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +14,7 @@ namespace ArkWallet.Core.MailContext.Application.Services.MailServices;
 /// </summary>
 internal sealed class GlobalGoalAchievedMailHandler(
     ArkWalletDbContext dbContext,
-    IMailMessageService mailMessageService) : INotificationHandler<GlobalGoalAchievedEvent>
+    IMessageService MessageService) : INotificationHandler<GlobalGoalAchievedEvent>
 {
     public async Task Handle(GlobalGoalAchievedEvent notification, CancellationToken cancellationToken)
     {
@@ -29,7 +29,7 @@ internal sealed class GlobalGoalAchievedMailHandler(
                       $"Вам начислена награда: {notification.AmountForReward:F2} {notification.SymbolForReward}.";
 
         var commands = traderIds
-            .Select(traderId => new MailCreateCommand(
+            .Select(traderId => new CreateCommand(
                 traderId,
                 title,
                 message,
@@ -40,6 +40,6 @@ internal sealed class GlobalGoalAchievedMailHandler(
                 Type: MailType.Reward.ToString()))
             .ToList();
 
-        await mailMessageService.CreateManyAsync(commands);
+        await MessageService.CreateManyAsync(commands);
     }
 }

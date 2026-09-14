@@ -270,7 +270,7 @@ partial class WizardEngine
             bool hasReward = !string.IsNullOrWhiteSpace(rewardSymbol) && rewardAmount > 0;
 
             var commands = recipientIds
-                .Select(id => new MailCreateCommand(
+                .Select(id => new CreateCommand(
                     id,
                     title.Trim(),
                     message.Trim(),

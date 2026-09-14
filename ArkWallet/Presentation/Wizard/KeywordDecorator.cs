@@ -10,7 +10,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace ArkWallet.Presentation.Wizard
 {
     [ExcludeFromCodeCoverage(Justification = "UI-декоратор: форматирование кнопок для Telegram-интерфейса. Не содержит бизнес-логики.")]
-    internal class ButtonDecorator(IOrderQueryService orderQueryService, IPriceSuggestionService priceSuggestionService, IQuantitySuggestionService quantitySuggestionService, ITokenQueryService tokenQueryService, IMiningMachineQueryService miningMachineQueryService, IMiningMachineSlotQueryService miningMachineSlotQueryService) : IButtonDecorator
+    internal class ButtonDecorator(IOrderQueryService orderQueryService, IPriceSuggestionService priceSuggestionService, IQuantitySuggestionService quantitySuggestionService, ITokenQueryService tokenQueryService,     IMachineQueryService miningMachineQueryService, IMiningMachineSlotQueryService miningMachineSlotQueryService) : IButtonDecorator
     {
         public async Task<List<QuickButton>> DecorateButtonsAsync(string stepName, List<QuickButton> baseKeyword, UserSession session)
         {

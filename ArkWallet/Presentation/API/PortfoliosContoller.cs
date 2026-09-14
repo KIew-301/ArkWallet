@@ -13,7 +13,7 @@ namespace ArkWallet.Presentation.API;
 [ExcludeFromCodeCoverage(Justification = "API-контроллер: только маршрутизация HTTP-запросов к сервисам. Не содержит бизнес-логики, тестируется интеграционно.")]
 [ApiController]
 [Route("api/v1/[controller]")]
-public class PortfoliosController(IPortfolioQueryService portfolioQueryService) : ControllerBase
+public class PortfoliosController(ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices.IQueryService portfolioQueryService) : ControllerBase
 {
     /// <summary>
     /// Получение текущего портфеля трейдера

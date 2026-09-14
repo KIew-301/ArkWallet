@@ -8,14 +8,14 @@ using MediatR;
 namespace ArkWallet.Core.MailContext.Application.Services.MailServices;
 
 /// <summary>
-/// Перехватывает отправку подарка и через MailMessageService создаёт Gift-письмо получателю.
+/// Перехватывает отправку подарка и через MessageService создаёт Gift-письмо получателю.
 /// </summary>
 internal sealed class GiftMailCreationHandler(
-    IMailMessageService mailMessageService) : INotificationHandler<GiftSentEvent>
+    IMessageService MessageService) : INotificationHandler<GiftSentEvent>
 {
     public async Task Handle(GiftSentEvent notification, CancellationToken cancellationToken)
     {
-        var command = new MailCreateCommand(
+        var command = new CreateCommand(
             notification.RecipientId,
             "🎁 Вам отправили подарок!",
             $"Вам отправили {notification.Quantity} {notification.Symbol} от участника {notification.SenderName}.",
@@ -25,6 +25,6 @@ internal sealed class GiftMailCreationHandler(
             notification.Quantity,
             Type: MailType.Gift.ToString());
 
-        await mailMessageService.CreateAsync(command);
+        await MessageService.CreateAsync(command);
     }
 }

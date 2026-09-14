@@ -19,28 +19,30 @@ public enum MachineStatus
     Sold
 }
 
-internal class Machine
+/// <summary>
+/// Агрегат майнинг-машины в слоте трейдера. Владеет бизнес-логикой переключения,
+/// накопления, сбора и продажи. Data-сущность (EF) <c>MiningMachineSlot</c> делегирует
+/// изменения сюда и не содержит бизнес-логики (правило 18).
+/// </summary>
+public class Machine
 {
-    public long Id { get; private set; }
     public long TraderId { get; }
-    public long MachineCatalogId { get; }
     public MachineType Type { get; }
     public int SwitchingTime { get; }
     public decimal Efficiency { get; }
     public string Image { get; }
+    public decimal Cost { get; }
+    public DateTime CreatedAt { get; }
     public string? TokenSymbol { get; private set; }
     public long? GlobalRuleId { get; private set; }
     public MachineStatus Status { get; private set; }
     public DateTime? StartSwitchingAt { get; private set; }
     public DateTime? EndSwitchingAt { get; private set; }
     public decimal TokensCollected { get; private set; }
-    public decimal Cost { get; }
-    public DateTime CreatedAt { get; }
     public DateTime? SoldAt { get; private set; }
 
     private Machine(
         long traderId,
-        long machineCatalogId,
         MachineType type,
         int switchingTime,
         decimal efficiency,
@@ -49,7 +51,6 @@ internal class Machine
         DateTime createdAt)
     {
         TraderId = traderId;
-        MachineCatalogId = machineCatalogId;
         Type = type;
         SwitchingTime = switchingTime;
         Efficiency = efficiency;
@@ -61,7 +62,6 @@ internal class Machine
 
     public static Machine Purchase(
         long traderId,
-        long machineCatalogId,
         MachineType type,
         int switchingTime,
         decimal efficiency,
@@ -79,15 +79,48 @@ internal class Machine
             throw new DomainException("Cost must be greater than 0");
 
         var createdAt = (timeProvider ?? TimeProvider.System).GetUtcNow().UtcDateTime;
-        return new Machine(traderId, machineCatalogId, type, switchingTime, efficiency, image, cost, createdAt);
+        return new Machine(traderId, type, switchingTime, efficiency, image, cost, createdAt);
     }
 
-    public void StartSwitching(string tokenSymbol, long globalRuleId, TimeProvider? timeProvider = null)
+    public static Machine Load(
+        long traderId,
+        MachineType type,
+        int switchingTime,
+        decimal efficiency,
+        string image,
+        decimal cost,
+        DateTime createdAt,
+        string? tokenSymbol,
+        long? globalRuleId,
+        MachineStatus status,
+        DateTime? startSwitchingAt,
+        DateTime? endSwitchingAt,
+        decimal tokensCollected,
+        DateTime? soldAt)
     {
+        var machine = new Machine(traderId, type, switchingTime, efficiency, image, cost, createdAt);
+        machine.TokenSymbol = tokenSymbol;
+        machine.GlobalRuleId = globalRuleId;
+        machine.Status = status;
+        machine.StartSwitchingAt = startSwitchingAt;
+        machine.EndSwitchingAt = endSwitchingAt;
+        machine.TokensCollected = tokensCollected;
+        machine.SoldAt = soldAt;
+        return machine;
+    }
+
+    public void StartSwitching(
+        long traderId,
+        string tokenSymbol,
+        long globalRuleId,
+        TimeProvider? timeProvider = null)
+    {
+        if (TraderId != traderId)
+            throw new DomainException("Трейдер не владеет данной машиной");
         if (Status == MachineStatus.Sold)
-            throw new DomainException("Cannot switch a sold machine");
+            throw new DomainException("Машина уже продана");
         if (string.IsNullOrWhiteSpace(tokenSymbol))
-            throw new DomainException("Token symbol cannot be empty");
+            throw new DomainException("Символ токена не может быть пустым");
 
         var utcNow = (timeProvider ?? TimeProvider.System).GetUtcNow().UtcDateTime;
         TokenSymbol = tokenSymbol;
@@ -100,7 +133,7 @@ internal class Machine
     public void CompleteSwitching()
     {
         if (Status != MachineStatus.Switching)
-            throw new DomainException("Machine is not switching");
+            throw new DomainException("Слот не находится в статусе переключения");
 
         StartSwitchingAt = null;
         EndSwitchingAt = null;
@@ -119,7 +152,7 @@ internal class Machine
     public void Sell(TimeProvider? timeProvider = null)
     {
         if (Status == MachineStatus.Sold)
-            throw new DomainException("Machine is already sold");
+            throw new DomainException("Машина уже продана");
 
         var soldAt = (timeProvider ?? TimeProvider.System).GetUtcNow().UtcDateTime;
         Status = MachineStatus.Sold;
