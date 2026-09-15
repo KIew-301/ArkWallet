@@ -266,6 +266,7 @@ class Program
             builder.Services.AddHostedService<MiningMachineCalculationWorker>();
             builder.Services.AddHostedService<MiningGlobalRuleCreationWorker>();
             builder.Services.AddHostedService<MiningMachineSlotSwitchingWorker>();
+            builder.Services.AddHostedService<PowerDeviationWorker>();
             builder.Services.AddHostedService<GlobalGoalUpdateWorker>();
         }
 
@@ -440,6 +441,7 @@ class Program
 
         // MarketMaker
         services.AddScoped<IMarketMakerBotRegistrationService, MarketMakerBotRegistrationService>();
+        services.AddScoped<PowerDeviationCalculator>();
         services.AddScoped<IMarketMakerBotQueryService, MarketMakerBotQueryService>();
         services.AddScoped<IMarketMakerOrchestrator, MarketMakerOrchestrator>();
         services.AddScoped<IMarketMakerOrderService, MarketMakerOrderService>();
