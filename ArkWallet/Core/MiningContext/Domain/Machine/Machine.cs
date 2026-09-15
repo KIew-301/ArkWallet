@@ -4,34 +4,34 @@ using ArkWallet.Core.ShoppingContext.Domain.Machine;
 namespace ArkWallet.Core.MiningContext.Domain.Machine;
 
 /// <summary>Команда восстановления машины майнинга из хранилища.</summary>
+/// <param name="TraderId">Идентификатор трейдера.</param>
+/// <param name="Type">Тип майнинг-машины.</param>
+/// <param name="SwitchingTime">Время переключения в секундах.</param>
+/// <param name="Efficiency">Эффективность машины.</param>
+/// <param name="Image">URL изображения машины.</param>
+/// <param name="Cost">Стоимость машины.</param>
+/// <param name="CreatedAt">Дата создания записи.</param>
+/// <param name="TokenSymbol">Символ токена.</param>
+/// <param name="GlobalRuleId">ID глобального правила.</param>
+/// <param name="Status">Статус машины.</param>
+/// <param name="StartSwitchingAt">Дата начала переключения.</param>
+/// <param name="EndSwitchingAt">Дата окончания переключения.</param>
+/// <param name="TokensCollected">Количество собранных токенов.</param>
+/// <param name="SoldAt">Дата продажи.</param>
 public record MachineLoadCommand(
-    /// <summary>Идентификатор трейдера.</summary>
     long TraderId,
-    /// <summary>Тип майнинг-машины.</summary>
     ArkWallet.Core.ShoppingContext.Domain.Machine.MachineType Type,
-    /// <summary>Время переключения в секундах.</summary>
     int SwitchingTime,
-    /// <summary>Эффективность машины.</summary>
     decimal Efficiency,
-    /// <summary>URL изображения машины.</summary>
     string Image,
-    /// <summary>Стоимость машины.</summary>
     decimal Cost,
-    /// <summary>Дата создания записи.</summary>
     DateTime CreatedAt,
-    /// <summary>Символ токена.</summary>
     string? TokenSymbol,
-    /// <summary>ID глобального правила.</summary>
     long? GlobalRuleId,
-    /// <summary>Статус машины.</summary>
     MachineStatus Status,
-    /// <summary>Дата начала переключения.</summary>
     DateTime? StartSwitchingAt,
-    /// <summary>Дата окончания переключения.</summary>
     DateTime? EndSwitchingAt,
-    /// <summary>Количество собранных токенов.</summary>
     decimal TokensCollected,
-    /// <summary>Дата продажи.</summary>
     DateTime? SoldAt);
 
 /// <summary>Статус майнинг-машины в слоте трейдера.</summary>

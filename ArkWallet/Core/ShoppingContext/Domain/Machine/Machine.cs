@@ -16,24 +16,24 @@ public enum MachineType
 }
 
 /// <summary>Команда восстановления машины из каталога покупок.</summary>
+/// <param name="Id">Идентификатор машины.</param>
+/// <param name="Type">Тип майнинг-машины.</param>
+/// <param name="SwitchingTime">Время переключения в секундах.</param>
+/// <param name="Reusability">Повторная используемость (ресурс).</param>
+/// <param name="IsActiveForSale">Активна ли для продажи.</param>
+/// <param name="Image">URL изображения машины.</param>
+/// <param name="Efficiency">Эффективность машины.</param>
+/// <param name="Name">Название машины.</param>
+/// <param name="Cost">Стоимость машины.</param>
 public record ShoppingMachineLoadCommand(
-    /// <summary>Идентификатор машины.</summary>
     long Id,
-    /// <summary>Тип майнинг-машины.</summary>
     MachineType Type,
-    /// <summary>Время переключения в секундах.</summary>
     int SwitchingTime,
-    /// <summary>Повторная используемость (ресурс).</summary>
     decimal Reusability,
-    /// <summary>Активна ли для продажи.</summary>
     bool IsActiveForSale,
-    /// <summary>URL изображения машины.</summary>
     string Image,
-    /// <summary>Эффективность машины.</summary>
     decimal Efficiency,
-    /// <summary>Название машины.</summary>
     string Name,
-    /// <summary>Стоимость машины.</summary>
     decimal Cost);
 
 /// <summary>
