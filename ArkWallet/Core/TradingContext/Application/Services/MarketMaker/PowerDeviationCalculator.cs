@@ -5,21 +5,26 @@ using ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
 
 namespace ArkWallet.Core.TradingContext.Application.Services.MarketMaker;
 
+/// <summary>Вычисляет коэффициент отклонения мощности для роли MarketMaker на основе исторических свечей.</summary>
 public sealed class PowerDeviationCalculator(
     ITokenPriceCandleQueryService candleQueryService)
 {
+    /// <summary>Асинхронно вычисляет коэффициент отклонения мощности для указанного символа, роли и момента времени.</summary>
+    /// <param name="symbol">Тикер инструмента.</param>
+    /// <param name="role">Роль market maker (Buyer/Seller).</param>
+    /// <param name="utcNow">Текущий момент времени в UTC.</param>
+    /// <returns>Коэффициент отклонения мощности в диапазоне [1, 1.25].</returns>
     public async Task<decimal> CalculateAsync(
         string symbol,
         MarketMakerRole role,
-        DateTime utcNow,
-        CancellationToken cancellationToken = default)
+        DateTime utcNow)
     {
         var isBuyer = role == MarketMakerRole.Buyer;
         Func<decimal, decimal, decimal> selector = isBuyer ? PowerDeviation.PercentDrop : PowerDeviation.PercentRise;
 
-        var day = await GetClosePriceDeltaPercentAsync(symbol, utcNow.AddDays(-1), utcNow, selector, cancellationToken);
-        var week = await GetClosePriceDeltaPercentAsync(symbol, utcNow.AddDays(-7), utcNow, selector, cancellationToken);
-        var month = await GetClosePriceDeltaPercentAsync(symbol, utcNow.AddMonths(-1), utcNow, selector, cancellationToken);
+        var day = await GetClosePriceDeltaPercentAsync(symbol, utcNow.AddDays(-1), utcNow, selector);
+        var week = await GetClosePriceDeltaPercentAsync(symbol, utcNow.AddDays(-7), utcNow, selector);
+        var month = await GetClosePriceDeltaPercentAsync(symbol, utcNow.AddMonths(-1), utcNow, selector);
 
         return PowerDeviation.CalculateCoefficient(day, week, month);
     }
@@ -28,8 +33,7 @@ public sealed class PowerDeviationCalculator(
         string symbol,
         DateTime start,
         DateTime end,
-        Func<decimal, decimal, decimal> selector,
-        CancellationToken ct)
+        Func<decimal, decimal, decimal> selector)
     {
         try
         {
@@ -38,7 +42,7 @@ public sealed class PowerDeviationCalculator(
                 return 0m;
             if (candles.Count < 2)
                 return 0m;
-            return selector(candles.First().ClosePrice, candles.Last().ClosePrice);
+            return selector(candles[0].ClosePrice, candles[candles.Count - 1].ClosePrice);
         }
         catch
         {

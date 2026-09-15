@@ -4,7 +4,7 @@ namespace ArkWallet.Core.TradingContext.Domain.Engines;
 
 internal class MarketMakerOrderEngine
 {
-    public CreateMarketOrderCommand BuildActiveOrder(MarketMaker bot, decimal currentPrice)
+    public static CreateMarketOrderCommand BuildActiveOrder(MarketMaker bot, decimal currentPrice)
     {
         var isBuyer = bot.Role == MarketMakerRole.Buyer;
         var deviation = 0.2m;

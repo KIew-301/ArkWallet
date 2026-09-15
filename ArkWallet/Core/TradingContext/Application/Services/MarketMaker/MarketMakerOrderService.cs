@@ -31,7 +31,7 @@ internal class MarketMakerOrderService(
                 return Fail($"Токен {bot.Symbol} не найден");
 
             var domainBot = MarketMakerGridMapper.ToMarketMaker(bot);
-            var marketCommand = marketMakerOrderEngine.BuildActiveOrder(domainBot, token.CurrentPrice);
+            var marketCommand = MarketMakerOrderEngine.BuildActiveOrder(domainBot, token.CurrentPrice);
             var command = new CreateOrderCommand(marketCommand.TraderId, marketCommand.Direction, marketCommand.Symbol, marketCommand.Quantity, marketCommand.Price);
 
             var result = await orderCreationService.CreateOrderAsync(command);
@@ -125,7 +125,7 @@ internal class MarketMakerOrderService(
                 continue;
             }
             var domainBot = MarketMakerGridMapper.ToMarketMaker(bot);
-            var marketCommand = marketMakerOrderEngine.BuildActiveOrder(domainBot, token.CurrentPrice);
+            var marketCommand = MarketMakerOrderEngine.BuildActiveOrder(domainBot, token.CurrentPrice);
             commands.Add(new CreateOrderCommand(marketCommand.TraderId, marketCommand.Direction, marketCommand.Symbol, marketCommand.Quantity, marketCommand.Price));
         }
         return commands;

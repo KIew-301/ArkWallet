@@ -29,54 +29,21 @@ internal class PowerDeviationWorker : BackgroundService
                 var dbContext = scope.ServiceProvider.GetRequiredService<ArkWallet.Infrastructure.Data.ArkWalletDbContext>();
                 var calculator = scope.ServiceProvider.GetRequiredService<ArkWallet.Core.TradingContext.Application.Services.MarketMaker.PowerDeviationCalculator>();
 
-                // 1. Чтение AppState
-                var state = await dbContext.AppStates.FindAsync("PowerDeviationNextExecution", stoppingToken);
                 var now = DateTime.UtcNow;
-                var nextExecution = now.AddMinutes(Random.Shared.Next(10, 361));
+                var (state, nextExecution) = await LoadNextExecutionInfoAsync(dbContext, now, stoppingToken);
+                if (nextExecution is null)
+                    continue;
 
-                if (state is { } s && s.Value is not null)
-                {
-                    try
-                    {
-                        var dt = System.Text.Json.JsonSerializer.Deserialize<DateTime?>(s.Value);
-                        if (dt is not null && dt > now)
-                        {
-                            await Task.Delay(dt.Value - now, stoppingToken);
-                            continue;
-                        }
-                    }
-                    catch
-                    {
-                        // десериализация не удалась — продолжаем по логике создания новой записи
-                    }
-                }
+                var bots = await GetActiveBotsAsync(dbContext, stoppingToken);
 
-                // 2. Получить активных ботов
-                var bots = await dbContext.MarketMakerBots.Where(b => b.IsActive).ToListAsync(stoppingToken);
+                await RecalculateCoefficientsAsync(calculator, bots, now, stoppingToken);
 
-                // 3. Пересчёт коэффициентов
-                foreach (var bot in bots)
-                {
-                    var coeff = await calculator.CalculateAsync(bot.Symbol, MapRole(bot.Role), now, stoppingToken);
-                    bot.PowerDeviationCoeff = coeff;
-                }
-
-                // 4. Сохранение изменений ботов
                 if (bots.Count > 0)
                 {
                     await dbContext.SaveChangesAsync(stoppingToken);
                 }
 
-                // 5. Запись нового времени выполнения
-                if (state is null)
-                {
-                    dbContext.AppStates.Add(ArkWallet.Infrastructure.Data.AppState.Create("PowerDeviationNextExecution", nextExecution));
-                }
-                else
-                {
-                    state.Update(nextExecution);
-                }
-                await dbContext.SaveChangesAsync(stoppingToken);
+                await SaveStateAsync(dbContext, state, nextExecution.Value, stoppingToken);
             }
             catch (Exception ex)
             {
@@ -85,6 +52,72 @@ internal class PowerDeviationWorker : BackgroundService
             }
         }
         _logger.LogInformation("PowerDeviationWorker stopped");
+    }
+
+    private static async Task<(ArkWallet.Infrastructure.Data.AppState? State, DateTime? NextExecution)> LoadNextExecutionInfoAsync(
+        ArkWallet.Infrastructure.Data.ArkWalletDbContext dbContext,
+        DateTime now,
+        CancellationToken stoppingToken)
+    {
+        var state = await dbContext.AppStates.FindAsync("PowerDeviationNextExecution", stoppingToken);
+        if (state is null || state.Value is null)
+        {
+            var nextExecution = now.AddMinutes(Random.Shared.Next(10, 361));
+            return (state, nextExecution);
+        }
+
+        try
+        {
+            var dt = System.Text.Json.JsonSerializer.Deserialize<DateTime?>(state.Value);
+            if (dt is not null && dt > now)
+            {
+                await Task.Delay(dt.Value - now, stoppingToken);
+                return (null, null);
+            }
+        }
+        catch
+        {
+        }
+
+        var nextExec = now.AddMinutes(Random.Shared.Next(10, 361));
+        return (state, nextExec);
+    }
+
+    private static async Task<List<ArkWallet.Infrastructure.Data.MarketMakerBot>> GetActiveBotsAsync(
+        ArkWallet.Infrastructure.Data.ArkWalletDbContext dbContext,
+        CancellationToken stoppingToken)
+    {
+        return await dbContext.MarketMakerBots.Where(b => b.IsActive).ToListAsync(stoppingToken);
+    }
+
+    private static async Task RecalculateCoefficientsAsync(
+        ArkWallet.Core.TradingContext.Application.Services.MarketMaker.PowerDeviationCalculator calculator,
+        IReadOnlyList<ArkWallet.Infrastructure.Data.MarketMakerBot> bots,
+        DateTime now,
+        CancellationToken stoppingToken)
+    {
+        foreach (var bot in bots)
+        {
+            var coeff = await calculator.CalculateAsync(bot.Symbol, MapRole(bot.Role), now);
+            bot.PowerDeviationCoeff = coeff;
+        }
+    }
+
+    private static async Task SaveStateAsync(
+        ArkWallet.Infrastructure.Data.ArkWalletDbContext dbContext,
+        ArkWallet.Infrastructure.Data.AppState? state,
+        DateTime nextExecution,
+        CancellationToken stoppingToken)
+    {
+        if (state is null)
+        {
+            dbContext.AppStates.Add(ArkWallet.Infrastructure.Data.AppState.Create("PowerDeviationNextExecution", nextExecution));
+        }
+        else
+        {
+            state.Update(nextExecution);
+        }
+        await dbContext.SaveChangesAsync(stoppingToken);
     }
 
     private static ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate.MarketMakerRole MapRole(Infrastructure.Data.BotRole role)
