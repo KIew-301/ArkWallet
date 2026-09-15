@@ -22,7 +22,8 @@ internal static class MarketMakerGridMapper
         (MarketMakerRole)(int)source.Role,
         source.BasePower,
         source.IsActive,
-        source.CreatedAt);
+        source.CreatedAt,
+        source.PowerDeviationCoeff);
 
     internal static List<CreateOrderCommand> CollectGridCommands(
         MarketMakerGridEngine engine,

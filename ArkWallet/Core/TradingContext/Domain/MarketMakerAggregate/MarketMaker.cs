@@ -19,6 +19,7 @@ internal class MarketMaker
     public string Symbol { get; }
     public decimal BasePower { get; private set; }
     public MarketMakerRole Role { get; private set; }
+    public decimal PowerDeviationCoeff { get; private set; }
     public bool IsActive { get; private set; }
     public DateTime CreatedAt { get; }
 
@@ -28,6 +29,7 @@ internal class MarketMaker
         Symbol = symbol;
         Role = role;
         BasePower = basePower;
+        PowerDeviationCoeff = 1m;
         IsActive = true;
         CreatedAt = createdAt;
     }
@@ -43,12 +45,13 @@ internal class MarketMaker
         return new MarketMaker(traderId, symbol, role, initialPower, createdAt);
     }
 
-    internal static MarketMaker Load(long id, long traderId, string symbol, MarketMakerRole role, decimal basePower, bool isActive, DateTime createdAt)
+    internal static MarketMaker Load(long id, long traderId, string symbol, MarketMakerRole role, decimal basePower, bool isActive, DateTime createdAt, decimal powerDeviationCoeff = 1)
     {
         var marketMaker = new MarketMaker(traderId, symbol, role, basePower, createdAt)
         {
             Id = id,
-            IsActive = isActive
+            IsActive = isActive,
+            PowerDeviationCoeff = powerDeviationCoeff
         };
         return marketMaker;
     }
@@ -61,6 +64,8 @@ internal class MarketMaker
         var change = Random.Shared.Next(-35, 35);
         BasePower = Math.Clamp(BasePower + change, minPower, maxPower);
     }
+
+    public void UpdatePowerDeviationCoeff(decimal newCoeff) => PowerDeviationCoeff = Math.Clamp(newCoeff, 1m, 5.5m);
 
     public void SetRole(MarketMakerRole role) => Role = role;
 
