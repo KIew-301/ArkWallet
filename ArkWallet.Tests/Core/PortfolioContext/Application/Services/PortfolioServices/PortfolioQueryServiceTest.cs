@@ -168,6 +168,36 @@ public class PortfolioQueryServiceTest
         Assert.Empty(data);
     }
 
+    [Fact]
+    public async Task TakePortfolio_RealUserData_ReturnsAllItems()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var QueryService = GetPortfolioQueryService(db);
+        const long traderId = 5101;
+
+        await HelpMethods.RegisterTrader(db, traderId);
+
+        foreach (var symbol in new[] { "MD16", "DLOCK", "WHSPR", "MD26", "SHZA", "BLHD", "LUST" })
+            await HelpMethods.CreateToken(db, symbol, price: 100);
+
+        await HelpMethods.AddPortfolio(db, traderId, "MD16", 2670);
+        await HelpMethods.AddPortfolio(db, traderId, "DLOCK", 56);
+        await HelpMethods.AddPortfolio(db, traderId, "WHSPR", 8);
+        await HelpMethods.AddPortfolio(db, traderId, "MD26", 111);
+        await HelpMethods.AddPortfolio(db, traderId, "SHZA", 1);
+        await HelpMethods.AddPortfolio(db, traderId, "BLHD", 183);
+        await HelpMethods.AddPortfolio(db, traderId, "LUST", 49);
+
+        var result = await QueryService.GetTraderTokensAsync(traderId);
+
+        Assert.True(result.TryGetData(out var data));
+        Assert.Equal(7, data.Length);
+        Assert.All(data, p => Assert.NotNull(p.TokenInfo));
+        Assert.DoesNotContain(data, p => p.TokenInfo?.Symbol is null);
+    }
+
     private QueryService GetPortfolioQueryService(ArkWalletDbContext db)
     {
         var logger = NullLogger<QueryService>.Instance;
