@@ -1,6 +1,7 @@
 using ArkWallet.Core.PortfolioContext.Application.Services.PortfolioServices;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Tests.HelpTools;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ArkWallet.Tests.Core.PortfolioContext.Application.Services.PortfolioServices;
@@ -116,6 +117,55 @@ public class PortfolioQueryServiceTest
         var result = await QueryService.GetTokenBalanceAsync(201, "ZZZ");
 
         Assert.False(result.IsSuccess);
+    }
+
+    [Fact]
+    public async Task TakePortfolio_WithOrphanedItem_ReturnsOnlyValidItems()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var QueryService = GetPortfolioQueryService(db);
+
+        await HelpMethods.RegisterTrader(db, 301);
+        await HelpMethods.CreateToken(db, "VALID", price: 200);
+        await HelpMethods.AddPortfolio(db, 301, "VALID", 5);
+
+        await db.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = OFF");
+        var orphanItem = Infrastructure.Data.PortfolioItem.Create(301, "GHOST", 10, 100);
+        db.PortfolioItems.Add(orphanItem);
+        await db.SaveChangesAsync();
+        await db.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = ON");
+
+        var result = await QueryService.GetTraderTokensAsync(301);
+
+        Assert.True(result.TryGetData(out var data));
+        Assert.Single(data);
+        Assert.Equal("VALID", data[0].TokenInfo.Symbol);
+        Assert.NotNull(data[0].TokenInfo);
+        Assert.Equal(5, data[0].Quantity);
+    }
+
+    [Fact]
+    public async Task TakePortfolio_AllOrphanedItems_ReturnsEmptyArray()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var QueryService = GetPortfolioQueryService(db);
+
+        await HelpMethods.RegisterTrader(db, 401);
+
+        await db.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = OFF");
+        var orphanItem = Infrastructure.Data.PortfolioItem.Create(401, "MISSING", 7, 50);
+        db.PortfolioItems.Add(orphanItem);
+        await db.SaveChangesAsync();
+        await db.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = ON");
+
+        var result = await QueryService.GetTraderTokensAsync(401);
+
+        Assert.True(result.TryGetData(out var data));
+        Assert.Empty(data);
     }
 
     private QueryService GetPortfolioQueryService(ArkWalletDbContext db)
