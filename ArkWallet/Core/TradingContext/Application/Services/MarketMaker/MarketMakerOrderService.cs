@@ -1,9 +1,9 @@
 using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.TradingContext.Application.Contracts.MarketMaker;
 using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
+using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Core.TradingContext.Application.Services.MarketMaker;
@@ -12,7 +12,8 @@ using static Result;
 internal class MarketMakerOrderService(
     ArkWalletDbContext dbContext,
     IOrderCreationService orderCreationService,
-    ILogger<MarketMakerOrderService> logger) : IMarketMakerOrderService
+    ILogger<MarketMakerOrderService> logger,
+    MarketMakerOrderEngine marketMakerOrderEngine) : IMarketMakerOrderService
 {
     public async Task<Result> ExecuteMarketOrderAsync(long botId)
     {
@@ -29,7 +30,9 @@ internal class MarketMakerOrderService(
             if (token == null)
                 return Fail($"Токен {bot.Symbol} не найден");
 
-            var command = BuildOrderCommand(bot, token);
+            var domainBot = MarketMakerGridMapper.ToMarketMaker(bot);
+            var marketCommand = marketMakerOrderEngine.BuildActiveOrder(domainBot, token.CurrentPrice);
+            var command = new CreateOrderCommand(marketCommand.TraderId, marketCommand.Direction, marketCommand.Symbol, marketCommand.Quantity, marketCommand.Price);
 
             var result = await orderCreationService.CreateOrderAsync(command);
 
@@ -55,7 +58,7 @@ internal class MarketMakerOrderService(
 
             var tokens = await LoadTokensAsync(bots);
 
-            var commands = BuildOrderCommands(bots, tokens);
+            var commands = BuildCommands(bots, tokens);
             if (commands.Count == 0)
                 return Result.Fail("Не удалось сформировать команды ордеров");
 
@@ -111,11 +114,9 @@ internal class MarketMakerOrderService(
         return tokens;
     }
 
-    /// <summary>Builds order commands for bots with a known token, skipping the rest with a warning.</summary>
-    private List<CreateOrderCommand> BuildOrderCommands(List<MarketMakerBot> bots, Dictionary<string, CharacterToken> tokens)
+    private List<CreateOrderCommand> BuildCommands(List<MarketMakerBot> bots, Dictionary<string, CharacterToken> tokens)
     {
         var commands = new List<CreateOrderCommand>(bots.Count);
-
         foreach (var bot in bots)
         {
             if (!tokens.TryGetValue(bot.Symbol, out var token))
@@ -123,34 +124,10 @@ internal class MarketMakerOrderService(
                 logger.LogWarning("Токен {Symbol} не найден", bot.Symbol);
                 continue;
             }
-
-            commands.Add(BuildOrderCommand(bot, token));
+            var domainBot = MarketMakerGridMapper.ToMarketMaker(bot);
+            var marketCommand = marketMakerOrderEngine.BuildActiveOrder(domainBot, token.CurrentPrice);
+            commands.Add(new CreateOrderCommand(marketCommand.TraderId, marketCommand.Direction, marketCommand.Symbol, marketCommand.Quantity, marketCommand.Price));
         }
-
         return commands;
-    }
-
-    private static CreateOrderCommand BuildOrderCommand(MarketMakerBot bot, CharacterToken token)
-    {
-        var isBuyer = bot.Role == BotRole.Buyer;
-        var deviation = 0.2m;
-
-        var targetPrice = isBuyer
-            ? token.CurrentPrice * (1 + deviation)
-            : token.CurrentPrice * (1 - deviation);
-
-        var minPower = (int)(bot.BasePower * 0.5m);
-        var maxPower = (int)(bot.BasePower + minPower);
-
-        var quantity = RandomNumberGenerator.GetInt32(minPower, maxPower);
-        var direction = isBuyer ? "купить" : "продать";
-
-        return new CreateOrderCommand(
-            bot.TraderId,
-            direction,
-            bot.Symbol,
-            quantity,
-            Math.Round(targetPrice, 2)
-        );
     }
 }
