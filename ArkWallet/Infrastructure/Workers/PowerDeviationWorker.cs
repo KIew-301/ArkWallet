@@ -36,7 +36,7 @@ internal class PowerDeviationWorker : BackgroundService
 
                 var bots = await GetActiveBotsAsync(dbContext, stoppingToken);
 
-                await RecalculateCoefficientsAsync(calculator, bots, now, stoppingToken);
+                await RecalculateCoefficientsAsync(calculator, bots, now);
 
                 if (bots.Count > 0)
                 {
@@ -59,28 +59,34 @@ internal class PowerDeviationWorker : BackgroundService
         DateTime now,
         CancellationToken stoppingToken)
     {
-        var state = await dbContext.AppStates.FindAsync("PowerDeviationNextExecution", stoppingToken);
+        var state = await dbContext.AppStates.FindAsync(new object[] { "PowerDeviationNextExecution" }, stoppingToken);
         if (state is null || state.Value is null)
         {
             var nextExecution = now.AddMinutes(Random.Shared.Next(10, 361));
             return (state, nextExecution);
         }
 
-        try
+        var dt = ParseNextExecution(state.Value);
+        if (dt is not null && dt > now)
         {
-            var dt = System.Text.Json.JsonSerializer.Deserialize<DateTime?>(state.Value);
-            if (dt is not null && dt > now)
-            {
-                await Task.Delay(dt.Value - now, stoppingToken);
-                return (null, null);
-            }
-        }
-        catch
-        {
+            await Task.Delay(dt.Value - now, stoppingToken);
+            return (null, null);
         }
 
         var nextExec = now.AddMinutes(Random.Shared.Next(10, 361));
         return (state, nextExec);
+    }
+
+    private static DateTime? ParseNextExecution(string value)
+    {
+        try
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<DateTime?>(value);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return null;
+        }
     }
 
     private static async Task<List<ArkWallet.Infrastructure.Data.MarketMakerBot>> GetActiveBotsAsync(
@@ -93,8 +99,7 @@ internal class PowerDeviationWorker : BackgroundService
     private static async Task RecalculateCoefficientsAsync(
         ArkWallet.Core.TradingContext.Application.Services.MarketMaker.PowerDeviationCalculator calculator,
         IReadOnlyList<ArkWallet.Infrastructure.Data.MarketMakerBot> bots,
-        DateTime now,
-        CancellationToken stoppingToken)
+        DateTime now)
     {
         foreach (var bot in bots)
         {

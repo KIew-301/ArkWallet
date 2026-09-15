@@ -2,7 +2,7 @@ using ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
 
 namespace ArkWallet.Core.TradingContext.Domain.Engines;
 
-internal class MarketMakerOrderEngine
+internal static class MarketMakerOrderEngine
 {
     public static CreateMarketOrderCommand BuildActiveOrder(MarketMaker bot, decimal currentPrice)
     {

@@ -12,8 +12,7 @@ using static Result;
 internal class MarketMakerOrderService(
     ArkWalletDbContext dbContext,
     IOrderCreationService orderCreationService,
-    ILogger<MarketMakerOrderService> logger,
-    MarketMakerOrderEngine marketMakerOrderEngine) : IMarketMakerOrderService
+    ILogger<MarketMakerOrderService> logger) : IMarketMakerOrderService
 {
     public async Task<Result> ExecuteMarketOrderAsync(long botId)
     {
