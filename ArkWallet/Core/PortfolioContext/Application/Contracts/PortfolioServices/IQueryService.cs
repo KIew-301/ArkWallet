@@ -51,12 +51,11 @@ namespace ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioService
             if (item == null)
                 throw new ArgumentNullException(nameof(item), $"{MethodBase.GetCurrentMethod()?.Name} - item не может быть null");
 
-            if (item.CharacterToken == null)
-                throw new ArgumentNullException(nameof(item), $"{MethodBase.GetCurrentMethod()?.Name} - item.CharacterToken не может быть null");
-
-            var balanceInToken = item.Quantity * item.CharacterToken.CurrentPrice;
-            var cost = item.Quantity * item.AverageBuyPrice;
-            var profitPercent = balanceInToken / cost * 100 - 100;
+            var currentPrice = item.CharacterToken?.CurrentPrice ?? 0;
+            var averageBuyPrice = item.AverageBuyPrice;
+            var balanceInToken = item.Quantity * currentPrice;
+            var cost = item.Quantity * averageBuyPrice;
+            var profitPercent = cost != 0 ? balanceInToken / cost * 100 - 100 : 0;
 
             var tokenInfo = item.CharacterToken != null
                 ? TokenInfo.FromEntity(item.CharacterToken)

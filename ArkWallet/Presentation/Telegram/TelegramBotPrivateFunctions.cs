@@ -56,7 +56,6 @@ namespace ArkWallet.Telegram
                         new("/mining_slots", "Мои слоты."),
                         new("/mining_buy", "Купить майнер."),
                         new("/mining_switch", "Сменить токен слота."),
-                        new("/mining_take", "Забрать токены."),
                         new("/mining_sell", "Продать слот."),
                         new("/send_gift", "Отправить подарок."),
                         new("/open_mail", "Открыть почту."),

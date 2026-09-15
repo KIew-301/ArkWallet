@@ -154,10 +154,11 @@ class Program
             {
                 string client = GetClientKey(context);
                 bool isAuth = context.Request.Path.StartsWithSegments("/api/v1/auth");
+                bool isCandles = context.Request.Path.StartsWithSegments("/api/v1/tokens/candle");
                 return RateLimitPartition.GetSlidingWindowLimiter(client + "|" + context.Request.Path, _ =>
                     new SlidingWindowRateLimiterOptions
                     {
-                        PermitLimit = 1,
+                        PermitLimit = isCandles ? 3 : 1,
                         Window = isAuth ? TimeSpan.FromSeconds(5) : TimeSpan.FromSeconds(1),
                         SegmentsPerWindow = isAuth ? 5 : 1,
                         QueueLimit = 0,
@@ -279,7 +280,7 @@ class Program
         });
         
         app.UseHttpsRedirection();
-        // Глобальный кап анти-спама: не более 3 запросов/с с одного клиента на ЛЮБЫЕ API
+        // Глобальный кап анти-спама: не более 8 запросов/с с одного клиента на API (свечи — 3/с).
         // (на случай, когда спамят на разные эндпоинты — у каждого свой бакет основного лимитера).
         app.UseRateLimiter(new RateLimiterOptions
         {
@@ -292,15 +293,21 @@ class Program
                 await Task.CompletedTask;
             },
             GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
-                RateLimitPartition.GetSlidingWindowLimiter(GetClientKey(context), _ =>
-                    new SlidingWindowRateLimiterOptions
+            {
+                string client = GetClientKey(context);
+                bool isApi = context.Request.Path.StartsWithSegments("/api");
+                bool isCandles = context.Request.Path.StartsWithSegments("/api/v1/tokens/candle");
+                int permit = !isApi ? 1000 : isCandles ? 3 : 8;
+                return RateLimitPartition.GetSlidingWindowLimiter(client + "|" + (isApi ? "api" : "web"),
+                    _ => new SlidingWindowRateLimiterOptions
                     {
-                        PermitLimit = context.Request.Path.StartsWithSegments("/api") ? 3 : 1000,
+                        PermitLimit = permit,
                         Window = TimeSpan.FromSeconds(1),
                         SegmentsPerWindow = 1,
                         QueueLimit = 0,
                         AutoReplenishment = true
-                    }))
+                    });
+            })
         });
         app.UseRateLimiter();
         app.UseCors();

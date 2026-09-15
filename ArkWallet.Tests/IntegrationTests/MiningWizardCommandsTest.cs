@@ -28,7 +28,7 @@ public class MiningWizardCommandsTest
     private static string Normalize(string s) => s.Replace("\r\n", "\n").Replace("\r", "\n");
 
     private static TokensMiningData TokenData(string symbol, decimal profit)
-        => new(string.Empty, symbol, 0m, profit);
+        => new(string.Empty, symbol, string.Empty, 0m, profit);
 
     private void SetupMachines(List<MiningMachineData>? machines = null)
     {
@@ -49,7 +49,7 @@ public class MiningWizardCommandsTest
             .ReturnsAsync(Result<List<MiningMachineSlotData>>.Ok(slots ?? new List<MiningMachineSlotData>
             {
                 new(5, "SM-01", "SMAI", "Active", 12.5m, 0m, 10, 5000m,
-                    new ActiveTokenMiningData(string.Empty, "ARK_001", 5m, 250m),
+                    new ActiveTokenMiningData(string.Empty, "ARK_001", string.Empty, 5m, 250m),
                     new List<TokensMiningData>(),
                     new List<TokensMiningData>())
             }));

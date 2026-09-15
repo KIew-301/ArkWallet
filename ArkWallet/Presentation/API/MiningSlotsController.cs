@@ -130,6 +130,31 @@ public class MiningSlotsController(
     }
 
     /// <summary>
+    /// Снятие собранных токенов со всех майнинг-машин текущего пользователя
+    /// </summary>
+    /// <returns>Сообщение об успешном снятии токенов</returns>
+    /// <response code="200">Токены успешно собраны</response>
+    /// <response code="401">Пользователь не авторизован</response>
+    /// <response code="400">Ошибка снятия токенов</response>
+    [ProducesResponseType(typeof(object), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(400)]
+    [Authorize]
+    [HttpPatch("slot/take-tokens-all")]
+    public async Task<IActionResult> TakeTokensFromAllMachines()
+    {
+        if (!TryGetTraderId(out var traderId))
+            return Unauthorized();
+
+        var result = await takingTokenOrchestrator.TakeTokensFromMachinesAsync(traderId);
+
+        if (!result.IsSuccess)
+            return BadRequest(result.Message);
+
+        return Ok(new { Message = "Токены собраны со всех машин" });
+    }
+
+    /// <summary>
     /// Продажа слота майнинг-машины текущего пользователя
     /// </summary>
     /// <param name="slotId">Идентификатор слота</param>
