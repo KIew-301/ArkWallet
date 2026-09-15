@@ -121,7 +121,7 @@ public class MiningMachineSlotBuyingServiceTest
     }
 
     [Fact]
-    public async Task BuyMachineAsync_MoreThanTenMachines_ReturnsFail()
+    public async Task BuyMachineAsync_MoreThanFiveMachines_ReturnsFail()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
         var trader = await HelpMethods.RegisterTrader(db, 111);
@@ -129,22 +129,22 @@ public class MiningMachineSlotBuyingServiceTest
         await HelpMethods.GiveMoney(db, 111, 100000000);
 
         var machines = new List<MiningMachine>();
-        for (var i = 0; i < 11; i++)
+        for (var i = 0; i < 6; i++)
             machines.Add(CreateMachine(db, efficiency: CategoryEfficiencies[i]));
         await db.SaveChangesAsync();
 
         var service = CreateService(db);
-        for (var i = 0; i < 10; i++)
+        for (var i = 0; i < 5; i++)
         {
             var result = await service.BuyMachineAsync(111, machines[i].Id);
             Assert.True(result.IsSuccess, $"Purchase #{i}: {result.Message}");
         }
 
-        var eleventh = await service.BuyMachineAsync(111, machines[10].Id);
+        var sixth = await service.BuyMachineAsync(111, machines[5].Id);
 
-        Assert.False(eleventh.IsSuccess);
-        Assert.Contains("10", eleventh.Message);
-        Assert.Equal(10, await db.MiningMachineSlots.CountAsync(s => s.TraderId == 111));
+        Assert.False(sixth.IsSuccess);
+        Assert.Contains("5", sixth.Message);
+        Assert.Equal(5, await db.MiningMachineSlots.CountAsync(s => s.TraderId == 111));
     }
 
     [Fact]
@@ -156,12 +156,12 @@ public class MiningMachineSlotBuyingServiceTest
         await HelpMethods.GiveMoney(db, 111, 100000000);
 
         var machines = new List<MiningMachine>();
-        for (var i = 0; i < 11; i++)
+        for (var i = 0; i < 6; i++)
             machines.Add(CreateMachine(db, efficiency: CategoryEfficiencies[i]));
         await db.SaveChangesAsync();
 
         var service = CreateService(db);
-        for (var i = 0; i < 10; i++)
+        for (var i = 0; i < 5; i++)
         {
             var result = await service.BuyMachineAsync(111, machines[i].Id);
             Assert.True(result.IsSuccess, result.Message);
@@ -173,10 +173,10 @@ public class MiningMachineSlotBuyingServiceTest
         soldSlot.Update(sm);
         await db.SaveChangesAsync();
 
-        var afterSell = await service.BuyMachineAsync(111, machines[10].Id);
+        var afterSell = await service.BuyMachineAsync(111, machines[5].Id);
 
         Assert.True(afterSell.IsSuccess, afterSell.Message);
-        Assert.Equal(10, await db.MiningMachineSlots.CountAsync(s => s.TraderId == 111 && s.Status != MiningMachineSlotStatus.Sold));
+        Assert.Equal(5, await db.MiningMachineSlots.CountAsync(s => s.TraderId == 111 && s.Status != MiningMachineSlotStatus.Sold));
     }
 
     [Fact]

@@ -24,9 +24,9 @@ public enum MiningStatus
 /// </summary>
 internal class MiningEngine
 {
-    public const int MaxMachinesPerTrader = 10;
-    public const decimal MinCoefficient = 0.9m;
-    public const decimal MaxCoefficient = 1.1m;
+    public const int MaxMachinesPerTrader = 5;
+    public const decimal MinCoefficient = 0.75m;
+    public const decimal MaxCoefficient = 1.25m;
     public const decimal DefaultBaseTokenMiningSpeedDivisor = 50m;
     public const decimal EffectiveMiningCoefficientMin = 0.85m;
     public const decimal EffectiveMiningCoefficientMax = 1m;
@@ -118,7 +118,7 @@ internal class MiningEngine
     public int CollectWholeTokens(decimal tokensAmountCollected)
         => (int)tokensAmountCollected;
 
-    /// <summary>Случайный коэффициент майнинга в диапазоне [0.9, 1.1]</summary>
+    /// <summary>Случайный коэффициент майнинга в диапазоне [0.75, 1.25]</summary>
     public decimal NextCoefficient()
     {
         var next = RandomNumberGenerator.GetInt32(0, 1_000_000_001);
