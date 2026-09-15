@@ -120,7 +120,7 @@ internal static class E2eSeed
 
         var candles = new List<PriceCandle>(100_000);
         for (int i = 0; i < 100_000; i++)
-            candles.Add(PriceCandle.CreateNew(E2eConfig.Symbol, 1000m + (i % 100), windowStart + step * i));
+            candles.Add(PriceCandle.Create(E2eConfig.Symbol, 1000m + (i % 100), windowStart + step * i));
 
         await db.PriceCandles.AddRangeAsync(candles);
         await db.SaveChangesAsync();

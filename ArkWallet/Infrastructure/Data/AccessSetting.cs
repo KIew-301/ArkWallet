@@ -5,7 +5,7 @@ namespace ArkWallet.Infrastructure.Data;
 /// <summary>
 /// Single-row entity storing global access control configuration.
 /// </summary>
-public class AccessSetting
+public class AccessSetting : EntityData
 {
     /// <summary>Singleton key.</summary>
     [Key]

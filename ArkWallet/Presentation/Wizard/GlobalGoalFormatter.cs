@@ -1,5 +1,5 @@
 using System.Text;
-using ArkWallet.Application.Contracts.GlobalGoalServices;
+using ArkWallet.Core.GlobalGoalContext.Application.Contracts.GlobalGoalServices;
 
 namespace ArkWallet.Infrastructure.Wizard;
 

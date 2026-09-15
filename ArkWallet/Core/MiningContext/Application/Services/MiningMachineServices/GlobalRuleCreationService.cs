@@ -1,0 +1,71 @@
+using ArkWallet.Core.MiningContext.Domain.Engines;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+
+namespace ArkWallet.Core.MiningContext.Application.Services.MiningMachineServices;
+
+internal class MiningGlobalRuleCreationService(
+    ArkWalletDbContext dbContext,
+    MiningEngine miningEngine,
+    ILogger<MiningGlobalRuleCreationService> logger) : IMiningGlobalRuleCreationService
+{
+    public async Task<Result> CreateRulesAsync()
+    {
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
+        {
+            return await ProcessRulesAsync();
+        }, logger, nameof(MiningGlobalRuleCreationService));
+    }
+
+    private async Task<Result> ProcessRulesAsync()
+    {
+        return await TransactionHandler.ExecuteAsync(dbContext, async () =>
+        {
+            await dbContext.LockMiningGlobalRulesAsync();
+
+            var tokens = await dbContext.CharacterTokens
+                .Where(t => t.IsActive && t.CurrentPrice > 0)
+                .ToListAsync();
+
+            var existingRules = await dbContext.MiningGlobalRules.ToListAsync();
+            var rulesByToken = existingRules.ToDictionary(r => r.TokenId);
+
+            var newRules = PrepareRules(tokens, rulesByToken);
+
+            await dbContext.MiningGlobalRules.AddRangeAsync(newRules);
+            await dbContext.SaveChangesAsync();
+
+            return Result.Ok();
+        });
+    }
+
+    private List<MiningGlobalRule> PrepareRules(
+        List<CharacterToken> tokens,
+        Dictionary<string, MiningGlobalRule> rulesByToken)
+    {
+        var newRules = new List<MiningGlobalRule>();
+
+        foreach (var token in tokens)
+        {
+            var baseTokenMiningSpeed = miningEngine.CalculateBaseTokenMiningSpeed(token.CurrentPrice);
+
+            if (rulesByToken.TryGetValue(token.Symbol, out var rule))
+            {
+                MiningContextMapper.AdvanceRule(rule, miningEngine.NextCoefficient(), baseTokenMiningSpeed);
+            }
+            else
+            {
+                newRules.Add(MiningContextMapper.CreateRule(
+                    token.Symbol,
+                    miningEngine.NextCoefficient(),
+                    miningEngine.NextCoefficient(),
+                    baseTokenMiningSpeed));
+            }
+        }
+
+        return newRules;
+    }
+}

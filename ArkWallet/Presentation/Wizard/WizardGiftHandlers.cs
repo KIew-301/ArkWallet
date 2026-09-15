@@ -1,6 +1,6 @@
-using ArkWallet.Application.Contracts.MailServices;
-using ArkWallet.Application.Contracts.TraderServices;
-using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Core.MailContext.Application.Contracts.MailServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.TraderServices;
+using ArkWallet.Core.General.Domain.ValueObjects;
 
 namespace ArkWallet.Infrastructure.Wizard;
 
@@ -11,7 +11,7 @@ partial class WizardEngine
         if (!long.TryParse(recipientIdStr, out var recipientId))
             return new WizardResult { Message = "Неверный ID получателя." };
 
-        var giftResult = await _giftSendingService.SendGiftAsync(senderId, recipientId);
+        var giftResult = await _sendingService.SendGiftAsync(senderId, recipientId);
 
         if (!giftResult.IsSuccess)
             return new WizardResult { Message = giftResult.Message };

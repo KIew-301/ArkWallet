@@ -1,7 +1,9 @@
-using ArkWallet.Application.Contracts.MiningMachineServices;
-using ArkWallet.Application.Contracts.Orchestrators;
-using ArkWallet.Domain.Engines;
-using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Core.MiningContext.Domain.Engines;
+using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.ShoppingContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.MiningContext.Application.Contracts.Orchestrators;
+using ArkWallet.Core.TradingContext.Domain.Engines;
+using ArkWallet.Core.General.Domain.ValueObjects;
 
 namespace ArkWallet.Infrastructure.Wizard
 {
@@ -44,7 +46,7 @@ namespace ArkWallet.Infrastructure.Wizard
 
         public async Task<StepResult> HandleGetMiningMachines(UserSession session, string input)
         {
-            var machinesResult = await _miningMachineQueryService.TakeActiveForSaleMachinesAsync(session.Id);
+            var machinesResult = await _machineQueryService.TakeActiveForSaleMachinesAsync(session.Id);
 
             if (!machinesResult.TryGetData(out var machines) || machines.Count == 0)
                 return StepResult.Ok("completed", "Машины для покупки не найдены.");
@@ -129,7 +131,7 @@ namespace ArkWallet.Infrastructure.Wizard
             if (!long.TryParse(input, out var machineId))
                 return StepResult.Error("Введите корректный идентификатор машины.");
 
-            var machinesResult = await _miningMachineQueryService.TakeActiveForSaleMachinesAsync(session.Id);
+            var machinesResult = await _machineQueryService.TakeActiveForSaleMachinesAsync(session.Id);
 
             if (!machinesResult.TryGetData(out var machines))
                 return StepResult.Error(machinesResult.Message ?? "Не удалось получить список машин.");
@@ -156,7 +158,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 ? id
                 : throw new InvalidOperationException("Машина не выбрана.");
 
-            var result = await _miningMachineSlotBuyingService.BuyMachineAsync(session.Id, machineId);
+            var result = await _machineSlotBuyingService.BuyMachineAsync(session.Id, machineId);
 
             if (!result.TryGetData(out var slotId))
                 return StepResult.Error(result.Message);
@@ -281,7 +283,7 @@ namespace ArkWallet.Infrastructure.Wizard
             if (!long.TryParse(machineIdStr, out var machineId))
                 return StepResult.Error("Введите корректный идентификатор машины.");
 
-            var machinesResult = await _miningMachineQueryService.TakeActiveForSaleMachinesAsync(session.Id);
+            var machinesResult = await _machineQueryService.TakeActiveForSaleMachinesAsync(session.Id);
 
             if (!machinesResult.TryGetData(out var machines))
                 return StepResult.Error(machinesResult.Message ?? "Не удалось получить список машин.");
@@ -375,7 +377,7 @@ namespace ArkWallet.Infrastructure.Wizard
             if (!long.TryParse(machineIdStr, out var machineId))
                 return new WizardResult { Message = "Некорректный идентификатор машины." };
 
-            var machinesResult = await _miningMachineQueryService.TakeActiveForSaleMachinesAsync(userId);
+            var machinesResult = await _machineQueryService.TakeActiveForSaleMachinesAsync(userId);
             if (!machinesResult.TryGetData(out var machines))
                 return new WizardResult { Message = machinesResult.Message ?? ServerErrorMessage };
 

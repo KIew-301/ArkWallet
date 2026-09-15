@@ -1,14 +1,24 @@
-﻿using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Contracts.Other;
-using ArkWallet.Application.Contracts.TradeOrderServices;
-using ArkWallet.Application.Services.CharacterTokenServices;
-using ArkWallet.Application.Services.PortfolioServices;
-using ArkWallet.Application.Services.TradeOrderServices;
-using ArkWallet.Application.Services.TraderServices;
-using ArkWallet.Domain.Engines;
-using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.General.Domain.Exceptions;
+using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Core.General.Application.Contracts.Other;
+using ArkWallet.Core.TradingContext.Application.Contracts.Other;
+using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
+using ArkWallet.Core.TradingContext.Application.Services.TradeOrderServices;
+using ArkWallet.Core.TradingContext.Application.Services.CharacterTokenServices;
+using ArkWallet.Core.PortfolioContext.Application.Services.PortfolioServices;
+using ArkWallet.Core.TradingContext.Application.Services.TraderServices;
+using ArkWallet.Core.MiningContext.Domain.Engines;
+using ArkWallet.Core.TradingContext.Domain.Engines;
+using ArkWallet.Core.General.Domain.ValueObjects;
+using ArkWallet.Core.TradingContext.Domain.TokenAggregate;
+using ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
+using ArkWallet.Core.TradingContext.Domain.TradeAggregate;
+using ArkWallet.Core.PortfolioContext.Domain.Position;
+using ArkWallet.Core.GiftContext.Domain.User;
+using ArkWallet.Core.MailContext.Domain.Message;
+using ArkWallet.Core.MiningContext.Domain.Machine;
+using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Infrastructure;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +26,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace ArkWallet.Tests.HelpTools;
+
+using PriceCandle = global::ArkWallet.Infrastructure.Data.PriceCandle;
 
 internal class HelpMethods
 {
@@ -57,20 +69,32 @@ internal class HelpMethods
 
     public static async Task<Result> AddPortfolio(ArkWalletDbContext db, long traderId, string symbol, int quantity)
     {
-        var service = new PortfolioUpdatingService(db, NullLogger<PortfolioUpdatingService>.Instance);
+        var service = new UpdatingService(db, NullLogger<UpdatingService>.Instance);
         return await service.CreateOrUpdatePortfolioAsync(traderId, symbol, quantity);
     }
 
     public static async Task GiveToken(ArkWalletDbContext db, long traderId, string symbol, int quantity)
     {
         var item = await db.PortfolioItems.FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
-        if (item != null) item.BuyTokens(quantity, item.AverageBuyPrice);
+        if (item != null)
+        {
+            var totalCost = item.Quantity * item.AverageBuyPrice + quantity * item.AverageBuyPrice;
+            item.Quantity += quantity;
+            item.AverageBuyPrice = totalCost / item.Quantity;
+        }
     }
 
     public static async Task RemoveToken(ArkWalletDbContext db, long traderId, string symbol, int quantity)
     {
         var item = await db.PortfolioItems.FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
-        if (item != null) item.RemoveTokens(quantity, item.AverageBuyPrice);
+        if (item != null)
+        {
+            if (quantity <= 0) throw new DomainException("Количество токенов меньше или равно 0");
+            if (quantity > item.Quantity) throw new DomainException("Больше токенов недостаточно");
+            item.Quantity -= quantity;
+            if (item.Quantity == 0)
+                item.AverageBuyPrice = 0;
+        }
     }
 
     public static async Task<Result<OrderCreationData>> PlaceOrder(ArkWalletDbContext db, long traderId, string direction,
@@ -100,7 +124,6 @@ internal class HelpMethods
         var service = new OrderCreationService(
             db,
             engine,
-            mockValidator.Object,
             new MediatREventPublisher(TestMediatorFactory.Create(db, tokenPriceCandleUpdateService)),
             mockTaskDispatcher.Object,
             logger);
@@ -206,7 +229,7 @@ internal class HelpMethods
 
     public static async Task CreatePriceCandle(ArkWalletDbContext db, string symbol, decimal price, DateTime timestamp)
     {
-        var candle = PriceCandle.CreateNew(symbol, price, timestamp);
+        var candle = PriceCandle.Create(symbol, price, timestamp);
         await db.PriceCandles.AddAsync(candle);
         await db.SaveChangesAsync();
     }

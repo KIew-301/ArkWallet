@@ -1,0 +1,97 @@
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.ShoppingContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+
+namespace ArkWallet.Core.ShoppingContext.Application.Services.MiningMachineServices;
+using static Result;
+
+internal class MachineDeletionService(ArkWalletDbContext dbContext, ILogger<MachineDeletionService> logger) : IMachineDeletionService
+{
+    public async Task<Result> DeleteMachineAsync(long machineId)
+    {
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
+        {
+            return await TransactionHandler.ExecuteAsync(dbContext, async () =>
+            {
+                await dbContext.LockMiningMachinesAsync([machineId]);
+
+                var machine = await dbContext.MiningMachines
+                    .FirstOrDefaultAsync(m => m.Id == machineId);
+
+                if (machine is null)
+                    return Fail($"Майнинг-машина с Id '{machineId}' не найдена");
+
+                await dbContext.MiningMachineRules
+                    .Where(r => r.MiningMachineId == machineId)
+                    .ExecuteDeleteAsync();
+
+                dbContext.MiningMachines.Remove(machine);
+                await dbContext.SaveChangesAsync();
+
+                return Ok();
+            });
+        }, logger, nameof(MachineDeletionService));
+    }
+
+    public async Task<Result> DeleteMachinesAsync(long[] machineIds)
+    {
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
+        {
+            var ids = machineIds?.Distinct().ToArray() ?? [];
+            if (ids.Length == 0)
+                return Ok();
+
+            return await TransactionHandler.ExecuteAsync(dbContext, async () =>
+            {
+                await dbContext.LockMiningMachinesAsync(ids);
+
+                var existingIds = await dbContext.MiningMachines
+                    .Where(m => ids.Contains(m.Id))
+                    .Select(m => m.Id)
+                    .ToListAsync();
+                var missing = ids.Except(existingIds).ToArray();
+                if (missing.Length > 0)
+                    return Fail($"Машины с Id не существуют: {string.Join(", ", missing)}");
+
+                await dbContext.MiningMachineRules
+                    .Where(r => ids.Contains(r.MiningMachineId))
+                    .ExecuteDeleteAsync();
+
+                var machines = await dbContext.MiningMachines
+                    .Where(m => ids.Contains(m.Id))
+                    .ToListAsync();
+                dbContext.MiningMachines.RemoveRange(machines);
+                await dbContext.SaveChangesAsync();
+
+                return Ok();
+            });
+        }, logger, nameof(MachineDeletionService));
+    }
+
+    public async Task<Result> DeactivateMachineAsync(long machineId)
+    {
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
+        {
+            return await TransactionHandler.ExecuteAsync(dbContext, async () =>
+            {
+                await dbContext.LockMiningMachinesAsync([machineId]);
+
+                var machine = await dbContext.MiningMachines
+                    .FirstOrDefaultAsync(m => m.Id == machineId);
+
+                if (machine is null)
+                    return Result.Fail($"Майнинг-машина с Id '{machineId}' не найдена");
+
+                if (!machine.IsActiveForSale)
+                    return Result.Fail($"Майнинг-машина с Id '{machineId}' уже деактивирована");
+
+                machine.Update(isActiveForSale: false);
+                await dbContext.SaveChangesAsync();
+
+                return Result.Ok();
+            });
+        }, logger, nameof(MachineDeletionService));
+    }
+}

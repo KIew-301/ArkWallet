@@ -1,4 +1,4 @@
-using ArkWallet.Application.Contracts.Orchestrators;
+using ArkWallet.Core.General.Application.Contracts.Orchestrators;
 using ArkWallet.Presentation.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

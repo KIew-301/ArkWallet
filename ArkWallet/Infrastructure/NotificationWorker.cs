@@ -1,4 +1,4 @@
-﻿using ArkWallet.Application.Dtos;
+using ArkWallet.Core.General.Application.Dtos;
 using ArkWallet.Telegram;
 using MediatR;
 using Microsoft.Extensions.Hosting;

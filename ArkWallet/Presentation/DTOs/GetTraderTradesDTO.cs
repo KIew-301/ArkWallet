@@ -1,4 +1,4 @@
-﻿using ArkWallet.Application.Contracts.TradeServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.TradeServices;
 
 namespace ArkWallet.Presentation.DTOs
 {

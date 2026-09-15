@@ -1,6 +1,6 @@
-using ArkWallet.Application.Contracts.MailServices;
-using ArkWallet.Application.Contracts.TraderServices;
-using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Core.MailContext.Application.Contracts.MailServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.TraderServices;
+using ArkWallet.Core.General.Domain.ValueObjects;
 using Newtonsoft.Json;
 
 namespace ArkWallet.Infrastructure.Wizard;
@@ -270,7 +270,7 @@ partial class WizardEngine
             bool hasReward = !string.IsNullOrWhiteSpace(rewardSymbol) && rewardAmount > 0;
 
             var commands = recipientIds
-                .Select(id => new MailCreateCommand(
+                .Select(id => new CreateCommand(
                     id,
                     title.Trim(),
                     message.Trim(),

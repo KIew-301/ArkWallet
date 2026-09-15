@@ -100,7 +100,6 @@ internal class HelpMethods
         var service = new OrderCreationService(
             db,
             engine,
-            mockValidator.Object,
             new MediatREventPublisher(TestMediatorFactory.Create(db, tokenPriceCandleUpdateService)),
             mockTaskDispatcher.Object,
             logger);
@@ -173,7 +172,7 @@ internal class HelpMethods
 
     public static async Task CreatePriceCandle(ArkWalletDbContext db, string symbol, decimal price, DateTime timestamp)
     {
-        var candle = PriceCandle.CreateNew(symbol, price, timestamp);
+        var candle = PriceCandle.Create(symbol, price, timestamp);
         await db.PriceCandles.AddAsync(candle);
         await db.SaveChangesAsync();
     }

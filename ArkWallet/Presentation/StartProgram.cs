@@ -1,38 +1,46 @@
-﻿using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Contracts.Decorators;
-using ArkWallet.Application.Contracts.Leaders;
-using ArkWallet.Application.Contracts.MarketMaker;
-using ArkWallet.Application.Contracts.MiningMachineServices;
-using ArkWallet.Application.Contracts.Orchestrators;
-using ArkWallet.Application.Contracts.Other;
-using ArkWallet.Application.Contracts.PortfolioServices;
-using ArkWallet.Application.Contracts.GlobalGoalServices;
-using ArkWallet.Application.Contracts.MailServices;
-using ArkWallet.Application.Contracts.GiftServices;
-using ArkWallet.Application.Contracts.SuggestionServices;
-using ArkWallet.Application.Contracts.TradeOrderServices;
-using ArkWallet.Application.Contracts.TraderServices;
-using ArkWallet.Application.Contracts.TradeServices;
-using ArkWallet.Application.Services.CharacterTokenServices;
-using ArkWallet.Application.Services.Leaders;
-using ArkWallet.Application.Services.MarketMaker;
-using ArkWallet.Application.Services.MiningMachineServices;
-using ArkWallet.Application.Services.Orchestrators;
-using ArkWallet.Application.Services.Other;
-using ArkWallet.Application.Services.GlobalGoalServices;
-using ArkWallet.Application.Services.MailServices;
-using ArkWallet.Application.Services.GiftServices;
-using ArkWallet.Application.Services.PortfolioServices;
-using ArkWallet.Application.Services.SuggestionServices;
-using ArkWallet.Application.Services.TradeOrderServices;
-using ArkWallet.Application.Services.TraderServices;
-using ArkWallet.Application.Services.TradeServices;
-using ArkWallet.Application.Services.Wizard;
-using ArkWallet.Application.Workers;
-using ArkWallet.Domain.Common;
-using ArkWallet.Domain.Engines;
-using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Core.MiningContext.Domain.Engines;
+using ArkWallet.Core.TradingContext.Application.Contracts.Other;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
+using MailQueryContract = ArkWallet.Core.MailContext.Application.Contracts.MailServices.IQueryService;
+using MailQueryImpl = ArkWallet.Core.MailContext.Application.Services.MailServices.QueryService;
+using ArkWallet.Core.General.Application.Contracts.Decorators;
+using ArkWallet.Core.General.Application.Contracts.Leaders;
+using ArkWallet.Core.TradingContext.Application.Contracts.MarketMaker;
+using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.ShoppingContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.MiningContext.Application.Contracts.Orchestrators;
+using ArkWallet.Core.General.Application.Contracts.Orchestrators;
+using ArkWallet.Core.General.Application.Contracts.Other;
+using ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices;
+using ArkWallet.Core.GlobalGoalContext.Application.Contracts.GlobalGoalServices;
+using ArkWallet.Core.MailContext.Application.Contracts.MailServices;
+using ArkWallet.Core.GiftContext.Application.Contracts.GiftServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.SuggestionServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.TraderServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.TradeServices;
+using ArkWallet.Core.TradingContext.Application.Services.CharacterTokenServices;
+using ArkWallet.Core.General.Application.Services.Leaders;
+using ArkWallet.Core.TradingContext.Application.Services.MarketMaker;
+using ArkWallet.Core.MiningContext.Application.Services.MiningMachineServices;
+using ArkWallet.Core.ShoppingContext.Application.Services.MiningMachineServices;
+using ArkWallet.Core.ShoppingContext.Application.Services.Orchestrators;
+using ArkWallet.Core.General.Application.Services.Orchestrators;
+using ArkWallet.Core.TradingContext.Application.Services.Other;
+using ArkWallet.Core.GlobalGoalContext.Application.Services.GlobalGoalServices;
+using ArkWallet.Core.MailContext.Application.Services.MailServices;
+using ArkWallet.Core.GiftContext.Application.Services.GiftServices;
+using ArkWallet.Core.PortfolioContext.Application.Services.PortfolioServices;
+using ArkWallet.Core.TradingContext.Application.Services.SuggestionServices;
+using ArkWallet.Core.TradingContext.Application.Services.TradeOrderServices;
+using ArkWallet.Core.TradingContext.Application.Services.TraderServices;
+using ArkWallet.Core.TradingContext.Application.Services.TradeServices;
+using ArkWallet.Core.General.Application.Services.Wizard;
+using ArkWallet.Infrastructure.Workers;
+using ArkWallet.Core.General.Domain.Common;
+using ArkWallet.Core.TradingContext.Domain.Engines;
+using ArkWallet.Core.General.Domain.ValueObjects;
 using ArkWallet.Entities.Configurations;
 using ArkWallet.Infrastructure;
 using ArkWallet.Infrastructure.Data;
@@ -60,6 +68,8 @@ using System.Reflection;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Threading.RateLimiting;
+using ArkWallet.Core.ShoppingContext.Application.Contracts.Orchestrators;
+using ArkWallet.Core.MiningContext.Application.Services.Orchestrators;
 
 [ExcludeFromCodeCoverage(Justification = "Точка входа приложения: конфигурация DI, middleware и инфраструктуры. Не содержит бизнес-логики.")]
 class Program
@@ -385,8 +395,8 @@ class Program
         services.AddScoped<IQuestionDecorator, QuestionDecorator>();
 
         // PortfolioServices
-        services.AddScoped<IPortfolioQueryService, PortfolioQueryService>();
-        services.AddScoped<IPortfolioUpdatingService, PortfolioUpdatingService>();
+        services.AddScoped<ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices.IQueryService, ArkWallet.Core.PortfolioContext.Application.Services.PortfolioServices.QueryService>();
+        services.AddScoped<ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices.IUpdatingService, ArkWallet.Core.PortfolioContext.Application.Services.PortfolioServices.UpdatingService>();
 
         // GlobalGoalServices
         services.AddScoped<IGlobalGoalCheckingService, GlobalGoalCheckingService>();
@@ -395,11 +405,11 @@ class Program
         services.AddScoped<IDomainGlobalGoalCalculation, TotalBalanceGlobalGoalCalculation>();
 
         // MailServices
-        services.AddScoped<IMailMessageService, MailMessageService>();
-        services.AddScoped<IMailQueryService, MailQueryService>();
-        services.AddScoped<IMailStatusUpdatingService, MailStatusUpdatingService>();
+        services.AddScoped<IMessageService, MessageService>();
+        services.AddScoped<MailQueryContract, MailQueryImpl>();
+        services.AddScoped<IStatusUpdatingService, StatusUpdatingService>();
         // GiftServices
-        services.AddScoped<IGiftSendingService, GiftSendingService>();
+        services.AddScoped<ISendingService, SendingService>();
 
         // SuggestionServices
         services.AddScoped<IPriceSuggestionService, PriceSuggestionService>();
@@ -431,26 +441,26 @@ class Program
         services.AddScoped<IMarketWallBlockerOrchestrator, MarketWallBlockerOrchestrator>();
 
         // MiningMachineServices
-        services.AddScoped<IMiningMachineCreationService, MiningMachineCreationService>();
-        services.AddScoped<IMiningMachineUpdateService, MiningMachineUpdateService>();
+        services.AddScoped<ArkWallet.Core.ShoppingContext.Application.Contracts.MiningMachineServices.IMachineCreationService, ArkWallet.Core.ShoppingContext.Application.Services.MiningMachineServices.MachineCreationService>();
+        services.AddScoped<ArkWallet.Core.ShoppingContext.Application.Contracts.MiningMachineServices.IMachineUpdateService, ArkWallet.Core.ShoppingContext.Application.Services.MiningMachineServices.MachineUpdateService>();
         services.AddScoped<IMiningMachineRuleCreationService, MiningMachineRuleCreationService>();
         services.AddScoped<IMiningMachineRuleUpdateService, MiningMachineRuleUpdateService>();
-        services.AddScoped<IMiningMachineSlotBuyingService, MiningMachineSlotBuyingService>();
+        services.AddScoped<ArkWallet.Core.ShoppingContext.Application.Contracts.MiningMachineServices.IMachineSlotBuyingService, ArkWallet.Core.ShoppingContext.Application.Services.MiningMachineServices.MachineSlotBuyingService>();
         services.AddScoped<IMiningMachineSlotSwitchingService, MiningMachineSlotSwitchingService>();
         services.AddScoped<IMiningMachineSlotCalculationService, MiningMachineSlotCalculationService>();
         services.AddScoped<IMiningMachineSlotSellingService, MiningMachineSlotSellingService>();
-        services.AddScoped<IMiningMachineQueryService, MiningMachineQueryService>();
+        services.AddScoped<ArkWallet.Core.ShoppingContext.Application.Contracts.MiningMachineServices.IMachineQueryService, ArkWallet.Core.ShoppingContext.Application.Services.MiningMachineServices.MachineQueryService>();
         services.AddScoped<IMiningMachineSlotQueryService, MiningMachineSlotQueryService>();
         services.AddScoped<IMiningMachineSlotTakingTokenService, MiningMachineSlotTakingTokenService>();
         services.AddScoped<IMiningGlobalRuleQueryService, MiningGlobalRuleQueryService>();
         services.AddScoped<IMiningGlobalRuleCreationService, MiningGlobalRuleCreationService>();
-        services.AddScoped<IMiningMachineDeletionService, MiningMachineDeletionService>();
+        services.AddScoped<ArkWallet.Core.ShoppingContext.Application.Contracts.MiningMachineServices.IMachineDeletionService, ArkWallet.Core.ShoppingContext.Application.Services.MiningMachineServices.MachineDeletionService>();
         services.AddScoped<IMiningMachineRuleDeletionService, MiningMachineRuleDeletionService>();
         services.AddScoped<IMiningGlobalRuleUpdateService, MiningGlobalRuleUpdateService>();
         services.AddScoped<IAppStateQueryService, AppStateQueryService>();
 
         // MiningMachineOrchestrators
-        services.AddScoped<IMiningMachineCreationOrchestrator, MiningMachineCreationOrchestrator>();
+        services.AddScoped<ArkWallet.Core.ShoppingContext.Application.Contracts.Orchestrators.IMachineCreationOrchestrator, ArkWallet.Core.ShoppingContext.Application.Services.Orchestrators.MachineCreationOrchestrator>();
         services.AddScoped<IMiningMachineSlotTakingTokenOrchestrator, MiningMachineSlotTakingTokenOrchestrator>();
         services.AddScoped<IMiningMachineSlotSwitchingOrchestrator, MiningMachineSlotSwitchingOrchestrator>();
         services.AddScoped<IMiningMachineSlotSellingOrchestrator, MiningMachineSlotSellingOrchestrator>();

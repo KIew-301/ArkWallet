@@ -1,21 +1,25 @@
-using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Contracts.Decorators;
-using ArkWallet.Application.Contracts.MailServices;
-using ArkWallet.Application.Contracts.GiftServices;
-using ArkWallet.Application.Contracts.Leaders;
-using ArkWallet.Application.Contracts.MarketMaker;
-using ArkWallet.Application.Contracts.MiningMachineServices;
-using ArkWallet.Application.Contracts.Orchestrators;
-using ArkWallet.Application.Contracts.Other;
+using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Core.General.Application.Contracts.Decorators;
+using ArkWallet.Core.MailContext.Application.Contracts.MailServices;
+using ArkWallet.Core.GiftContext.Application.Contracts.GiftServices;
+using ArkWallet.Core.General.Application.Contracts.Leaders;
+using ArkWallet.Core.TradingContext.Application.Contracts.MarketMaker;
+using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.MiningContext.Application.Contracts.Orchestrators;
+using ArkWallet.Core.General.Application.Contracts.Orchestrators;
+using ArkWallet.Core.ShoppingContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.General.Application.Contracts.Other;
+using ArkWallet.Core.TradingContext.Application.Contracts.Other;
 using ArkWallet.Infrastructure.AccessControl;
-using ArkWallet.Application.Contracts.PortfolioServices;
-using ArkWallet.Application.Contracts.SuggestionServices;
-using ArkWallet.Application.Contracts.TradeOrderServices;
-using ArkWallet.Application.Contracts.TradeServices;
-using ArkWallet.Application.Contracts.TraderServices;
-using ArkWallet.Application.Contracts.GlobalGoalServices;
-using ArkWallet.Application.Services.Wizard;
-using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.SuggestionServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
+using ArkWallet.Core.TradingContext.Application.Services.TradeOrderServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.TradeServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.TraderServices;
+using ArkWallet.Core.GlobalGoalContext.Application.Contracts.GlobalGoalServices;
+using ArkWallet.Core.General.Application.Services.Wizard;
+using ArkWallet.Core.General.Domain.ValueObjects;
 using ArkWallet.Entities.Configurations;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Infrastructure.Wizard;
@@ -23,6 +27,7 @@ using ArkWallet.Tests.HelpTools;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using ArkWallet.Core.ShoppingContext.Application.Contracts.Orchestrators;
 
 namespace ArkWallet.Tests.IntegrationTests;
 
@@ -43,8 +48,8 @@ internal static class WizardEngineTestHelper
         var orderBookService = new Mock<IOrderBookService>();
         var orderQueryService = new Mock<IOrderQueryService>();
 
-        var portfolioQueryService = new Mock<IPortfolioQueryService>();
-        var portfolioUpdatingService = new Mock<IPortfolioUpdatingService>();
+        var QueryService = new Mock<ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices.IQueryService>();
+        var UpdatingService = new Mock<IUpdatingService>();
 
         var tokenCreationService = new Mock<ITokenCreationService>();
         var tokenQueryService = new Mock<ITokenQueryService>();
@@ -61,26 +66,26 @@ internal static class WizardEngineTestHelper
         var tokenService = new Mock<ITokenService>();
         var tradingVolumeService = new Mock<ITradingVolumeService>();
         var messageSender = new Mock<IMessageSender>();
-        var mailGiftService = new Mock<IGiftSendingService>();
-        var mailMessageService = new Mock<IMailMessageService>();
-        var mailQueryService = new Mock<IMailQueryService>();
-        var mailStatusUpdatingService = new Mock<IMailStatusUpdatingService>();
+        var mailGiftService = new Mock<ISendingService>();
+        var mailMessageService = new Mock<IMessageService>();
+        var mailQueryService = new Mock<ArkWallet.Core.MailContext.Application.Contracts.MailServices.IQueryService>();
+        var mailStatusUpdatingService = new Mock<IStatusUpdatingService>();
         var metricsSnapshotService = new Mock<IMetricsSnapshotService>();
 
         var miningGlobalRuleQueryService = new Mock<IMiningGlobalRuleQueryService>();
-        var miningMachineQueryService = new Mock<IMiningMachineQueryService>();
+        var miningMachineQueryService = new Mock<IMachineQueryService>();
         var miningMachineSlotQueryService = new Mock<IMiningMachineSlotQueryService>();
-        var miningMachineSlotBuyingService = new Mock<IMiningMachineSlotBuyingService>();
-        var miningMachineCreationService = new Mock<IMiningMachineCreationService>();
-        var miningMachineUpdateService = new Mock<IMiningMachineUpdateService>();
+        var miningMachineSlotBuyingService = new Mock<IMachineSlotBuyingService>();
+        var miningMachineCreationService = new Mock<IMachineCreationService>();
+        var miningMachineUpdateService = new Mock<IMachineUpdateService>();
         var miningMachineRuleCreationService = new Mock<IMiningMachineRuleCreationService>();
         var miningMachineRuleUpdateService = new Mock<IMiningMachineRuleUpdateService>();
-        var miningMachineDeletionService = new Mock<IMiningMachineDeletionService>();
+        var miningMachineDeletionService = new Mock<IMachineDeletionService>();
         var miningMachineRuleDeletionService = new Mock<IMiningMachineRuleDeletionService>();
         var miningGlobalRuleUpdateService = new Mock<IMiningGlobalRuleUpdateService>();
         var appStateQueryService = new Mock<IAppStateQueryService>();
         var miningMachineSlotSwitchingOrchestrator = new Mock<IMiningMachineSlotSwitchingOrchestrator>();
-        var miningMachineCreationOrchestrator = new Mock<IMiningMachineCreationOrchestrator>();
+        var miningMachineCreationOrchestrator = new Mock<IMachineCreationOrchestrator>();
         var miningMachineSlotTakingTokenOrchestrator = new Mock<IMiningMachineSlotTakingTokenOrchestrator>();
         var miningMachineSlotSellingOrchestrator = new Mock<IMiningMachineSlotSellingOrchestrator>();
 
@@ -111,8 +116,8 @@ internal static class WizardEngineTestHelper
             orderCancellationService.Object,
             orderBookService.Object,
             orderQueryService.Object,
-            portfolioQueryService.Object,
-            portfolioUpdatingService.Object,
+            QueryService.Object,
+            UpdatingService.Object,
             tokenCreationService.Object,
             tokenQueryService.Object,
             tokenMediaUpdateService.Object,
@@ -167,8 +172,8 @@ internal static class WizardEngineTestHelper
             OrderCancellation = orderCancellationService,
             OrderBook = orderBookService,
             OrderQuery = orderQueryService,
-            PortfolioQuery = portfolioQueryService,
-            PortfolioUpdating = portfolioUpdatingService,
+            PortfolioQuery = QueryService,
+            PortfolioUpdating = UpdatingService,
             TokenCreation = tokenCreationService,
             TokenQuery = tokenQueryService,
             TokenMediaUpdate = tokenMediaUpdateService,
@@ -219,8 +224,8 @@ internal class ServiceMocks
     public Mock<IOrderCancellationService> OrderCancellation { get; init; } = null!;
     public Mock<IOrderBookService> OrderBook { get; init; } = null!;
     public Mock<IOrderQueryService> OrderQuery { get; init; } = null!;
-    public Mock<IPortfolioQueryService> PortfolioQuery { get; init; } = null!;
-    public Mock<IPortfolioUpdatingService> PortfolioUpdating { get; init; } = null!;
+    public Mock<ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices.IQueryService> PortfolioQuery { get; init; } = null!;
+    public Mock<IUpdatingService> PortfolioUpdating { get; init; } = null!;
     public Mock<ITokenCreationService> TokenCreation { get; init; } = null!;
     public Mock<ITokenQueryService> TokenQuery { get; init; } = null!;
     public Mock<ITokenMediaUpdateService> TokenMediaUpdate { get; init; } = null!;
@@ -233,25 +238,25 @@ internal class ServiceMocks
     public Mock<ITokenService> TokenService { get; init; } = null!;
     public Mock<ITradingVolumeService> TradingVolume { get; init; } = null!;
     public Mock<IMessageSender> MessageSender { get; init; } = null!;
-    public Mock<IGiftSendingService> MailGift { get; init; } = null!;
-    public Mock<IMailMessageService> MailMessage { get; init; } = null!;
-    public Mock<IMailQueryService> MailQuery { get; init; } = null!;
-    public Mock<IMailStatusUpdatingService> MailStatusUpdating { get; init; } = null!;
+    public Mock<ISendingService> MailGift { get; init; } = null!;
+    public Mock<IMessageService> MailMessage { get; init; } = null!;
+    public Mock<ArkWallet.Core.MailContext.Application.Contracts.MailServices.IQueryService> MailQuery { get; init; } = null!;
+    public Mock<IStatusUpdatingService> MailStatusUpdating { get; init; } = null!;
     public Mock<IConfiguration> Configuration { get; init; } = null!;
     public Mock<IMiningGlobalRuleQueryService> MiningGlobalRuleQuery { get; init; } = null!;
-    public Mock<IMiningMachineQueryService> MiningMachineQuery { get; init; } = null!;
+    public Mock<IMachineQueryService> MiningMachineQuery { get; init; } = null!;
     public Mock<IMiningMachineSlotQueryService> MiningMachineSlotQuery { get; init; } = null!;
-    public Mock<IMiningMachineSlotBuyingService> MiningMachineSlotBuying { get; init; } = null!;
-    public Mock<IMiningMachineCreationService> MiningMachineCreation { get; init; } = null!;
-    public Mock<IMiningMachineUpdateService> MiningMachineUpdate { get; init; } = null!;
+    public Mock<IMachineSlotBuyingService> MiningMachineSlotBuying { get; init; } = null!;
+    public Mock<IMachineCreationService> MiningMachineCreation { get; init; } = null!;
+    public Mock<IMachineUpdateService> MiningMachineUpdate { get; init; } = null!;
     public Mock<IMiningMachineRuleCreationService> MiningMachineRuleCreation { get; init; } = null!;
     public Mock<IMiningMachineRuleUpdateService> MiningMachineRuleUpdate { get; init; } = null!;
-    public Mock<IMiningMachineDeletionService> MiningMachineDeletion { get; init; } = null!;
+    public Mock<IMachineDeletionService> MiningMachineDeletion { get; init; } = null!;
     public Mock<IMiningMachineRuleDeletionService> MiningMachineRuleDeletion { get; init; } = null!;
     public Mock<IMiningGlobalRuleUpdateService> MiningGlobalRuleUpdate { get; init; } = null!;
     public Mock<IAppStateQueryService> AppStateQuery { get; init; } = null!;
     public Mock<IMiningMachineSlotSwitchingOrchestrator> MiningMachineSlotSwitchingOrchestrator { get; init; } = null!;
-    public Mock<IMiningMachineCreationOrchestrator> MiningMachineCreationOrchestrator { get; init; } = null!;
+    public Mock<IMachineCreationOrchestrator> MiningMachineCreationOrchestrator { get; init; } = null!;
     public Mock<IMiningMachineSlotTakingTokenOrchestrator> MiningMachineSlotTakingTokenOrchestrator { get; init; } = null!;
     public Mock<IMiningMachineSlotSellingOrchestrator> MiningMachineSlotSellingOrchestrator { get; init; } = null!;
     public Mock<IGlobalGoalQueryService> GlobalGoalQuery { get; init; } = null!;

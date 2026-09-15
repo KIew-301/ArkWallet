@@ -1,14 +1,14 @@
-﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Contracts.Decorators;
-using ArkWallet.Application.Contracts.PortfolioServices;
-using ArkWallet.Application.Contracts.TraderServices;
-using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Core.General.Application.Contracts.Decorators;
+using ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.TraderServices;
+using ArkWallet.Core.General.Domain.ValueObjects;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Presentation.Wizard
 {
     [ExcludeFromCodeCoverage(Justification = "UI-декоратор: форматирование текста вопросов для Telegram-интерфейса. Не содержит бизнес-логики.")]
-    internal class QuestionDecorator(ITokenQueryService tokenQueryService, ITraderQueryService traderQueryService, IPortfolioQueryService portfolioQueryService) : IQuestionDecorator
+    internal class QuestionDecorator(ITokenQueryService tokenQueryService, ITraderQueryService traderQueryService, ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices.IQueryService portfolioQueryService) : IQuestionDecorator
     {
         private const string Buy = "купить";
         private const string Sell = "продать";

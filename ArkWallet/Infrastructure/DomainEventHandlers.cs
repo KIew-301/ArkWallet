@@ -1,8 +1,13 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Services.TradeOrderServices;
-using ArkWallet.Domain.Exceptions;
-using ArkWallet.Domain.TradingContext;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Core.TradingContext.Application.Services.TradeOrderServices;
+using ArkWallet.Core.General.Domain.Exceptions;
+using ArkWallet.Core.TradingContext.Domain.TokenAggregate;
+using ArkWallet.Core.TradingContext.Domain.TraderAggregate;
+using ArkWallet.Core.TradingContext.Domain.TradeAggregate;
+using ArkWallet.Core.TradingContext.Domain.Engines;
+using ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
+using ArkWallet.Core.TradingContext.Domain.Events;
 using ArkWallet.Infrastructure.Data;
 using MediatR;
 

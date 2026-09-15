@@ -1,4 +1,4 @@
-﻿using ArkWallet.Application.Contracts.Other;
+using ArkWallet.Core.General.Application.Contracts.Other;
 using ArkWallet.Infrastructure.AccessControl;
 using ArkWallet.Infrastructure.Wizard;
 using ArkWallet.Presentation.Telegram;
@@ -12,7 +12,7 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 
-using ChatTypeDomain = ArkWallet.Domain.ValueObjects.ChatType;
+using ChatTypeDomain = ArkWallet.Core.General.Domain.ValueObjects.ChatType;
 using ChatTypeTelegram = Telegram.Bot.Types.Enums.ChatType;
 
 namespace ArkWallet.Telegram

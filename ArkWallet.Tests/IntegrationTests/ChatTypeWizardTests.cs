@@ -1,7 +1,9 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.MiningMachineServices;
-using ArkWallet.Application.Dtos;
-using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.General.Application.Dtos;
+using ArkWallet.Core.MiningContext.Application.Dtos;
+using ArkWallet.Core.TradingContext.Application.Dtos;
+using ArkWallet.Core.General.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Wizard;
 using Moq;
 

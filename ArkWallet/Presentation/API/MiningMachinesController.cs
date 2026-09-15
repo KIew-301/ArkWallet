@@ -1,4 +1,4 @@
-using ArkWallet.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.ShoppingContext.Application.Contracts.MiningMachineServices;
 using ArkWallet.Presentation.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,7 +13,7 @@ namespace ArkWallet.Presentation.API;
 [ExcludeFromCodeCoverage(Justification = "API-контроллер: только маршрутизация HTTP-запросов к сервисам. Не содержит бизнес-логики, тестируется интеграционно.")]
 [ApiController]
 [Route("api/v1/[controller]")]
-public class MiningMachinesController(IMiningMachineQueryService miningMachineQueryService) : ControllerBase
+public class MiningMachinesController(IMachineQueryService miningMachineQueryService) : ControllerBase
 {
     /// <summary>
     /// Получение списка майнинг-машин, доступных для покупки

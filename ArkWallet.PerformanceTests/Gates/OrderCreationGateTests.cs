@@ -35,7 +35,6 @@ public class OrderCreationGateTests
         return new OrderCreationService(
             db,
             new TradingEngine(),
-            new OrderValidationService(db),
             new MediatREventPublisher(TestMediatorFactory.Create(db, candleUpdateService)),
             new FakeTaskDispatcher(),
             NullLogger<OrderCreationService>.Instance);

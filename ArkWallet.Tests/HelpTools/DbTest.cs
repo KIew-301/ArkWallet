@@ -1,4 +1,4 @@
-﻿using ArkWallet.Infrastructure.Data;
+using ArkWallet.Infrastructure.Data;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 

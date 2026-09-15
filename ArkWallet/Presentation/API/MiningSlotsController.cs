@@ -1,5 +1,7 @@
-using ArkWallet.Application.Contracts.MiningMachineServices;
-using ArkWallet.Application.Contracts.Orchestrators;
+using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.ShoppingContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.General.Application.Contracts.Orchestrators;
+using ArkWallet.Core.MiningContext.Application.Contracts.Orchestrators;
 using ArkWallet.Presentation.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,7 +18,7 @@ namespace ArkWallet.Presentation.API;
 [Route("api/v1/[controller]")]
 public class MiningSlotsController(
     IMiningMachineSlotQueryService slotQueryService,
-    IMiningMachineSlotBuyingService slotBuyingService,
+    IMachineSlotBuyingService slotBuyingService,
     IMiningMachineSlotSwitchingOrchestrator switchingOrchestrator,
     IMiningMachineSlotTakingTokenOrchestrator takingTokenOrchestrator,
     IMiningMachineSlotSellingOrchestrator sellingOrchestrator) : ControllerBase

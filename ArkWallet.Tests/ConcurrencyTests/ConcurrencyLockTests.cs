@@ -1,15 +1,25 @@
-using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Contracts.Other;
-using ArkWallet.Application.Contracts.TradeOrderServices;
-using ArkWallet.Application.Contracts.MailServices;
-using ArkWallet.Application.Services.TradeOrderServices;
-using ArkWallet.Application.Services.MailServices;
-using ArkWallet.Application.Contracts.GiftServices;
-using ArkWallet.Application.Services.GiftServices;
-using ArkWallet.Domain.Common;
-using ArkWallet.Domain.Engines;
-using ArkWallet.Domain.Entities;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Core.General.Application.Contracts.Other;
+using ArkWallet.Core.TradingContext.Application.Contracts.Other;
+using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
+using ArkWallet.Core.TradingContext.Application.Services.TradeOrderServices;
+using ArkWallet.Core.MailContext.Application.Contracts.MailServices;
+using ArkWallet.Core.MailContext.Application.Services.MailServices;
+using ArkWallet.Core.GiftContext.Application.Contracts.GiftServices;
+using ArkWallet.Core.GiftContext.Application.Services.GiftServices;
+using ArkWallet.Core.General.Domain.Common;
+using ArkWallet.Core.MiningContext.Domain.Engines;
+using ArkWallet.Core.TradingContext.Domain.Engines;
+using ArkWallet.Core.General.Domain.ValueObjects;
+using ArkWallet.Core.TradingContext.Domain.TokenAggregate;
+using ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
+using ArkWallet.Core.TradingContext.Domain.TradeAggregate;
+using ArkWallet.Core.PortfolioContext.Domain.Position;
+using ArkWallet.Core.GiftContext.Domain.User;
+using ArkWallet.Core.MailContext.Domain.Message;
+using ArkWallet.Core.MiningContext.Domain.Machine;
+using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Infrastructure;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Tests.HelpTools;
@@ -302,11 +312,11 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
         await using var waiterTx = await waiter.Database.BeginTransactionAsync();
         await waiter.Database.ExecuteSqlRawAsync("SET LOCAL lock_timeout = '300ms'");
 
-        var service = new GiftSendingService(
+        var service = new SendingService(
             waiter,
             new Mock<ITokenQueryService>().Object,
             new Mock<IEventPublisher>().Object,
-            NullLogger<GiftSendingService>.Instance,
+            NullLogger<SendingService>.Instance,
             new TestTimeProvider());
 
         var blocked = await Assert.ThrowsAsync<PostgresException>(
@@ -341,7 +351,6 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
         return new OrderCreationService(
             db,
             engine,
-            validator.Object,
             new MediatREventPublisher(TestMediatorFactory.Create(db, candle.Object)),
             dispatcher.Object,
             logger);

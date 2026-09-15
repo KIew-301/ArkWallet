@@ -1,15 +1,16 @@
-﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Contracts.Decorators;
-using ArkWallet.Application.Contracts.MiningMachineServices;
-using ArkWallet.Application.Contracts.SuggestionServices;
-using ArkWallet.Application.Contracts.TradeOrderServices;
-using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Core.General.Application.Contracts.Decorators;
+using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.ShoppingContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.SuggestionServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
+using ArkWallet.Core.General.Domain.ValueObjects;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ArkWallet.Presentation.Wizard
 {
     [ExcludeFromCodeCoverage(Justification = "UI-декоратор: форматирование кнопок для Telegram-интерфейса. Не содержит бизнес-логики.")]
-    internal class ButtonDecorator(IOrderQueryService orderQueryService, IPriceSuggestionService priceSuggestionService, IQuantitySuggestionService quantitySuggestionService, ITokenQueryService tokenQueryService, IMiningMachineQueryService miningMachineQueryService, IMiningMachineSlotQueryService miningMachineSlotQueryService) : IButtonDecorator
+    internal class ButtonDecorator(IOrderQueryService orderQueryService, IPriceSuggestionService priceSuggestionService, IQuantitySuggestionService quantitySuggestionService, ITokenQueryService tokenQueryService,     IMachineQueryService miningMachineQueryService, IMiningMachineSlotQueryService miningMachineSlotQueryService) : IButtonDecorator
     {
         public async Task<List<QuickButton>> DecorateButtonsAsync(string stepName, List<QuickButton> baseKeyword, UserSession session)
         {

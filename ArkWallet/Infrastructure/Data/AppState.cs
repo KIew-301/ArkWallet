@@ -1,9 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 
 namespace ArkWallet.Infrastructure.Data;
 
-internal class AppState(string key, string value)
+internal class AppState(string key, string value) : EntityData
 {
     [Key]
     public string Key { get; private set; } = key;
@@ -15,13 +15,8 @@ internal class AppState(string key, string value)
         return new(key, JsonSerializer.Serialize(value));
     }
 
-    public void UpdateValue<T>(T value)
+    public void Update<T>(T value)
     {
         Value = JsonSerializer.Serialize(value);
-    }
-
-    public T? GetValue<T>()
-    {
-        return JsonSerializer.Deserialize<T>(Value);
     }
 }

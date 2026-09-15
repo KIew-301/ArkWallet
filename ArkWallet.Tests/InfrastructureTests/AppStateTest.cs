@@ -1,4 +1,5 @@
 using ArkWallet.Infrastructure.Data;
+using System.Text.Json;
 
 namespace ArkWallet.Tests.InfrastructureTests;
 
@@ -10,7 +11,7 @@ public class AppStateTest
         var state = AppState.Create("testKey", 42);
 
         Assert.Equal("testKey", state.Key);
-        Assert.Equal(42, state.GetValue<int>());
+        Assert.Equal(42, JsonSerializer.Deserialize<int>(state.Value)!);
     }
 
     [Fact]
@@ -18,7 +19,7 @@ public class AppStateTest
     {
         var state = AppState.Create("name", "hello");
 
-        Assert.Equal("hello", state.GetValue<string>());
+        Assert.Equal("hello", JsonSerializer.Deserialize<string>(state.Value)!);
     }
 
     [Fact]
@@ -26,7 +27,7 @@ public class AppStateTest
     {
         var state = AppState.Create("flag", true);
 
-        Assert.True(state.GetValue<bool>());
+        Assert.True(JsonSerializer.Deserialize<bool>(state.Value)!);
     }
 
     [Fact]
@@ -34,7 +35,7 @@ public class AppStateTest
     {
         var state = AppState.Create("amount", 123.45m);
 
-        Assert.Equal(123.45m, state.GetValue<decimal>());
+        Assert.Equal(123.45m, JsonSerializer.Deserialize<decimal>(state.Value)!);
     }
 
     [Fact]
@@ -43,27 +44,27 @@ public class AppStateTest
         var now = new DateTime(2025, 6, 15, 12, 30, 0, DateTimeKind.Utc);
         var state = AppState.Create("date", now);
 
-        Assert.Equal(now, state.GetValue<DateTime>());
+        Assert.Equal(now, JsonSerializer.Deserialize<DateTime>(state.Value)!);
     }
 
     [Fact]
-    public void UpdateValue_OverwritesPreviousValue()
+    public void Update_OverwritesPreviousValue()
     {
         var state = AppState.Create("counter", 1);
 
-        state.UpdateValue(99);
+        state.Update(99);
 
-        Assert.Equal(99, state.GetValue<int>());
+        Assert.Equal(99, JsonSerializer.Deserialize<int>(state.Value)!);
     }
 
     [Fact]
-    public void UpdateValue_ChangesType()
+    public void Update_ChangesType()
     {
         var state = AppState.Create("flex", 42);
 
-        state.UpdateValue("now a string");
+        state.Update("now a string");
 
-        Assert.Equal("now a string", state.GetValue<string>());
+        Assert.Equal("now a string", JsonSerializer.Deserialize<string>(state.Value)!);
     }
 
     [Fact]
@@ -72,7 +73,7 @@ public class AppStateTest
         var data = new List<int> { 1, 2, 3 };
         var state = AppState.Create("list", data);
 
-        var result = state.GetValue<List<int>>();
+        var result = JsonSerializer.Deserialize<List<int>>(state.Value)!;
 
         Assert.NotNull(result);
         Assert.Equal(3, result.Count);

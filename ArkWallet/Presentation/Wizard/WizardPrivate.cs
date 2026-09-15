@@ -1,13 +1,14 @@
-﻿using ArkWallet.Application.Common;
-using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Contracts.MiningMachineServices;
-using ArkWallet.Application.Contracts.Other;
-using ArkWallet.Application.Contracts.TraderServices;
-using ArkWallet.Application.Contracts.TradeOrderServices;
-using ArkWallet.Application.Contracts.TradeServices;
-using ArkWallet.Application.Contracts.PortfolioServices;
-using ArkWallet.Application.Contracts.GlobalGoalServices;
-using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.ShoppingContext.Application.Contracts.MiningMachineServices;
+using ArkWallet.Core.General.Application.Contracts.Other;
+using ArkWallet.Core.TradingContext.Application.Contracts.TraderServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.TradeServices;
+using ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices;
+using ArkWallet.Core.GlobalGoalContext.Application.Contracts.GlobalGoalServices;
+using ArkWallet.Core.General.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Newtonsoft.Json;
 
@@ -992,7 +993,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 if (command == null)
                     return StepResult.Error("Failed to parse machine creation data");
 
-                var result = await _miningMachineCreationService.CreateMachineAsync(command);
+                var result = await _machineCreationService.CreateMachineAsync(command);
 
                 return result.TryGetData(out var data)
                     ? StepResult.Ok("completed", $"Machine '{data.Name}' created (Id: {data.Id}).")
@@ -1033,7 +1034,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 if (commands.Count == 0)
                     return StepResult.Error("No valid machines found in JSON.");
 
-                var result = await _miningMachineCreationOrchestrator.CreateMachinesAsync(commands);
+                var result = await _machineCreationOrchestrator.CreateMachinesAsync(commands);
 
                 if (!result.TryGetData(out var created) || created.Count == 0)
                     return StepResult.Error(result.Message);
@@ -1074,7 +1075,7 @@ namespace ArkWallet.Infrastructure.Wizard
             var machineIds = session.Data[MiningMachineIdsDataKey] as long[]
                 ?? throw new InvalidOperationException("Machines not selected.");
 
-            var result = await _miningMachineDeletionService.DeleteMachinesAsync(machineIds);
+            var result = await _machineDeletionService.DeleteMachinesAsync(machineIds);
 
             return result.IsSuccess
                 ? StepResult.Ok("completed", $"Deleted {machineIds.Length} machines (Ids: {string.Join(", ", machineIds)}).")
@@ -1117,7 +1118,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 var command = new MiningMachineUpdateCommand(
                     machineId, type, switchingTime, reusability, isActiveForSale, image, efficiency);
 
-                var result = await _miningMachineUpdateService.UpdateMachineAsync(command);
+                var result = await _machineUpdateService.UpdateMachineAsync(command);
 
                 return result.IsSuccess
                     ? StepResult.Ok("completed", $"Machine {machineId} updated.")
@@ -1223,7 +1224,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 return StepResult.Ok("completed", "Deletion cancelled.");
 
             var machineId = GetSelectedMiningMachineId(session);
-            var result = await _miningMachineDeletionService.DeleteMachineAsync(machineId);
+            var result = await _machineDeletionService.DeleteMachineAsync(machineId);
 
             return result.IsSuccess
                 ? StepResult.Ok("completed", $"Machine {machineId} deleted.")
@@ -1245,7 +1246,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 return StepResult.Ok("completed", "Deactivation cancelled.");
 
             var machineId = GetSelectedMiningMachineId(session);
-            var result = await _miningMachineDeletionService.DeactivateMachineAsync(machineId);
+            var result = await _machineDeletionService.DeactivateMachineAsync(machineId);
 
             return result.IsSuccess
                 ? StepResult.Ok("completed", $"Machine {machineId} deactivated.")

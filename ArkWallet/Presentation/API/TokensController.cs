@@ -1,4 +1,4 @@
-﻿using ArkWallet.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Presentation.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
