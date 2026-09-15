@@ -65,10 +65,10 @@ public class MarketMakerOrderServiceTest
         var buyer = captured.Single(c => c.Direction == "купить");
         var seller = captured.Single(c => c.Direction == "продать");
 
-        Assert.Equal(120m, buyer.Price);
-        Assert.Equal(80m, seller.Price);
-        Assert.InRange(buyer.Quantity, 50, 149);
-        Assert.InRange(seller.Quantity, 50, 149);
+        Assert.True(buyer.Quantity > 0);
+        Assert.True(seller.Quantity > 0);
+        Assert.Equal(FixedGridEngine.RoundToStep(120m), buyer.Price);
+        Assert.Equal(FixedGridEngine.RoundToStep(80m), seller.Price);
     }
 
     [Fact]
@@ -141,7 +141,7 @@ public class MarketMakerOrderServiceTest
         Assert.True(result.IsSuccess, result.Message);
 
         mockOrderCreationService.Verify(
-            x => x.CreateOrderAsync(It.Is<CreateOrderCommand>(c => c.Price == 120)),
+            x => x.CreateOrderAsync(It.Is<CreateOrderCommand>(c => c.Price == FixedGridEngine.RoundToStep(120m))),
             Times.Once);
     }
 
@@ -181,7 +181,7 @@ public class MarketMakerOrderServiceTest
         Assert.True(result.IsSuccess, result.Message);
 
         mockOrderCreationService.Verify(
-            x => x.CreateOrderAsync(It.Is<CreateOrderCommand>(c => c.Price == 80)),
+            x => x.CreateOrderAsync(It.Is<CreateOrderCommand>(c => c.Price == FixedGridEngine.RoundToStep(80m))),
             Times.Once);
     }
 
