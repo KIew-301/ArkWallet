@@ -6,11 +6,13 @@ namespace ArkWallet.Core.MiningContext.Application.Dtos
     /// </summary>
     /// <param name="TokenIcon">Иконка токена</param>
     /// <param name="Symbol">Символ токена</param>
+    /// <param name="TokenName">Название токена</param>
     /// <param name="MiningSpeed">Скорость майнинга</param>
     /// <param name="Profit">Прибыль (скорость майнинга * текущая цена)</param>
     public record TokensMiningData(
         string TokenIcon,
         string Symbol,
+        string TokenName,
         decimal MiningSpeed,
         decimal Profit);
 
@@ -19,16 +21,18 @@ namespace ArkWallet.Core.MiningContext.Application.Dtos
     /// </summary>
     /// <param name="TokenIcon">Иконка токена</param>
     /// <param name="Symbol">Символ токена</param>
+    /// <param name="TokenName">Название токена</param>
     /// <param name="MiningSpeed">Скорость майнинга</param>
     /// <param name="Profit">Прибыль (скорость майнинга * текущая цена)</param>
     public record ActiveTokenMiningData(
         string TokenIcon,
         string Symbol,
+        string TokenName,
         decimal MiningSpeed,
         decimal Profit)
     {
         /// <summary>Пустые данные активного токена (слот без токена)</summary>
-        public static ActiveTokenMiningData Empty() => new(string.Empty, string.Empty, 0m, 0m);
+        public static ActiveTokenMiningData Empty() => new(string.Empty, string.Empty, string.Empty, 0m, 0m);
     }
 
     /// <summary>

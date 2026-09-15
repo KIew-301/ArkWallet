@@ -65,7 +65,7 @@ internal static class MiningContextMapper
                 machine.Efficiency,
                 globalRule?.BaseTokenMiningSpeed ?? 0m);
             var profit = engine.CalculateProfit(miningSpeed, token.CurrentPrice);
-            var tokenData = new TokensMiningData(token.IconUrl, token.Symbol, miningSpeed, profit);
+            var tokenData = new TokensMiningData(token.IconUrl, token.Symbol, token.Name, miningSpeed, profit);
 
             if (rule.MiningCoefficient >= MiningEngine.EffectiveMiningCoefficientMin
                 && rule.MiningCoefficient <= MiningEngine.EffectiveMiningCoefficientMax)
@@ -123,6 +123,7 @@ internal static class MiningContextMapper
             activeToken = new ActiveTokenMiningData(
                 activeTokenEntity.IconUrl,
                 activeTokenEntity.Symbol,
+                activeTokenEntity.Name,
                 miningSpeed,
                 profit);
         }
@@ -143,7 +144,7 @@ internal static class MiningContextMapper
                 slot.Efficiency,
                 globalRule?.BaseTokenMiningSpeed ?? 0m);
             var profit = engine.CalculateProfit(miningSpeed, token.CurrentPrice);
-            var tokenData = new TokensMiningData(token.IconUrl, token.Symbol, miningSpeed, profit);
+            var tokenData = new TokensMiningData(token.IconUrl, token.Symbol, token.Name, miningSpeed, profit);
 
             if (rule.MiningCoefficient >= MiningEngine.EffectiveMiningCoefficientMin
                 && rule.MiningCoefficient <= MiningEngine.EffectiveMiningCoefficientMax)

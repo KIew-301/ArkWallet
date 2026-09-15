@@ -83,6 +83,7 @@ public class MiningMachineSlotQueryServiceTest
         Assert.Equal(400m, data.Cost);
 
         Assert.Equal("AAA", data.ActiveTokenMiningData.Symbol);
+        Assert.Equal("Token", data.ActiveTokenMiningData.TokenName);
         Assert.Equal(8m, data.ActiveTokenMiningData.MiningSpeed);
         Assert.Equal(800m, data.ActiveTokenMiningData.Profit);
     }
@@ -121,14 +122,17 @@ public class MiningMachineSlotQueryServiceTest
         var data = Assert.Single(slots);
 
         Assert.Equal("AAA", data.ActiveTokenMiningData.Symbol);
+        Assert.Equal("Token", data.ActiveTokenMiningData.TokenName);
         Assert.DoesNotContain(data.EffectiveTokensMiningData, d => d.Symbol == "AAA");
         Assert.DoesNotContain(data.StableTokensMiningData, d => d.Symbol == "AAA");
 
         var effective = Assert.Single(data.EffectiveTokensMiningData);
         Assert.Equal("BBB", effective.Symbol);
+        Assert.Equal("Token", effective.TokenName);
 
         var stable = Assert.Single(data.StableTokensMiningData);
         Assert.Equal("CCC", stable.Symbol);
+        Assert.Equal("Token", stable.TokenName);
     }
 
     [Fact]
