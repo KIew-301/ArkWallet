@@ -28,6 +28,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using ArkWallet.Core.ShoppingContext.Application.Contracts.Orchestrators;
+using ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionServices;
+using ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionPurchaseServices;
 
 namespace ArkWallet.Tests.IntegrationTests;
 
@@ -91,6 +93,8 @@ internal static class WizardEngineTestHelper
 
         var globalGoalQueryService = new Mock<IGlobalGoalQueryService>();
         var globalGoalCreationService = new Mock<IGlobalGoalCreationService>();
+        var subscriptionQueryService = new Mock<ISubscriptionQueryService>();
+        var purchaseService = new Mock<IPurchaseService>();
 
         var configuration = new Mock<IConfiguration>();
         configuration.Setup(c => c["Telegram:AdminId:Main"]).Returns("999999");
@@ -156,6 +160,8 @@ internal static class WizardEngineTestHelper
             miningMachineSlotSellingOrchestrator.Object,
             globalGoalQueryService.Object,
             globalGoalCreationService.Object,
+            subscriptionQueryService.Object,
+            purchaseService.Object,
             config,
             DbTest.CreateDbContext(),
             new AccessControlService()
@@ -208,7 +214,9 @@ internal static class WizardEngineTestHelper
             MiningMachineSlotTakingTokenOrchestrator = miningMachineSlotTakingTokenOrchestrator,
             MiningMachineSlotSellingOrchestrator = miningMachineSlotSellingOrchestrator,
             GlobalGoalQuery = globalGoalQueryService,
-            GlobalGoalCreation = globalGoalCreationService
+            GlobalGoalCreation = globalGoalCreationService,
+            SubscriptionQuery = subscriptionQueryService,
+            PurchaseService = purchaseService
         };
     }
 }
@@ -261,4 +269,6 @@ internal class ServiceMocks
     public Mock<IMiningMachineSlotSellingOrchestrator> MiningMachineSlotSellingOrchestrator { get; init; } = null!;
     public Mock<IGlobalGoalQueryService> GlobalGoalQuery { get; init; } = null!;
     public Mock<IGlobalGoalCreationService> GlobalGoalCreation { get; init; } = null!;
+    public Mock<ISubscriptionQueryService> SubscriptionQuery { get; init; } = null!;
+    public Mock<IPurchaseService> PurchaseService { get; init; } = null!;
 }

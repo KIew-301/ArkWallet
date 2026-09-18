@@ -664,5 +664,45 @@ namespace ArkWallet.Infrastructure.Wizard
 
             return StepResult.Ok("completed", GlobalGoalFormatter.FormatGoals(goals));
         }
+
+        private async Task<StepResult> HandleSubscriptions(UserSession session, string input)
+        {
+            var result = await _subscriptionQueryService.GetAllAsync();
+
+            if (!result.TryGetData(out var subscriptions) || subscriptions == null || subscriptions.Count == 0)
+                return StepResult.Ok("completed", "Подписки временно недоступны.");
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Доступные подписки:");
+            foreach (var s in subscriptions)
+            {
+                sb.AppendLine();
+                sb.AppendLine($"#{s.Id} {s.Name} (уровень {s.Level})");
+                sb.AppendLine($"   Цена: {s.PriceRubles:F2} руб.");
+                sb.AppendLine($"   Макс. ордеров: {s.MaxOrders}");
+                sb.AppendLine($"   Макс. машин: {s.MaxMiningMachines}");
+                sb.AppendLine($"   Срок: {(s.DurationMinutes.HasValue ? s.DurationMinutes.Value + " мин." : "бессрочно")}");
+            }
+            sb.AppendLine();
+            sb.Append("Купить подписку: /buy_subscription <id>");
+            return StepResult.Ok("completed", sb.ToString());
+        }
+
+        private async Task<WizardResult> HandleQuickBuySubscription(long userId, int subscriptionId)
+        {
+            var purchase = await _purchaseService.PurchaseAsync(userId, subscriptionId);
+
+            if (!purchase.Success)
+                return new WizardResult { Message = $"Не удалось купить подписку: {purchase.Message}" };
+
+            var expires = purchase.ExpiresAtUtc.HasValue
+                ? purchase.ExpiresAtUtc.Value.ToString("yyyy-MM-dd HH:mm") + " UTC"
+                : "бессрочно";
+
+            return new WizardResult
+            {
+                Message = $"Подписка оформлена!\nДействует до: {expires}\nТранзакция: {purchase.TransactionId}"
+            };
+        }
     }
 }

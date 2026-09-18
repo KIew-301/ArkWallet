@@ -43,19 +43,19 @@ public class MiningMachineSlotBuyingServiceTest
     public async Task BuyMachineAsync_ValidPurchase_ChargesFullCostAndSavesResalePrice()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
-        var trader = await HelpMethods.RegisterTrader(db, 111);
+        var trader = await HelpMethods.RegisterTrader(db, 2000);
         Assert.True(trader.IsSuccess, trader.Message);
 
         var machine = CreateMachine(db, reusability: 80);
         await db.SaveChangesAsync();
-        await HelpMethods.GiveMoney(db, 111, machine.Cost + 1000);
+        await HelpMethods.GiveMoney(db, 2000, machine.Cost + 1000);
 
-        var result = await CreateService(db).BuyMachineAsync(111, machine.Id);
+        var result = await CreateService(db).BuyMachineAsync(2000, machine.Id);
 
         Assert.True(result.IsSuccess, result.Message);
         Assert.True(result.TryGetData(out var slotId));
 
-        var traderEntity = await HelpMethods.GetTrader(db, 111);
+        var traderEntity = await HelpMethods.GetTrader(db, 2000);
         Assert.Equal(2000m, traderEntity!.Balance);
 
         var slot = await db.MiningMachineSlots.FindAsync(slotId);
@@ -76,7 +76,7 @@ public class MiningMachineSlotBuyingServiceTest
     public async Task BuyMachineAsync_WithRules_CopiesRulesToSlot()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
-        var trader = await HelpMethods.RegisterTrader(db, 111);
+        var trader = await HelpMethods.RegisterTrader(db, 2000);
         Assert.True(trader.IsSuccess, trader.Message);
 
         await HelpMethods.CreateToken(db, "AAA");
@@ -87,9 +87,9 @@ public class MiningMachineSlotBuyingServiceTest
         machine.MiningMachineRules.Add(MiningMachineRule.Create(0, "BBB", 0.7m));
         db.MiningMachines.Add(machine);
         await db.SaveChangesAsync();
-        await HelpMethods.GiveMoney(db, 111, machine.Cost + 1000);
+        await HelpMethods.GiveMoney(db, 2000, machine.Cost + 1000);
 
-        var result = await CreateService(db).BuyMachineAsync(111, machine.Id);
+        var result = await CreateService(db).BuyMachineAsync(2000, machine.Id);
 
         Assert.True(result.IsSuccess, result.Message);
         Assert.True(result.TryGetData(out var slotId));
@@ -107,14 +107,14 @@ public class MiningMachineSlotBuyingServiceTest
     public async Task BuyMachineAsync_InsufficientFunds_ReturnsFail()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
-        var trader = await HelpMethods.RegisterTrader(db, 111);
+        var trader = await HelpMethods.RegisterTrader(db, 2000);
         Assert.True(trader.IsSuccess, trader.Message);
-        await HelpMethods.GiveMoney(db, 111, 300);
+        await HelpMethods.GiveMoney(db, 2000, 300);
 
         var machine = CreateMachine(db);
         await db.SaveChangesAsync();
 
-        var result = await CreateService(db).BuyMachineAsync(111, machine.Id);
+        var result = await CreateService(db).BuyMachineAsync(2000, machine.Id);
 
         Assert.False(result.IsSuccess);
         Assert.Contains("Недостаточно средств", result.Message);
@@ -124,9 +124,9 @@ public class MiningMachineSlotBuyingServiceTest
     public async Task BuyMachineAsync_MoreThanFiveMachines_ReturnsFail()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
-        var trader = await HelpMethods.RegisterTrader(db, 111);
+        var trader = await HelpMethods.RegisterTrader(db, 2000);
         Assert.True(trader.IsSuccess, trader.Message);
-        await HelpMethods.GiveMoney(db, 111, 100000000);
+        await HelpMethods.GiveMoney(db, 2000, 100000000);
 
         var machines = new List<MiningMachine>();
         for (var i = 0; i < 6; i++)
@@ -136,24 +136,24 @@ public class MiningMachineSlotBuyingServiceTest
         var service = CreateService(db);
         for (var i = 0; i < 5; i++)
         {
-            var result = await service.BuyMachineAsync(111, machines[i].Id);
+            var result = await service.BuyMachineAsync(2000, machines[i].Id);
             Assert.True(result.IsSuccess, $"Purchase #{i}: {result.Message}");
         }
 
-        var sixth = await service.BuyMachineAsync(111, machines[5].Id);
+        var sixth = await service.BuyMachineAsync(2000, machines[5].Id);
 
         Assert.False(sixth.IsSuccess);
         Assert.Contains("5", sixth.Message);
-        Assert.Equal(5, await db.MiningMachineSlots.CountAsync(s => s.TraderId == 111));
+        Assert.Equal(5, await db.MiningMachineSlots.CountAsync(s => s.TraderId == 2000));
     }
 
     [Fact]
     public async Task BuyMachineAsync_TenMachinesButOneSold_AllowsPurchase()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
-        var trader = await HelpMethods.RegisterTrader(db, 111);
+        var trader = await HelpMethods.RegisterTrader(db, 2000);
         Assert.True(trader.IsSuccess, trader.Message);
-        await HelpMethods.GiveMoney(db, 111, 100000000);
+        await HelpMethods.GiveMoney(db, 2000, 100000000);
 
         var machines = new List<MiningMachine>();
         for (var i = 0; i < 6; i++)
@@ -163,56 +163,56 @@ public class MiningMachineSlotBuyingServiceTest
         var service = CreateService(db);
         for (var i = 0; i < 5; i++)
         {
-            var result = await service.BuyMachineAsync(111, machines[i].Id);
+            var result = await service.BuyMachineAsync(2000, machines[i].Id);
             Assert.True(result.IsSuccess, result.Message);
         }
 
-        var soldSlot = await db.MiningMachineSlots.FirstAsync(s => s.TraderId == 111);
+        var soldSlot = await db.MiningMachineSlots.FirstAsync(s => s.TraderId == 2000);
         var sm = MiningContextMapper.MachineFrom(soldSlot);
         sm.Sell(new TestTimeProvider());
         soldSlot.Update(sm);
         await db.SaveChangesAsync();
 
-        var afterSell = await service.BuyMachineAsync(111, machines[5].Id);
+        var afterSell = await service.BuyMachineAsync(2000, machines[5].Id);
 
         Assert.True(afterSell.IsSuccess, afterSell.Message);
-        Assert.Equal(5, await db.MiningMachineSlots.CountAsync(s => s.TraderId == 111 && s.Status != MiningMachineSlotStatus.Sold));
+        Assert.Equal(5, await db.MiningMachineSlots.CountAsync(s => s.TraderId == 2000 && s.Status != MiningMachineSlotStatus.Sold));
     }
 
     [Fact]
     public async Task BuyMachineAsync_AlreadyOwned_ReturnsFail()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
-        var trader = await HelpMethods.RegisterTrader(db, 111);
+        var trader = await HelpMethods.RegisterTrader(db, 2000);
         Assert.True(trader.IsSuccess, trader.Message);
-        await HelpMethods.GiveMoney(db, 111, 10000);
+        await HelpMethods.GiveMoney(db, 2000, 10000);
 
         var machine = CreateMachine(db, efficiency: 0.003m);
         await db.SaveChangesAsync();
 
         var service = CreateService(db);
-        var first = await service.BuyMachineAsync(111, machine.Id);
+        var first = await service.BuyMachineAsync(2000, machine.Id);
         Assert.True(first.IsSuccess, first.Message);
 
-        var second = await service.BuyMachineAsync(111, machine.Id);
+        var second = await service.BuyMachineAsync(2000, machine.Id);
 
         Assert.False(second.IsSuccess);
         Assert.Contains("уже есть такая машина", second.Message);
-        Assert.Single(await db.MiningMachineSlots.Where(s => s.TraderId == 111).ToListAsync());
+        Assert.Single(await db.MiningMachineSlots.Where(s => s.TraderId == 2000).ToListAsync());
     }
 
     [Fact]
     public async Task BuyMachineAsync_MachineNotForSale_ReturnsFail()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
-        var trader = await HelpMethods.RegisterTrader(db, 111);
+        var trader = await HelpMethods.RegisterTrader(db, 2000);
         Assert.True(trader.IsSuccess, trader.Message);
-        await HelpMethods.GiveMoney(db, 111, 10000);
+        await HelpMethods.GiveMoney(db, 2000, 10000);
 
         var machine = CreateMachine(db, isActiveForSale: false);
         await db.SaveChangesAsync();
 
-        var result = await CreateService(db).BuyMachineAsync(111, machine.Id);
+        var result = await CreateService(db).BuyMachineAsync(2000, machine.Id);
 
         Assert.False(result.IsSuccess);
         Assert.Contains("недоступна", result.Message);
@@ -222,11 +222,11 @@ public class MiningMachineSlotBuyingServiceTest
     public async Task BuyMachineAsync_MachineNotFound_ReturnsFail()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
-        var trader = await HelpMethods.RegisterTrader(db, 111);
+        var trader = await HelpMethods.RegisterTrader(db, 2000);
         Assert.True(trader.IsSuccess, trader.Message);
-        await HelpMethods.GiveMoney(db, 111, 10000);
+        await HelpMethods.GiveMoney(db, 2000, 10000);
 
-        var result = await CreateService(db).BuyMachineAsync(111, 999);
+        var result = await CreateService(db).BuyMachineAsync(2000, 999);
 
         Assert.False(result.IsSuccess);
         Assert.Contains("не существует", result.Message);
@@ -249,16 +249,16 @@ public class MiningMachineSlotBuyingServiceTest
     public async Task BuyMachineAsync_BalanceNotChangedOnFailure()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
-        var trader = await HelpMethods.RegisterTrader(db, 111);
+        var trader = await HelpMethods.RegisterTrader(db, 2000);
         Assert.True(trader.IsSuccess, trader.Message);
-        await HelpMethods.GiveMoney(db, 111, 300);
+        await HelpMethods.GiveMoney(db, 2000, 300);
 
         var machine = CreateMachine(db);
         await db.SaveChangesAsync();
 
-        await CreateService(db).BuyMachineAsync(111, machine.Id);
+        await CreateService(db).BuyMachineAsync(2000, machine.Id);
 
-        var traderEntity = await HelpMethods.GetTrader(db, 111);
+        var traderEntity = await HelpMethods.GetTrader(db, 2000);
         Assert.Equal(1300m, traderEntity!.Balance);
         Assert.Empty(await db.MiningMachineSlots.ToListAsync());
     }

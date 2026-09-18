@@ -11,6 +11,7 @@ using ArkWallet.Core.GlobalGoalContext.Application.Contracts.GlobalGoalServices;
 using ArkWallet.Core.General.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Newtonsoft.Json;
+using Microsoft.EntityFrameworkCore;
 
 namespace ArkWallet.Infrastructure.Wizard
 {
@@ -1503,6 +1504,65 @@ namespace ArkWallet.Infrastructure.Wizard
             {
                 return StepResult.Error($"Ошибка: {ex.Message}");
             }
+        }
+
+        private async Task<WizardResult> HandleQuickAdminCreateSubscription(long userId, string raw)
+        {
+            if (userId != _primaryAdminId)
+                return new WizardResult { Message = "This command is available to Admin_Main only." };
+
+            var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(raw);
+            if (data == null || !data.ContainsKey("name") || !data.ContainsKey("level")
+                || !data.ContainsKey("priceRubles") || !data.ContainsKey("maxOrders")
+                || !data.ContainsKey("maxMiningMachines"))
+                return new WizardResult { Message = "Required fields: name, level, priceRubles, maxOrders, maxMiningMachines, durationMinutes (optional)." };
+
+            var subscription = new Subscription
+            {
+                Name = Convert.ToString(data["name"]),
+                Level = Convert.ToInt32(data["level"]),
+                PriceRubles = Convert.ToDecimal(data["priceRubles"]),
+                MaxOrders = Convert.ToInt32(data["maxOrders"]),
+                MaxMiningMachines = Convert.ToInt32(data["maxMiningMachines"]),
+                DurationMinutes = data.ContainsKey("durationMinutes")
+                    ? (int?)Convert.ToInt32(data["durationMinutes"])
+                    : null
+            };
+
+            _dbContext.Subscriptions.Add(subscription);
+            await _dbContext.SaveChangesAsync();
+
+            return new WizardResult { Message = $"Subscription \"{subscription.Name}\" (Id: {subscription.Id}) created." };
+        }
+
+        private async Task<WizardResult> HandleQuickAdminSetTraderSubscription(long userId, string raw)
+        {
+            if (userId != _primaryAdminId)
+                return new WizardResult { Message = "This command is available to Admin_Main only." };
+
+            var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(raw);
+            if (data == null || !data.ContainsKey("telegramId") || !data.ContainsKey("subscriptionId"))
+                return new WizardResult { Message = "Required fields: telegramId, subscriptionId." };
+
+            long traderId = Convert.ToInt64(data["telegramId"]);
+            int subscriptionId = Convert.ToInt32(data["subscriptionId"]);
+
+            var trader = await _dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
+            if (trader == null)
+                return new WizardResult { Message = $"Trader {traderId} not found." };
+
+            var subscription = await _dbContext.Subscriptions.FirstOrDefaultAsync(s => s.Id == subscriptionId);
+            if (subscription == null)
+                return new WizardResult { Message = $"Subscription {subscriptionId} not found." };
+
+            trader.SubscriptionId = subscriptionId;
+            trader.SubscriptionExpiresAtUtc = subscription.DurationMinutes.HasValue
+                ? DateTime.UtcNow.AddMinutes(subscription.DurationMinutes.Value)
+                : (DateTime?)null;
+
+            await _dbContext.SaveChangesAsync();
+
+            return new WizardResult { Message = $"Subscription #{subscriptionId} assigned to trader {traderId}." };
         }
     }
 }
