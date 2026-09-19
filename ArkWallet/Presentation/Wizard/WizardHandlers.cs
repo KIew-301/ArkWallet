@@ -3,6 +3,7 @@ using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
 using ArkWallet.Core.TradingContext.Application.Contracts.TradeServices;
 using ArkWallet.Core.General.Domain.ValueObjects;
 using Microsoft.CodeAnalysis;
+using ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionPurchaseServices;
 
 namespace ArkWallet.Infrastructure.Wizard
 {
@@ -678,19 +679,21 @@ namespace ArkWallet.Infrastructure.Wizard
             {
                 sb.AppendLine();
                 sb.AppendLine($"#{s.Id} {s.Name} (уровень {s.Level})");
-                sb.AppendLine($"   Цена: {s.PriceRubles:F2} руб.");
+                sb.AppendLine($"   Неделя: {s.PriceWeekRubles:F2} руб.");
+                sb.AppendLine($"   Месяц: {s.PriceMonthRubles:F2} руб.");
+                sb.AppendLine($"   Год: {s.PriceYearRubles:F2} руб.");
                 sb.AppendLine($"   Макс. ордеров: {s.MaxOrders}");
                 sb.AppendLine($"   Макс. машин: {s.MaxMiningMachines}");
                 sb.AppendLine($"   Срок: {(s.DurationMinutes.HasValue ? s.DurationMinutes.Value + " мин." : "бессрочно")}");
             }
             sb.AppendLine();
-            sb.Append("Купить подписку: /buy_subscription <id>");
+            sb.Append("Купить подписку: /buy_subscription <id> <неделя|месяц|год>");
             return StepResult.Ok("completed", sb.ToString());
         }
 
-        private async Task<WizardResult> HandleQuickBuySubscription(long userId, int subscriptionId)
+        private async Task<WizardResult> HandleQuickBuySubscription(long userId, int subscriptionId, SubscriptionPeriod period)
         {
-            var purchase = await _purchaseService.PurchaseAsync(userId, subscriptionId);
+            var purchase = await _purchaseService.PurchaseAsync(userId, subscriptionId, period);
 
             if (!purchase.Success)
                 return new WizardResult { Message = $"Не удалось купить подписку: {purchase.Message}" };
@@ -701,7 +704,7 @@ namespace ArkWallet.Infrastructure.Wizard
 
             return new WizardResult
             {
-                Message = $"Подписка оформлена!\nДействует до: {expires}\nТранзакция: {purchase.TransactionId}"
+                Message = $"Подписка оформлена на {period.ToDisplayName()}!\nДействует до: {expires}\nТранзакция: {purchase.TransactionId}"
             };
         }
     }

@@ -6,7 +6,10 @@ namespace ArkWallet.Core.SubscriptionContext.Application.Dtos;
 /// <param name="Id">Идентификатор подписки.</param>
 /// <param name="Name">Название подписки.</param>
 /// <param name="Level">Уровень подписки.</param>
-/// <param name="PriceRubles">Стоимость в рублях.</param>
+/// <param name="PriceRubles">Базовая стоимость в рублях (legacy).</param>
+/// <param name="PriceWeekRubles">Стоимость подписки на неделю в рублях.</param>
+/// <param name="PriceMonthRubles">Стоимость подписки на месяц в рублях.</param>
+/// <param name="PriceYearRubles">Стоимость подписки на год в рублях.</param>
 /// <param name="MaxOrders">Максимальное количество ордеров.</param>
 /// <param name="MaxMiningMachines">Максимальное количество майнинг-машин.</param>
 /// <param name="DurationMinutes">Длительность подписки в минутах (null — бессрочная).</param>
@@ -15,6 +18,9 @@ public record SubscriptionInfo(
     string Name,
     int Level,
     decimal PriceRubles,
+    decimal PriceWeekRubles,
+    decimal PriceMonthRubles,
+    decimal PriceYearRubles,
     int MaxOrders,
     int MaxMiningMachines,
     int? DurationMinutes);

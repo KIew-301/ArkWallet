@@ -404,8 +404,12 @@ namespace ArkWallet.Infrastructure.Wizard
                 if (inp.StartsWith("/buy_subscription "))
                 {
                     var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == 2 && int.TryParse(parts[1], out var subscriptionId))
-                        return await HandleQuickBuySubscription(uid, subscriptionId);
+                    if (parts.Length == 3
+                        && int.TryParse(parts[1], out var subscriptionId)
+                        && TryParseSubscriptionPeriod(parts[2], out var period))
+                        return await HandleQuickBuySubscription(uid, subscriptionId, period);
+
+                    return new WizardResult { Message = "Формат: /buy_subscription <id> <неделя|месяц|год>" };
                 }
 
                 if (inp.StartsWith("/admin_create_subscription "))
@@ -616,6 +620,31 @@ namespace ArkWallet.Infrastructure.Wizard
         private static List<QuickButton>? FilterButtonsForGroup(List<QuickButton>? buttons)
         {
             return null;
+        }
+
+        /// <summary>
+        /// Пытается распознать период подписки из текстового аргумента (неделя/месяц/год или week/month/year).
+        /// </summary>
+        private static bool TryParseSubscriptionPeriod(string token, out SubscriptionPeriod period)
+        {
+            switch (token.Trim().ToLowerInvariant())
+            {
+                case "week":
+                case "неделя":
+                    period = SubscriptionPeriod.Week;
+                    return true;
+                case "month":
+                case "месяц":
+                    period = SubscriptionPeriod.Month;
+                    return true;
+                case "year":
+                case "год":
+                    period = SubscriptionPeriod.Year;
+                    return true;
+                default:
+                    period = default;
+                    return false;
+            }
         }
     }
 }

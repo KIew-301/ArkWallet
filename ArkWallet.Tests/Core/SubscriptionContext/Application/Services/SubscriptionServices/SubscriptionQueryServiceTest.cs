@@ -15,7 +15,7 @@ public class SubscriptionQueryServiceTest
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
         db.Subscriptions.Add(new Subscription { Name = "Базовая", Level = 1, PriceRubles = 0, MaxOrders = 5, MaxMiningMachines = 5, DurationMinutes = null });
-        db.Subscriptions.Add(new Subscription { Name = "Премиум", Level = 2, PriceRubles = 100, MaxOrders = 20, MaxMiningMachines = 20, DurationMinutes = 10080 });
+        db.Subscriptions.Add(new Subscription { Name = "Премиум", Level = 2, PriceRubles = 100, PriceWeekRubles = 30, PriceMonthRubles = 90, PriceYearRubles = 900, MaxOrders = 20, MaxMiningMachines = 20, DurationMinutes = 10080 });
         await db.SaveChangesAsync();
 
         var result = await CreateService(db).GetAllAsync();
@@ -23,7 +23,7 @@ public class SubscriptionQueryServiceTest
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var subs));
         Assert.Equal(2, subs.Count);
-        Assert.Contains(subs, s => s.Name == "Премиум" && s.Level == 2 && s.PriceRubles == 100 && s.MaxOrders == 20 && s.DurationMinutes == 10080);
+        Assert.Contains(subs, s => s.Name == "Премиум" && s.Level == 2 && s.PriceRubles == 100 && s.PriceWeekRubles == 30 && s.PriceMonthRubles == 90 && s.PriceYearRubles == 900 && s.MaxOrders == 20 && s.DurationMinutes == 10080);
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class SubscriptionQueryServiceTest
     public async Task GetByIdAsync_Existing_ReturnsSubscription()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
-        var sub = new Subscription { Name = "Базовая", Level = 1, PriceRubles = 0, MaxOrders = 5, MaxMiningMachines = 5, DurationMinutes = null };
+        var sub = new Subscription { Name = "Базовая", Level = 1, PriceRubles = 0, PriceMonthRubles = 120, MaxOrders = 5, MaxMiningMachines = 5, DurationMinutes = null };
         db.Subscriptions.Add(sub);
         await db.SaveChangesAsync();
 
@@ -52,6 +52,7 @@ public class SubscriptionQueryServiceTest
         Assert.True(result.TryGetData(out var info));
         Assert.Equal(sub.Id, info!.Id);
         Assert.Equal("Базовая", info.Name);
+        Assert.Equal(120, info.PriceMonthRubles);
     }
 
     [Fact]
@@ -80,7 +81,7 @@ public class SubscriptionQueryServiceTest
     public async Task GetBasicAsync_HasLevelOne_ReturnsIt()
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
-        var sub = new Subscription { Name = "Базовая", Level = 1, PriceRubles = 0, MaxOrders = 5, MaxMiningMachines = 5, DurationMinutes = null };
+        var sub = new Subscription { Name = "Базовая", Level = 1, PriceRubles = 0, PriceMonthRubles = 120, MaxOrders = 5, MaxMiningMachines = 5, DurationMinutes = null };
         db.Subscriptions.Add(sub);
         await db.SaveChangesAsync();
 
@@ -88,6 +89,7 @@ public class SubscriptionQueryServiceTest
 
         Assert.NotNull(basic);
         Assert.Equal("Базовая", basic!.Name);
+        Assert.Equal(120, basic.PriceMonthRubles);
         Assert.Null(basic.DurationMinutes);
     }
 }

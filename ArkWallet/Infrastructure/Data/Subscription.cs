@@ -10,6 +10,9 @@ namespace ArkWallet.Infrastructure.Data
         public string Name { get; set; } = string.Empty;
         public int Level { get; set; }
         public decimal PriceRubles { get; set; }
+        public decimal PriceWeekRubles { get; set; }
+        public decimal PriceMonthRubles { get; set; }
+        public decimal PriceYearRubles { get; set; }
         public int MaxOrders { get; set; }
         public int MaxMiningMachines { get; set; }
         public int? DurationMinutes { get; set; }

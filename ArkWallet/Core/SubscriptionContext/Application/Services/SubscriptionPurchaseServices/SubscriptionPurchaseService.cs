@@ -2,8 +2,8 @@ using ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionPurch
 using ArkWallet.Core.SubscriptionContext.Application.Dtos;
 using ArkWallet.Core.General.Domain.Common;
 using ArkWallet.Core.SubscriptionContext.Application.Events;
-using ArkWallet.Infrastructure.Data;
 using ArkWallet.Core.SubscriptionContext.Application.Contracts.PaymentServices;
+using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -16,7 +16,7 @@ internal class SubscriptionPurchaseService(
     TimeProvider timeProvider,
     ILogger<SubscriptionPurchaseService> logger) : IPurchaseService
 {
-    public async Task<PurchaseResult> PurchaseAsync(long traderTelegramId, int subscriptionId, CancellationToken cancellationToken = default)
+    public async Task<PurchaseResult> PurchaseAsync(long traderTelegramId, int subscriptionId, SubscriptionPeriod period, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -34,20 +34,22 @@ internal class SubscriptionPurchaseService(
             if (currentActive is not null && sub.Level < currentActive.Level)
                 return PurchaseResult.Fail("Нельзя приобрести подписку уровня ниже активной");
 
+            decimal amount = GetPrice(sub, period);
+
             var paymentResult = await payment.CreatePaymentAsync(
                 new PaymentRequest
                 {
                     TraderTelegramId = traderTelegramId,
-                    AmountRubles = sub.PriceRubles,
+                    AmountRubles = amount,
                     SubscriptionId = sub.Id,
-                    Description = $"Покупка подписки {sub.Name}"
+                    Description = $"Покупка подписки {sub.Name} на {period.ToDisplayName()}"
                 },
                 cancellationToken);
 
             if (!paymentResult.IsSuccess)
                 return PurchaseResult.Fail("Платеж не прошел");
 
-            var expiry = ResolveExpiry(sub, currentActive, trader, now);
+            var expiry = ResolveExpiry(sub, currentActive, trader, period, now);
 
             trader.SubscriptionId = sub.Id;
             trader.SubscriptionExpiresAtUtc = expiry;
@@ -56,7 +58,7 @@ internal class SubscriptionPurchaseService(
             {
                 TraderId = traderTelegramId,
                 SubscriptionId = sub.Id,
-                PriceRubles = sub.PriceRubles,
+                PriceRubles = amount,
                 PurchasedAtUtc = now,
                 ExpiresAtUtc = expiry,
                 TransactionId = paymentResult.TransactionId
@@ -67,7 +69,7 @@ internal class SubscriptionPurchaseService(
 
             await eventPublisher.PublishAsync(new TraderSubscriptionChangedEvent(traderTelegramId), cancellationToken);
 
-            return new PurchaseResult(true, "Подписка приобретена", paymentResult.TransactionId, expiry);
+            return new PurchaseResult(true, $"Подписка приобретена на {period.ToDisplayName()}", paymentResult.TransactionId, expiry);
         }
         catch (Exception ex)
         {
@@ -86,16 +88,40 @@ internal class SubscriptionPurchaseService(
         return isActive ? current : null;
     }
 
-    private static DateTime? ResolveExpiry(Subscription target, Subscription? currentActive, Trader trader, DateTime now)
+    private static DateTime? ResolveExpiry(Subscription target, Subscription? currentActive, Trader trader, SubscriptionPeriod period, DateTime now)
     {
-        if (currentActive is not null
-            && target.Level == currentActive.Level
-            && trader.SubscriptionExpiresAtUtc.HasValue
-            && target.DurationMinutes.HasValue)
-        {
-            return trader.SubscriptionExpiresAtUtc.Value.AddMinutes(target.DurationMinutes.Value);
-        }
+        if (target.DurationMinutes is null)
+            return null;
 
-        return target.DurationMinutes.HasValue ? now.AddMinutes(target.DurationMinutes.Value) : null;
+        var duration = period.GetDurationMinutes();
+
+        if (currentActive is not null && target.Level == currentActive.Level && trader.SubscriptionExpiresAtUtc.HasValue)
+            return trader.SubscriptionExpiresAtUtc.Value.AddMinutes(duration);
+
+        if (currentActive is not null && target.Level > currentActive.Level)
+            return now.AddMinutes(duration + ComputeUpgradeBonusMinutes(trader, currentActive, target, now));
+
+        return now.AddMinutes(duration);
+    }
+
+    private static decimal GetPrice(Subscription sub, SubscriptionPeriod period) => period switch
+    {
+        SubscriptionPeriod.Week => sub.PriceWeekRubles,
+        SubscriptionPeriod.Month => sub.PriceMonthRubles,
+        SubscriptionPeriod.Year => sub.PriceYearRubles,
+        _ => throw new ArgumentOutOfRangeException(nameof(period), period, null)
+    };
+
+    private static int ComputeUpgradeBonusMinutes(Trader trader, Subscription currentActive, Subscription target, DateTime now)
+    {
+        if (!trader.SubscriptionExpiresAtUtc.HasValue || target.PriceMonthRubles <= 0)
+            return 0;
+
+        var remaining = trader.SubscriptionExpiresAtUtc.Value - now;
+        if (remaining <= TimeSpan.Zero)
+            return 0;
+
+        var ratio = currentActive.PriceMonthRubles / target.PriceMonthRubles;
+        return (int)Math.Floor((decimal)remaining.TotalMinutes * ratio);
     }
 }

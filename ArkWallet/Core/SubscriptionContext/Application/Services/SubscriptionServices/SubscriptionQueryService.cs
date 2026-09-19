@@ -19,6 +19,9 @@ internal class SubscriptionQueryService(ArkWalletDbContext dbContext, ILogger<Su
                     s.Name,
                     s.Level,
                     s.PriceRubles,
+                    s.PriceWeekRubles,
+                    s.PriceMonthRubles,
+                    s.PriceYearRubles,
                     s.MaxOrders,
                     s.MaxMiningMachines,
                     s.DurationMinutes))
@@ -42,6 +45,9 @@ internal class SubscriptionQueryService(ArkWalletDbContext dbContext, ILogger<Su
             sub.Name,
             sub.Level,
             sub.PriceRubles,
+            sub.PriceWeekRubles,
+            sub.PriceMonthRubles,
+            sub.PriceYearRubles,
             sub.MaxOrders,
             sub.MaxMiningMachines,
             sub.DurationMinutes);
@@ -62,6 +68,9 @@ internal class SubscriptionQueryService(ArkWalletDbContext dbContext, ILogger<Su
                 sub.Name,
                 sub.Level,
                 sub.PriceRubles,
+                sub.PriceWeekRubles,
+                sub.PriceMonthRubles,
+                sub.PriceYearRubles,
                 sub.MaxOrders,
                 sub.MaxMiningMachines,
                 sub.DurationMinutes));

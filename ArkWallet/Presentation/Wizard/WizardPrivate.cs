@@ -1513,15 +1513,19 @@ namespace ArkWallet.Infrastructure.Wizard
 
             var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(raw);
             if (data == null || !data.ContainsKey("name") || !data.ContainsKey("level")
-                || !data.ContainsKey("priceRubles") || !data.ContainsKey("maxOrders")
+                || !data.ContainsKey("priceWeekRubles") || !data.ContainsKey("priceMonthRubles")
+                || !data.ContainsKey("priceYearRubles") || !data.ContainsKey("maxOrders")
                 || !data.ContainsKey("maxMiningMachines"))
-                return new WizardResult { Message = "Required fields: name, level, priceRubles, maxOrders, maxMiningMachines, durationMinutes (optional)." };
+                return new WizardResult { Message = "Required fields: name, level, priceWeek/Month/YearRubles, maxOrders, maxMiningMachines, durationMinutes (optional)." };
 
             var subscription = new Subscription
             {
                 Name = Convert.ToString(data["name"]),
                 Level = Convert.ToInt32(data["level"]),
-                PriceRubles = Convert.ToDecimal(data["priceRubles"]),
+                PriceWeekRubles = Convert.ToDecimal(data["priceWeekRubles"]),
+                PriceMonthRubles = Convert.ToDecimal(data["priceMonthRubles"]),
+                PriceYearRubles = Convert.ToDecimal(data["priceYearRubles"]),
+                PriceRubles = data.ContainsKey("priceRubles") ? Convert.ToDecimal(data["priceRubles"]) : 0m,
                 MaxOrders = Convert.ToInt32(data["maxOrders"]),
                 MaxMiningMachines = Convert.ToInt32(data["maxMiningMachines"]),
                 DurationMinutes = data.ContainsKey("durationMinutes")
