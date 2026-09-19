@@ -132,4 +132,25 @@ public class SubscriptionPurchaseServiceTest
         Assert.Equal(sub.Id, trader.SubscriptionId);
         Assert.Null(trader.SubscriptionExpiresAtUtc);
     }
+
+    [Fact]
+    public async Task PurchaseAsync_WhenPaymentThrows_ReturnsFail()
+    {
+        await using var db = await DbTest.CreateInitializedDbContextAsync();
+        await HelpMethods.RegisterTrader(db, 3000);
+        var sub = new Subscription { Name = "Премиум", Level = 2, PriceRubles = 100, MaxOrders = 20, MaxMiningMachines = 20, DurationMinutes = 10080 };
+        db.Subscriptions.Add(sub);
+        await db.SaveChangesAsync();
+
+        var payment = new Mock<IPaymentIntegrationService>();
+        payment.Setup(p => p.CreatePaymentAsync(It.IsAny<PaymentRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("payment error"));
+        var publisher = new Mock<IEventPublisher>();
+        var service = CreateService(db, payment.Object, publisher.Object, new TestTimeProvider());
+
+        var result = await service.PurchaseAsync(3000, sub.Id);
+
+        Assert.False(result.Success);
+        Assert.Contains("payment error", result.Message);
+    }
 }

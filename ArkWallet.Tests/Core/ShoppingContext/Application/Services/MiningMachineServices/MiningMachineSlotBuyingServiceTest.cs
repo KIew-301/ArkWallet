@@ -262,4 +262,45 @@ public class MiningMachineSlotBuyingServiceTest
         Assert.Equal(1300m, traderEntity!.Balance);
         Assert.Empty(await db.MiningMachineSlots.ToListAsync());
     }
+
+    [Fact]
+    public async Task BuyMachine_WithActiveSubscription_AllowsMoreThanFreeTierLimit()
+    {
+        await using var db = await DbTest.CreateInitializedDbContextAsync();
+        var trader = await HelpMethods.RegisterTrader(db, 2001);
+        Assert.True(trader.IsSuccess, trader.Message);
+        await HelpMethods.GiveMoney(db, 2001, 100000000);
+
+        var sub = new ArkWallet.Infrastructure.Data.Subscription
+        {
+            Id = 88,
+            Name = "Pro",
+            Level = 1,
+            PriceRubles = 100m,
+            MaxOrders = 10,
+            MaxMiningMachines = 7,
+            DurationMinutes = 43200
+        };
+        db.Subscriptions.Add(sub);
+        await db.SaveChangesAsync();
+
+        var traderEntity = await HelpMethods.GetTrader(db, 2001);
+        traderEntity.SubscriptionId = sub.Id;
+        traderEntity.SubscriptionExpiresAtUtc = new DateTime(2999, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        await db.SaveChangesAsync();
+
+        var machines = new List<MiningMachine>();
+        for (var i = 0; i < 6; i++)
+            machines.Add(CreateMachine(db, efficiency: CategoryEfficiencies[i]));
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        for (var i = 0; i < 6; i++)
+        {
+            var result = await service.BuyMachineAsync(2001, machines[i].Id);
+            Assert.True(result.IsSuccess, $"Purchase #{i + 1}: {result.Message}");
+        }
+
+        Assert.Equal(6, await db.MiningMachineSlots.CountAsync(s => s.TraderId == 2001));
+    }
 }
