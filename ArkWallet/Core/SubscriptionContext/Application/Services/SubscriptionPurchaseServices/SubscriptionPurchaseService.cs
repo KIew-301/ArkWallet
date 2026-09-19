@@ -28,6 +28,21 @@ internal class SubscriptionPurchaseService(
             if (trader is null)
                 return PurchaseResult.Fail("Трейдер не найден");
 
+            DateTime now = timeProvider.GetUtcNow().UtcDateTime;
+            // Текущая активная подписка трейдера.
+            Subscription? currentActive = null;
+            if (trader.SubscriptionId.HasValue)
+            {
+                currentActive = await dbContext.Subscriptions
+                    .FirstOrDefaultAsync(s => s.Id == trader.SubscriptionId.Value, cancellationToken);
+                var isActive = currentActive is not null
+                    && (trader.SubscriptionExpiresAtUtc is null || trader.SubscriptionExpiresAtUtc.Value > now);
+                if (!isActive) currentActive = null;
+            }
+            // Запрет покупки уровня ниже активной — до оплаты, чтобы не списывать деньги.
+            if (currentActive is not null && sub.Level < currentActive.Level)
+                return PurchaseResult.Fail("Нельзя приобрести подписку уровня ниже активной");
+
             var paymentResult = await payment.CreatePaymentAsync(
                 new PaymentRequest
                 {
@@ -41,10 +56,19 @@ internal class SubscriptionPurchaseService(
             if (!paymentResult.IsSuccess)
                 return PurchaseResult.Fail("Платеж не прошел");
 
-            DateTime now = timeProvider.GetUtcNow().UtcDateTime;
-            DateTime? expiry = sub.DurationMinutes.HasValue
-                ? now.AddMinutes(sub.DurationMinutes.Value)
-                : (DateTime?)null;
+            // Продление того же уровня: остаток срока складывается с новым периодом.
+            DateTime? expiry;
+            if (currentActive is not null
+                && sub.Level == currentActive.Level
+                && trader.SubscriptionExpiresAtUtc.HasValue
+                && sub.DurationMinutes.HasValue)
+            {
+                expiry = trader.SubscriptionExpiresAtUtc.Value.AddMinutes(sub.DurationMinutes.Value);
+            }
+            else
+            {
+                expiry = sub.DurationMinutes.HasValue ? now.AddMinutes(sub.DurationMinutes.Value) : (DateTime?)null;
+            }
 
             trader.SubscriptionId = sub.Id;
             trader.SubscriptionExpiresAtUtc = expiry;

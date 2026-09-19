@@ -14,7 +14,9 @@ internal class SubscriptionExpiryService(
     ILogger<SubscriptionExpiryService> logger) : ISubscriptionExpiryService
 {
     /// <summary>
-    /// Переводит истёкших трейдеров на базовую (бессрочную) подписку.
+    /// Переводит всех истёкших трейдеров на базовую (бессрочную) подписку.
+    /// Фоллбэк-метод: используется при запуске воркера или после длительных простоев.
+    /// Для перевода конкретного трейдера используйте DowngradeToBasicAsync(long).
     /// </summary>
     public async Task<int> ProcessExpiredAsync(CancellationToken cancellationToken = default)
     {
@@ -56,26 +58,66 @@ internal class SubscriptionExpiryService(
     }
 
     /// <summary>
-    /// Возвращает время ближайшего будущего истечения подписки.
+    /// Возвращает ближайшую будущую дату истечения подписки вместе с Id трейдера.
     /// </summary>
-    public async Task<DateTime?> GetNextExpiryAsync(CancellationToken cancellationToken = default)
+    public async Task<TraderSubscriptionExpiry?> GetNextExpiryAsync(CancellationToken cancellationToken = default)
     {
         var now = timeProvider.GetUtcNow().UtcDateTime;
 
-        var hasFuture = await dbContext.Traders
-            .AnyAsync(t => t.SubscriptionExpiresAtUtc != null
-                        && t.SubscriptionExpiresAtUtc.Value > now, cancellationToken);
-
-        if (!hasFuture)
-        {
-            return null;
-        }
-
         var next = await dbContext.Traders
             .Where(t => t.SubscriptionExpiresAtUtc != null
-                    && t.SubscriptionExpiresAtUtc.Value > now)
-            .MinAsync(t => t.SubscriptionExpiresAtUtc!.Value, cancellationToken);
+                     && t.SubscriptionExpiresAtUtc.Value > now)
+            .OrderBy(t => t.SubscriptionExpiresAtUtc)
+            .Select(t => new TraderSubscriptionExpiry(t.TelegramId, t.SubscriptionExpiresAtUtc!.Value))
+            .FirstOrDefaultAsync(cancellationToken);
 
         return next;
+    }
+
+    /// <summary>
+    /// Переводит одного трейдера на базовую (бессрочную) подписку, если его подписка реально истекла.
+    /// </summary>
+    public async Task<int> DowngradeToBasicAsync(long traderId, CancellationToken cancellationToken = default)
+        => await DowngradeToBasicAsync(new[] { traderId }, cancellationToken);
+
+    /// <summary>
+    /// Переводит массив трейдеров на базовую (бессрочную) подписку. Снимает дубликатов, применяет защитный фильтр по дате истечения.
+    /// </summary>
+    public async Task<int> DowngradeToBasicAsync(long[] traderIds, CancellationToken cancellationToken = default)
+    {
+        if (traderIds is null || traderIds.Length == 0) return 0;
+
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var basic = await dbContext.Subscriptions
+            .SingleOrDefaultAsync(s => s.Level == 1, cancellationToken);
+
+        if (basic is null)
+        {
+            logger.LogInformation("Базовая подписка (Level==1) не найдена. Нечего переводить.");
+            return 0;
+        }
+
+        var ids = traderIds.Distinct().ToList();
+
+        // Защитный фильтр: снимаем только если ПОДПИСКА реально ИСТЕКЛА на текущий момент.
+        // Это закрывает гонку, когда трейдер продлил подписку, пока воркер спал.
+        var expiredTraders = await dbContext.Traders
+            .Where(t => ids.Contains(t.TelegramId)
+                    && t.SubscriptionId != null
+                    && t.SubscriptionExpiresAtUtc != null
+                    && t.SubscriptionExpiresAtUtc.Value <= now)
+            .ToListAsync(cancellationToken);
+
+        if (expiredTraders.Count == 0) return 0;
+
+        foreach (var trader in expiredTraders)
+        {
+            trader.SubscriptionId = basic.Id;
+            trader.SubscriptionExpiresAtUtc = null;
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        logger.LogInformation("Переведено на базовую подписку: {Count} трейдеров", expiredTraders.Count);
+        return expiredTraders.Count;
     }
 }

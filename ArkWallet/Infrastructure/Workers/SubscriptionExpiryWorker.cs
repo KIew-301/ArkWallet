@@ -9,36 +9,74 @@ internal sealed class SubscriptionExpiryWorker(
     IServiceScopeFactory scopeFactory,
     ILogger<SubscriptionExpiryWorker> logger) : BackgroundService, INotificationHandler<TraderSubscriptionChangedEvent>
 {
-    private int _recomputeFlag; // 1 = сигнал пересчёта
+    private CancellationTokenSource? _recomputeCts;
+    private readonly object _recomputeLock = new();
 
     public Task Handle(TraderSubscriptionChangedEvent notification, CancellationToken cancellationToken)
     {
-        Interlocked.Exchange(ref _recomputeFlag, 1);
+        lock (_recomputeLock)
+        {
+            _recomputeCts?.Cancel();
+        }
         return Task.CompletedTask;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var service = scope.ServiceProvider.GetRequiredService<ISubscriptionExpiryService>();
+            var downgraded = await service.ProcessExpiredAsync(stoppingToken);
+            if (downgraded > 0)
+                logger.LogInformation("Переведено на базовую подписку: {Count} трейдеров", downgraded);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogError(ex, "Ошибка фоллбэк-обработки в SubscriptionExpiryWorker");
+        }
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
+                CancellationTokenSource delayCts;
+                lock (_recomputeLock)
+                {
+                    _recomputeCts = new CancellationTokenSource();
+                    delayCts = _recomputeCts;
+                }
+
                 using var scope = scopeFactory.CreateScope();
                 var service = scope.ServiceProvider.GetRequiredService<ISubscriptionExpiryService>();
 
-                var downgraded = await service.ProcessExpiredAsync(stoppingToken);
-                if (downgraded > 0)
-                    logger.LogInformation("Переведено на базовую подписку: {Count} трейдеров", downgraded);
-
                 var next = await service.GetNextExpiryAsync(stoppingToken);
-                TimeSpan delay = next is null
-                    ? TimeSpan.FromHours(1)
-                    : next.Value - DateTime.UtcNow;
+
+                if (next is null)
+                {
+                    await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
+                    continue;
+                }
+
+                TimeSpan delay = next.ExpiresAtUtc - DateTime.UtcNow;
                 if (delay < TimeSpan.FromSeconds(1)) delay = TimeSpan.FromSeconds(1);
                 if (delay > TimeSpan.FromHours(1)) delay = TimeSpan.FromHours(1);
 
-                Interlocked.Exchange(ref _recomputeFlag, 0);
-                await Task.Delay(delay, stoppingToken);
+                using var linked = CancellationTokenSource.CreateLinkedTokenSource(
+                    stoppingToken, delayCts.Token);
+
+                try
+                {
+                    await Task.Delay(delay, linked.Token);
+                }
+                catch (OperationCanceledException) when (!stoppingToken.IsCancellationRequested)
+                {
+                    continue;
+                }
+
+                var downgradedNow = await service.DowngradeToBasicAsync(next.TraderId, stoppingToken);
+                if (downgradedNow > 0)
+                    logger.LogInformation("Переведено на базовую подписку: {Count} трейдеров", downgradedNow);
             }
             catch (OperationCanceledException)
             {
