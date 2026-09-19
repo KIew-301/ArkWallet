@@ -1,4 +1,3 @@
-using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionServices;
 using ArkWallet.Core.SubscriptionContext.Application.Dtos;
 using ArkWallet.Presentation.DTOs;
@@ -15,11 +14,12 @@ namespace ArkWallet.Presentation.API
     [ExcludeFromCodeCoverage(Justification = "API-контроллер: только маршрутизация HTTP-запросов к сервисам. Не содержит бизнес-логики, тестируется интеграционно.")]
     [ApiController]
     [Route("api/v1/[controller]")]
-    public class SubscriptionsController(
-        ISubscriptionQueryService subscriptionQueryService) : ControllerBase
+    [Authorize]
+    public class SubscriptionsController(ISubscriptionQueryService subscriptionQueryService)
+        : ControllerBase
     {
         /// <summary>
-        /// Получение списка доступных подписок
+        /// Получение списка подписок
         /// </summary>
         /// <returns>Список подписок</returns>
         /// <response code="200">Список подписок успешно получен</response>
@@ -28,7 +28,6 @@ namespace ArkWallet.Presentation.API
         [ProducesResponseType(typeof(SubscriptionsResponse), 200)]
         [ProducesResponseType(401)]
         [ProducesResponseType(400)]
-        [Authorize]
         [HttpGet]
         public async Task<IActionResult> GetSubscriptions()
         {

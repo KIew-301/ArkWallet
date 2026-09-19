@@ -264,7 +264,7 @@ class Program
         });
 
         // Services
-        RegisterServices(builder.Services);
+        RegisterServices(builder.Services, builder.Configuration);
 
         // Background Services
         if (!isTesting)
@@ -388,7 +388,7 @@ class Program
         await app.RunAsync();
     }
 
-    private static void RegisterServices(IServiceCollection services)
+    private static void RegisterServices(IServiceCollection services, IConfiguration configuration)
     {
         // MediatR
         services.AddMediatR(cfg =>
@@ -526,7 +526,21 @@ class Program
         services.AddScoped<IPurchaseService, SubscriptionPurchaseService>();
         services.AddScoped<IPurchaseHistoryQueryService, SubscriptionPurchaseHistoryQueryService>();
         services.AddScoped<ISubscriptionExpiryService, SubscriptionExpiryService>();
-        services.AddScoped<IPaymentIntegrationService, InstantSuccessPaymentService>();
+
+        var paymentProvider = configuration["Payment:Provider"] ?? "Instant";
+        if (string.Equals(paymentProvider, "YooKassa", StringComparison.OrdinalIgnoreCase))
+        {
+            services.Configure<YooKassaOptions>(configuration.GetSection("YooKassa"));
+            services.AddHttpClient<IPaymentIntegrationService, YooKassaPaymentIntegrationService>(client =>
+            {
+                client.BaseAddress = new Uri("https://api.yookassa.ru/v3");
+                client.Timeout = TimeSpan.FromSeconds(30);
+            });
+        }
+        else
+        {
+            services.AddScoped<IPaymentIntegrationService, InstantSuccessPaymentService>();
+        }
         services.AddSingleton(TimeProvider.System);
 
         // Access Control

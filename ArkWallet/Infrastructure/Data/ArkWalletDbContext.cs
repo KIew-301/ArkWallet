@@ -28,6 +28,7 @@ internal class ArkWalletDbContext : DbContext
     public DbSet<MailMessage> MailMessages { get; set; }
     public DbSet<Subscription> Subscriptions { get; set; }
     public DbSet<SubscriptionPurchaseHistory> SubscriptionPurchaseHistory { get; set; }
+    public DbSet<SubscriptionPayment> SubscriptionPayments { get; set; }
 
     public ArkWalletDbContext(DbContextOptions<ArkWalletDbContext> options) : base(options)
     {
