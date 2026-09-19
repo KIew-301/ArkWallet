@@ -472,4 +472,66 @@ public class OrderCreationServiceTest
         Assert.True(result.TryGetData(out var data), result.Message);
         Assert.Equal(isBuy ? OrderType.Buy : OrderType.Sell, data.Order.Direction);
     }
+
+    [Fact]
+    public async Task PlaceOrder_NoSubscription_RejectsAfterFifthActiveOrder()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 2000);
+        await HelpMethods.CreateToken(db, "ZZZ");
+
+        for (int i = 0; i < 5; i++)
+        {
+            var result = await HelpMethods.PlaceOrder(db, 2000, "купить", "ZZZ", 1, 100);
+            Assert.True(result.IsSuccess, $"Order {(i + 1)} should succeed but failed: {result.Message}");
+        }
+
+        var activeOrdersAfterFive = await HelpMethods.GetTraderOrders(db, 2000, "ZZZ", OrderStatus.Active);
+        Assert.Equal(5, activeOrdersAfterFive.Length);
+
+        var sixthResult = await HelpMethods.PlaceOrder(db, 2000, "купить", "ZZZ", 1, 100);
+        Assert.False(sixthResult.IsSuccess, "6th order should fail due to order limit");
+
+        var activeOrdersAfterSix = await HelpMethods.GetTraderOrders(db, 2000, "ZZZ", OrderStatus.Active);
+        Assert.Equal(5, activeOrdersAfterSix.Length);
+    }
+
+    [Fact]
+    public async Task PlaceOrder_WithSubscription_AllowsAboveFreeTierLimit()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var sub = new ArkWallet.Infrastructure.Data.Subscription
+        {
+            Id = 99,
+            Name = "Premium",
+            Level = 2,
+            PriceRubles = 500m,
+            MaxOrders = 10,
+            MaxMiningMachines = 3,
+            DurationMinutes = 43200
+        };
+        db.Subscriptions.Add(sub);
+        await db.SaveChangesAsync();
+
+        await HelpMethods.RegisterTrader(db, 2001);
+        await HelpMethods.CreateToken(db, "ZZZ");
+
+        var trader = await db.Traders.FirstAsync(t => t.TelegramId == 2001);
+        trader.SubscriptionId = sub.Id;
+        trader.SubscriptionExpiresAtUtc = new DateTime(2999, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        await db.SaveChangesAsync();
+
+        for (int i = 0; i < 8; i++)
+        {
+            var result = await HelpMethods.PlaceOrder(db, 2001, "купить", "ZZZ", 1, 100);
+            Assert.True(result.IsSuccess, $"Order {(i + 1)} should succeed but failed: {result.Message}");
+        }
+
+        var activeOrders = await HelpMethods.GetTraderOrders(db, 2001, "ZZZ", OrderStatus.Active);
+        Assert.Equal(8, activeOrders.Length);
+    }
 }

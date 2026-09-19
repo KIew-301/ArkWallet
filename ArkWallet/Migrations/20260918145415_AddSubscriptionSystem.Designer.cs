@@ -3,6 +3,7 @@ using System;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ArkWallet.Migrations
 {
     [DbContext(typeof(ArkWalletDbContext))]
-    partial class ArkWalletDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260918145415_AddSubscriptionSystem")]
+    partial class AddSubscriptionSystem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -634,16 +637,7 @@ namespace ArkWallet.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<decimal>("PriceMonthRubles")
-                        .HasColumnType("numeric");
-
                     b.Property<decimal>("PriceRubles")
-                        .HasColumnType("numeric");
-
-                    b.Property<decimal>("PriceWeekRubles")
-                        .HasColumnType("numeric");
-
-                    b.Property<decimal>("PriceYearRubles")
                         .HasColumnType("numeric");
 
                     b.HasKey("Id");

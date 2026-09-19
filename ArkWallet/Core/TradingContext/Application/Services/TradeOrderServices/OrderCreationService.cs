@@ -131,6 +131,9 @@ internal class OrderCreationService(
 
         var newTrader = await dbContext.Traders.FindAsync(command.TraderId)
             ?? throw new InvalidOperationException("Пользователя не существует");
+
+        await EnsureOrderLimitAsync([command.TraderId]);
+
         traders.TryAdd(newTrader.TelegramId, newTrader);
 
         var portfolios = portfolioItems.ToDictionary(p => p.TraderTelegramId);
@@ -174,6 +177,9 @@ internal class OrderCreationService(
         var activeOrders = await LoadActiveCounterOrdersAsync(targetOrder, isBuy);
 
         var traders = await LoadGroupTradersAsync(activeOrders, commandList);
+
+        await EnsureOrderLimitAsync(commands.Select(c => c.TraderId).Distinct().ToArray());
+
         var portfolios = await LoadGroupPortfoliosAsync(activeOrders, commandList, targetOrder.CharacterTokenId);
 
         return await TradingContextMapper.BuildContext(
@@ -343,6 +349,38 @@ internal class OrderCreationService(
         }
 
         return ValidationResult.Success();
+    }
+
+    private async Task<int> GetMaxActiveOrdersAsync(long traderId)
+    {
+        var trader = await dbContext.Traders
+            .Include(t => t.Subscription)
+            .FirstOrDefaultAsync(t => t.TelegramId == traderId);
+
+        if (trader is null)
+            throw new InvalidOperationException("Пользователя не существует");
+
+        if (trader.Subscription is not null &&
+            (trader.SubscriptionExpiresAtUtc is null || trader.SubscriptionExpiresAtUtc.Value > DateTime.UtcNow))
+            return trader.Subscription.MaxOrders;
+
+        return 5;
+    }
+
+    private async Task EnsureOrderLimitAsync(IEnumerable<long> traderIds)
+    {
+        foreach (var traderId in traderIds.Distinct())
+        {
+            if (BotFilter.IsBot(traderId))
+                continue;
+
+            var maxOrders = await GetMaxActiveOrdersAsync(traderId);
+            var activeCount = await dbContext.TradeOrders.CountAsync(o =>
+                o.TraderTelegramId == traderId && o.Status == ValueObjects.OrderStatus.Active);
+
+            if (activeCount >= maxOrders)
+                throw new InvalidOperationException($"Достигнут лимит активных ордеров: {maxOrders}");
+        }
     }
 
     private static string? NormalizeDirection(string? direction)
