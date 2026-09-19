@@ -489,13 +489,13 @@ public class OrderCreationServiceTest
         }
 
         var activeOrdersAfterFive = await HelpMethods.GetTraderOrders(db, 2000, "ZZZ", OrderStatus.Active);
-        Assert.Equal(5, activeOrdersAfterFive.Count());
+        Assert.Equal(5, activeOrdersAfterFive.Length);
 
         var sixthResult = await HelpMethods.PlaceOrder(db, 2000, "купить", "ZZZ", 1, 100);
         Assert.False(sixthResult.IsSuccess, "6th order should fail due to order limit");
 
         var activeOrdersAfterSix = await HelpMethods.GetTraderOrders(db, 2000, "ZZZ", OrderStatus.Active);
-        Assert.Equal(5, activeOrdersAfterSix.Count());
+        Assert.Equal(5, activeOrdersAfterSix.Length);
     }
 
     [Fact]
@@ -532,6 +532,6 @@ public class OrderCreationServiceTest
         }
 
         var activeOrders = await HelpMethods.GetTraderOrders(db, 2001, "ZZZ", OrderStatus.Active);
-        Assert.Equal(8, activeOrders.Count());
+        Assert.Equal(8, activeOrders.Length);
     }
 }

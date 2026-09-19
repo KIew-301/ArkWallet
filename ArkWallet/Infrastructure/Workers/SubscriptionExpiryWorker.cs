@@ -23,18 +23,7 @@ internal sealed class SubscriptionExpiryWorker(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        try
-        {
-            using var scope = scopeFactory.CreateScope();
-            var service = scope.ServiceProvider.GetRequiredService<ISubscriptionExpiryService>();
-            var downgraded = await service.ProcessExpiredAsync(stoppingToken);
-            if (downgraded > 0)
-                logger.LogInformation("Переведено на базовую подписку: {Count} трейдеров", downgraded);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            logger.LogError(ex, "Ошибка фоллбэк-обработки в SubscriptionExpiryWorker");
-        }
+        await RunStartupFallbackAsync(stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -58,9 +47,7 @@ internal sealed class SubscriptionExpiryWorker(
                     continue;
                 }
 
-                TimeSpan delay = next.ExpiresAtUtc - DateTime.UtcNow;
-                if (delay < TimeSpan.FromSeconds(1)) delay = TimeSpan.FromSeconds(1);
-                if (delay > TimeSpan.FromHours(1)) delay = TimeSpan.FromHours(1);
+                var delay = CalculateDelay(next);
 
                 using var linked = CancellationTokenSource.CreateLinkedTokenSource(
                     stoppingToken, delayCts.Token);
@@ -88,5 +75,29 @@ internal sealed class SubscriptionExpiryWorker(
                 await Task.Delay(TimeSpan.FromSeconds(20), stoppingToken);
             }
         }
+    }
+
+    private async Task RunStartupFallbackAsync(CancellationToken stoppingToken)
+    {
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var service = scope.ServiceProvider.GetRequiredService<ISubscriptionExpiryService>();
+            var downgraded = await service.ProcessExpiredAsync(stoppingToken);
+            if (downgraded > 0)
+                logger.LogInformation("Переведено на базовую подписку: {Count} трейдеров", downgraded);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogError(ex, "Ошибка фоллбэк-обработки в SubscriptionExpiryWorker");
+        }
+    }
+
+    private static TimeSpan CalculateDelay(TraderSubscriptionExpiry next)
+    {
+        var delay = next.ExpiresAtUtc - DateTime.UtcNow;
+        if (delay < TimeSpan.FromSeconds(1)) delay = TimeSpan.FromSeconds(1);
+        if (delay > TimeSpan.FromHours(1)) delay = TimeSpan.FromHours(1);
+        return delay;
     }
 }

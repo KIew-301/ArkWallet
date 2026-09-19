@@ -34,7 +34,7 @@ public class PaymentResult
     /// <summary>
     /// ID транзакции в платёжной системе.
     /// </summary>
-    public string TransactionId { get; init; }
+    public string? TransactionId { get; init; }
 
     /// <summary>
     /// Указывает, успешно ли создан платёж.

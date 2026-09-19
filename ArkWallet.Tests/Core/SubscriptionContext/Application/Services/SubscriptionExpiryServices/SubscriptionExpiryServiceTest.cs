@@ -14,7 +14,7 @@ public class SubscriptionExpiryServiceTest
     private static SubscriptionExpiryService CreateService(ArkWalletDbContext db, TimeProvider timeProvider) =>
         new(db, timeProvider, NullLogger<SubscriptionExpiryService>.Instance);
 
-    private static TimeProvider CreateTimeProvider() => new TestTimeProvider();
+    private static TestTimeProvider CreateTimeProvider() => new TestTimeProvider();
 
     [Fact]
     public async Task ProcessExpiredAsync_NoBasicSubscription_ReturnsZero()
@@ -40,7 +40,7 @@ public class SubscriptionExpiryServiceTest
         db.Subscriptions.Add(premium);
         await db.SaveChangesAsync();
 
-        var trader = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == 2000);
+        var trader = await db.Traders.FirstAsync(t => t.TelegramId == 2000);
         trader.SubscriptionId = premium.Id;
         trader.SubscriptionExpiresAtUtc = new DateTime(2025, 12, 31, 0, 0, 0, DateTimeKind.Utc);
         await db.SaveChangesAsync();
@@ -48,7 +48,7 @@ public class SubscriptionExpiryServiceTest
         var result = await CreateService(db, CreateTimeProvider()).ProcessExpiredAsync();
 
         Assert.Equal(1, result);
-        var updated = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == 2000);
+        var updated = await db.Traders.FirstAsync(t => t.TelegramId == 2000);
         Assert.Equal(basic.Id, updated.SubscriptionId);
         Assert.Null(updated.SubscriptionExpiresAtUtc);
     }
@@ -64,7 +64,7 @@ public class SubscriptionExpiryServiceTest
         db.Subscriptions.Add(premium);
         await db.SaveChangesAsync();
 
-        var trader = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == 2000);
+        var trader = await db.Traders.FirstAsync(t => t.TelegramId == 2000);
         trader.SubscriptionId = premium.Id;
         trader.SubscriptionExpiresAtUtc = new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc);
         await db.SaveChangesAsync();
@@ -72,7 +72,7 @@ public class SubscriptionExpiryServiceTest
         var result = await CreateService(db, CreateTimeProvider()).ProcessExpiredAsync();
 
         Assert.Equal(0, result);
-        var updated = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == 2000);
+        var updated = await db.Traders.FirstAsync(t => t.TelegramId == 2000);
         Assert.Equal(premium.Id, updated.SubscriptionId);
     }
 
@@ -112,15 +112,15 @@ public class SubscriptionExpiryServiceTest
         db.Subscriptions.Add(new Subscription { Name = "Базовая", Level = 1, PriceRubles = 0, MaxOrders = 5, MaxMiningMachines = 5, DurationMinutes = null });
         await db.SaveChangesAsync();
 
-        var trader1 = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == 2000);
+        var trader1 = await db.Traders.FirstAsync(t => t.TelegramId == 2000);
         trader1.SubscriptionId = 1;
         trader1.SubscriptionExpiresAtUtc = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc);
 
-        var trader2 = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == 2001);
+        var trader2 = await db.Traders.FirstAsync(t => t.TelegramId == 2001);
         trader2.SubscriptionId = 1;
         trader2.SubscriptionExpiresAtUtc = new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc);
 
-        var trader3 = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == 2002);
+        var trader3 = await db.Traders.FirstAsync(t => t.TelegramId == 2002);
         trader3.SubscriptionId = 1;
         trader3.SubscriptionExpiresAtUtc = new DateTime(2025, 12, 31, 0, 0, 0, DateTimeKind.Utc);
         await db.SaveChangesAsync();
@@ -143,7 +143,7 @@ public class SubscriptionExpiryServiceTest
         db.Subscriptions.Add(premium);
         await db.SaveChangesAsync();
 
-        var trader = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == 2000);
+        var trader = await db.Traders.FirstAsync(t => t.TelegramId == 2000);
         trader.SubscriptionId = premium.Id;
         trader.SubscriptionExpiresAtUtc = new DateTime(2025, 12, 31, 0, 0, 0, DateTimeKind.Utc);
         await db.SaveChangesAsync();
@@ -151,7 +151,7 @@ public class SubscriptionExpiryServiceTest
         var result = await CreateService(db, CreateTimeProvider()).DowngradeToBasicAsync(2000);
 
         Assert.Equal(1, result);
-        var updated = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == 2000);
+        var updated = await db.Traders.FirstAsync(t => t.TelegramId == 2000);
         Assert.Equal(basic.Id, updated.SubscriptionId);
         Assert.Null(updated.SubscriptionExpiresAtUtc);
     }
@@ -167,7 +167,7 @@ public class SubscriptionExpiryServiceTest
         db.Subscriptions.Add(premium);
         await db.SaveChangesAsync();
 
-        var trader = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == 2000);
+        var trader = await db.Traders.FirstAsync(t => t.TelegramId == 2000);
         trader.SubscriptionId = premium.Id;
         trader.SubscriptionExpiresAtUtc = new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc);
         await db.SaveChangesAsync();
@@ -175,7 +175,7 @@ public class SubscriptionExpiryServiceTest
         var result = await CreateService(db, CreateTimeProvider()).DowngradeToBasicAsync(2000);
 
         Assert.Equal(0, result);
-        var updated = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == 2000);
+        var updated = await db.Traders.FirstAsync(t => t.TelegramId == 2000);
         Assert.Equal(premium.Id, updated.SubscriptionId);
     }
 
@@ -187,7 +187,7 @@ public class SubscriptionExpiryServiceTest
         db.Subscriptions.Add(new Subscription { Name = "Премиум", Level = 2, PriceRubles = 100, MaxOrders = 20, MaxMiningMachines = 20, DurationMinutes = 10080 });
         await db.SaveChangesAsync();
 
-        var trader = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == 2000);
+        var trader = await db.Traders.FirstAsync(t => t.TelegramId == 2000);
         trader.SubscriptionId = 1;
         trader.SubscriptionExpiresAtUtc = new DateTime(2025, 12, 31, 0, 0, 0, DateTimeKind.Utc);
         await db.SaveChangesAsync();
@@ -195,7 +195,7 @@ public class SubscriptionExpiryServiceTest
         var result = await CreateService(db, CreateTimeProvider()).DowngradeToBasicAsync(2000);
 
         Assert.Equal(0, result);
-        var updated = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == 2000);
+        var updated = await db.Traders.FirstAsync(t => t.TelegramId == 2000);
         Assert.Equal(1, updated.SubscriptionId);
     }
 
@@ -224,11 +224,11 @@ public class SubscriptionExpiryServiceTest
         db.Subscriptions.Add(premium);
         await db.SaveChangesAsync();
 
-        var trader1 = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == 2000);
+        var trader1 = await db.Traders.FirstAsync(t => t.TelegramId == 2000);
         trader1.SubscriptionId = premium.Id;
         trader1.SubscriptionExpiresAtUtc = new DateTime(2025, 12, 31, 0, 0, 0, DateTimeKind.Utc);
 
-        var trader2 = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == 2001);
+        var trader2 = await db.Traders.FirstAsync(t => t.TelegramId == 2001);
         trader2.SubscriptionId = premium.Id;
         trader2.SubscriptionExpiresAtUtc = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc);
         await db.SaveChangesAsync();
@@ -236,10 +236,10 @@ public class SubscriptionExpiryServiceTest
         var result = await CreateService(db, CreateTimeProvider()).DowngradeToBasicAsync(new long[] { 2000, 2001 });
 
         Assert.Equal(1, result);
-        var updated1 = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == 2000);
+        var updated1 = await db.Traders.FirstAsync(t => t.TelegramId == 2000);
         Assert.Equal(basic.Id, updated1.SubscriptionId);
         Assert.Null(updated1.SubscriptionExpiresAtUtc);
-        var updated2 = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == 2001);
+        var updated2 = await db.Traders.FirstAsync(t => t.TelegramId == 2001);
         Assert.Equal(premium.Id, updated2.SubscriptionId);
     }
 

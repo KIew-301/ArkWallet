@@ -16,12 +16,11 @@ internal class SubscriptionPurchaseHistoryQueryService(ArkWalletDbContext dbCont
             var history = await dbContext.SubscriptionPurchaseHistory
                 .Where(h => h.TraderId == traderTelegramId)
                 .OrderByDescending(h => h.PurchasedAtUtc)
-                .Include(h => h.Subscription)
                 .Select(h => new PurchaseHistoryEntry(
                     h.Id,
                     h.TraderId,
                     h.SubscriptionId,
-                    h.Subscription!.Name,
+                    h.Subscription.Name,
                     h.PriceRubles,
                     h.PurchasedAtUtc,
                     h.ExpiresAtUtc,

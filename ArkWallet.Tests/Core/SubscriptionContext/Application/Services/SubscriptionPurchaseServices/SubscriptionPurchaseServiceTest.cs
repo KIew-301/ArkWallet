@@ -71,7 +71,7 @@ public class SubscriptionPurchaseServiceTest
         var result = await service.PurchaseAsync(2000, sub.Id);
 
         Assert.False(result.Success);
-        var trader = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == 2000);
+        var trader = await db.Traders.FirstAsync(t => t.TelegramId == 2000);
         Assert.Null(trader.SubscriptionId);
         publisher.Verify(p => p.PublishAsync(It.IsAny<TraderSubscriptionChangedEvent>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -99,7 +99,7 @@ public class SubscriptionPurchaseServiceTest
         var expectedExpiry = time.GetUtcNow().UtcDateTime.AddMinutes(10080);
         Assert.Equal(expectedExpiry, result.ExpiresAtUtc);
 
-        var trader = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == 2000);
+        var trader = await db.Traders.FirstAsync(t => t.TelegramId == 2000);
         Assert.Equal(sub.Id, trader.SubscriptionId);
         Assert.Equal(expectedExpiry, trader.SubscriptionExpiresAtUtc);
 
@@ -128,7 +128,7 @@ public class SubscriptionPurchaseServiceTest
 
         Assert.True(result.Success);
         Assert.Null(result.ExpiresAtUtc);
-        var trader = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == 2000);
+        var trader = await db.Traders.FirstAsync(t => t.TelegramId == 2000);
         Assert.Equal(sub.Id, trader.SubscriptionId);
         Assert.Null(trader.SubscriptionExpiresAtUtc);
     }
@@ -163,7 +163,7 @@ public class SubscriptionPurchaseServiceTest
         var premium = new Subscription { Name = "Premium", Level = 2, PriceRubles = 500, MaxOrders = 20, MaxMiningMachines = 20, DurationMinutes = 100 };
         db.Subscriptions.Add(premium);
         await db.SaveChangesAsync();
-        var trader = await db.Traders.FindAsync(5001L);
+        var trader = await db.Traders.FirstAsync(t => t.TelegramId == 5001L);
         trader.SubscriptionId = premium.Id;
         trader.SubscriptionExpiresAtUtc = now.AddMinutes(100);
         await db.SaveChangesAsync();
@@ -180,7 +180,7 @@ public class SubscriptionPurchaseServiceTest
         Assert.True(result.Success);
         Assert.Equal("tx-samelen", result.TransactionId);
         Assert.Equal(now.AddMinutes(200), result.ExpiresAtUtc);
-        var updatedTrader = await db.Traders.FindAsync(5001L);
+        var updatedTrader = await db.Traders.FirstAsync(t => t.TelegramId == 5001L);
         Assert.Equal(premium.Id, updatedTrader.SubscriptionId);
         Assert.Equal(now.AddMinutes(200), updatedTrader.SubscriptionExpiresAtUtc);
         payment.Verify(p => p.CreatePaymentAsync(It.IsAny<PaymentRequest>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -198,7 +198,7 @@ public class SubscriptionPurchaseServiceTest
         var premium = new Subscription { Name = "Premium", Level = 2, PriceRubles = 500, MaxOrders = 20, MaxMiningMachines = 20, DurationMinutes = 100 };
         db.Subscriptions.Add(premium);
         await db.SaveChangesAsync();
-        var trader = await db.Traders.FindAsync(5002L);
+        var trader = await db.Traders.FirstAsync(t => t.TelegramId == 5002L);
         trader.SubscriptionId = premium.Id;
         trader.SubscriptionExpiresAtUtc = now.AddMinutes(100);
         await db.SaveChangesAsync();
@@ -215,7 +215,7 @@ public class SubscriptionPurchaseServiceTest
         Assert.False(result.Success);
         Assert.Contains("ниже", result.Message, System.StringComparison.OrdinalIgnoreCase);
         payment.Verify(p => p.CreatePaymentAsync(It.IsAny<PaymentRequest>(), It.IsAny<CancellationToken>()), Times.Never);
-        var updatedTrader = await db.Traders.FindAsync(5002L);
+        var updatedTrader = await db.Traders.FirstAsync(t => t.TelegramId == 5002L);
         Assert.Equal(premium.Id, updatedTrader.SubscriptionId);
         Assert.Equal(now.AddMinutes(100), updatedTrader.SubscriptionExpiresAtUtc);
     }
@@ -232,7 +232,7 @@ public class SubscriptionPurchaseServiceTest
         var premium = new Subscription { Name = "Premium", Level = 2, PriceRubles = 500, MaxOrders = 20, MaxMiningMachines = 20, DurationMinutes = 100 };
         db.Subscriptions.Add(premium);
         await db.SaveChangesAsync();
-        var trader = await db.Traders.FindAsync(5003L);
+        var trader = await db.Traders.FirstAsync(t => t.TelegramId == 5003L);
         trader.SubscriptionId = basic.Id;
         trader.SubscriptionExpiresAtUtc = null;
         await db.SaveChangesAsync();
@@ -249,7 +249,7 @@ public class SubscriptionPurchaseServiceTest
         Assert.True(result.Success);
         Assert.Equal("tx-upgrade", result.TransactionId);
         Assert.Equal(now.AddMinutes(100), result.ExpiresAtUtc);
-        var updatedTrader = await db.Traders.FindAsync(5003L);
+        var updatedTrader = await db.Traders.FirstAsync(t => t.TelegramId == 5003L);
         Assert.Equal(premium.Id, updatedTrader.SubscriptionId);
         Assert.Equal(now.AddMinutes(100), updatedTrader.SubscriptionExpiresAtUtc);
         payment.Verify(p => p.CreatePaymentAsync(It.IsAny<PaymentRequest>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -267,7 +267,7 @@ public class SubscriptionPurchaseServiceTest
         var premium = new Subscription { Name = "Premium", Level = 2, PriceRubles = 500, MaxOrders = 20, MaxMiningMachines = 20, DurationMinutes = 100 };
         db.Subscriptions.Add(premium);
         await db.SaveChangesAsync();
-        var trader = await db.Traders.FindAsync(5004L);
+        var trader = await db.Traders.FirstAsync(t => t.TelegramId == 5004L);
         trader.SubscriptionId = premium.Id;
         trader.SubscriptionExpiresAtUtc = now.AddMinutes(-10);
         await db.SaveChangesAsync();
@@ -284,7 +284,7 @@ public class SubscriptionPurchaseServiceTest
         Assert.True(result.Success);
         Assert.Equal("tx-expired", result.TransactionId);
         Assert.Null(result.ExpiresAtUtc);
-        var updatedTrader = await db.Traders.FindAsync(5004L);
+        var updatedTrader = await db.Traders.FirstAsync(t => t.TelegramId == 5004L);
         Assert.Equal(basic.Id, updatedTrader.SubscriptionId);
         Assert.Null(updatedTrader.SubscriptionExpiresAtUtc);
         payment.Verify(p => p.CreatePaymentAsync(It.IsAny<PaymentRequest>(), It.IsAny<CancellationToken>()), Times.Once);

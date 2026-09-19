@@ -29,16 +29,7 @@ internal class SubscriptionPurchaseService(
                 return PurchaseResult.Fail("Трейдер не найден");
 
             DateTime now = timeProvider.GetUtcNow().UtcDateTime;
-            // Текущая активная подписка трейдера.
-            Subscription? currentActive = null;
-            if (trader.SubscriptionId.HasValue)
-            {
-                currentActive = await dbContext.Subscriptions
-                    .FirstOrDefaultAsync(s => s.Id == trader.SubscriptionId.Value, cancellationToken);
-                var isActive = currentActive is not null
-                    && (trader.SubscriptionExpiresAtUtc is null || trader.SubscriptionExpiresAtUtc.Value > now);
-                if (!isActive) currentActive = null;
-            }
+            var currentActive = await GetActiveSubscriptionAsync(trader, now, cancellationToken);
             // Запрет покупки уровня ниже активной — до оплаты, чтобы не списывать деньги.
             if (currentActive is not null && sub.Level < currentActive.Level)
                 return PurchaseResult.Fail("Нельзя приобрести подписку уровня ниже активной");
@@ -56,19 +47,7 @@ internal class SubscriptionPurchaseService(
             if (!paymentResult.IsSuccess)
                 return PurchaseResult.Fail("Платеж не прошел");
 
-            // Продление того же уровня: остаток срока складывается с новым периодом.
-            DateTime? expiry;
-            if (currentActive is not null
-                && sub.Level == currentActive.Level
-                && trader.SubscriptionExpiresAtUtc.HasValue
-                && sub.DurationMinutes.HasValue)
-            {
-                expiry = trader.SubscriptionExpiresAtUtc.Value.AddMinutes(sub.DurationMinutes.Value);
-            }
-            else
-            {
-                expiry = sub.DurationMinutes.HasValue ? now.AddMinutes(sub.DurationMinutes.Value) : (DateTime?)null;
-            }
+            var expiry = ResolveExpiry(sub, currentActive, trader, now);
 
             trader.SubscriptionId = sub.Id;
             trader.SubscriptionExpiresAtUtc = expiry;
@@ -95,5 +74,28 @@ internal class SubscriptionPurchaseService(
             logger.LogError(ex, "Ошибка при покупке подписки для трейдера {TraderId}, подписка {SubscriptionId}", traderTelegramId, subscriptionId);
             return PurchaseResult.Fail($"Произошла ошибка: {ex.Message}");
         }
+    }
+
+    private async Task<Subscription?> GetActiveSubscriptionAsync(Trader trader, DateTime now, CancellationToken cancellationToken)
+    {
+        if (!trader.SubscriptionId.HasValue) return null;
+        var current = await dbContext.Subscriptions
+            .FirstOrDefaultAsync(s => s.Id == trader.SubscriptionId.Value, cancellationToken);
+        var isActive = current is not null
+            && (trader.SubscriptionExpiresAtUtc is null || trader.SubscriptionExpiresAtUtc.Value > now);
+        return isActive ? current : null;
+    }
+
+    private static DateTime? ResolveExpiry(Subscription target, Subscription? currentActive, Trader trader, DateTime now)
+    {
+        if (currentActive is not null
+            && target.Level == currentActive.Level
+            && trader.SubscriptionExpiresAtUtc.HasValue
+            && target.DurationMinutes.HasValue)
+        {
+            return trader.SubscriptionExpiresAtUtc.Value.AddMinutes(target.DurationMinutes.Value);
+        }
+
+        return target.DurationMinutes.HasValue ? now.AddMinutes(target.DurationMinutes.Value) : null;
     }
 }
