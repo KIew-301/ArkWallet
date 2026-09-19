@@ -49,6 +49,7 @@ internal class SubscriptionExpiryService(
         {
             trader.SubscriptionId = basic.Id;
             trader.SubscriptionExpiresAtUtc = null;
+            AddHistoryEntry(trader, basic, now);
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -114,10 +115,24 @@ internal class SubscriptionExpiryService(
         {
             trader.SubscriptionId = basic.Id;
             trader.SubscriptionExpiresAtUtc = null;
+            AddHistoryEntry(trader, basic, now);
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
         logger.LogInformation("Переведено на базовую подписку: {Count} трейдеров", expiredTraders.Count);
         return expiredTraders.Count;
+    }
+
+    private void AddHistoryEntry(Trader trader, Subscription subscription, DateTime now)
+    {
+        dbContext.SubscriptionPurchaseHistory.Add(new SubscriptionPurchaseHistory
+        {
+            TraderId = trader.TelegramId,
+            SubscriptionId = subscription.Id,
+            PriceRubles = subscription.PriceRubles,
+            PurchasedAtUtc = now,
+            ExpiresAtUtc = null,
+            TransactionId = null
+        });
     }
 }

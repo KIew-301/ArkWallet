@@ -289,4 +289,108 @@ public class SubscriptionPurchaseServiceTest
         Assert.Null(updatedTrader.SubscriptionExpiresAtUtc);
         payment.Verify(p => p.CreatePaymentAsync(It.IsAny<PaymentRequest>(), It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task PurchaseAsync_TimedSubscription_CreatesHistoryWithFields()
+    {
+        await using var db = await DbTest.CreateInitializedDbContextAsync();
+        await HelpMethods.RegisterTrader(db, 7001);
+        var premium = new Subscription { Name = "Premium", Level = 2, PriceRubles = 500, MaxOrders = 20, MaxMiningMachines = 20, DurationMinutes = 100 };
+        db.Subscriptions.Add(premium);
+        await db.SaveChangesAsync();
+
+        var payment = new Mock<IPaymentIntegrationService>();
+        payment.Setup(p => p.CreatePaymentAsync(It.IsAny<PaymentRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PaymentResult { TransactionId = "tx-buy", IsSuccess = true });
+        var publisher = new Mock<IEventPublisher>();
+        var time = new TestTimeProvider();
+        var service = CreateService(db, payment.Object, publisher.Object, time);
+
+        var result = await service.PurchaseAsync(7001, premium.Id);
+
+        Assert.True(result.Success);
+        var expectedExpiry = time.GetUtcNow().UtcDateTime.AddMinutes(100);
+        Assert.Equal(expectedExpiry, result.ExpiresAtUtc);
+        var historyCount = await db.SubscriptionPurchaseHistory.CountAsync(h => h.TraderId == 7001);
+        Assert.Equal(1, historyCount);
+        var history = await db.SubscriptionPurchaseHistory.SingleAsync(h => h.TraderId == 7001);
+        Assert.Equal(7001L, history.TraderId);
+        Assert.Equal(premium.Id, history.SubscriptionId);
+        Assert.Equal(500m, history.PriceRubles);
+        Assert.Equal(expectedExpiry, history.ExpiresAtUtc);
+        Assert.Equal("tx-buy", history.TransactionId);
+    }
+
+    [Fact]
+    public async Task PurchaseAsync_SameLevelActive_CreatesHistoryWithExtendedExpiry()
+    {
+        var now = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        await using var db = await DbTest.CreateInitializedDbContextAsync();
+        await HelpMethods.RegisterTrader(db, 7002);
+        var premium = new Subscription { Name = "Premium", Level = 2, PriceRubles = 500, MaxOrders = 20, MaxMiningMachines = 20, DurationMinutes = 100 };
+        db.Subscriptions.Add(premium);
+        await db.SaveChangesAsync();
+        var trader = await db.Traders.FirstAsync(t => t.TelegramId == 7002L);
+        trader.SubscriptionId = premium.Id;
+        trader.SubscriptionExpiresAtUtc = now.AddMinutes(100);
+        await db.SaveChangesAsync();
+
+        var payment = new Mock<IPaymentIntegrationService>();
+        payment.Setup(p => p.CreatePaymentAsync(It.IsAny<PaymentRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PaymentResult { TransactionId = "tx-ext", IsSuccess = true });
+        var publisher = new Mock<IEventPublisher>();
+        var time = new TestTimeProvider();
+        var service = CreateService(db, payment.Object, publisher.Object, time);
+
+        var result = await service.PurchaseAsync(7002, premium.Id);
+
+        Assert.True(result.Success);
+        Assert.Equal(now.AddMinutes(200), result.ExpiresAtUtc);
+        var historyCount = await db.SubscriptionPurchaseHistory.CountAsync(h => h.TraderId == 7002);
+        Assert.Equal(1, historyCount);
+        var history = await db.SubscriptionPurchaseHistory.SingleAsync(h => h.TraderId == 7002);
+        Assert.Equal(7002L, history.TraderId);
+        Assert.Equal(premium.Id, history.SubscriptionId);
+        Assert.Equal(500m, history.PriceRubles);
+        Assert.Equal(now.AddMinutes(200), history.ExpiresAtUtc);
+        Assert.Equal("tx-ext", history.TransactionId);
+    }
+
+    [Fact]
+    public async Task PurchaseAsync_HigherLevelSwitch_CreatesHistoryEntry()
+    {
+        var now = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        await using var db = await DbTest.CreateInitializedDbContextAsync();
+        await HelpMethods.RegisterTrader(db, 7003);
+        var basic = new Subscription { Name = "Basic", Level = 1, PriceRubles = 100, MaxOrders = 5, MaxMiningMachines = 5, DurationMinutes = null };
+        db.Subscriptions.Add(basic);
+        await db.SaveChangesAsync();
+        var premium = new Subscription { Name = "Premium", Level = 2, PriceRubles = 500, MaxOrders = 20, MaxMiningMachines = 20, DurationMinutes = 100 };
+        db.Subscriptions.Add(premium);
+        await db.SaveChangesAsync();
+        var trader = await db.Traders.FirstAsync(t => t.TelegramId == 7003L);
+        trader.SubscriptionId = basic.Id;
+        trader.SubscriptionExpiresAtUtc = null;
+        await db.SaveChangesAsync();
+
+        var payment = new Mock<IPaymentIntegrationService>();
+        payment.Setup(p => p.CreatePaymentAsync(It.IsAny<PaymentRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PaymentResult { TransactionId = "tx-switch", IsSuccess = true });
+        var publisher = new Mock<IEventPublisher>();
+        var time = new TestTimeProvider();
+        var service = CreateService(db, payment.Object, publisher.Object, time);
+
+        var result = await service.PurchaseAsync(7003, premium.Id);
+
+        Assert.True(result.Success);
+        Assert.Equal(now.AddMinutes(100), result.ExpiresAtUtc);
+        var historyCount = await db.SubscriptionPurchaseHistory.CountAsync(h => h.TraderId == 7003);
+        Assert.Equal(1, historyCount);
+        var history = await db.SubscriptionPurchaseHistory.SingleAsync(h => h.TraderId == 7003);
+        Assert.Equal(7003L, history.TraderId);
+        Assert.Equal(premium.Id, history.SubscriptionId);
+        Assert.Equal(500m, history.PriceRubles);
+        Assert.Equal(now.AddMinutes(100), history.ExpiresAtUtc);
+        Assert.Equal("tx-switch", history.TransactionId);
+    }
 }
