@@ -5,12 +5,10 @@ namespace ArkWallet.Tests.Core.TradingContext.Domain.Engines;
 
 public class FixedGridEngineTest
 {
-    private readonly FixedGridEngine _engine = new();
-
     [Fact]
     public void GetGridBelowPrice_From1000_Count20_ReturnsCorrectValues()
     {
-        var result = _engine.GetGridBelowPrice(1000m, 20);
+        var result = FixedGridEngine.GetGridBelowPrice(1000m, 20);
 
         var expected = new[]
         {
@@ -30,7 +28,7 @@ public class FixedGridEngineTest
     [Fact]
     public void GetGridAbovePrice_From1000_Count20_ReturnsCorrectValues()
     {
-        var result = _engine.GetGridAbovePrice(1000m, 20);
+        var result = FixedGridEngine.GetGridAbovePrice(1000m, 20);
 
         var expected = new[]
         {
@@ -50,8 +48,8 @@ public class FixedGridEngineTest
     [Fact]
     public void GetGridAroundPrice_From1000_ShouldContain_GetGridBelowPrice_From990_5_10Values()
     {
-        var around1000 = _engine.GetGridBelowPrice(1000m, 20);
-        var below990_5 = _engine.GetGridBelowPrice(990.5m, 10);
+        var around1000 = FixedGridEngine.GetGridBelowPrice(1000m, 20);
+        var below990_5 = FixedGridEngine.GetGridBelowPrice(990.5m, 10);
 
         foreach (var value in below990_5)
         {
@@ -62,8 +60,8 @@ public class FixedGridEngineTest
     [Fact]
     public void GetGridAroundPrice_From1000_ShouldContain_GetGridAbovePrice_From1011_10Values()
     {
-        var around1000 = _engine.GetGridAbovePrice(1000m, 21);
-        var above1011 = _engine.GetGridAbovePrice(1011m, 10);
+        var around1000 = FixedGridEngine.GetGridAbovePrice(1000m, 21);
+        var above1011 = FixedGridEngine.GetGridAbovePrice(1011m, 10);
 
         foreach (var value in above1011)
         {
@@ -95,7 +93,7 @@ public class FixedGridEngineTest
     [Fact]
     public void GetGridAroundPrice_From2000_CountAround5_ReturnsSortedGrid()
     {
-        var result = _engine.GetGridAroundPrice(2000m, 5);
+        var result = FixedGridEngine.GetGridAroundPrice(2000m, 5);
 
         Assert.Equal(10, result.Count);
         for (int i = 1; i < result.Count; i++)
@@ -105,7 +103,7 @@ public class FixedGridEngineTest
     [Fact]
     public void GetGridAroundPrice_PriceBelowBase_ReturnsOnlyAboveValues()
     {
-        var result = _engine.GetGridAroundPrice(2000m, 3);
+        var result = FixedGridEngine.GetGridAroundPrice(2000m, 3);
 
         Assert.True(result.Count > 0);
         Assert.All(result, v => Assert.True(v > 0));
@@ -114,7 +112,7 @@ public class FixedGridEngineTest
     [Fact]
     public void GetGridBelowPrice_PriceZero_ReturnsStartingFromBase()
     {
-        var result = _engine.GetGridBelowPrice(0m, 5);
+        var result = FixedGridEngine.GetGridBelowPrice(0m, 5);
 
         Assert.Equal(5, result.Count);
         Assert.All(result, v => Assert.True(v >= 0));
@@ -123,7 +121,7 @@ public class FixedGridEngineTest
     [Fact]
     public void GetGridAbovePrice_PriceZero_ReturnsCorrectGrid()
     {
-        var result = _engine.GetGridAbovePrice(0m, 5);
+        var result = FixedGridEngine.GetGridAbovePrice(0m, 5);
 
         Assert.Equal(5, result.Count);
         Assert.All(result, v => Assert.True(v >= 0));

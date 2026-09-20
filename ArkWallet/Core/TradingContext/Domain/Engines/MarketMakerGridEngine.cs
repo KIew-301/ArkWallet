@@ -17,7 +17,7 @@ internal class MarketMakerGridEngine(FixedGridEngine fixedGridEngine)
 
         if (bot.Role == MarketMakerRole.Buyer)
         {
-            var grid = fixedGridEngine.GetGridBelowPrice(currentPrice, stepsCount + 1);
+            var grid = FixedGridEngine.GetGridBelowPrice(currentPrice, stepsCount + 1);
 
             for (int i = 0; i < grid.Count - 1; i++)
             {
@@ -42,7 +42,7 @@ internal class MarketMakerGridEngine(FixedGridEngine fixedGridEngine)
         }
         else if (bot.Role == MarketMakerRole.Seller)
         {
-            var grid = fixedGridEngine.GetGridAbovePrice(currentPrice, stepsCount);
+            var grid = FixedGridEngine.GetGridAbovePrice(currentPrice, stepsCount);
 
             for (int i = 0; i < grid.Count - 1; i++)
             {

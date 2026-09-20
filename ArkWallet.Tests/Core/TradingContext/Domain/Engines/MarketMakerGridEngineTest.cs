@@ -62,7 +62,7 @@ public class MarketMakerGridEngineTest
         var currentPrice = 1000m;
         var existingOrders = new List<Order>();
 
-        var grid = new FixedGridEngine().GetGridBelowPrice(currentPrice, 21);
+        var grid = FixedGridEngine.GetGridBelowPrice(currentPrice, 21);
 
         for (int i = 0; i < grid.Count - 1; i++)
         {

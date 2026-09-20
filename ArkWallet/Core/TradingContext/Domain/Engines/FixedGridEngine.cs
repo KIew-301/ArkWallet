@@ -9,7 +9,7 @@ internal class FixedGridEngine
     private const decimal STEP_MULTIPLIER = 1.001m;
     private static readonly SearchValues<char> DecimalSeparators = SearchValues.Create(".,");
 
-    public List<decimal> GetGridAbovePrice(decimal currentPrice, int count = 10)
+    public static List<decimal> GetGridAbovePrice(decimal currentPrice, int count = 10)
     {
         var index = FindClosestIndex(currentPrice);
         var grid = new List<decimal>();
@@ -22,7 +22,7 @@ internal class FixedGridEngine
         return grid.OrderBy(x => x).ToList();
     }
 
-    public List<decimal> GetGridBelowPrice(decimal currentPrice, int count = 10)
+    public static List<decimal> GetGridBelowPrice(decimal currentPrice, int count = 10)
     {
         var index = FindClosestIndex(currentPrice);
         var grid = new List<decimal>();
@@ -35,7 +35,7 @@ internal class FixedGridEngine
         return grid.OrderByDescending(x => x).ToList();
     }
 
-    public List<decimal> GetGridAroundPrice(decimal currentPrice, int countAround = 5)
+    public static List<decimal> GetGridAroundPrice(decimal currentPrice, int countAround = 5)
     {
         var grid = new List<decimal>();
         var index = FindClosestIndex(currentPrice);

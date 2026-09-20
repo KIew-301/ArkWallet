@@ -26,12 +26,12 @@ echo "[3/6] Setting up app directory..."
 mkdir -p /opt/arkwallet /var/www/certbot
 cd /opt/arkwallet
 
-if [ ! -f ".git" ]; then
+if [[ ! -f ".git" ]]; then
   git clone https://github.com/KIew-301/ArkWallet.git /opt/arkwallet
 fi
 
 # 4. Setup .env
-if [ ! -f ".env" ]; then
+if [[ ! -f ".env" ]]; then
   echo "[4/6] Creating .env from template..."
   cp .env.server .env
   echo "[!] IMPORTANT: Edit /opt/arkwallet/.env and fill in real secrets!"

@@ -6,15 +6,15 @@ namespace ArkWallet.Infrastructure.Data
     internal class CharacterToken : EntityData
     {
         [Key]
-        public string Symbol { get; private set; }
-        public string Name { get; private set; }
+        public string Symbol { get; private set; } = string.Empty;
+        public string Name { get; private set; } = string.Empty;
         public CharacterRarity Rarity { get; private set; }
         public decimal CurrentPrice { get; set; }
         public int TotalSupply { get; private set; }
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
-        public string ImageUrl { get; set; }
-        public string IconUrl { get; set; }
+        public string ImageUrl { get; set; } = string.Empty;
+        public string IconUrl { get; set; } = string.Empty;
 
         // Computed properties (правило 18: разрешены get_ свойства)
         public bool CanBeTraded => IsActive && TotalSupply > 0;

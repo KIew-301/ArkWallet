@@ -67,11 +67,11 @@ namespace ArkWallet.Core.TradingContext.Application.Services.TradeOrderServices
         {
             var priceValidationResult = ValidatePrice(request.Price);
             if (!priceValidationResult.IsValid)
-                return ValidationResult.Failed(priceValidationResult.Message);
+                return ValidationResult.Failed(priceValidationResult.Message!);
 
             var quantityValidationResult = ValidateQuantity(request.Quantity);
             if (!quantityValidationResult.IsValid)
-                return ValidationResult.Failed(quantityValidationResult.Message);
+                return ValidationResult.Failed(quantityValidationResult.Message!);
 
             return ValidationResult.Success();
         }
@@ -85,20 +85,23 @@ namespace ArkWallet.Core.TradingContext.Application.Services.TradeOrderServices
             {
                 var priceValidationResult = ValidatePrice(request.Price);
                 if (!priceValidationResult.IsValid)
-                    return ValidationResult.Failed(priceValidationResult.Message);
+                    return ValidationResult.Failed(priceValidationResult.Message!);
 
                 var quantityValidationResult = ValidateQuantity(request.Quantity);
                 if (!quantityValidationResult.IsValid)
-                    return ValidationResult.Failed(quantityValidationResult.Message);
+                    return ValidationResult.Failed(quantityValidationResult.Message!);
             }
 
             return ValidationResult.Success();
         }
     }
 
+    /// <summary>Направления ордеров.</summary>
     public static class OrderDirections
     {
+        /// <summary>Купить.</summary>
         public const string Buy = "купить";
+        /// <summary>Продать.</summary>
         public const string Sell = "продать";
     }
 }

@@ -29,8 +29,6 @@ namespace ArkWallet.Tests.Core.General.Application.Services.Orchestrators;
 
 public class MarketMakerOrchestratorTest
 {
-    private readonly FixedGridEngine _fixedGridEngine = new();
-
     [Fact]
     public async Task EnsureBotsRegisteredAsync_WhenBotsNotExist_RegistersThem()
     {
@@ -787,7 +785,7 @@ public class MarketMakerOrchestratorTest
         var fixedGridEngine = new FixedGridEngine();
         var marketMakerGridEngine = new MarketMakerGridEngine(fixedGridEngine);
 
-        var grid = fixedGridEngine.GetGridBelowPrice(100, 21);
+        var grid = FixedGridEngine.GetGridBelowPrice(100, 21);
         for (int i = 0; i < grid.Count - 1; i++)
         {
             var lower = grid[i + 1];
