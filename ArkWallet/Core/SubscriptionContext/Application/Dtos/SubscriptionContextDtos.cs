@@ -34,6 +34,9 @@ public record SubscriptionInfo(
 /// <param name="ExpiresAtUtc">Дата истечения подписки (только при успехе).</param>
 public record PurchaseResult(bool Success, string Message, string? TransactionId, DateTime? ExpiresAtUtc)
 {
+    public string? ConfirmationUrl { get; init; }
+    public bool RequiresConfirmation { get; init; }
+
     /// <summary>
     /// Создает результат с ошибкой (неуспешная покупка).
     /// </summary>

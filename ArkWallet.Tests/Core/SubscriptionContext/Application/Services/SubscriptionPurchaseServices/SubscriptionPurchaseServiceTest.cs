@@ -10,6 +10,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
+using ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionActivationServices;
+
 namespace ArkWallet.Tests.Core.SubscriptionContext.Application.Services.SubscriptionPurchaseServices;
 
 public class SubscriptionPurchaseServiceTest
@@ -19,7 +21,7 @@ public class SubscriptionPurchaseServiceTest
         IPaymentIntegrationService payment,
         IEventPublisher eventPublisher,
         TimeProvider timeProvider) =>
-        new(db, payment, eventPublisher, timeProvider, NullLogger<SubscriptionPurchaseService>.Instance);
+        new(db, payment, new SubscriptionActivationService(db, eventPublisher, timeProvider, NullLogger<SubscriptionActivationService>.Instance), eventPublisher, timeProvider, NullLogger<SubscriptionPurchaseService>.Instance);
 
     [Fact]
     public async Task PurchaseAsync_SubscriptionNotFound_ReturnsFail()
@@ -461,5 +463,44 @@ public class SubscriptionPurchaseServiceTest
         var history = await db.SubscriptionPurchaseHistory.SingleAsync(h => h.TraderId == 7200);
         Assert.Equal(now.AddMinutes(duration + bonusMinutes), history.ExpiresAtUtc);
         Assert.Equal(6000m, history.PriceRubles);
+    }
+
+    [Fact]
+    public async Task PurchaseAsync_RequiresConfirmation_CreatesPendingPayment_DoesNotActivate()
+    {
+        await using var db = await DbTest.CreateInitializedDbContextAsync();
+        await HelpMethods.RegisterTrader(db, 2000);
+        var sub = new Subscription { Name = "Премиум", Level = 2, PriceRubles = 100, MaxOrders = 20, MaxMiningMachines = 20, DurationMinutes = 10080, PriceMonthRubles = 290 };
+        db.Subscriptions.Add(sub);
+        await db.SaveChangesAsync();
+
+        var payment = new Mock<IPaymentIntegrationService>();
+        payment.Setup(p => p.CreatePaymentAsync(It.IsAny<PaymentRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PaymentResult
+            {
+                TransactionId = "TXN-PAY",
+                IsSuccess = true,
+                PaymentId = "PAY-123",
+                ConfirmationUrl = "https://pay.yookassa.ru/checkout/PAY-123",
+                RequiresConfirmation = true
+            });
+        var publisher = new Mock<IEventPublisher>();
+        var service = CreateService(db, payment.Object, publisher.Object, new TestTimeProvider());
+
+        var result = await service.PurchaseAsync(2000, sub.Id, SubscriptionPeriod.Month);
+
+        Assert.True(result.Success);
+        Assert.True(result.RequiresConfirmation);
+        Assert.Equal("https://pay.yookassa.ru/checkout/PAY-123", result.ConfirmationUrl);
+        Assert.Null(result.ExpiresAtUtc);
+
+        var paymentRecord = await db.SubscriptionPayments.SingleAsync();
+        Assert.Equal("pending", paymentRecord.Status);
+        Assert.Equal("PAY-123", paymentRecord.ExternalPaymentId);
+        Assert.Equal(sub.Id, paymentRecord.SubscriptionId);
+
+        var trader = await db.Traders.FirstAsync(t => t.TelegramId == 2000);
+        Assert.Null(trader.SubscriptionId);
+        publisher.Verify(p => p.PublishAsync(It.IsAny<TraderSubscriptionChangedEvent>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

@@ -698,6 +698,12 @@ namespace ArkWallet.Infrastructure.Wizard
             if (!purchase.Success)
                 return new WizardResult { Message = $"Не удалось купить подписку: {purchase.Message}" };
 
+            if (purchase.RequiresConfirmation && !string.IsNullOrWhiteSpace(purchase.ConfirmationUrl))
+                return new WizardResult
+                {
+                    Message = $"Счёт на оплату создан! Перейдите по ссылке для оплаты:\n{purchase.ConfirmationUrl}\n\nПодписка активируется автоматически после оплаты."
+                };
+
             var expires = purchase.ExpiresAtUtc.HasValue
                 ? purchase.ExpiresAtUtc.Value.ToString("yyyy-MM-dd HH:mm") + " UTC"
                 : "бессрочно";

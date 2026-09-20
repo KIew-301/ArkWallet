@@ -173,7 +173,7 @@ public class YooKassaPaymentIntegrationService : Core.SubscriptionContext.Applic
                 return new Core.SubscriptionContext.Application.Contracts.PaymentServices.PaymentStatusResult
                 {
                     PaymentId = externalPaymentId,
-                    Status = "expired",
+                    Status = "error",
                 };
             }
 
@@ -185,7 +185,7 @@ public class YooKassaPaymentIntegrationService : Core.SubscriptionContext.Applic
                 return new Core.SubscriptionContext.Application.Contracts.PaymentServices.PaymentStatusResult
                 {
                     PaymentId = externalPaymentId,
-                    Status = "expired",
+                    Status = "error",
                 };
             }
 
@@ -203,7 +203,7 @@ public class YooKassaPaymentIntegrationService : Core.SubscriptionContext.Applic
             return new Core.SubscriptionContext.Application.Contracts.PaymentServices.PaymentStatusResult
             {
                 PaymentId = externalPaymentId,
-                Status = "expired",
+                Status = "error",
             };
         }
     }

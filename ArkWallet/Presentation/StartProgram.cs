@@ -79,6 +79,8 @@ using ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionPurcha
 using ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionPurchaseHistoryServices;
 using ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionExpiryServices;
 using ArkWallet.Core.SubscriptionContext.Application.Contracts.PaymentServices;
+using ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionActivationServices;
+using ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionActivationServices;
 using ArkWallet.Infrastructure.Payment;
 
 [ExcludeFromCodeCoverage(Justification = "Точка входа приложения: конфигурация DI, middleware и инфраструктуры. Не содержит бизнес-логики.")]
@@ -279,6 +281,7 @@ class Program
             builder.Services.AddHostedService<PowerDeviationWorker>();
             builder.Services.AddHostedService<GlobalGoalUpdateWorker>();
             builder.Services.AddHostedService<SubscriptionExpiryWorker>();
+            builder.Services.AddHostedService<PaymentConfirmationWorker>();
         }
 
         var app = builder.Build();
@@ -526,6 +529,7 @@ class Program
         services.AddScoped<IPurchaseService, SubscriptionPurchaseService>();
         services.AddScoped<IPurchaseHistoryQueryService, SubscriptionPurchaseHistoryQueryService>();
         services.AddScoped<ISubscriptionExpiryService, SubscriptionExpiryService>();
+        services.AddScoped<ISubscriptionActivationService, SubscriptionActivationService>();
 
         var paymentProvider = configuration["Payment:Provider"] ?? "Instant";
         if (string.Equals(paymentProvider, "YooKassa", StringComparison.OrdinalIgnoreCase))
