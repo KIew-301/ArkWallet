@@ -319,9 +319,9 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
             NullLogger<SendingService>.Instance,
             new TestTimeProvider());
 
-        var blocked = await Assert.ThrowsAsync<PostgresException>(
-            () => service.SendGiftAsync(701, 702));
-        Assert.Equal("55P03", blocked.SqlState);
+        var blocked = await service.SendGiftAsync(701, 702);
+        Assert.False(blocked.IsSuccess, "Отправка должна блокироваться до истечения lock_timeout");
+        Assert.Contains("55P03", blocked.Message);
 
         await waiterTx.RollbackAsync();
         await holderTx.CommitAsync();
