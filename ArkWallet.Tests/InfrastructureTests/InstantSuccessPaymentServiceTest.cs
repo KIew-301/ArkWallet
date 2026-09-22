@@ -44,4 +44,27 @@ public class InstantSuccessPaymentServiceTest
 
         Assert.NotEqual(result1.TransactionId, result2.TransactionId);
     }
+
+    [Fact]
+    public async Task GetPaymentStatusAsync_ReturnsSucceededWithExternalPaymentId()
+    {
+        var service = new InstantSuccessPaymentService();
+
+        var result = await service.GetPaymentStatusAsync("EXT-PAY-42");
+
+        Assert.Equal("EXT-PAY-42", result.PaymentId);
+        Assert.Equal("succeeded", result.Status);
+        Assert.True(result.IsSucceeded);
+    }
+
+    [Fact]
+    public async Task GetPaymentStatusAsync_EmptyId_StillReturnsSucceeded()
+    {
+        var service = new InstantSuccessPaymentService();
+
+        var result = await service.GetPaymentStatusAsync(string.Empty);
+
+        Assert.Equal(string.Empty, result.PaymentId);
+        Assert.Equal("succeeded", result.Status);
+    }
 }
