@@ -42,12 +42,19 @@ internal class SubscriptionPurchaseService(
                     TraderTelegramId = traderTelegramId,
                     AmountRubles = amount,
                     SubscriptionId = sub.Id,
-                    Description = $"Покупка подписки {sub.Name} на {period.ToDisplayName()}"
+                    Description = $"Покупка подписки {sub.Name} на {period.ToDisplayName()}",
+                    Period = (int)period,
+                    SavePaymentMethod = true,
                 },
                 cancellationToken);
 
             if (!paymentResult.IsSuccess)
                 return PurchaseResult.Fail("Платеж не прошел");
+
+            if (!string.IsNullOrEmpty(paymentResult.SavedPaymentMethodId))
+            {
+                trader.SavedPaymentMethodId = paymentResult.SavedPaymentMethodId;
+            }
 
             if (paymentResult.RequiresConfirmation)
             {
@@ -60,6 +67,7 @@ internal class SubscriptionPurchaseService(
                     ExternalPaymentId = paymentResult.PaymentId ?? paymentResult.TransactionId ?? string.Empty,
                     Status = "pending",
                     ConfirmationUrl = paymentResult.ConfirmationUrl,
+                    PaymentMethodId = paymentResult.SavedPaymentMethodId,
                     CreatedAtUtc = now
                 });
                 await dbContext.SaveChangesAsync(cancellationToken);

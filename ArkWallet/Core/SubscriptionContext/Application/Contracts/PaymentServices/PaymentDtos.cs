@@ -29,6 +29,17 @@ public class PaymentRequest
     /// Период подписки (неделя/месяц/год) как int.
     /// </summary>
     public int Period { get; init; }
+
+    /// <summary>
+    /// Сохранить платёжный метод для автопродления (первый платёж).
+    /// </summary>
+    public bool SavePaymentMethod { get; init; }
+
+    /// <summary>
+    /// ID сохранённого платёжного метода ЮKassa для рекуррентного списания (автопродление).
+    /// Если задан, платёж выполняется без участия пользователя.
+    /// </summary>
+    public string? PaymentMethodId { get; init; }
 }
 
 /// <summary>
@@ -65,6 +76,11 @@ public class PaymentResult
     /// Требуется ли подтверждение платежа (двухстадийный флоу). true = нужно дождаться оплаты, false = уже оплачен.
     /// </summary>
     public bool RequiresConfirmation { get; init; }
+
+    /// <summary>
+    /// ID сохранённого платёжного метода ЮKassa (для автопродления), если был сохранён.
+    /// </summary>
+    public string? SavedPaymentMethodId { get; init; }
 }
 
 /// <summary>
@@ -78,9 +94,14 @@ public class PaymentStatusResult
     public string? PaymentId { get; init; }
 
     /// <summary>
-    /// Сырой статус платёжной системы ("pending" | "succeeded" | "canceled" | "expired").
+    /// сырой статус платёжной системы ("pending" | "succeeded" | "canceled" | "expired").
     /// </summary>
     public string Status { get; init; } = string.Empty;
+
+    /// <summary>
+    /// ID сохранённого платёжного метода ЮKassa (для автопродления), если был сохранён.
+    /// </summary>
+    public string? SavedPaymentMethodId { get; init; }
 
     /// <summary>
     /// Платёж успешно оплачен.

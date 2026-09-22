@@ -1,6 +1,8 @@
 using ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionExpiryServices;
 using ArkWallet.Core.SubscriptionContext.Application.Events;
 using ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionExpiryServices;
+using ArkWallet.Core.General.Domain.Common;
+using ArkWallet.Infrastructure;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Infrastructure.Workers;
 using ArkWallet.Tests.HelpTools;
@@ -168,6 +170,7 @@ public class SubscriptionExpiryWorkerTest
         services.AddSingleton<TimeProvider>(TimeProvider.System);
         services.AddSingleton<Microsoft.Extensions.Logging.ILogger<SubscriptionExpiryService>>(
             Microsoft.Extensions.Logging.Abstractions.NullLogger<SubscriptionExpiryService>.Instance);
+        services.AddSingleton<IEventPublisher>(new MediatREventPublisher(new Mock<MediatR.IMediator>().Object));
         services.AddScoped<ISubscriptionExpiryService, SubscriptionExpiryService>();
         using var provider = services.BuildServiceProvider();
         var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();

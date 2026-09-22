@@ -4,6 +4,7 @@ using ArkWallet.Core.TradingContext.Application.Contracts.TradeServices;
 using ArkWallet.Core.General.Domain.ValueObjects;
 using Microsoft.CodeAnalysis;
 using ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionPurchaseServices;
+using ArkWallet.Core.SubscriptionContext.Application.Dtos;
 
 namespace ArkWallet.Infrastructure.Wizard
 {
@@ -668,7 +669,7 @@ namespace ArkWallet.Infrastructure.Wizard
 
         private async Task<StepResult> HandleSubscriptions(UserSession session, string input)
         {
-            var result = await _subscriptionQueryService.GetAllAsync();
+            var result = await _subscriptionQueryService.GetOffersForTraderAsync(session.Id);
 
             if (!result.TryGetData(out var subscriptions) || subscriptions == null || subscriptions.Count == 0)
                 return StepResult.Ok("completed", "Подписки временно недоступны.");
@@ -685,9 +686,20 @@ namespace ArkWallet.Infrastructure.Wizard
                 sb.AppendLine($"   Макс. ордеров: {s.MaxOrders}");
                 sb.AppendLine($"   Макс. машин: {s.MaxMiningMachines}");
                 sb.AppendLine($"   Срок: {(s.DurationMinutes.HasValue ? s.DurationMinutes.Value + " мин." : "бессрочно")}");
+
+                var action = s.Action switch
+                {
+                    SubscriptionOfferAction.Renew => "продлить (активна у вас)",
+                    SubscriptionOfferAction.Upgrade => "улучшить",
+                    _ => "купить"
+                };
+                sb.AppendLine($"   Действие: {action}");
+
+                if (s.Action == SubscriptionOfferAction.Upgrade && s.BonusMinutes.HasValue && s.BonusMinutes.Value > 0)
+                    sb.AppendLine($"   Бонус за переход: +{s.BonusMinutes.Value} мин. к сроку");
             }
             sb.AppendLine();
-            sb.Append("Купить подписку: /buy_subscription <id> <неделя|месяц|год>");
+            sb.Append("Купить/продлить: /buy_subscription <id> <неделя|месяц|год>");
             return StepResult.Ok("completed", sb.ToString());
         }
 

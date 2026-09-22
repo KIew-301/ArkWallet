@@ -1,4 +1,6 @@
+using ArkWallet.Core.General.Domain.Common;
 using ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionExpiryServices;
+using ArkWallet.Core.SubscriptionContext.Application.Events;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -10,6 +12,7 @@ namespace ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionEx
 /// </summary>
 internal class SubscriptionExpiryService(
     ArkWalletDbContext dbContext,
+    IEventPublisher eventPublisher,
     TimeProvider timeProvider,
     ILogger<SubscriptionExpiryService> logger) : ISubscriptionExpiryService
 {
@@ -45,11 +48,34 @@ internal class SubscriptionExpiryService(
             return 0;
         }
 
+        var affectedSubIds = expiredTraders
+            .Select(t => t.SubscriptionId!.Value)
+            .Distinct()
+            .ToList();
+
+        var subsById = await dbContext.Subscriptions
+            .Where(s => affectedSubIds.Contains(s.Id))
+            .ToDictionaryAsync(s => s.Id, cancellationToken);
+
         foreach (var trader in expiredTraders)
         {
+            var oldSub = subsById.TryGetValue(trader.SubscriptionId!.Value, out var s) ? s : null;
+
             trader.SubscriptionId = basic.Id;
             trader.SubscriptionExpiresAtUtc = null;
             AddHistoryEntry(trader, basic, now);
+
+            if (oldSub is not null)
+            {
+                await eventPublisher.PublishAsync(
+                    new TraderSubscriptionChangedEvent(
+                        trader.TelegramId,
+                        SubscriptionChangeOperation.Expired,
+                        oldSub.Name,
+                        oldSub.Level,
+                        null),
+                    cancellationToken);
+            }
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -111,11 +137,34 @@ internal class SubscriptionExpiryService(
 
         if (expiredTraders.Count == 0) return 0;
 
+        var affectedSubIds = expiredTraders
+            .Select(t => t.SubscriptionId!.Value)
+            .Distinct()
+            .ToList();
+
+        var subsById = await dbContext.Subscriptions
+            .Where(s => affectedSubIds.Contains(s.Id))
+            .ToDictionaryAsync(s => s.Id, cancellationToken);
+
         foreach (var trader in expiredTraders)
         {
+            var oldSub = subsById.TryGetValue(trader.SubscriptionId!.Value, out var s) ? s : null;
+
             trader.SubscriptionId = basic.Id;
             trader.SubscriptionExpiresAtUtc = null;
             AddHistoryEntry(trader, basic, now);
+
+            if (oldSub is not null)
+            {
+                await eventPublisher.PublishAsync(
+                    new TraderSubscriptionChangedEvent(
+                        trader.TelegramId,
+                        SubscriptionChangeOperation.Expired,
+                        oldSub.Name,
+                        oldSub.Level,
+                        null),
+                    cancellationToken);
+            }
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);

@@ -1,9 +1,11 @@
 using ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionExpiryServices;
 using ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionExpiryServices;
+using ArkWallet.Infrastructure;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Tests.HelpTools;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 
 namespace ArkWallet.Tests.Core.SubscriptionContext.Application.Services.SubscriptionExpiryServices;
 
@@ -11,8 +13,12 @@ public class SubscriptionExpiryServiceTest
 {
     private static readonly DateTime NowUtc = new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-    private static SubscriptionExpiryService CreateService(ArkWalletDbContext db, TimeProvider timeProvider) =>
-        new(db, timeProvider, NullLogger<SubscriptionExpiryService>.Instance);
+    private static SubscriptionExpiryService CreateService(ArkWalletDbContext db, TimeProvider timeProvider)
+    {
+        var mediator = new Mock<MediatR.IMediator>();
+        var eventPublisher = new MediatREventPublisher(mediator.Object);
+        return new(db, eventPublisher, timeProvider, NullLogger<SubscriptionExpiryService>.Instance);
+    }
 
     private static TestTimeProvider CreateTimeProvider() => new TestTimeProvider();
 

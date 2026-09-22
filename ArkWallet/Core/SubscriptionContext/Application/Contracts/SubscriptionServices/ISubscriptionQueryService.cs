@@ -26,4 +26,12 @@ public interface ISubscriptionQueryService
     /// <param name="id">Идентификатор подписки.</param>
     /// <returns>Результат с информацией о подписке или ошибка.</returns>
     Task<Result<SubscriptionInfo?>> GetByIdAsync(int id);
+
+    /// <summary>
+    /// Возвращает список предложений подписок для конкретного трейдера с учётом его текущей подписки.
+    /// </summary>
+    /// <param name="traderTelegramId">Telegram ID трейдера.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <returns>Успешный результат со списком предложений или ошибка.</returns>
+    Task<Result<List<SubscriptionOfferInfo>>> GetOffersForTraderAsync(long traderTelegramId, CancellationToken cancellationToken = default);
 }

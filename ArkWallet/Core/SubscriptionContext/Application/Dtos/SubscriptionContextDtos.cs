@@ -72,3 +72,18 @@ public record PurchaseHistoryEntry(
     DateTime PurchasedAtUtc,
     DateTime? ExpiresAtUtc,
     string? TransactionId);
+
+public enum SubscriptionOfferAction
+{
+    Buy,
+    Renew,
+    Upgrade
+}
+
+public sealed record SubscriptionOfferInfo(
+    int Id, string Name, int Level,
+    decimal PriceRubles,
+    decimal PriceWeekRubles, decimal PriceMonthRubles, decimal PriceYearRubles,
+    int MaxOrders, int MaxMiningMachines, int? DurationMinutes,
+    SubscriptionOfferAction Action,
+    int? BonusMinutes);

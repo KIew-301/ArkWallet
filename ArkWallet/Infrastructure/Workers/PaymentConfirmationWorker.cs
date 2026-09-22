@@ -69,6 +69,15 @@ internal sealed class PaymentConfirmationWorker(
                         logger.LogError("Не удалось активировать подписку {SubscriptionId} для трейдера {TraderId} после оплаты", record.SubscriptionId, record.TraderId);
                         continue;
                     }
+
+                    if (!string.IsNullOrEmpty(status.SavedPaymentMethodId))
+                    {
+                        record.PaymentMethodId = status.SavedPaymentMethodId;
+                        var trader = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == record.TraderId, cancellationToken);
+                        if (trader is not null)
+                            trader.SavedPaymentMethodId = status.SavedPaymentMethodId;
+                    }
+
                     record.Status = "succeeded";
                     record.SucceededAtUtc = now;
                     changed = true;

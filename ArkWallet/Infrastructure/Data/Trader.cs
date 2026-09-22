@@ -13,6 +13,7 @@ namespace ArkWallet.Infrastructure.Data
         public int? SubscriptionId { get; set; }
         public virtual Subscription? Subscription { get; set; }
         public DateTime? SubscriptionExpiresAtUtc { get; set; }
+        public string? SavedPaymentMethodId { get; set; }
         public virtual ICollection<PortfolioItem> Portfolio { get; set; } = new List<PortfolioItem>();
         public virtual ICollection<TradeOrder> Orders { get; set; } = new List<TradeOrder>();
         public virtual ICollection<BalanceSnapshot> BalanceSnapshots { get; set; } = new List<BalanceSnapshot>();

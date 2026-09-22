@@ -14,6 +14,7 @@ namespace ArkWallet.Infrastructure.Data
         public string ExternalPaymentId { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
         public string? ConfirmationUrl { get; set; }
+        public string? PaymentMethodId { get; set; }
         public DateTime CreatedAtUtc { get; set; }
         public DateTime? SucceededAtUtc { get; set; }
         public DateTime? CanceledAtUtc { get; set; }

@@ -47,7 +47,20 @@ internal class SubscriptionActivationService(
             dbContext.SubscriptionPurchaseHistory.Add(historyEntry);
             await dbContext.SaveChangesAsync(cancellationToken);
 
-            await eventPublisher.PublishAsync(new TraderSubscriptionChangedEvent(trader.TelegramId), cancellationToken);
+            var operation = currentActive is null
+                ? SubscriptionChangeOperation.Purchased
+                : (sub.Level > currentActive.Level
+                    ? SubscriptionChangeOperation.Upgraded
+                    : SubscriptionChangeOperation.Renewed);
+
+            await eventPublisher.PublishAsync(
+                new TraderSubscriptionChangedEvent(
+                    trader.TelegramId,
+                    operation,
+                    sub.Name,
+                    sub.Level,
+                    expiry),
+                cancellationToken);
             return new SubscriptionActivationResult(true, expiry);
         }
         catch (Exception ex)

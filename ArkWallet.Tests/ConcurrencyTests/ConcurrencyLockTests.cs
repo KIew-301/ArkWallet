@@ -299,15 +299,15 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
 
         await using (var seed = CreateContext())
         {
-            await HelpMethods.RegisterTrader(seed, 101);
-            await HelpMethods.RegisterTrader(seed, 102);
+            await HelpMethods.RegisterTrader(seed, 701);
+            await HelpMethods.RegisterTrader(seed, 702);
         }
 
         await using var holder = CreateContext();
         await using var waiter = CreateContext();
 
         await using var holderTx = await holder.Database.BeginTransactionAsync();
-        await holder.LockTradersAsync([101L]);
+        await holder.LockTradersAsync([701L]);
 
         await using var waiterTx = await waiter.Database.BeginTransactionAsync();
         await waiter.Database.ExecuteSqlRawAsync("SET LOCAL lock_timeout = '300ms'");
@@ -320,7 +320,7 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
             new TestTimeProvider());
 
         var blocked = await Assert.ThrowsAsync<PostgresException>(
-            () => service.SendGiftAsync(101, 102));
+            () => service.SendGiftAsync(701, 702));
         Assert.Equal("55P03", blocked.SqlState);
 
         await waiterTx.RollbackAsync();

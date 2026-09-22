@@ -282,6 +282,7 @@ class Program
             builder.Services.AddHostedService<GlobalGoalUpdateWorker>();
             builder.Services.AddHostedService<SubscriptionExpiryWorker>();
             builder.Services.AddHostedService<PaymentConfirmationWorker>();
+            builder.Services.AddHostedService<SubscriptionRenewalWorker>();
         }
 
         var app = builder.Build();

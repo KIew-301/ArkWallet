@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionServices;
 
-internal class SubscriptionQueryService(ArkWalletDbContext dbContext, ILogger<SubscriptionQueryService> logger) : ISubscriptionQueryService
+internal class SubscriptionQueryService(TimeProvider timeProvider, ArkWalletDbContext dbContext, ILogger<SubscriptionQueryService> logger) : ISubscriptionQueryService
 {
     public async Task<Result<List<SubscriptionInfo>>> GetAllAsync()
     {
@@ -74,6 +74,81 @@ internal class SubscriptionQueryService(ArkWalletDbContext dbContext, ILogger<Su
                 sub.MaxOrders,
                 sub.MaxMiningMachines,
                 sub.DurationMinutes));
+        }, logger, nameof(SubscriptionQueryService));
+    }
+
+    public async Task<Result<List<SubscriptionOfferInfo>>> GetOffersForTraderAsync(long traderTelegramId, CancellationToken cancellationToken = default)
+    {
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
+        {
+            var now = timeProvider.GetUtcNow().UtcDateTime;
+
+            var activeSubscriptionId = await dbContext.Traders
+                .Where(t => t.TelegramId == traderTelegramId)
+                .Select(t => t.SubscriptionId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            Subscription? activeSubscription = null;
+            DateTime? activeExpiresAtUtc = null;
+
+            if (activeSubscriptionId != null)
+            {
+                activeSubscription = await dbContext.Subscriptions
+                    .FirstOrDefaultAsync(s => s.Id == activeSubscriptionId.Value, cancellationToken);
+
+                activeExpiresAtUtc = await dbContext.Traders
+                    .Where(t => t.TelegramId == traderTelegramId)
+                    .Select(t => t.SubscriptionExpiresAtUtc)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+
+            var subscriptions = await dbContext.Subscriptions
+                .OrderBy(s => s.Level)
+                .ToListAsync(cancellationToken);
+
+            var offers = new List<SubscriptionOfferInfo>();
+
+            foreach (var s in subscriptions)
+            {
+                SubscriptionOfferAction action;
+                int? bonusMinutes = null;
+
+                if (activeSubscription is null)
+                {
+                    action = SubscriptionOfferAction.Buy;
+                }
+                else if (s.Level == activeSubscription.Level)
+                {
+                    action = SubscriptionOfferAction.Renew;
+                }
+                else if (s.Level > activeSubscription.Level)
+                {
+                    action = SubscriptionOfferAction.Upgrade;
+
+                    if (activeExpiresAtUtc.HasValue && s.PriceMonthRubles > 0)
+                    {
+                        var remaining = activeExpiresAtUtc.Value - now;
+                        if (remaining > TimeSpan.Zero)
+                        {
+                            var ratio = activeSubscription.PriceMonthRubles / s.PriceMonthRubles;
+                            bonusMinutes = (int)Math.Floor((decimal)remaining.TotalMinutes * ratio);
+                        }
+                    }
+                }
+                else
+                {
+                    continue;
+                }
+
+                offers.Add(new SubscriptionOfferInfo(
+                    s.Id, s.Name, s.Level,
+                    s.PriceRubles,
+                    s.PriceWeekRubles, s.PriceMonthRubles, s.PriceYearRubles,
+                    s.MaxOrders, s.MaxMiningMachines, s.DurationMinutes,
+                    action, bonusMinutes));
+            }
+
+            return Result<List<SubscriptionOfferInfo>>.Ok(offers);
         }, logger, nameof(SubscriptionQueryService));
     }
 }

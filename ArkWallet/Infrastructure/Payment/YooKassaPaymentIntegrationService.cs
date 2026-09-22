@@ -120,6 +120,11 @@ public class YooKassaPaymentIntegrationService : Core.SubscriptionContext.Applic
             var paymentId = node["id"]?.GetValue<string>();
             var confirmationUrl = node["confirmation"]?["confirmation_url"]?.GetValue<string>();
 
+            var paymentMethodNode = node["payment_method"];
+            var savedPaymentMethodId = paymentMethodNode?["saved"]?.GetValue<bool>() == true
+                ? paymentMethodNode["id"]?.GetValue<string>()
+                : null;
+
             // «canceled»/«deleted» / пустой статус при 200 — тоже ошибка для клиента
             if (status is "canceled" or "deleted")
             {
@@ -141,6 +146,7 @@ public class YooKassaPaymentIntegrationService : Core.SubscriptionContext.Applic
                 TransactionId = paymentId,
                 ConfirmationUrl = confirmationUrl,
                 RequiresConfirmation = status != "succeeded",
+                SavedPaymentMethodId = savedPaymentMethodId,
             };
         }
         catch (Exception ex)
@@ -196,10 +202,16 @@ public class YooKassaPaymentIntegrationService : Core.SubscriptionContext.Applic
 
             var status = node["status"]?.GetValue<string>() ?? "expired";
 
+            var paymentMethodNode = node["payment_method"];
+            var savedPaymentMethodId = paymentMethodNode?["saved"]?.GetValue<bool>() == true
+                ? paymentMethodNode["id"]?.GetValue<string>()
+                : null;
+
             return new Core.SubscriptionContext.Application.Contracts.PaymentServices.PaymentStatusResult
             {
                 PaymentId = externalPaymentId,
                 Status = status,
+                SavedPaymentMethodId = savedPaymentMethodId,
             };
         }
         catch (Exception ex)
@@ -242,6 +254,19 @@ public class YooKassaPaymentIntegrationService : Core.SubscriptionContext.Applic
             ["description"] = request.Description ?? string.Empty,
             ["metadata"] = metadata,
         };
+
+        // Рекуррентный платёж по сохранённому методу (автопродление): пользователь не участвует.
+        if (!string.IsNullOrEmpty(request.PaymentMethodId))
+        {
+            body["payment_method_id"] = request.PaymentMethodId;
+            body["save_payment_method"] = false;
+            return body;
+        }
+
+        if (request.SavePaymentMethod)
+        {
+            body["save_payment_method"] = true;
+        }
 
         var confirmation = new JsonObject
         {
