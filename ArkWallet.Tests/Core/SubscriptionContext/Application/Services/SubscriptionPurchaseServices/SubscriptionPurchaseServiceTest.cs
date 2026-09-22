@@ -21,7 +21,7 @@ public class SubscriptionPurchaseServiceTest
         IPaymentIntegrationService payment,
         IEventPublisher eventPublisher,
         TimeProvider timeProvider) =>
-        new(db, payment, new SubscriptionActivationService(db, eventPublisher, timeProvider, NullLogger<SubscriptionActivationService>.Instance), eventPublisher, timeProvider, NullLogger<SubscriptionPurchaseService>.Instance);
+        new(db, payment, new SubscriptionActivationService(db, eventPublisher, timeProvider, NullLogger<SubscriptionActivationService>.Instance), timeProvider, NullLogger<SubscriptionPurchaseService>.Instance);
 
     [Fact]
     public async Task PurchaseAsync_SubscriptionNotFound_ReturnsFail()

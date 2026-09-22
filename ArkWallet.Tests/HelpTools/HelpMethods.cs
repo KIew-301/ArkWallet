@@ -175,13 +175,16 @@ internal class HelpMethods
         return await service.TakeTotalTraderBalanceSnapshot(traderId)!;
     }
 
-    public static async Task<Trader> GetTrader(ArkWalletDbContext db, long telegramId) =>
-        await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == telegramId)!;
+    public static async Task<Trader> GetTrader(ArkWalletDbContext db, long telegramId)
+    {
+        var trader = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == telegramId);
+        return trader ?? throw new ArgumentNullException($"Trader not found for telegramId={telegramId}");
+    }
 
     public static async Task<PortfolioItem> GetPortfolio(ArkWalletDbContext db, long traderId, string symbol = "ZZZ") =>
         await db.PortfolioItems
             .Include(p => p.CharacterToken)
-            .FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterToken.Symbol == symbol)!;
+            .FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterToken!.Symbol == symbol);
 
     public static async Task<TradeOrder[]> GetTraderOrders(ArkWalletDbContext db, long traderId, string symbol = "ZZZ", OrderStatus status = OrderStatus.Active) =>
         await db.TradeOrders

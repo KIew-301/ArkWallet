@@ -38,7 +38,7 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
 
                 if (BotFilter.IsBot(traderId))
                 {
-                    dbContext.TradeOrders.Remove(order!);
+                    dbContext.TradeOrders.Remove(order);
                     await dbContext.SaveChangesAsync();
                 }
 

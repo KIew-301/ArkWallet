@@ -3,7 +3,7 @@ using System.Globalization;
 
 namespace ArkWallet.Core.TradingContext.Domain.Engines;
 
-internal class FixedGridEngine
+internal static class FixedGridEngine
 {
     private const decimal BASE_PRICE = 1000m;
     private const decimal STEP_MULTIPLIER = 1.001m;

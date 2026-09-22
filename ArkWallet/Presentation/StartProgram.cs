@@ -402,7 +402,6 @@ class Program
 
         // Domain Engines
         services.AddScoped<TradingEngine>();
-        services.AddScoped<FixedGridEngine>();
         services.AddScoped<MarketMakerGridEngine>();
         services.AddScoped<WallBlockerEngine>();
         services.AddScoped<MiningEngine>();

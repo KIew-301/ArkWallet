@@ -3,7 +3,7 @@ using ArkWallet.Core.TradingContext.Domain.TraderAggregate;
 
 namespace ArkWallet.Core.TradingContext.Domain.Engines;
 
-internal class MarketMakerGridEngine(FixedGridEngine fixedGridEngine)
+internal class MarketMakerGridEngine
 {
     private readonly Random _random = new();
 

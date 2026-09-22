@@ -77,7 +77,7 @@ public class MarketMakerTickGateTests
             null!,
             orderCreationService,
             marketMakerOrderService,
-            new MarketMakerGridEngine(new FixedGridEngine()),
+            new MarketMakerGridEngine(),
             NullLogger<MarketMakerOrchestrator>.Instance);
     }
 }

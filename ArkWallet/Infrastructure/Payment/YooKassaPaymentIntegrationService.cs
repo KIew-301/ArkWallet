@@ -46,6 +46,11 @@ public class YooKassaPaymentIntegrationService : Core.SubscriptionContext.Applic
     private readonly YooKassaOptions _options;
     private readonly ILogger<YooKassaPaymentIntegrationService> _logger;
 
+    private const string YooKassaPaymentStatusError = "yookassa_error";
+
+    /// <summary>
+    /// Инициализирует сервис с указанными зависимостями.
+    /// </summary>
     public YooKassaPaymentIntegrationService(
         HttpClient httpClient,
         IOptions<YooKassaOptions> options,
@@ -95,7 +100,7 @@ public class YooKassaPaymentIntegrationService : Core.SubscriptionContext.Applic
                 return new Core.SubscriptionContext.Application.Contracts.PaymentServices.PaymentResult
                 {
                     IsSuccess = false,
-                    PayerInfo = "yookassa_error",
+                    PayerInfo = YooKassaPaymentStatusError,
                 };
             }
 
@@ -107,7 +112,7 @@ public class YooKassaPaymentIntegrationService : Core.SubscriptionContext.Applic
                 return new Core.SubscriptionContext.Application.Contracts.PaymentServices.PaymentResult
                 {
                     IsSuccess = false,
-                    PayerInfo = "yookassa_error",
+                    PayerInfo = YooKassaPaymentStatusError,
                 };
             }
 
@@ -125,7 +130,7 @@ public class YooKassaPaymentIntegrationService : Core.SubscriptionContext.Applic
                 {
                     IsSuccess = false,
                     PaymentId = paymentId,
-                    PayerInfo = "yookassa_error",
+                    PayerInfo = YooKassaPaymentStatusError,
                 };
             }
 
@@ -144,7 +149,7 @@ public class YooKassaPaymentIntegrationService : Core.SubscriptionContext.Applic
             return new Core.SubscriptionContext.Application.Contracts.PaymentServices.PaymentResult
             {
                 IsSuccess = false,
-                PayerInfo = "yookassa_error",
+                PayerInfo = YooKassaPaymentStatusError,
             };
         }
     }

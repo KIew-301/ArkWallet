@@ -152,17 +152,32 @@ internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnap
 }
 
 public record BalanceSnapshotData(
-    /// <summary>Идентификатор трейдера в Telegram.</summary>
     long traderTelegramId,
-    /// <summary>Полный баланс: основной + резервы ордеров + портфель в токенах + слоты майнинга.</summary>
     decimal totalBalance,
-    /// <summary>Основной денежный баланс без учёта резервов и портфеля.</summary>
     decimal mainBalance,
-    /// <summary>Резерв под активные ордера на покупку (Buy).</summary>
     decimal longOrderReserve,
-    /// <summary>Резерв под активные ордера на продажу (Sell).</summary>
     decimal shortOrderReserve,
-    /// <summary>Стоимость позиций в портфеле, выраженная в токенах по текущим ценам.</summary>
     decimal balanceInTokens,
+    DateTime dateTimeSnapshot)
+{
+    /// <summary>Идентификатор трейдера в Telegram.</summary>
+    public long traderTelegramId { get; init; } = traderTelegramId;
+
+    /// <summary>Полный баланс: основной + резервы ордеров + портфель в токенах + слоты майнинга.</summary>
+    public decimal totalBalance { get; init; } = totalBalance;
+
+    /// <summary>Основной денежный баланс без учёта резервов и портфеля.</summary>
+    public decimal mainBalance { get; init; } = mainBalance;
+
+    /// <summary>Резерв под активные ордера на покупку (Buy).</summary>
+    public decimal longOrderReserve { get; init; } = longOrderReserve;
+
+    /// <summary>Резерв под активные ордера на продажу (Sell).</summary>
+    public decimal shortOrderReserve { get; init; } = shortOrderReserve;
+
+    /// <summary>Стоимость позиций в портфеле, выраженная в токенах по текущим ценам.</summary>
+    public decimal balanceInTokens { get; init; } = balanceInTokens;
+
     /// <summary>Временная метка снимка баланса.</summary>
-    DateTime dateTimeSnapshot);
+    public DateTime dateTimeSnapshot { get; init; } = dateTimeSnapshot;
+}

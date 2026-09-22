@@ -14,7 +14,7 @@ namespace ArkWallet.Tests.Core.TradingContext.Domain.Engines;
 
 public class MarketMakerGridEngineTest
 {
-    private readonly MarketMakerGridEngine _engine = new(new FixedGridEngine());
+    private readonly MarketMakerGridEngine _engine = new();
 
     [Fact]
     public void GetOrdersToPlace_BuyerRole_ReturnsCommands()

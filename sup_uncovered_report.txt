@@ -1,0 +1,42 @@
+﻿ArkWallet.Core.SubscriptionContext.Application.Contracts.PaymentServices.PaymentRequest  tot=5 un=1 (80%)  lines=31
+ArkWallet.Core.SubscriptionContext.Application.Contracts.PaymentServices.PaymentResult  tot=6 un=0 (100%)
+ArkWallet.Core.SubscriptionContext.Application.Contracts.PaymentServices.PaymentStatusResult  tot=4 un=0 (100%)
+ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionActivationServices.SubscriptionActivationResult  tot=1 un=0 (100%)
+ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionExpiryServices.TraderSubscriptionExpiry  tot=1 un=0 (100%)
+ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionPurchaseServices.SubscriptionPeriodExtensions  tot=25 un=4 (84%)  lines=37,48,71,72
+ArkWallet.Core.SubscriptionContext.Application.Dtos.PurchaseHistoryEntry  tot=9 un=6 (33,3%)  lines=60,61,62,64,65,66
+ArkWallet.Core.SubscriptionContext.Application.Dtos.PurchaseResult  tot=4 un=0 (100%)
+ArkWallet.Core.SubscriptionContext.Application.Dtos.SubscriptionInfo  tot=11 un=0 (100%)
+ArkWallet.Core.SubscriptionContext.Application.Events.TraderSubscriptionChangedEvent  tot=1 un=0 (100%)
+ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionActivationServices.SubscriptionActivationService  tot=24 un=1 (95,8%)  lines=93
+ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionActivationServices.SubscriptionActivationService/<ActivateAsync>d__5  tot=31 un=6 (80,6%)  lines=23,27,53,54,55,56
+ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionActivationServices.SubscriptionActivationService/<GetActiveSubscriptionAsync>d__6  tot=8 un=0 (100%)
+ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionExpiryServices.SubscriptionExpiryService  tot=15 un=0 (100%)
+ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionExpiryServices.SubscriptionExpiryService/<DowngradeToBasicAsync>d__6  tot=1 un=0 (100%)
+ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionExpiryServices.SubscriptionExpiryService/<DowngradeToBasicAsync>d__7  tot=27 un=0 (100%)
+ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionExpiryServices.SubscriptionExpiryService/<GetNextExpiryAsync>d__5  tot=10 un=0 (100%)
+ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionExpiryServices.SubscriptionExpiryService/<ProcessExpiredAsync>d__4  tot=27 un=0 (100%)
+ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionPurchaseHistoryServices.SubscriptionPurchaseHistoryQueryService  tot=1 un=0 (100%)
+ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionPurchaseHistoryServices.SubscriptionPurchaseHistoryQueryService/<>c__DisplayClass3_0/<<GetHistoryAsync>b__0>d  tot=16 un=0 (100%)
+ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionPurchaseHistoryServices.SubscriptionPurchaseHistoryQueryService/<GetHistoryAsync>d__3  tot=4 un=0 (100%)
+ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionPurchaseServices.SubscriptionPurchaseService  tot=14 un=1 (92,9%)  lines=102
+ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionPurchaseServices.SubscriptionPurchaseService/<GetActiveSubscriptionAsync>d__7  tot=8 un=0 (100%)
+ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionPurchaseServices.SubscriptionPurchaseService/<PurchaseAsync>d__6  tot=52 un=1 (98,1%)  lines=76
+ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionServices.SubscriptionQueryService  tot=1 un=0 (100%)
+ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionServices.SubscriptionQueryService/<<GetAllAsync>b__3_0>d  tot=16 un=0 (100%)
+ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionServices.SubscriptionQueryService/<>c__DisplayClass5_0/<<GetByIdAsync>b__0>d  tot=17 un=0 (100%)
+ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionServices.SubscriptionQueryService/<GetAllAsync>d__3  tot=4 un=0 (100%)
+ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionServices.SubscriptionQueryService/<GetBasicAsync>d__4  tot=18 un=0 (100%)
+ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionServices.SubscriptionQueryService/<GetByIdAsync>d__5  tot=5 un=0 (100%)
+ArkWallet.Infrastructure.Data.SubscriptionPayment  tot=11 un=1 (90,9%)  lines=9
+ArkWallet.Infrastructure.Payment.InstantSuccessPaymentService  tot=16 un=7 (56,2%)  lines=40,41,42,43,44,45,46
+ArkWallet.Infrastructure.Payment.YooKassaOptions  tot=4 un=4 (0%)  lines=22,27,32,37
+ArkWallet.Infrastructure.Payment.YooKassaPaymentIntegrationService  tot=45 un=45 (0%)  lines=215,216,217,218,219,220,222,223,224,225,226,228,229,230,231,233,234,235,236,237,238,239,241,242,243,244,246,247,248,249,251,253,254,49,50,51,52,53,54,55,56,59,60,61,62
+ArkWallet.Infrastructure.Payment.YooKassaPaymentIntegrationService/<CreatePaymentAsync>d__4  tot=63 un=63 (0%)  lines=73,75,76,77,78,79,80,83,85,86,87,88,90,91,92,93,94,95,96,97,98,99,102,103,104,105,106,107,108,109,110,111,114,115,116,119,120,121,122,123,124,125,126,127,128,129,132,133,134,135,136,137,138,139,141,142,143,144,145,146,147,148,150
+ArkWallet.Infrastructure.Payment.YooKassaPaymentIntegrationService/<GetPaymentStatusAsync>d__5  tot=40 un=40 (0%)  lines=161,163,164,165,166,168,169,170,171,172,173,174,175,176,177,180,181,182,183,184,185,186,187,188,189,192,194,195,196,197,198,200,201,202,203,204,205,206,207,209
+ArkWallet.Infrastructure.Workers.PaymentConfirmationWorker  tot=4 un=1 (75%)  lines=14
+ArkWallet.Infrastructure.Workers.PaymentConfirmationWorker/<ExecuteAsync>d__4  tot=18 un=18 (0%)  lines=17,18,20,21,23,24,26,27,28,29,30,32,33,34,35,36,37,38
+ArkWallet.Infrastructure.Workers.PaymentConfirmationWorker/<ProcessPendingPaymentsAsync>d__5  tot=44 un=7 (84,1%)  lines=68,69,70,87,88,89,90
+ArkWallet.Infrastructure.Workers.SubscriptionExpiryWorker  tot=17 un=0 (100%)
+ArkWallet.Infrastructure.Workers.SubscriptionExpiryWorker/<ExecuteAsync>d__6  tot=40 un=4 (90%)  lines=47,60,61,76
+ArkWallet.Infrastructure.Workers.SubscriptionExpiryWorker/<RunStartupFallbackAsync>d__7  tot=13 un=4 (69,2%)  lines=90,91,92,93

@@ -436,8 +436,7 @@ public class MarketMakerOrchestratorTest
         await db.MarketMakerBots.AddAsync(bot);
         await db.SaveChangesAsync();
 
-        var fixedGridEngine = new FixedGridEngine();
-        var marketMakerGridEngine = new MarketMakerGridEngine(fixedGridEngine);
+        var marketMakerGridEngine = new MarketMakerGridEngine();
 
         var mockOrderCreationService = new Mock<IOrderCreationService>();
         mockOrderCreationService
@@ -478,8 +477,7 @@ public class MarketMakerOrchestratorTest
         await db.MarketMakerBots.AddAsync(bot);
         await db.SaveChangesAsync();
 
-        var fixedGridEngine = new FixedGridEngine();
-        var marketMakerGridEngine = new MarketMakerGridEngine(fixedGridEngine);
+        var marketMakerGridEngine = new MarketMakerGridEngine();
 
         var mockOrderCreationService = new Mock<IOrderCreationService>();
         mockOrderCreationService
@@ -542,8 +540,7 @@ public class MarketMakerOrchestratorTest
         await db.MarketMakerBots.AddAsync(bot);
         await db.SaveChangesAsync();
 
-        var fixedGridEngine = new FixedGridEngine();
-        var marketMakerGridEngine = new MarketMakerGridEngine(fixedGridEngine);
+        var marketMakerGridEngine = new MarketMakerGridEngine();
 
         var mockOrderCreationService = new Mock<IOrderCreationService>();
         mockOrderCreationService
@@ -597,8 +594,7 @@ public class MarketMakerOrchestratorTest
         await db.MarketMakerBots.AddAsync(bot);
         await db.SaveChangesAsync();
 
-        var fixedGridEngine = new FixedGridEngine();
-        var marketMakerGridEngine = new MarketMakerGridEngine(fixedGridEngine);
+        var marketMakerGridEngine = new MarketMakerGridEngine();
 
         var mockOrderCreationService = new Mock<IOrderCreationService>();
         mockOrderCreationService
@@ -711,8 +707,7 @@ public class MarketMakerOrchestratorTest
             .Setup(x => x.CreateOrdersAsync(It.IsAny<IEnumerable<CreateOrderCommand>>()))
             .ThrowsAsync(new InvalidOperationException("order error"));
 
-        var fixedGridEngine = new FixedGridEngine();
-        var marketMakerGridEngine = new MarketMakerGridEngine(fixedGridEngine);
+        var marketMakerGridEngine = new MarketMakerGridEngine();
 
         var logger = NullLogger<MarketMakerOrchestrator>.Instance;
         var orchestrator = new MarketMakerOrchestrator(
@@ -747,8 +742,7 @@ public class MarketMakerOrchestratorTest
             .Setup(x => x.CreateOrdersAsync(It.IsAny<IEnumerable<CreateOrderCommand>>()))
             .ThrowsAsync(new InvalidOperationException("process error"));
 
-        var fixedGridEngine = new FixedGridEngine();
-        var marketMakerGridEngine = new MarketMakerGridEngine(fixedGridEngine);
+        var marketMakerGridEngine = new MarketMakerGridEngine();
 
         var logger = NullLogger<MarketMakerOrchestrator>.Instance;
         var orchestrator = new MarketMakerOrchestrator(
@@ -782,8 +776,7 @@ public class MarketMakerOrchestratorTest
 
         await db.SaveChangesAsync();
 
-        var fixedGridEngine = new FixedGridEngine();
-        var marketMakerGridEngine = new MarketMakerGridEngine(fixedGridEngine);
+        var marketMakerGridEngine = new MarketMakerGridEngine();
 
         var grid = FixedGridEngine.GetGridBelowPrice(100, 21);
         for (int i = 0; i < grid.Count - 1; i++)

@@ -13,7 +13,6 @@ internal class SubscriptionPurchaseService(
     ArkWalletDbContext dbContext,
     IPaymentIntegrationService payment,
     ISubscriptionActivationService activationService,
-    IEventPublisher eventPublisher,
     TimeProvider timeProvider,
     ILogger<SubscriptionPurchaseService> logger) : IPurchaseService
 {

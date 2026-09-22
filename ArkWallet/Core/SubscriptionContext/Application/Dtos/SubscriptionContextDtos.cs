@@ -34,7 +34,14 @@ public record SubscriptionInfo(
 /// <param name="ExpiresAtUtc">Дата истечения подписки (только при успехе).</param>
 public record PurchaseResult(bool Success, string Message, string? TransactionId, DateTime? ExpiresAtUtc)
 {
+    /// <summary>
+    /// URL для завершения подтверждения (только если требуется подтверждение).
+    /// </summary>
     public string? ConfirmationUrl { get; init; }
+
+    /// <summary>
+    /// Требует ли покупка дополнительного подтверждения пользователем.
+    /// </summary>
     public bool RequiresConfirmation { get; init; }
 
     /// <summary>
