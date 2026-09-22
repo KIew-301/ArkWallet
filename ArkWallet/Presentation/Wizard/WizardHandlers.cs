@@ -674,46 +674,125 @@ namespace ArkWallet.Infrastructure.Wizard
             if (!result.TryGetData(out var subscriptions) || subscriptions == null || subscriptions.Count == 0)
                 return StepResult.Ok("completed", "Подписки временно недоступны.");
 
-            var sb = new System.Text.StringBuilder();
-            sb.AppendLine("Доступные подписки:");
+            var lines = new List<string> { "💎 Доступные подписки", "" };
             foreach (var s in subscriptions)
             {
-                sb.AppendLine();
-                sb.AppendLine($"#{s.Id} {s.Name} (уровень {s.Level})");
-                sb.AppendLine($"   Неделя: {s.PriceWeekRubles:F2} руб.");
-                sb.AppendLine($"   Месяц: {s.PriceMonthRubles:F2} руб.");
-                sb.AppendLine($"   Год: {s.PriceYearRubles:F2} руб.");
-                sb.AppendLine($"   Макс. ордеров: {s.MaxOrders}");
-                sb.AppendLine($"   Макс. машин: {s.MaxMiningMachines}");
-                sb.AppendLine($"   Срок: {(s.DurationMinutes.HasValue ? s.DurationMinutes.Value + " мин." : "бессрочно")}");
+                lines.Add($"#{s.Id} {s.Name} (уровень {s.Level})");
+                lines.Add($"   📦 Ордера: {s.MaxOrders}   🖥️ Машины: {s.MaxMiningMachines}");
+                lines.Add($"   💳 Неделя: {s.PriceWeekRubles:F2} ₽ | Месяц: {s.PriceMonthRubles:F2} ₽ | Год: {s.PriceYearRubles:F2} ₽");
 
                 var action = s.Action switch
                 {
                     SubscriptionOfferAction.Renew => "продлить (активна у вас)",
-                    SubscriptionOfferAction.Upgrade => "улучшить",
+                    SubscriptionOfferAction.Upgrade => s.BonusMinutes.HasValue && s.BonusMinutes.Value > 0
+                        ? $"улучшить (+{s.BonusMinutes.Value} мин. бонуса)"
+                        : "улучшить",
                     _ => "купить"
                 };
-                sb.AppendLine($"   Действие: {action}");
-
-                if (s.Action == SubscriptionOfferAction.Upgrade && s.BonusMinutes.HasValue && s.BonusMinutes.Value > 0)
-                    sb.AppendLine($"   Бонус за переход: +{s.BonusMinutes.Value} мин. к сроку");
+                lines.Add($"   🎯 Действие: {action}");
+                lines.Add("");
             }
+            lines.Add("Нажмите на подписку ниже, чтобы выбрать срок и оплатить:");
+
+            var buttons = subscriptions
+                .Select(s => new QuickButton { Text = $"#{s.Id} {s.Name}", Value = $"sub_detail {s.Id}" })
+                .ToList();
+            buttons.Add(new QuickButton { Text = RefreshButtonText, Value = "/subscriptions" });
+
+            return new StepResult
+            {
+                Success = true,
+                NextStep = "completed",
+                Message = string.Join("\n", lines),
+                Buttons = buttons
+            };
+        }
+
+        private async Task<WizardResult> HandleSubscriptionDetail(long userId, int subscriptionId)
+        {
+            var offersResult = await _subscriptionQueryService.GetOffersForTraderAsync(userId);
+            if (!offersResult.TryGetData(out var subscriptions) || subscriptions == null)
+                return new WizardResult { Message = "Подписки временно недоступны." };
+
+            var sub = subscriptions.FirstOrDefault(s => s.Id == subscriptionId);
+            if (sub == null)
+                return new WizardResult { Message = "Подписка не найдена." };
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"💎 {sub.Name} (уровень {sub.Level})");
             sb.AppendLine();
-            sb.Append("Купить/продлить: /buy_subscription <id> <неделя|месяц|год>");
-            return StepResult.Ok("completed", sb.ToString());
+            sb.AppendLine($"📦 Макс. ордеров: {sub.MaxOrders}");
+            sb.AppendLine($"🖥️ Макс. машин: {sub.MaxMiningMachines}");
+            sb.AppendLine($"⏳ Срок: {(sub.DurationMinutes.HasValue ? $"{(decimal)sub.DurationMinutes.Value / 1440} дн." : "бессрочно")}");
+
+            var action = sub.Action switch
+            {
+                SubscriptionOfferAction.Renew => "продлить (активна у вас)",
+                SubscriptionOfferAction.Upgrade => "улучшить",
+                _ => "купить"
+            };
+            sb.AppendLine($"🎯 Действие: {action}");
+            if (sub.Action == SubscriptionOfferAction.Upgrade && sub.BonusMinutes.HasValue && sub.BonusMinutes.Value > 0)
+                sb.AppendLine($"🎁 Бонус за переход: +{sub.BonusMinutes.Value} мин. к сроку");
+
+            sb.AppendLine();
+            sb.AppendLine("💰 Выберите срок:");
+
+            var periodButtons = new List<QuickButton>();
+            if (sub.PriceWeekRubles > 0)
+            {
+                sb.AppendLine($"   • Неделя: {sub.PriceWeekRubles:F2} ₽");
+                periodButtons.Add(new QuickButton { Text = $"Неделя — {sub.PriceWeekRubles:F2} ₽", Value = $"sub_buy {sub.Id} week" });
+            }
+            if (sub.PriceMonthRubles > 0)
+            {
+                sb.AppendLine($"   • Месяц: {sub.PriceMonthRubles:F2} ₽");
+                periodButtons.Add(new QuickButton { Text = $"Месяц — {sub.PriceMonthRubles:F2} ₽", Value = $"sub_buy {sub.Id} month" });
+            }
+            if (sub.PriceYearRubles > 0)
+            {
+                sb.AppendLine($"   • Год: {sub.PriceYearRubles:F2} ₽");
+                periodButtons.Add(new QuickButton { Text = $"Год — {sub.PriceYearRubles:F2} ₽", Value = $"sub_buy {sub.Id} year" });
+            }
+
+            periodButtons.Add(new QuickButton { Text = "⬅️ Назад к списку", Value = "/subscriptions" });
+
+            return new WizardResult { Message = sb.ToString(), Buttons = periodButtons };
         }
 
         private async Task<WizardResult> HandleQuickBuySubscription(long userId, int subscriptionId, SubscriptionPeriod period)
         {
+            decimal price = 0;
+            var offersResult = await _subscriptionQueryService.GetOffersForTraderAsync(userId);
+            if (offersResult.TryGetData(out var subscriptions) && subscriptions != null)
+            {
+                var sub = subscriptions.FirstOrDefault(s => s.Id == subscriptionId);
+                if (sub != null)
+                {
+                    price = period switch
+                    {
+                        SubscriptionPeriod.Week => sub.PriceWeekRubles,
+                        SubscriptionPeriod.Year => sub.PriceYearRubles,
+                        _ => sub.PriceMonthRubles
+                    };
+                }
+            }
+
             var purchase = await _purchaseService.PurchaseAsync(userId, subscriptionId, period);
 
+            var backButtons = new List<QuickButton>
+            {
+                new() { Text = "⬅️ К списку подписок", Value = "/subscriptions" }
+            };
+
             if (!purchase.Success)
-                return new WizardResult { Message = $"Не удалось купить подписку: {purchase.Message}" };
+                return new WizardResult { Message = $"Не удалось купить подписку: {purchase.Message}", Buttons = backButtons };
 
             if (purchase.RequiresConfirmation && !string.IsNullOrWhiteSpace(purchase.ConfirmationUrl))
                 return new WizardResult
                 {
-                    Message = $"Счёт на оплату создан! Перейдите по ссылке для оплаты:\n{purchase.ConfirmationUrl}\n\nПодписка активируется автоматически после оплаты."
+                    Message = $"💳 Счёт на оплату создан!\nИтоговая стоимость: {price:F2} ₽\n\n🔗 Ссылка для оплаты:\n{purchase.ConfirmationUrl}\n\nПодписка активируется автоматически после оплаты.",
+                    Buttons = backButtons
                 };
 
             var expires = purchase.ExpiresAtUtc.HasValue
@@ -722,7 +801,8 @@ namespace ArkWallet.Infrastructure.Wizard
 
             return new WizardResult
             {
-                Message = $"Подписка оформлена на {period.ToDisplayName()}!\nДействует до: {expires}\nТранзакция: {purchase.TransactionId}"
+                Message = $"✅ Подписка оформлена на {period.ToDisplayName()}!\nИтоговая стоимость: {price:F2} ₽\nДействует до: {expires}\nТранзакция: {purchase.TransactionId}",
+                Buttons = backButtons
             };
         }
     }

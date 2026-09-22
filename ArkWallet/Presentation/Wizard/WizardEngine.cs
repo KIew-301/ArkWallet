@@ -412,6 +412,26 @@ namespace ArkWallet.Infrastructure.Wizard
                     return new WizardResult { Message = "Формат: /buy_subscription <id> <неделя|месяц|год>" };
                 }
 
+                if (inp.StartsWith("sub_detail "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2 && int.TryParse(parts[1], out var subId))
+                        return await HandleSubscriptionDetail(uid, subId);
+
+                    return new WizardResult { Message = "Подписка не найдена." };
+                }
+
+                if (inp.StartsWith("sub_buy "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 3
+                        && int.TryParse(parts[1], out var subId)
+                        && TryParseSubscriptionPeriod(parts[2], out var period))
+                        return await HandleQuickBuySubscription(uid, subId, period);
+
+                    return new WizardResult { Message = "Формат: sub_buy <id> <неделя|месяц|год>" };
+                }
+
                 if (inp.StartsWith("/admin_create_subscription "))
                 {
                     var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -488,6 +508,8 @@ namespace ArkWallet.Infrastructure.Wizard
                 || input.StartsWith("/mining_take ")
                 || input.StartsWith("/mining_sell ")
                 || input.StartsWith("/buy_subscription ")
+                || input.StartsWith("sub_detail ")
+                || input.StartsWith("sub_buy ")
                 || input.StartsWith("/admin_create_subscription ")
                 || input.StartsWith("/admin_set_trader_subscription ")
                 || input.StartsWith("/open_mail")

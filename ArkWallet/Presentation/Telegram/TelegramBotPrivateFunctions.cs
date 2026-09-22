@@ -61,7 +61,6 @@ namespace ArkWallet.Telegram
                         new("/open_mail", "Открыть почту."),
                         new("/global_goals", "Глобальные цели."),
                         new("/subscriptions", "Подписки и цены."),
-                        new("/buy_subscription", "Купить или продлить подписку."),
                     };
 
                     groupCommands = new List<BotCommand>()
