@@ -288,6 +288,11 @@ namespace ArkWallet.Entities.Configurations
                 new() { Name = "request", OneStep = true }
             };
 
+            Commands["/admin_help_subscriptions"] = new List<WizardStep>
+            {
+                new() { Name = "request", OneStep = true }
+            };
+
             Commands["/admin_help_access"] = new List<WizardStep>
             {
                 new() { Name = "request", OneStep = true }

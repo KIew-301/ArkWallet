@@ -27,6 +27,7 @@ namespace ArkWallet.Infrastructure.Wizard
             "/admin_help_other — Other commands\n" +
             "/admin_help_global_goals — Global goals commands\n" +
             "/admin_help_mining — Mining commands\n" +
+            "/admin_help_subscriptions — Subscriptions commands\n" +
             "/admin_help_access — Access control";
 
         private const string AdminHelpTraderText =
@@ -162,9 +163,23 @@ namespace ArkWallet.Infrastructure.Wizard
             "             \"rules\": [ { \"characterTokenId\": \"ARK_001\",\n" +
             "                          \"miningCoefficient\": 0.9 } ] } ]\n" +
             "   Rules are optional per machine. Single object also supported.\n\n" +
-            "11) /admin_mining_delete_machines\n" +
-            "   Permanently deletes several machines and their rules in one transaction.\n" +
-            "   Enter machine Ids (comma or space separated), then confirm.";
+"11) /admin_mining_delete_machines\n" +
+             "   Permanently deletes several machines and their rules in one transaction.\n" +
+             "   Enter machine Ids (comma or space separated), then confirm.";
+
+        private const string AdminHelpSubscriptionsText =
+            "Subscriptions commands:\n\n" +
+            "1) /admin_create_subscription\n" +
+            "   Creates a new subscription. Available to Admin_Main only.\n" +
+            "   JSON: { \"name\": \"Премиум\", \"level\": 2,\n" +
+            "           \"priceWeekRubles\": 30, \"priceMonthRubles\": 90, \"priceYearRubles\": 900,\n" +
+            "           \"maxOrders\": 20, \"maxMiningMachines\": 20,\n" +
+            "           \"durationMinutes\": 10080, \"priceRubles\": 100 }\n" +
+            "   durationMinutes/priceRubles: optional\u200a—\u200aomit for not settable (null/0).\n\n" +
+            "2) /admin_set_trader_subscription\n" +
+            "   Assigns a subscription to a trader. Available to Admin_Main only.\n" +
+            "   JSON: { \"telegramId\": 123456789, \"subscriptionId\": 2 }\n" +
+            "   Sets the subscription and its expiry time (if durationMinutes is set).";
 
         private const string AdminHelpAccessText =
             "Access control commands:\n\n" +
@@ -208,6 +223,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/admin_get_ids"][0].Handler = AdminHandleGetIds;
             _config.Commands["/admin_metrics"][0].Handler = AdminHandleMetrics;
             _config.Commands["/admin_help_mining"][0].Handler = AdminHandleHelpMining;
+            _config.Commands["/admin_help_subscriptions"][0].Handler = AdminHandleHelpSubscriptions;
             _config.Commands["/admin_help_access"][0].Handler = AdminHandleHelpAccess;
             _config.Commands["/admin_help_global_goals"][0].Handler = AdminHandleHelpGlobalGoals;
             _config.Commands["/admin_mining_create_machine"][0].Handler = AdminHandleMiningCreateMachine;
@@ -971,6 +987,9 @@ namespace ArkWallet.Infrastructure.Wizard
 
         private Task<StepResult> AdminHandleHelpMining(UserSession session, string input)
             => Task.FromResult(StepResult.Ok("completed", AdminHelpMiningText));
+
+        private Task<StepResult> AdminHandleHelpSubscriptions(UserSession session, string input)
+            => Task.FromResult(StepResult.Ok("completed", AdminHelpSubscriptionsText));
 
         private Task<StepResult> AdminHandleHelpAccess(UserSession session, string input)
             => Task.FromResult(StepResult.Ok("completed", AdminHelpAccessText));
