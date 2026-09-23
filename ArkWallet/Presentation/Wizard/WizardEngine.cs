@@ -26,6 +26,8 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using ArkWallet.Core.ShoppingContext.Application.Contracts.Orchestrators;
 using MailQueryService = ArkWallet.Core.MailContext.Application.Contracts.MailServices.IQueryService;
+using ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionServices;
+using ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionPurchaseServices;
 
 namespace ArkWallet.Infrastructure.Wizard
 {
@@ -43,6 +45,8 @@ namespace ArkWallet.Infrastructure.Wizard
         private readonly ITraderRegistrationService _traderRegistrationService;
         private readonly ITraderBalanceUpdatingService _traderBalanceUpdatingService;
         private readonly ITraderQueryService _traderQueryService;
+        private readonly ISubscriptionQueryService _subscriptionQueryService;
+        private readonly IPurchaseService _purchaseService;
 
         // ORDER SERVICES
         private readonly IOrderValidationService _orderValidationService;
@@ -176,6 +180,8 @@ namespace ArkWallet.Infrastructure.Wizard
             IMiningMachineSlotSellingOrchestrator miningMachineSlotSellingOrchestrator,
             IGlobalGoalQueryService globalGoalQueryService,
             IGlobalGoalCreationService globalGoalCreationService,
+            ISubscriptionQueryService subscriptionQueryService,
+            IPurchaseService purchaseService,
             WizardConfiguration config,
             ArkWalletDbContext dbContext,
             AccessControlService accessControl
@@ -233,6 +239,8 @@ namespace ArkWallet.Infrastructure.Wizard
             _globalGoalCreationService = globalGoalCreationService;
             _dbContext = dbContext;
             _accessControl = accessControl;
+            _subscriptionQueryService = subscriptionQueryService;
+            _purchaseService = purchaseService;
             _config = config;
 
             ConfigureHandlers();
@@ -277,6 +285,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/mining_sell"][0].Handler = HandleMiningSellSelectSlot;
             _config.Commands["/mining_sell"][1].Handler = HandleMiningSellConfirm;
             _config.Commands["/global_goals"][0].Handler = HandleGetGlobalGoals;
+            _config.Commands["/subscriptions"][0].Handler = HandleSubscriptions;
         }
 
         public async Task<WizardResult> ProcessInput(long userId, string input)
@@ -392,6 +401,51 @@ namespace ArkWallet.Infrastructure.Wizard
                         return await HandleQuickMiningSell(uid, parts[1]);
                 }
 
+                if (inp.StartsWith("/buy_subscription "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 3
+                        && int.TryParse(parts[1], out var subscriptionId)
+                        && TryParseSubscriptionPeriod(parts[2], out var period))
+                        return await HandleQuickBuySubscription(uid, subscriptionId, period);
+
+                    return new WizardResult { Message = "Формат: /buy_subscription <id> <неделя|месяц|год>" };
+                }
+
+                if (inp.StartsWith("sub_detail "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2 && int.TryParse(parts[1], out var subId))
+                        return await HandleSubscriptionDetail(uid, subId);
+
+                    return new WizardResult { Message = "Подписка не найдена." };
+                }
+
+                if (inp.StartsWith("sub_buy "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 3
+                        && int.TryParse(parts[1], out var subId)
+                        && TryParseSubscriptionPeriod(parts[2], out var period))
+                        return await HandleQuickBuySubscription(uid, subId, period);
+
+                    return new WizardResult { Message = "Формат: sub_buy <id> <неделя|месяц|год>" };
+                }
+
+                if (inp.StartsWith("/admin_create_subscription "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                        return await HandleQuickAdminCreateSubscription(uid, parts[1]);
+                }
+
+                if (inp.StartsWith("/admin_set_trader_subscription "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                        return await HandleQuickAdminSetTraderSubscription(uid, parts[1]);
+                }
+
                 if (inp.StartsWith("/open_mail"))
                 {
                     var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -453,6 +507,11 @@ namespace ArkWallet.Infrastructure.Wizard
                 || input.StartsWith("/mining_buy ")
                 || input.StartsWith("/mining_take ")
                 || input.StartsWith("/mining_sell ")
+                || input.StartsWith("/buy_subscription ")
+                || input.StartsWith("sub_detail ")
+                || input.StartsWith("sub_buy ")
+                || input.StartsWith("/admin_create_subscription ")
+                || input.StartsWith("/admin_set_trader_subscription ")
                 || input.StartsWith("/open_mail")
                 || input.StartsWith("/send_gift")
                 || input.StartsWith("gift_send"))
@@ -583,6 +642,31 @@ namespace ArkWallet.Infrastructure.Wizard
         private static List<QuickButton>? FilterButtonsForGroup(List<QuickButton>? buttons)
         {
             return null;
+        }
+
+        /// <summary>
+        /// Пытается распознать период подписки из текстового аргумента (неделя/месяц/год или week/month/year).
+        /// </summary>
+        private static bool TryParseSubscriptionPeriod(string token, out SubscriptionPeriod period)
+        {
+            switch (token.Trim().ToLowerInvariant())
+            {
+                case "week":
+                case "неделя":
+                    period = SubscriptionPeriod.Week;
+                    return true;
+                case "month":
+                case "месяц":
+                    period = SubscriptionPeriod.Month;
+                    return true;
+                case "year":
+                case "год":
+                    period = SubscriptionPeriod.Year;
+                    return true;
+                default:
+                    period = default;
+                    return false;
+            }
         }
     }
 }

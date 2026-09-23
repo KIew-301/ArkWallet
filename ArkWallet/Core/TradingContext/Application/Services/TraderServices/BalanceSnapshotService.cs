@@ -14,32 +14,19 @@ internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnap
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            var data = await db.Traders
-                .Where(t => t.TelegramId == traderTelegramId)
-                .Select(t => new
-                {
-                    t.Balance,
-                    Portfolio = t.Portfolio.Select(p => new PortfolioSnapshot(p.CharacterTokenId, p.Quantity)),
-                    ActiveOrders = t.Orders
-                        .Where(o => o.Status == OrderStatus.Active)
-                        .Select(o => new OrderSnapshot(o.Type, o.CharacterTokenId, o.Quantity - o.FilledQuantity, o.Price))
-                })
-                .AsSplitQuery()
-                .FirstOrDefaultAsync();
+            var data = await FetchTraderDataAsync(traderTelegramId);
 
-            if (data == null)
+            if (data is null)
                 return Fail("Трейдер на найден");
 
-            var tokenPrices = await LoadTokenPricesAsync(data.ActiveOrders, data.Portfolio);
+            var tokenPrices = await LoadTokenPricesAsync(data.Value.ActiveOrders, data.Value.Portfolio);
+            var miningSlotsValue = await LoadMiningSlotsValueAsync(traderTelegramId);
 
-            var miningSlotsValue = await db.MiningMachineSlots
-                .Where(s => s.TraderId == traderTelegramId && s.Status != MiningMachineSlotStatus.Sold)
-                .SumAsync(s => s.Cost);
+            var tradingBalances = ComputeTradingBalances(data.Value.ActiveOrders, data.Value.Portfolio, tokenPrices);
 
-            var (totalBalance, longOrderReserve, shortOrderReserve, balanceInTokens) =
-                ComputeSnapshot(data.Balance, data.ActiveOrders, data.Portfolio, tokenPrices, miningSlotsValue);
+            var totalBalance = data.Value.Balance + tradingBalances.LongOrderReserve + tradingBalances.ShortOrderReserve + tradingBalances.BalanceInTokens + miningSlotsValue;
 
-            return Ok(new(traderTelegramId, totalBalance, data.Balance, longOrderReserve, shortOrderReserve, balanceInTokens, DateTime.UtcNow));
+            return Ok(new(traderTelegramId, totalBalance, data.Value.Balance, tradingBalances.LongOrderReserve, tradingBalances.ShortOrderReserve, tradingBalances.BalanceInTokens, DateTime.UtcNow));
         }, logger, nameof(BalanceSnapshotService));
     }
 
@@ -79,11 +66,11 @@ internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnap
             foreach (var trader in data)
             {
                 var miningSlotsValue = miningSlotsByTrader.GetValueOrDefault(trader.TelegramId, 0m);
+                var tradingBalances = ComputeTradingBalances(trader.ActiveOrders, trader.Portfolio, tokenPrices);
 
-                var (totalBalance, longOrderReserve, shortOrderReserve, balanceInTokens) =
-                    ComputeSnapshot(trader.Balance, trader.ActiveOrders, trader.Portfolio, tokenPrices, miningSlotsValue);
+                var totalBalance = trader.Balance + tradingBalances.LongOrderReserve + tradingBalances.ShortOrderReserve + tradingBalances.BalanceInTokens + miningSlotsValue;
 
-                result[trader.TelegramId] = new(trader.TelegramId, totalBalance, trader.Balance, longOrderReserve, shortOrderReserve, balanceInTokens, DateTime.UtcNow);
+                result[trader.TelegramId] = new(trader.TelegramId, totalBalance, trader.Balance, tradingBalances.LongOrderReserve, tradingBalances.ShortOrderReserve, tradingBalances.BalanceInTokens, DateTime.UtcNow);
             }
 
             return Result<IReadOnlyDictionary<long, BalanceSnapshotData>>.Ok(result);
@@ -109,16 +96,41 @@ internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnap
             .ToDictionaryAsync(x => x.Symbol, x => x.CurrentPrice);
     }
 
-    private static (decimal Total, decimal LongOrderReserve, decimal ShortOrderReserve, decimal BalanceInTokens) ComputeSnapshot(
-        decimal mainBalance,
+    private async Task<(decimal Balance, IEnumerable<OrderSnapshot> ActiveOrders, IEnumerable<PortfolioSnapshot> Portfolio)?> FetchTraderDataAsync(long traderTelegramId)
+    {
+        var data = await db.Traders
+            .Where(t => t.TelegramId == traderTelegramId)
+            .Select(t => new
+            {
+                t.Balance,
+                ActiveOrders = t.Orders
+                    .Where(o => o.Status == OrderStatus.Active)
+                    .Select(o => new OrderSnapshot(o.Type, o.CharacterTokenId, o.Quantity - o.FilledQuantity, o.Price)),
+                Portfolio = t.Portfolio.Select(p => new PortfolioSnapshot(p.CharacterTokenId, p.Quantity))
+            })
+            .AsSplitQuery()
+            .FirstOrDefaultAsync();
+
+        if (data is null)
+            return null;
+
+        return (data.Balance, data.ActiveOrders, data.Portfolio);
+    }
+
+    private async Task<decimal> LoadMiningSlotsValueAsync(long traderTelegramId)
+    {
+        return await db.MiningMachineSlots
+            .Where(s => s.TraderId == traderTelegramId && s.Status != MiningMachineSlotStatus.Sold)
+            .SumAsync(s => s.Cost);
+    }
+
+    private static (decimal LongOrderReserve, decimal ShortOrderReserve, decimal BalanceInTokens) ComputeTradingBalances(
         IEnumerable<OrderSnapshot> activeOrders,
         IEnumerable<PortfolioSnapshot> portfolio,
-        Dictionary<string, decimal> tokenPrices,
-        decimal miningSlotsValue)
+        Dictionary<string, decimal> tokenPrices)
     {
         var longOrderReserve = 0m;
         var shortOrderReserve = 0m;
-        var balanceInTokens = 0m;
 
         foreach (var order in activeOrders)
         {
@@ -128,12 +140,10 @@ internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnap
                 shortOrderReserve += order.Remaining * price;
         }
 
-        foreach (var item in portfolio)
-            if (tokenPrices.TryGetValue(item.CharacterTokenId, out var price))
-                balanceInTokens += item.Quantity * price;
+        var balanceInTokens = portfolio.Sum(item =>
+            tokenPrices.TryGetValue(item.CharacterTokenId, out var price) ? item.Quantity * price : 0m);
 
-        return (mainBalance + longOrderReserve + shortOrderReserve + balanceInTokens + miningSlotsValue,
-            longOrderReserve, shortOrderReserve, balanceInTokens);
+        return (longOrderReserve, shortOrderReserve, balanceInTokens);
     }
 
     private sealed record OrderSnapshot(OrderType Type, string CharacterTokenId, decimal Remaining, decimal Price);
@@ -141,7 +151,36 @@ internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnap
     private sealed record PortfolioSnapshot(string CharacterTokenId, int Quantity);
 }
 
+/// <summary>
+/// Снимок суммарного баланса трейдера: основной баланс, резервы и портфель.
+/// </summary>
 public record BalanceSnapshotData(
-    long traderTelegramId, decimal totalBalance,
-    decimal mainBalance, decimal longOrderReserve, decimal shortOrderReserve,
-    decimal balanceInTokens, DateTime dateTimeSnapshot);
+    long traderTelegramId,
+    decimal totalBalance,
+    decimal mainBalance,
+    decimal longOrderReserve,
+    decimal shortOrderReserve,
+    decimal balanceInTokens,
+    DateTime dateTimeSnapshot)
+{
+    /// <summary>Идентификатор трейдера в Telegram.</summary>
+    public long traderTelegramId { get; init; } = traderTelegramId;
+
+    /// <summary>Полный баланс: основной + резервы ордеров + портфель в токенах + слоты майнинга.</summary>
+    public decimal totalBalance { get; init; } = totalBalance;
+
+    /// <summary>Основной денежный баланс без учёта резервов и портфеля.</summary>
+    public decimal mainBalance { get; init; } = mainBalance;
+
+    /// <summary>Резерв под активные ордера на покупку (Buy).</summary>
+    public decimal longOrderReserve { get; init; } = longOrderReserve;
+
+    /// <summary>Резерв под активные ордера на продажу (Sell).</summary>
+    public decimal shortOrderReserve { get; init; } = shortOrderReserve;
+
+    /// <summary>Стоимость позиций в портфеле, выраженная в токенах по текущим ценам.</summary>
+    public decimal balanceInTokens { get; init; } = balanceInTokens;
+
+    /// <summary>Временная метка снимка баланса.</summary>
+    public DateTime dateTimeSnapshot { get; init; } = dateTimeSnapshot;
+}

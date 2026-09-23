@@ -63,7 +63,7 @@ public class AuthControllerTest
         Assert.IsType<BadRequestObjectResult>(result);
     }
 
-    private AuthController BuildAuthController(bool isTraderRegistered, bool isAuthSuccess, bool canRegister)
+    private static AuthController BuildAuthController(bool isTraderRegistered, bool isAuthSuccess, bool canRegister)
     {
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>

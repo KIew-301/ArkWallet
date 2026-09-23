@@ -145,13 +145,13 @@ internal class HelpMethods
         return await service.SaveBalanceToDatabase(
             traderTelegramId, totalBalance, mainBalance,
             longOrderReserve, shortOrderReserve, balanceInTokens,
-            snapshotDateTime);
+            snapshotDateTime)!;
     }
 
     public static async Task<Result> CancelOrder(ArkWalletDbContext db, long traderId, string orderId)
     {
         var service = new OrderCancellationService(db, NullLogger<OrderCancellationService>.Instance);
-        return await service.CancelOrderAsync(traderId, orderId);
+        return await service.CancelOrderAsync(traderId, orderId)!;
     }
 
     public static async Task<Result> CancelOrder(ArkWalletDbContext db, long traderId, Result<OrderCreationData> result)
@@ -159,7 +159,7 @@ internal class HelpMethods
         var service = new OrderCancellationService(db, NullLogger<OrderCancellationService>.Instance);
         if (!result.TryGetData(out var data))
             return Result.Fail("Отсутствует созданный ордер");
-        return await service.CancelOrderAsync(traderId, data.Order.Id);
+        return await service.CancelOrderAsync(traderId, data.Order.Id)!;
     }
 
     public static async Task<Result<int>> CancelAllOrders(ArkWalletDbContext db, long traderId)
@@ -172,21 +172,27 @@ internal class HelpMethods
     {
         var logger = NullLogger<BalanceSnapshotService>.Instance;
         var service = new BalanceSnapshotService(db, logger);
-        return await service.TakeTotalTraderBalanceSnapshot(traderId);
+        return await service.TakeTotalTraderBalanceSnapshot(traderId)!;
     }
 
-    public static async Task<Trader> GetTrader(ArkWalletDbContext db, long telegramId) =>
-        await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == telegramId);
+    public static async Task<Trader> GetTrader(ArkWalletDbContext db, long telegramId)
+    {
+        var trader = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == telegramId);
+        return trader ?? throw new ArgumentNullException($"Trader not found for telegramId={telegramId}");
+    }
 
-    public static async Task<PortfolioItem> GetPortfolio(ArkWalletDbContext db, long traderId, string symbol = "ZZZ") =>
-        await db.PortfolioItems
+    public static async Task<PortfolioItem> GetPortfolio(ArkWalletDbContext db, long traderId, string symbol = "ZZZ")
+    {
+        var item = await db.PortfolioItems
             .Include(p => p.CharacterToken)
-            .FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterToken.Symbol == symbol);
+            .FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterToken!.Symbol == symbol);
+        return item ?? throw new ArgumentNullException($"Portfolio not found for traderId={traderId}, symbol={symbol}");
+    }
 
     public static async Task<TradeOrder[]> GetTraderOrders(ArkWalletDbContext db, long traderId, string symbol = "ZZZ", OrderStatus status = OrderStatus.Active) =>
         await db.TradeOrders
             .Include(o => o.CharacterToken)
-            .Where(o => o.TraderTelegramId == traderId && o.CharacterToken.Symbol == symbol && o.Status == status)
+            .Where(o => o.TraderTelegramId == traderId && o.CharacterToken!.Symbol == symbol && o.Status == status)
             .ToArrayAsync();
 
     public static async Task<BalanceSnapshot[]> GetBalanceHistory(ArkWalletDbContext db, long traderId) =>

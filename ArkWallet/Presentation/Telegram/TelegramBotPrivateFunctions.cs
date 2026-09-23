@@ -60,6 +60,7 @@ namespace ArkWallet.Telegram
                         new("/send_gift", "Отправить подарок."),
                         new("/open_mail", "Открыть почту."),
                         new("/global_goals", "Глобальные цели."),
+                        new("/subscriptions", "Подписки и цены."),
                     };
 
                     groupCommands = new List<BotCommand>()

@@ -61,11 +61,11 @@ internal class TraderAuthService(ILogger<TraderAuthService> logger) : ITraderAut
         if (now - authDate > MaxAuthAgeSeconds)
             return Result.Fail("Истекла дата аутентификации");
 
-        Dictionary<string, string> dataCheckArr = new();
-
-        foreach (var key in parts.AllKeys)
-            if (key != null && key != "hash")
-                dataCheckArr.Add(key, parts[key]);
+        var dataCheckArr = parts.AllKeys!
+            .Where(k => !string.IsNullOrEmpty(k))
+            .Select(k => k!)
+            .Where(k => k != "hash")
+            .ToDictionary(k => k, k => parts[k] ?? string.Empty);
 
         var sorted = dataCheckArr.OrderBy(kv => kv.Key).Select(kv => $"{kv.Key}={kv.Value}");
         string dataCheckString = string.Join("\n", sorted);
@@ -82,6 +82,15 @@ internal class TraderAuthService(ILogger<TraderAuthService> logger) : ITraderAut
     }
 }
 
+/// <summary>Данные пользователя Telegram, полученные из init_data.</summary>
+/// <param name="Id">Уникальный идентификатор пользователя.</param>
+/// <param name="FirstName">Имя пользователя (отображается в чатах).</param>
+/// <param name="LastName">Фамилия пользователя (может отсутствовать).</param>
+/// <param name="Username">Юзернейм пользователя (может отсутствовать).</param>
+/// <param name="LanguageCode">Код языка пользователя (например, "ru").</param>
+/// <param name="IsPremium">Флаг наличия Premium-подписки.</param>
+/// <param name="AllowsWriteToPm">Разрешено ли отправлять сообщения от имени бота напрямую пользователю.</param>
+/// <param name="PhotoUrl">URL фотографии профиля пользователя (может отсутствовать).</param>
 public record TelegramUserData(
     [property: JsonPropertyName("id")] long Id,
     [property: JsonPropertyName("first_name")] string FirstName,
@@ -93,6 +102,11 @@ public record TelegramUserData(
     [property: JsonPropertyName("photo_url")] string? PhotoUrl
 );
 
+/// <summary>Результат парсинга init_data Telegram — данные для аутентификации.</summary>
+/// <param name="User">Данные пользователя Telegram из инициализационных данных.</param>
+/// <param name="AuthDate">Временная метка (Unix timestamp) момента инициализации.</param>
+/// <param name="ChatInstance">Уникальный идентификатор чата/контекста (может отсутствовать).</param>
+/// <param name="ChatType">Тип чата: "private"/"sender"/"group"/"supergroup"/"channel".</param>
 public record TelegramInitData(
     TelegramUserData User,
     string AuthDate,

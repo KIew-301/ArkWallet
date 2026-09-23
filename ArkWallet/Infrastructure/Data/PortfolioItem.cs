@@ -10,7 +10,7 @@ namespace ArkWallet.Infrastructure.Data
 
         // Внешние ключи
         public long TraderTelegramId { get; private set; }
-        public string CharacterTokenId { get; private set; }
+        public string CharacterTokenId { get; private set; } = string.Empty;
 
         // Данные владения
         public int Quantity { get; set; }

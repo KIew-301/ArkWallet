@@ -1,55 +1,68 @@
 ## Summary
 
-- **29 commits** on `fix/wizard-command` (from main)
-- **391 tests passing** (13 new)
-- **44 files changed**
+Adds a paid **subscription system** for ArkWallet: tiered limits, period-based pricing (week/month/year) with upgrade bonuses, a two-stage YooKassa payment flow, background payment-confirmation and expiry workers, management wizard commands, and a SonarCloud cleanup across the analyzed codebase.
 
-### What was done
+**Subscriptions:**
+- EF entities `Subscription`, `SubscriptionPayment`, `SubscriptionPurchaseHistory`; `Trader` gets `SubscriptionId`/`SubscriptionExpiresAtUtc`; `SubscriptionId`/`SubscriptionExpiresAtUtc` columns on `Trader`.
+- Base tier (Level 1, perpetual, 5 orders / 5 mining machines) seeded at startup.
+- Paid levels with limits on active orders (all tokens) and mining machines; bots (BotFilter) are not limited.
+- Purchase history with `TransactionId`; recorded also on expiry downgrade.
 
-**New commands:**
-- `/get_order_book [symbol] [buy] [sell]` — quick variant (skip wizard steps)
-- `/get_order_book` — 3-step wizard (select token → buy count → sell count → display)
-- `/get_price_history` — 3-step wizard (select token → timeframe → limit)
-- `/admin_update_token_media` — admin command for updating token icon/image URLs
-- Refresh button on order book result — updates message in-place without chat clutter
+**Pricing & periods:**
+- Weekly / monthly / yearly prices; period-based purchase.
+- Upgrade bonus: remaining time carried over plus bonus for higher level; same-level purchase extends duration.
+- `PowerDeviationCoeff` column added to the EF snapshot (was missing while present in the model).
 
-**OrderBook service:**
-- `IOrderBookService` + `OrderBookService` — fetches active orders, sorts Bids/Asks, computes spread
-- `OrderBookServiceTest` — 12 unit tests (empty book, invalid symbol, edge cases)
+**Payment (two-stage):**
+- `IPaymentIntegrationService` with `CreatePaymentAsync`/`GetPaymentStatusAsync`.
+- `YooKassaPaymentIntegrationService`: requires confirmation until status `succeeded`; returns `ConfirmationUrl`.
+- `InstantSuccessPaymentService` (stub) for tests/dev.
+- `SubscriptionPurchaseService.PurchaseAsync`: creates a pending `SubscriptionPayment` with `ConfirmationUrl` when confirmation is required, otherwise activates immediately; the payment link is returned to the bot.
 
-**Wizard improvements:**
-- `StepResult.Buttons` — pass inline buttons on wizard completion
-- `ContinueCommand` propagates buttons to TelegramBot for final message
-- `ButtonDecorator` extended for `/get_order_book` token selection
-- Admin commands renamed to kebab-case (`/admin_add_balance_to_user`, `/admin_update_token_media`)
+**Workers:**
+- `PaymentConfirmationWorker` (BackgroundService): polls pending payments every 15 s, activates subscription on `succeeded`, marks `canceled` on `canceled`/`expired`; on a transient YooKassa error returns `"error"` so the payment is retried, never canceled.
+- `SubscriptionExpiryWorker`: downgrades expired subscriptions to the base tier and records purchase history.
 
-**Bugfixes:**
-- `fix(Telegram): handle message is not modified` — catches Telegram `ApiRequestException` on refresh when data unchanged, shows toast instead of error
-- `fix(Wizard): execute OneStep handlers in ContinueCommand flow`
-- `fix(Presentation): check trader existence before showing name prompt in /start`
-- `fix(MarketMaker): continue registration when trader already exists`
+**Wizard / Telegram:**
+- `/subscriptions`, `/buy_subscription <id>`, `/admin_create_subscription {json}`, `/admin_set_trader_subscription {json}`.
 
-**MarketMaker:**
-- `MarketMakerOrchestrator` ensures buyer+seller bots on all active tokens
-- Dynamic token list instead of hardcoded symbol
+**SonarCloud cleanup (`chore`):**
+- CS1591 XML doc comments added across entities, value objects, services, DTOs and commands.
+- Nullability (CS8618/8602/8604/8621): `= null!;`, `?? string.Empty`, null-guards, `.Where(k => k is not null)`.
+- S2325/CA1822: static methods (`FixedGridEngine` grid methods + call sites, `BuildAuthController`).
+- S3776 cognitive complexity reduced (`BalanceSnapshotService`).
+- S6960: `OrdersController` split into `OrdersQueryController`/`OrdersCreationController`/`OrdersCancellationController`, routes preserved 1:1.
+- CS1587: record param XML moved to `<param>` tags (`TelegramUserData`/`TelegramInitData`).
+- Dockerfile merged `RUN` layers (docker:S7031); `setup-server.sh` `[[ ]]`→`[ ]` (shell:S7688).
 
-**Other:**
-- Price sell suggestions fixed + Active status filter
-- CancelAllOrders: balance and token restoration tests
-- Wizard layer no longer accesses DB directly
-- All config via env vars (UserSecrets removed)
+## Changes
 
-### This PR fixes (7 commits)
+**Core/<SubscriptionContext> (Domain/EF):**
+- `Core/SubscriptionContext/Domain/Entities/Subscription.cs`, `Core/SubscriptionContext/Domain/Entities/SubscriptionPayment.cs`, `Core/SubscriptionContext/Domain/Entities/SubscriptionPurchaseHistory.cs` — new aggregates.
+- `Core/SubscriptionContext/Domain/ValueObjects/SubscriptionPeriod.cs` — period enum + duration/minutes/display name.
 
-| # | Commit | Fix |
-|---|--------|-----|
-| 1 | `fix(encoding)` | Convert all cp1251 .cs files to UTF-8 with BOM — CI tests now pass |
-| 2 | `test(TokenMediaUpdateService)` | 5 tests for validation and success paths |
-| 3 | `test(TraderQueryService)` | 3 tests for profile queries including null username |
-| 4 | `test(OrderCancellationService)` | 3 tests for `HasActiveOrdersAsync` |
-| 5 | `test(TokenQueryService)` | 2 tests for `GetTokenInfoAsync` |
-| 6 | `refactor(WizardHandlers)` | Extract duplicated token/int validation into helpers, deduplicate order book refresh |
-| 7 | `refactor(WizardConfigurationPrivate)` | Consolidate duplicate admin step definitions |
+**Core/SubscriptionContext (Application):**
+- `SubscriptionActivationService` — activation logic: expiry resolution (extend/upgrade bonus), history record, `TraderSubscriptionChangedEvent`.
+- `SubscriptionPurchaseService` — two-stage purchase; pending payment + `ConfirmationUrl` when `RequiresConfirmation`.
+- `SubscriptionExpiryService` — downgrade to base tier.
+- `SubscriptionQueryService`, `SubscriptionPurchaseHistoryQueryService` — queries.
+- Domain events `TraderSubscriptionChangedEvent` (Application/Events).
 
-**Coverage:** 58.6% → expected ≥80% (new tests cover all uncovered new services)
-**Duplication:** 5.6% → expected <3% (extracted helpers, consolidated admin steps)
+**Infrastructure:**
+- `Infrastructure/Data/Subscription.cs`, `SubscriptionPayment.cs`, `SubscriptionPurchaseHistory.cs`, `Trader.cs` (+ columns); EF migration.
+- `Infrastructure/Payment/YooKassaIntegration/YooKassaPaymentIntegrationService.cs` — YooKassa API, `SubscriptionPayment` → status mapping.
+- `Infrastructure/Payment/Instant/InstantSuccessPaymentService.cs` — instant stub.
+- `Infrastructure/Workers/PaymentConfirmationWorker.cs` — status polling, activation/cancel (15 s).
+- `Infrastructure/Workers/SubscriptionExpiryWorker.cs` — expiry handling.
+
+**Presentation / API:**
+- `SubscriptionsController`, `SubscriptionPurchasesController` — subscriptions API.
+- `OrdersQueryController`/`OrdersCreationController`/`OrdersCancellationController` — split from `OrdersController` (S6960).
+- `StartProgram.cs` — DI: payment provider switch (`Payment:Provider` = `YooKassa`|`Instant`), services, both hosted workers.
+- Wizard: `/subscriptions`, `/buy_subscription`, admin subscription commands.
+
+## Verification
+
+- `dotnet build` — 0 errors.
+- `dotnet test` — 1089 passed, 0 failed, 8 skipped.
+- SonarCloud Quality Gate (main): PASSED (coverage 97.8%, duplicated 0%).

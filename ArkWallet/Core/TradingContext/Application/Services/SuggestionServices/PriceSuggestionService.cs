@@ -119,7 +119,7 @@ namespace ArkWallet.Core.TradingContext.Application.Services.SuggestionServices
 
             dto = [.. dto.OrderByDescending(dto => dto.Price)];
 
-            return dto.DistinctBy(d => d.Price).ToList(); ;
+            return dto.DistinctBy(d => d.Price).ToList();
         }
     }
 }

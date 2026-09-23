@@ -26,6 +26,9 @@ internal class ArkWalletDbContext : DbContext
     public DbSet<GlobalGoalHistory> GlobalGoalHistories { get; set; }
     public DbSet<GlobalGoalStep> GlobalGoalSteps { get; set; }
     public DbSet<MailMessage> MailMessages { get; set; }
+    public DbSet<Subscription> Subscriptions { get; set; }
+    public DbSet<SubscriptionPurchaseHistory> SubscriptionPurchaseHistory { get; set; }
+    public DbSet<SubscriptionPayment> SubscriptionPayments { get; set; }
 
     public ArkWalletDbContext(DbContextOptions<ArkWalletDbContext> options) : base(options)
     {
@@ -132,6 +135,25 @@ internal class ArkWalletDbContext : DbContext
             mail.HasKey(m => m.Id);
             mail.Property(m => m.Status).HasConversion<string>();
         });
+
+        modelBuilder.Entity<SubscriptionPurchaseHistory>(history =>
+        {
+            history.HasKey(h => h.Id);
+            history.HasOne(h => h.Trader)
+                .WithMany(t => t.SubscriptionPurchaseHistory)
+                .HasForeignKey(h => h.TraderId)
+                .OnDelete(DeleteBehavior.Cascade);
+            history.HasOne(h => h.Subscription)
+                .WithMany(s => s.PurchaseHistory)
+                .HasForeignKey(h => h.SubscriptionId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Trader>()
+            .HasOne(t => t.Subscription)
+            .WithMany()
+            .HasForeignKey(t => t.SubscriptionId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         var longListComparer = new ValueComparer<List<long>>(
             (a, b) => SequenceEqual(a, b),

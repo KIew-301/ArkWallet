@@ -393,6 +393,17 @@ namespace ArkWallet.Entities.Configurations
             };
 
             Commands["/global_goals"] = steps;
+
+            steps = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "request",
+                    OneStep = true
+                },
+            };
+
+            Commands["/subscriptions"] = steps;
         }
 
         private static List<QuickButton> CreateCountButtons()

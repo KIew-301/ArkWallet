@@ -67,6 +67,8 @@ public class AppStateTest
         Assert.Equal("now a string", JsonSerializer.Deserialize<string>(state.Value)!);
     }
 
+    private static readonly int[] IntArray3 = [1, 2, 3];
+
     [Fact]
     public void GetValue_DeserializesComplexObject()
     {
@@ -77,6 +79,6 @@ public class AppStateTest
 
         Assert.NotNull(result);
         Assert.Equal(3, result.Count);
-        Assert.Equal(new[] { 1, 2, 3 }, result);
+        Assert.Equal(IntArray3, result);
     }
 }

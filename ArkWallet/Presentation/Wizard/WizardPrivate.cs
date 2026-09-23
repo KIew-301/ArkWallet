@@ -8,9 +8,11 @@ using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
 using ArkWallet.Core.TradingContext.Application.Contracts.TradeServices;
 using ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices;
 using ArkWallet.Core.GlobalGoalContext.Application.Contracts.GlobalGoalServices;
+using ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionPurchaseServices;
 using ArkWallet.Core.General.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Newtonsoft.Json;
+using Microsoft.EntityFrameworkCore;
 
 namespace ArkWallet.Infrastructure.Wizard
 {
@@ -26,6 +28,7 @@ namespace ArkWallet.Infrastructure.Wizard
             "/admin_help_other — Other commands\n" +
             "/admin_help_global_goals — Global goals commands\n" +
             "/admin_help_mining — Mining commands\n" +
+            "/admin_help_subscriptions — Subscriptions commands\n" +
             "/admin_help_access — Access control";
 
         private const string AdminHelpTraderText =
@@ -161,9 +164,24 @@ namespace ArkWallet.Infrastructure.Wizard
             "             \"rules\": [ { \"characterTokenId\": \"ARK_001\",\n" +
             "                          \"miningCoefficient\": 0.9 } ] } ]\n" +
             "   Rules are optional per machine. Single object also supported.\n\n" +
-            "11) /admin_mining_delete_machines\n" +
-            "   Permanently deletes several machines and their rules in one transaction.\n" +
-            "   Enter machine Ids (comma or space separated), then confirm.";
+"11) /admin_mining_delete_machines\n" +
+             "   Permanently deletes several machines and their rules in one transaction.\n" +
+             "   Enter machine Ids (comma or space separated), then confirm.";
+
+        private const string AdminHelpSubscriptionsText =
+            "Subscriptions commands:\n\n" +
+            "1) /admin_create_subscription\n" +
+            "   Creates a new subscription. Available to Admin_Main only.\n" +
+            "   JSON: { \"name\": \"Премиум\", \"level\": 2,\n" +
+            "           \"priceWeekRubles\": 30, \"priceMonthRubles\": 90, \"priceYearRubles\": 900,\n" +
+            "           \"maxOrders\": 20, \"maxMiningMachines\": 20\n" +
+            "           \"description\": \"Описание подписки (необязательно)\" }\n" +
+            "   Duration is derived automatically from week/month/year periods.\n" +
+            "   maxOrders/maxMiningMachines must be >= the level-below subscription (basic is not counted).\n\n" +
+            "2) /admin_set_trader_subscription\n" +
+            "   Assigns a subscription to a trader. Available to Admin_Main only.\n" +
+            "   JSON: { \"telegramId\": 123456789, \"subscriptionId\": 2 }\n" +
+            "   Sets the subscription and its expiry time (if durationMinutes is set).";
 
         private const string AdminHelpAccessText =
             "Access control commands:\n\n" +
@@ -207,6 +225,9 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/admin_get_ids"][0].Handler = AdminHandleGetIds;
             _config.Commands["/admin_metrics"][0].Handler = AdminHandleMetrics;
             _config.Commands["/admin_help_mining"][0].Handler = AdminHandleHelpMining;
+            _config.Commands["/admin_help_subscriptions"][0].Handler = AdminHandleHelpSubscriptions;
+            _config.Commands["/admin_create_subscription"][0].Handler = AdminHandleCreateSubscription;
+            _config.Commands["/admin_set_trader_subscription"][0].Handler = AdminHandleSetTraderSubscription;
             _config.Commands["/admin_help_access"][0].Handler = AdminHandleHelpAccess;
             _config.Commands["/admin_help_global_goals"][0].Handler = AdminHandleHelpGlobalGoals;
             _config.Commands["/admin_mining_create_machine"][0].Handler = AdminHandleMiningCreateMachine;
@@ -971,6 +992,9 @@ namespace ArkWallet.Infrastructure.Wizard
         private Task<StepResult> AdminHandleHelpMining(UserSession session, string input)
             => Task.FromResult(StepResult.Ok("completed", AdminHelpMiningText));
 
+        private Task<StepResult> AdminHandleHelpSubscriptions(UserSession session, string input)
+            => Task.FromResult(StepResult.Ok("completed", AdminHelpSubscriptionsText));
+
         private Task<StepResult> AdminHandleHelpAccess(UserSession session, string input)
             => Task.FromResult(StepResult.Ok("completed", AdminHelpAccessText));
 
@@ -1503,6 +1527,120 @@ namespace ArkWallet.Infrastructure.Wizard
             {
                 return StepResult.Error($"Ошибка: {ex.Message}");
             }
+        }
+
+        private async Task<StepResult> AdminHandleCreateSubscription(UserSession session, string input)
+        {
+            if (session.Id != _primaryAdminId)
+                return StepResult.Error("This command is available to Admin_Main only.");
+
+            try
+            {
+                var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(input);
+                if (data == null || !data.ContainsKey("name") || !data.ContainsKey("level")
+                    || !data.ContainsKey("priceWeekRubles") || !data.ContainsKey("priceMonthRubles")
+                    || !data.ContainsKey("priceYearRubles") || !data.ContainsKey("maxOrders")
+                    || !data.ContainsKey("maxMiningMachines"))
+                    return StepResult.Error("Required fields: name, level, priceWeek/Month/YearRubles, maxOrders, maxMiningMachines.");
+
+                int level = Convert.ToInt32(data["level"]);
+                int maxOrders = Convert.ToInt32(data["maxOrders"]);
+                int maxMiningMachines = Convert.ToInt32(data["maxMiningMachines"]);
+
+                if (level > 2)
+                {
+                    var lowerLevelMax = await _dbContext.Subscriptions
+                        .Where(s => s.Level == level - 1)
+                        .GroupBy(s => s.Level)
+                        .Select(g => new
+                        {
+                            g.Key,
+                            MaxOrders = g.Max(s => s.MaxOrders),
+                            MaxMiningMachines = g.Max(s => s.MaxMiningMachines)
+                        })
+                        .FirstOrDefaultAsync();
+
+                    if (lowerLevelMax is null)
+                        return StepResult.Error($"Subscription of level {level - 1} is required to exist first.");
+
+                    if (maxOrders < lowerLevelMax.MaxOrders || maxMiningMachines < lowerLevelMax.MaxMiningMachines)
+                        return StepResult.Error(
+                            $"maxOrders ({maxOrders}) and maxMiningMachines ({maxMiningMachines}) must be >= the level {level - 1} subscription ({lowerLevelMax.MaxOrders}, {lowerLevelMax.MaxMiningMachines}). The basic (level 1) subscription is not counted.");
+                }
+
+                var subscription = new Subscription
+                {
+                    Name = Convert.ToString(data["name"]),
+                    Level = level,
+                    PriceWeekRubles = Convert.ToDecimal(data["priceWeekRubles"]),
+                    PriceMonthRubles = Convert.ToDecimal(data["priceMonthRubles"]),
+                    PriceYearRubles = Convert.ToDecimal(data["priceYearRubles"]),
+                    MaxOrders = maxOrders,
+                    MaxMiningMachines = maxMiningMachines,
+                    Description = data.ContainsKey("description") ? Convert.ToString(data["description"]) ?? "" : "",
+                    DurationMinutes = level > 1 ? (int?)SubscriptionPeriod.Month.GetDurationMinutes() : null
+                };
+
+                _dbContext.Subscriptions.Add(subscription);
+                await _dbContext.SaveChangesAsync();
+
+                return StepResult.Ok("completed", $"Subscription \"{subscription.Name}\" (Id: {subscription.Id}) created.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.StackTrace);
+                return StepResult.Error($"Error: {ex.Message}");
+            }
+        }
+
+        private async Task<WizardResult> HandleQuickAdminCreateSubscription(long userId, string raw)
+        {
+            var result = await AdminHandleCreateSubscription(new UserSession { Id = userId }, raw);
+            return new WizardResult { Message = result.Message };
+        }
+
+        private async Task<StepResult> AdminHandleSetTraderSubscription(UserSession session, string input)
+        {
+            if (session.Id != _primaryAdminId)
+                return StepResult.Error("This command is available to Admin_Main only.");
+
+            try
+            {
+                var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(input);
+                if (data == null || !data.ContainsKey("telegramId") || !data.ContainsKey("subscriptionId"))
+                    return StepResult.Error("Required fields: telegramId, subscriptionId.");
+
+                long traderId = Convert.ToInt64(data["telegramId"]);
+                int subscriptionId = Convert.ToInt32(data["subscriptionId"]);
+
+                var trader = await _dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
+                if (trader == null)
+                    return StepResult.Error($"Trader {traderId} not found.");
+
+                var subscription = await _dbContext.Subscriptions.FirstOrDefaultAsync(s => s.Id == subscriptionId);
+                if (subscription == null)
+                    return StepResult.Error($"Subscription {subscriptionId} not found.");
+
+                trader.SubscriptionId = subscriptionId;
+                trader.SubscriptionExpiresAtUtc = subscription.DurationMinutes.HasValue
+                    ? DateTime.UtcNow.AddMinutes(subscription.DurationMinutes.Value)
+                    : (DateTime?)null;
+
+                await _dbContext.SaveChangesAsync();
+
+                return StepResult.Ok("completed", $"Subscription #{subscriptionId} assigned to trader {traderId}.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.StackTrace);
+                return StepResult.Error($"Error: {ex.Message}");
+            }
+        }
+
+        private async Task<WizardResult> HandleQuickAdminSetTraderSubscription(long userId, string raw)
+        {
+            var result = await AdminHandleSetTraderSubscription(new UserSession { Id = userId }, raw);
+            return new WizardResult { Message = result.Message };
         }
     }
 }

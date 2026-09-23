@@ -70,6 +70,18 @@ using System.Text;
 using System.Threading.RateLimiting;
 using ArkWallet.Core.ShoppingContext.Application.Contracts.Orchestrators;
 using ArkWallet.Core.MiningContext.Application.Services.Orchestrators;
+using ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionServices;
+using ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionPurchaseServices;
+using ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionPurchaseHistoryServices;
+using ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionExpiryServices;
+using ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionServices;
+using ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionPurchaseServices;
+using ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionPurchaseHistoryServices;
+using ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionExpiryServices;
+using ArkWallet.Core.SubscriptionContext.Application.Contracts.PaymentServices;
+using ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionActivationServices;
+using ArkWallet.Core.SubscriptionContext.Application.Services.SubscriptionActivationServices;
+using ArkWallet.Infrastructure.Payment;
 
 [ExcludeFromCodeCoverage(Justification = "Точка входа приложения: конфигурация DI, middleware и инфраструктуры. Не содержит бизнес-логики.")]
 class Program
@@ -254,7 +266,7 @@ class Program
         });
 
         // Services
-        RegisterServices(builder.Services);
+        RegisterServices(builder.Services, builder.Configuration);
 
         // Background Services
         if (!isTesting)
@@ -268,6 +280,9 @@ class Program
             builder.Services.AddHostedService<MiningMachineSlotSwitchingWorker>();
             builder.Services.AddHostedService<PowerDeviationWorker>();
             builder.Services.AddHostedService<GlobalGoalUpdateWorker>();
+            builder.Services.AddHostedService<SubscriptionExpiryWorker>();
+            builder.Services.AddHostedService<PaymentConfirmationWorker>();
+            builder.Services.AddHostedService<SubscriptionRenewalWorker>();
         }
 
         var app = builder.Build();
@@ -347,6 +362,34 @@ class Program
                 Console.WriteLine("AccessSetting loaded into memory.");
             }
 
+            // Seed basic subscription (Level 1)
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ArkWalletDbContext>();
+                var sub = await db.Subscriptions.FirstOrDefaultAsync(s => s.Level == 1);
+                if (sub == null)
+                {
+                    sub = new Subscription
+                    {
+                        Name = "Базовая",
+                        Level = 1,
+                        PriceRubles = 0,
+                        MaxOrders = 5,
+                        MaxMiningMachines = 5,
+                        DurationMinutes = null,
+                        Description = "Базовая подписка по умолчанию."
+                    };
+                    db.Subscriptions.Add(sub);
+                    await db.SaveChangesAsync();
+                }
+                else if (string.IsNullOrWhiteSpace(sub.Description))
+                {
+                    sub.Description = "Базовая подписка по умолчанию.";
+                    await db.SaveChangesAsync();
+                }
+                Console.WriteLine("Basic subscription loaded.");
+            }
+
             // Telegram Bot
             var bot = app.Services.GetRequiredService<TelegramBot>();
             await bot.Start();
@@ -355,7 +398,7 @@ class Program
         await app.RunAsync();
     }
 
-    private static void RegisterServices(IServiceCollection services)
+    private static void RegisterServices(IServiceCollection services, IConfiguration configuration)
     {
         // MediatR
         services.AddMediatR(cfg =>
@@ -366,7 +409,6 @@ class Program
 
         // Domain Engines
         services.AddScoped<TradingEngine>();
-        services.AddScoped<FixedGridEngine>();
         services.AddScoped<MarketMakerGridEngine>();
         services.AddScoped<WallBlockerEngine>();
         services.AddScoped<MiningEngine>();
@@ -487,6 +529,29 @@ class Program
 
         // Observability
         services.AddSingleton<IMetricsSnapshotService, MetricsSnapshotService>();
+
+        // Subscriptions
+        services.AddScoped<ISubscriptionQueryService, SubscriptionQueryService>();
+        services.AddScoped<IPurchaseService, SubscriptionPurchaseService>();
+        services.AddScoped<IPurchaseHistoryQueryService, SubscriptionPurchaseHistoryQueryService>();
+        services.AddScoped<ISubscriptionExpiryService, SubscriptionExpiryService>();
+        services.AddScoped<ISubscriptionActivationService, SubscriptionActivationService>();
+
+        var paymentProvider = configuration["Payment:Provider"] ?? "Instant";
+        if (string.Equals(paymentProvider, "YooKassa", StringComparison.OrdinalIgnoreCase))
+        {
+            services.Configure<YooKassaOptions>(configuration.GetSection("YooKassa"));
+            services.AddHttpClient<IPaymentIntegrationService, YooKassaPaymentIntegrationService>(client =>
+            {
+                client.BaseAddress = new Uri("https://api.yookassa.ru/v3");
+                client.Timeout = TimeSpan.FromSeconds(30);
+            });
+        }
+        else
+        {
+            services.AddScoped<IPaymentIntegrationService, InstantSuccessPaymentService>();
+        }
+        services.AddSingleton(TimeProvider.System);
 
         // Access Control
         services.AddSingleton<AccessControlService>();

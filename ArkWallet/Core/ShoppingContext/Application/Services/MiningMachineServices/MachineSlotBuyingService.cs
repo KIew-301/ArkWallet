@@ -1,4 +1,3 @@
-using ArkWallet.Core.MiningContext.Domain.Engines;
 using ArkWallet.Core.ShoppingContext.Domain.Machine;
 using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.ShoppingContext.Application.Contracts.MiningMachineServices;
@@ -50,7 +49,7 @@ internal class MachineSlotBuyingService(
     /// <summary>Loads the trader and machine and verifies every precondition for buying the machine.</summary>
     private async Task<Result<PurchaseContext>> EnsurePurchaseAllowedAsync(long traderId, long machineId)
     {
-        var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
+        var trader = await dbContext.Traders.Include(t => t.Subscription).FirstOrDefaultAsync(t => t.TelegramId == traderId);
         if (trader == null)
             return Result<PurchaseContext>.Fail("Трейдера не существует");
 
@@ -65,8 +64,8 @@ internal class MachineSlotBuyingService(
         if (await IsMachineAlreadyOwnedAsync(traderId, machine.Name))
             return Result<PurchaseContext>.Fail("У вас уже есть такая машина");
 
-        if (await HasReachedMachinesLimitAsync(traderId))
-            return Result<PurchaseContext>.Fail($"Нельзя купить больше {MiningEngine.MaxMachinesPerTrader} машин");
+        if (await HasReachedMachinesLimitAsync(trader))
+            return Result<PurchaseContext>.Fail($"Нельзя купить больше {GetMachineLimit(trader)} машин");
 
         if (trader.Balance < machine.Cost)
             return Result<PurchaseContext>.Fail("Недостаточно средств для покупки машины");
@@ -82,10 +81,20 @@ internal class MachineSlotBuyingService(
     }
 
     /// <summary>Determines whether the trader has reached the maximum number of owned machines.</summary>
-    private async Task<bool> HasReachedMachinesLimitAsync(long traderId)
+    private async Task<bool> HasReachedMachinesLimitAsync(Trader trader)
     {
+        if (BotFilter.IsBot(trader.TelegramId)) return false;
         var slotsCount = await dbContext.MiningMachineSlots.CountAsync(s =>
-            s.TraderId == traderId && s.Status != MiningMachineSlotStatus.Sold);
-        return slotsCount >= MiningEngine.MaxMachinesPerTrader;
+            s.TraderId == trader.TelegramId && s.Status != MiningMachineSlotStatus.Sold);
+        return slotsCount >= GetMachineLimit(trader);
+    }
+
+    /// <summary>Returns the machine limit for the given trader based on their subscription.</summary>
+    private static int GetMachineLimit(Trader trader)
+    {
+        var sub = trader.Subscription;
+        if (sub != null && (trader.SubscriptionExpiresAtUtc == null || trader.SubscriptionExpiresAtUtc.Value > DateTime.UtcNow))
+            return sub.MaxMiningMachines;
+        return 5;
     }
 }

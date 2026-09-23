@@ -3,6 +3,7 @@ using ArkWallet.Core.PortfolioContext.Application.Services.PortfolioServices;
 using ArkWallet.Core.PortfolioContext.Domain.Position;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Tests.HelpTools;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ArkWallet.Tests.Core.PortfolioContext.Application.Services.PortfolioServices;
@@ -147,7 +148,8 @@ public class PortfolioContextChangePositionTests
             new ChangeCommand(2002, "ZZZ", PortfolioChangeType.Remove, 10, 100m));
 
         Assert.True(result.IsSuccess);
-        var p = await HelpMethods.GetPortfolio(db, 2002);
+        var p = await db.PortfolioItems
+            .FirstOrDefaultAsync(item => item.TraderTelegramId == 2002 && item.CharacterTokenId == "ZZZ");
         Assert.Null(p);
     }
 }
