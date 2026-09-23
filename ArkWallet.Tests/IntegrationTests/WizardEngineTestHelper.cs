@@ -99,6 +99,8 @@ internal static class WizardEngineTestHelper
         var configuration = new Mock<IConfiguration>();
         configuration.Setup(c => c["Telegram:AdminId:Main"]).Returns("999999");
 
+        var dbContext = DbTest.CreateDbContext();
+
         var questionDecorator = new Mock<IQuestionDecorator>();
         questionDecorator
             .Setup(d => d.DecorateQuestionAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<UserSession>()))
@@ -109,67 +111,68 @@ internal static class WizardEngineTestHelper
             .Setup(d => d.DecorateButtonsAsync(It.IsAny<string>(), It.IsAny<List<QuickButton>>(), It.IsAny<UserSession>()))
             .ReturnsAsync((string _, List<QuickButton> baseB, UserSession _) => baseB);
 
-        var engine = new WizardEngine(
-            sessionStore,
-            NullLogger<WizardEngine>.Instance,
-            traderRegistrationService.Object,
-            traderBalanceUpdatingService.Object,
-            traderQueryService.Object,
-            orderValidationService.Object,
-            orderCreationService.Object,
-            orderCancellationService.Object,
-            orderBookService.Object,
-            orderQueryService.Object,
-            QueryService.Object,
-            UpdatingService.Object,
-            tokenCreationService.Object,
-            tokenQueryService.Object,
-            tokenMediaUpdateService.Object,
-            tokenDeletionService.Object,
-            tradeQueryService.Object,
-            leadersTopByBalanceQueryService.Object,
-            balanceSnapshotService.Object,
-            candleOrchestrator.Object,
-            botQueryService.Object,
-            tokenService.Object,
-            tradingVolumeService.Object,
-            messageSender.Object,
-            mailGiftService.Object,
-            mailMessageService.Object,
-            mailQueryService.Object,
-            mailStatusUpdatingService.Object,
-            configuration.Object,
-            questionDecorator.Object,
-            buttonDecorator.Object,
-            metricsSnapshotService.Object,
-            miningGlobalRuleQueryService.Object,
-            miningMachineQueryService.Object,
-            miningMachineSlotQueryService.Object,
-            miningMachineSlotBuyingService.Object,
-            miningMachineCreationService.Object,
-            miningMachineRuleCreationService.Object,
-            miningMachineDeletionService.Object,
-            miningMachineRuleDeletionService.Object,
-            miningMachineUpdateService.Object,
-            miningMachineRuleUpdateService.Object,
-            miningGlobalRuleUpdateService.Object,
-            appStateQueryService.Object,
-            miningMachineSlotSwitchingOrchestrator.Object,
-            miningMachineCreationOrchestrator.Object,
-            miningMachineSlotTakingTokenOrchestrator.Object,
-            miningMachineSlotSellingOrchestrator.Object,
-            globalGoalQueryService.Object,
-            globalGoalCreationService.Object,
-            subscriptionQueryService.Object,
-            purchaseService.Object,
-            config,
-            DbTest.CreateDbContext(),
-            new AccessControlService()
-        );
+var engine = new WizardEngine(
+                sessionStore,
+                NullLogger<WizardEngine>.Instance,
+                traderRegistrationService.Object,
+                traderBalanceUpdatingService.Object,
+                traderQueryService.Object,
+                orderValidationService.Object,
+                orderCreationService.Object,
+                orderCancellationService.Object,
+                orderBookService.Object,
+                orderQueryService.Object,
+                QueryService.Object,
+                UpdatingService.Object,
+                tokenCreationService.Object,
+                tokenQueryService.Object,
+                tokenMediaUpdateService.Object,
+                tokenDeletionService.Object,
+                tradeQueryService.Object,
+                leadersTopByBalanceQueryService.Object,
+                balanceSnapshotService.Object,
+                candleOrchestrator.Object,
+                botQueryService.Object,
+                tokenService.Object,
+                tradingVolumeService.Object,
+                messageSender.Object,
+                mailGiftService.Object,
+                mailMessageService.Object,
+                mailQueryService.Object,
+                mailStatusUpdatingService.Object,
+                configuration.Object,
+                questionDecorator.Object,
+                buttonDecorator.Object,
+                metricsSnapshotService.Object,
+                miningGlobalRuleQueryService.Object,
+                miningMachineQueryService.Object,
+                miningMachineSlotQueryService.Object,
+                miningMachineSlotBuyingService.Object,
+                miningMachineCreationService.Object,
+                miningMachineRuleCreationService.Object,
+                miningMachineDeletionService.Object,
+                miningMachineRuleDeletionService.Object,
+                miningMachineUpdateService.Object,
+                miningMachineRuleUpdateService.Object,
+                miningGlobalRuleUpdateService.Object,
+                appStateQueryService.Object,
+                miningMachineSlotSwitchingOrchestrator.Object,
+                miningMachineCreationOrchestrator.Object,
+                miningMachineSlotTakingTokenOrchestrator.Object,
+                miningMachineSlotSellingOrchestrator.Object,
+                globalGoalQueryService.Object,
+                globalGoalCreationService.Object,
+                subscriptionQueryService.Object,
+                purchaseService.Object,
+                config,
+                dbContext,
+                new AccessControlService()
+            );
 
-        return new ServiceMocks
-        {
-            Engine = engine,
+            return new ServiceMocks
+            {
+                Engine = engine,
+                Db = dbContext,
             TraderRegistration = traderRegistrationService,
             TraderBalanceUpdating = traderBalanceUpdatingService,
             TraderQuery = traderQueryService,
@@ -272,5 +275,6 @@ internal class ServiceMocks
     public Mock<IGlobalGoalCreationService> GlobalGoalCreation { get; init; } = null!;
     public Mock<ISubscriptionQueryService> SubscriptionQuery { get; init; } = null!;
     public Mock<IPurchaseService> PurchaseService { get; init; } = null!;
+    public ArkWalletDbContext Db { get; init; } = null!;
     public Mock<IMetricsSnapshotService> MetricsSnapshot { get; init; } = null!;
 }

@@ -181,7 +181,15 @@ namespace ArkWallet.Infrastructure.Wizard
             "2) /admin_set_trader_subscription\n" +
             "   Assigns a subscription to a trader. Available to Admin_Main only.\n" +
             "   JSON: { \"telegramId\": 123456789, \"subscriptionId\": 2 }\n" +
-            "   Sets the subscription and its expiry time (if durationMinutes is set).";
+            "   Sets the subscription and its expiry time (if durationMinutes is set).\n\n" +
+            "3) /admin_update_subscription\n" +
+            "   Updates subscription data. Available to Admin_Main only.\n" +
+            "   JSON: { \"subscriptionId\": 2, \"name\": \"Премиум\", \"level\": 3,\n" +
+            "           \"priceWeekRubles\": 99, \"priceMonthRubles\": 299, \"priceYearRubles\": 999,\n" +
+            "           \"maxOrders\": 100, \"maxMiningMachines\": 5,\n" +
+            "           \"description\": \"Расширенный доступ\" }\n" +
+            "   Only subscriptionId is required; other fields are optional.\n" +
+            "   maxOrders/maxMiningMachines must be >= the level-below subscription (basic is not counted).";
 
         private const string AdminHelpAccessText =
             "Access control commands:\n\n" +
@@ -228,6 +236,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/admin_help_subscriptions"][0].Handler = AdminHandleHelpSubscriptions;
             _config.Commands["/admin_create_subscription"][0].Handler = AdminHandleCreateSubscription;
             _config.Commands["/admin_set_trader_subscription"][0].Handler = AdminHandleSetTraderSubscription;
+            _config.Commands["/admin_update_subscription"][0].Handler = AdminHandleUpdateSubscription;
             _config.Commands["/admin_help_access"][0].Handler = AdminHandleHelpAccess;
             _config.Commands["/admin_help_global_goals"][0].Handler = AdminHandleHelpGlobalGoals;
             _config.Commands["/admin_mining_create_machine"][0].Handler = AdminHandleMiningCreateMachine;
@@ -1640,6 +1649,88 @@ namespace ArkWallet.Infrastructure.Wizard
         private async Task<WizardResult> HandleQuickAdminSetTraderSubscription(long userId, string raw)
         {
             var result = await AdminHandleSetTraderSubscription(new UserSession { Id = userId }, raw);
+            return new WizardResult { Message = result.Message };
+        }
+
+        private async Task<StepResult> AdminHandleUpdateSubscription(UserSession session, string input)
+        {
+            if (session.Id != _primaryAdminId)
+                return StepResult.Error("This command is available to Admin_Main only.");
+
+            try
+            {
+                var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(input);
+                if (data == null || !data.ContainsKey("subscriptionId"))
+                    return StepResult.Error("Required fields: subscriptionId.");
+
+                int subscriptionId = Convert.ToInt32(data["subscriptionId"]);
+                var subscription = await _dbContext.Subscriptions.FirstOrDefaultAsync(s => s.Id == subscriptionId);
+                if (subscription == null)
+                    return StepResult.Error($"Subscription {subscriptionId} not found.");
+
+                if (data.ContainsKey("name"))
+                    subscription.Name = Convert.ToString(data["name"]);
+                if (data.ContainsKey("priceWeekRubles"))
+                    subscription.PriceWeekRubles = Convert.ToDecimal(data["priceWeekRubles"]);
+                if (data.ContainsKey("priceMonthRubles"))
+                    subscription.PriceMonthRubles = Convert.ToDecimal(data["priceMonthRubles"]);
+                if (data.ContainsKey("priceYearRubles"))
+                    subscription.PriceYearRubles = Convert.ToDecimal(data["priceYearRubles"]);
+                if (data.ContainsKey("description"))
+                    subscription.Description = Convert.ToString(data["description"]) ?? "";
+
+                int level = subscription.Level;
+                if (data.ContainsKey("level"))
+                    level = Convert.ToInt32(data["level"]);
+
+                int maxOrders = subscription.MaxOrders;
+                if (data.ContainsKey("maxOrders"))
+                    maxOrders = Convert.ToInt32(data["maxOrders"]);
+
+                int maxMiningMachines = subscription.MaxMiningMachines;
+                if (data.ContainsKey("maxMiningMachines"))
+                    maxMiningMachines = Convert.ToInt32(data["maxMiningMachines"]);
+
+                if (level > 2)
+                {
+                    var lowerLevelMax = await _dbContext.Subscriptions
+                        .Where(s => s.Level == level - 1)
+                        .GroupBy(s => s.Level)
+                        .Select(g => new
+                        {
+                            g.Key,
+                            MaxOrders = g.Max(s => s.MaxOrders),
+                            MaxMiningMachines = g.Max(s => s.MaxMiningMachines)
+                        })
+                        .FirstOrDefaultAsync();
+
+                    if (lowerLevelMax is null)
+                        return StepResult.Error($"Subscription of level {level - 1} is required to exist first.");
+
+                    if (maxOrders < lowerLevelMax.MaxOrders || maxMiningMachines < lowerLevelMax.MaxMiningMachines)
+                        return StepResult.Error(
+                            $"maxOrders ({maxOrders}) and maxMiningMachines ({maxMiningMachines}) must be >= the level {level - 1} subscription ({lowerLevelMax.MaxOrders}, {lowerLevelMax.MaxMiningMachines}). The basic (level 1) subscription is not counted.");
+                }
+
+                subscription.Level = level;
+                subscription.MaxOrders = maxOrders;
+                subscription.MaxMiningMachines = maxMiningMachines;
+                subscription.DurationMinutes = level > 1 ? (int?)SubscriptionPeriod.Month.GetDurationMinutes() : null;
+
+                await _dbContext.SaveChangesAsync();
+
+                return StepResult.Ok("completed", $"Subscription #{subscriptionId} updated.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.StackTrace);
+                return StepResult.Error($"Error: {ex.Message}");
+            }
+        }
+
+        private async Task<WizardResult> HandleQuickAdminUpdateSubscription(long userId, string raw)
+        {
+            var result = await AdminHandleUpdateSubscription(new UserSession { Id = userId }, raw);
             return new WizardResult { Message = result.Message };
         }
     }

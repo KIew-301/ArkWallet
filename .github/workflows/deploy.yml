@@ -85,6 +85,10 @@ jobs:
             TELEGRAM_BASE_URL=${{ secrets.TELEGRAM_BASE_URL }}
             TELEGRAM_WEBHOOK_URL=${{ secrets.TELEGRAM_WEBHOOK_URL }}
             TELEGRAM_WEBHOOK_SECRET=${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
+            PAYMENT_PROVIDER=${{ secrets.PAYMENT_PROVIDER }}
+            YOOKASSA_SHOP_ID=${{ secrets.YOOKASSA_SHOP_ID }}
+            YOOKASSA_SECRET_KEY=${{ secrets.YOOKASSA_SECRET_KEY }}
+            YOOKASSA_RETURN_URL=${{ secrets.YOOKASSA_RETURN_URL }}
             RABBITMQ_USER=arkwallet
             RABBITMQ_PASSWORD=rabbit_secure_pass_2024
             ENVEOF
@@ -99,10 +103,14 @@ jobs:
             fi
 
             # Update webhook secrets in existing .env (idempotent)
-            for KEY in TELEGRAM_WEBHOOK_URL TELEGRAM_WEBHOOK_SECRET; do
+            for KEY in TELEGRAM_WEBHOOK_URL TELEGRAM_WEBHOOK_SECRET PAYMENT_PROVIDER YOOKASSA_SHOP_ID YOOKASSA_SECRET_KEY YOOKASSA_RETURN_URL; do
               case "$KEY" in
                 TELEGRAM_WEBHOOK_URL) VALUE="${{ secrets.TELEGRAM_WEBHOOK_URL }}" ;;
                 TELEGRAM_WEBHOOK_SECRET) VALUE="${{ secrets.TELEGRAM_WEBHOOK_SECRET }}" ;;
+                PAYMENT_PROVIDER) VALUE="${{ secrets.PAYMENT_PROVIDER }}" ;;
+                YOOKASSA_SHOP_ID) VALUE="${{ secrets.YOOKASSA_SHOP_ID }}" ;;
+                YOOKASSA_SECRET_KEY) VALUE="${{ secrets.YOOKASSA_SECRET_KEY }}" ;;
+                YOOKASSA_RETURN_URL) VALUE="${{ secrets.YOOKASSA_RETURN_URL }}" ;;
               esac
               if grep -q "^$KEY=" "$APP_DIR/.env"; then
                 sed -i "s|^$KEY=.*|$KEY=$VALUE|" "$APP_DIR/.env"
