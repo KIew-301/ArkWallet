@@ -216,7 +216,8 @@ internal static class WizardEngineTestHelper
             GlobalGoalQuery = globalGoalQueryService,
             GlobalGoalCreation = globalGoalCreationService,
             SubscriptionQuery = subscriptionQueryService,
-            PurchaseService = purchaseService
+            PurchaseService = purchaseService,
+            MetricsSnapshot = metricsSnapshotService
         };
     }
 }
@@ -271,4 +272,5 @@ internal class ServiceMocks
     public Mock<IGlobalGoalCreationService> GlobalGoalCreation { get; init; } = null!;
     public Mock<ISubscriptionQueryService> SubscriptionQuery { get; init; } = null!;
     public Mock<IPurchaseService> PurchaseService { get; init; } = null!;
+    public Mock<IMetricsSnapshotService> MetricsSnapshot { get; init; } = null!;
 }

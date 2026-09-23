@@ -15,6 +15,7 @@ using ArkWallet.Core.TradingContext.Application.Dtos;
 using ArkWallet.Core.TradingContext.Application.Services.TraderServices;
 using ArkWallet.Core.General.Application.Services.Wizard;
 using ArkWallet.Core.General.Domain.ValueObjects;
+using ArkWallet.Core.MailContext.Application.Contracts.MailServices;
 using ArkWallet.Infrastructure.Wizard;
 using Moq;
 
@@ -1469,4 +1470,699 @@ public class UserWizardCommandsTest : IDisposable
         _m.TokenDeletion.Verify(s => s.DeactivateTokenAsync(It.IsAny<string>()), Times.Never);
         Assert.Equal("Deactivation cancelled.", result.Message);
     }
+
+    // ═══════════════════════════════════════════════════════════
+    //  /admin_set_token_to_user
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public async Task AdminSetTokenToUser_ValidJson_Success()
+    {
+        _m.PortfolioUpdating
+            .Setup(s => s.CreateOrUpdatePortfolioAsync(12345, "ARK_001", 100))
+            .ReturnsAsync(Result.Ok());
+
+        await _engine.ProcessInput(UserId, "/admin_set_token_to_user");
+        var json = """{"traderId": 12345, "symbolId": "ARK_001", "quantity": 100}""";
+        var result = await _engine.ProcessInput(UserId, json);
+
+        Assert.NotNull(result.Message);
+        Assert.Equal("Portfolia update successful", result.Message);
+        _m.PortfolioUpdating.Verify(s => s.CreateOrUpdatePortfolioAsync(12345, "ARK_001", 100), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdminSetTokenToUser_InvalidJson_ReturnsError()
+    {
+        await _engine.ProcessInput(UserId, "/admin_set_token_to_user");
+        var result = await _engine.ProcessInput(UserId, "not valid json");
+
+        Assert.NotNull(result.Message);
+        Assert.Contains("Error:", result.Message);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  /admin_add_balance_to_user
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public async Task AdminAddBalanceToUser_ValidJson_Success()
+    {
+        _m.TraderBalanceUpdating
+            .Setup(s => s.AddToBalanceAsync(12345, 500))
+            .ReturnsAsync(Result.Ok());
+
+        await _engine.ProcessInput(UserId, "/admin_add_balance_to_user");
+        var json = """{"traderId": 12345, "amount": 500}""";
+        var result = await _engine.ProcessInput(UserId, json);
+
+        Assert.NotNull(result.Message);
+        Assert.Equal("Balance update successful", result.Message);
+        _m.TraderBalanceUpdating.Verify(s => s.AddToBalanceAsync(12345, 500), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdminAddBalanceToUser_InvalidJson_ReturnsError()
+    {
+        await _engine.ProcessInput(UserId, "/admin_add_balance_to_user");
+        var result = await _engine.ProcessInput(UserId, "{broken json!!!");
+
+        Assert.NotNull(result.Message);
+        Assert.Contains("Error:", result.Message);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  /admin_update_token_media
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public async Task AdminUpdateTokenMedia_ValidJson_Success()
+    {
+        _m.TokenMediaUpdate
+            .Setup(s => s.UpdateTokenMediaAsync("ARK_001", "https://example.com/icon.png", "https://example.com/image.png"))
+            .ReturnsAsync(Result.Ok());
+
+        await _engine.ProcessInput(UserId, "/admin_update_token_media");
+        var json = """{"symbol": "ARK_001", "iconUrl": "https://example.com/icon.png", "imageUrl": "https://example.com/image.png"}""";
+        var result = await _engine.ProcessInput(UserId, json);
+
+        Assert.NotNull(result.Message);
+        Assert.Equal("Token media updated successfully", result.Message);
+        _m.TokenMediaUpdate.Verify(s => s.UpdateTokenMediaAsync("ARK_001", "https://example.com/icon.png", "https://example.com/image.png"), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdminUpdateTokenMedia_InvalidJson_ReturnsError()
+    {
+        await _engine.ProcessInput(UserId, "/admin_update_token_media");
+        var result = await _engine.ProcessInput(UserId, "12345");
+
+        Assert.NotNull(result.Message);
+        Assert.Contains("Error:", result.Message);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  /admin_broadcast
+    // ═══════════════════════════════════════════════════════════
+
+    [Fact]
+    public async Task AdminBroadcast_SetMessage_MovesToConfirmStep()
+    {
+        var result = await _engine.ProcessInput(UserId, "/admin_broadcast");
+        result = await _engine.ProcessInput(UserId, "Hello everyone!");
+
+        Assert.NotNull(result.Message);
+        Assert.Equal("Confirm broadcast? Reply 'confirm' to send or 'cancel' to abort.", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminBroadcast_Confirm_SendsToAllTraders()
+    {
+        _m.TraderQuery
+            .Setup(s => s.GetAllTraderIdsAsync())
+            .ReturnsAsync(Result<List<long>>.Ok(new List<long> { 100, 200 }));
+
+        await _engine.ProcessInput(UserId, "/admin_broadcast");
+        await _engine.ProcessInput(UserId, "Hello from admin!");
+        var result = await _engine.ProcessInput(UserId, "confirm");
+
+        Assert.NotNull(result.Message);
+        Assert.Contains("Broadcast sent:", result.Message);
+        Assert.Contains("delivered", result.Message);
+        Assert.Contains("failed out of 2 total", result.Message);
+        _m.MessageSender.Verify(s => s.SendMessageAsync(100, "Hello from admin!"), Times.Once);
+        _m.MessageSender.Verify(s => s.SendMessageAsync(200, "Hello from admin!"), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdminBroadcast_Cancel_StopsBroadcast()
+    {
+        await _engine.ProcessInput(UserId, "/admin_broadcast");
+        await _engine.ProcessInput(UserId, "This should be cancelled");
+        var result = await _engine.ProcessInput(UserId, "cancel");
+
+        Assert.NotNull(result.Message);
+        Assert.Equal("Broadcast cancelled.", result.Message);
+        _m.MessageSender.Verify(s => s.SendMessageAsync(It.IsAny<long>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AdminBroadcast_NoTraders_FailsGracefully()
+    {
+        _m.TraderQuery
+            .Setup(s => s.GetAllTraderIdsAsync())
+            .ReturnsAsync(Result<List<long>>.Fail("No traders found"));
+
+        await _engine.ProcessInput(UserId, "/admin_broadcast");
+        await _engine.ProcessInput(UserId, "Broadcast message");
+        var result = await _engine.ProcessInput(UserId, "confirm");
+
+        Assert.NotNull(result.Message);
+        Assert.Contains("No traders found", result.Message);
+    }
+
+    #region AdminGetTraderProfile
+
+    [Fact]
+    public async Task AdminGetTraderProfile_ReturnsTraderProfileFile()
+    {
+        _m.TraderQuery
+            .Setup(s => s.GetTraderProfileAsync(42))
+            .ReturnsAsync(Result<TraderProfileInfo>.Ok(new TraderProfileInfo("testuser", 500m)));
+        _m.BalanceSnapshot
+            .Setup(s => s.TakeTotalTraderBalanceSnapshot(42))
+            .ReturnsAsync(Result<BalanceSnapshotData>.Ok(
+                new BalanceSnapshotData(42, 500m, 500m, 0m, 0m, 0m, DateTime.UtcNow)));
+        _m.PortfolioQuery
+            .Setup(s => s.GetTraderTokensAsync(It.IsAny<long>()))
+            .ReturnsAsync(Result<PortfolioItemInfo[]>.Ok(Array.Empty<PortfolioItemInfo>()));
+        _m.LeadersTop
+            .Setup(s => s.GetTraderPositionAsync(42))
+            .ReturnsAsync(Result<LeaderPosition>.Ok(new LeaderPosition(7, 150, 0)));
+
+        await _engine.ProcessInput(UserId, "/admin_get_trader_profile");
+        var result = await _engine.ProcessInput(UserId, """{"telegramId": 42}""");
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.Message);
+        Assert.True(result.Message.Contains("trader_profile_42.txt"));
+        Assert.NotNull(result.SentFilePath);
+        Assert.True(File.Exists(result.SentFilePath));
+        string content = File.ReadAllText(result.SentFilePath);
+        Assert.Contains("=== Trader Profile: 42 ===", content);
+        Assert.Contains("Username: testuser", content);
+        Assert.Contains($"Balance: {500m:F2}", content);
+        Assert.Contains("Total Balance:", content);
+        Assert.Contains("Rank: #7 / 150", content);
+        Assert.Contains("Portfolio: empty", content);
+        _m.TraderQuery.Verify(s => s.GetTraderProfileAsync(42), Times.Once);
+        _m.BalanceSnapshot.Verify(s => s.TakeTotalTraderBalanceSnapshot(42), Times.Once);
+        _m.PortfolioQuery.Verify(s => s.GetTraderTokensAsync(42), Times.Once);
+        _m.LeadersTop.Verify(s => s.GetTraderPositionAsync(42), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdminGetTraderProfile_TraderNotFound_ReturnsError()
+    {
+        _m.TraderQuery
+            .Setup(s => s.GetTraderProfileAsync(999))
+            .ReturnsAsync(Result<TraderProfileInfo>.Fail("Trader not found."));
+
+        await _engine.ProcessInput(UserId, "/admin_get_trader_profile");
+        var result = await _engine.ProcessInput(UserId, """{"telegramId": 999}""");
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.Message);
+        Assert.Equal("Trader not found.", result.Message);
+        _m.TraderQuery.Verify(s => s.GetTraderProfileAsync(999), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdminGetTraderProfile_MissingTelegramId_ReturnsError()
+    {
+        await _engine.ProcessInput(UserId, "/admin_get_trader_profile");
+        var result = await _engine.ProcessInput(UserId, """{"foo": "bar"}""");
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.Message);
+        Assert.Equal("Field \"telegramId\" is required.", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminGetTraderProfile_NegativeId_ReturnsError()
+    {
+        await _engine.ProcessInput(UserId, "/admin_get_trader_profile");
+        var result = await _engine.ProcessInput(UserId, """{"telegramId": -5}""");
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.Message);
+        Assert.Equal("telegramId must be a positive number.", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminGetTraderProfile_WithPortfolio_IncludesPortfolioDetails()
+    {
+        _m.TraderQuery
+            .Setup(s => s.GetTraderProfileAsync(10))
+            .ReturnsAsync(Result<TraderProfileInfo>.Ok(new TraderProfileInfo("Alice", 100m)));
+        _m.BalanceSnapshot
+            .Setup(s => s.TakeTotalTraderBalanceSnapshot(10))
+            .ReturnsAsync(Result<BalanceSnapshotData>.Ok(
+                new BalanceSnapshotData(10, 100m, 100m, 0m, 0m, 0m, DateTime.UtcNow)));
+        _m.PortfolioQuery
+            .Setup(s => s.GetTraderTokensAsync(10))
+            .ReturnsAsync(Result<PortfolioItemInfo[]>.Ok(new[]
+            {
+                new PortfolioItemInfo(10m, 50m, 600m, 20m, new TokenInfo("TEST", "TestToken", 100m, "icon.png", "img.png"))
+            }));
+        _m.LeadersTop
+            .Setup(s => s.GetTraderPositionAsync(10))
+            .ReturnsAsync(Result<LeaderPosition>.Ok(new LeaderPosition(1, 50, 0)));
+
+        await _engine.ProcessInput(UserId, "/admin_get_trader_profile");
+        var result = await _engine.ProcessInput(UserId, """{"telegramId": 10}""");
+
+        Assert.NotNull(result);
+        Assert.True(result.SentFilePath != null && File.Exists(result.SentFilePath));
+        string content = File.ReadAllText(result.SentFilePath);
+        Assert.Contains("Portfolio:", content);
+        Assert.Contains("TEST", content);
+        Assert.Contains($"(avg: {50m:F2}", content);
+        Assert.Contains($"current: {600m:F2}", content);
+        Assert.Contains($"profit: {100m:+0.00;-0.00}", content);
+    }
+
+    #endregion
+
+    #region AdminGetTraderOrders
+
+    [Fact]
+    public async Task AdminGetTraderOrders_ReturnsOrdersFile()
+    {
+        var ordersList = new List<OrderInfo>
+        {
+            new OrderInfo("1", "BTC/USDT", "BTC", "Buy", 1m, 0.5m, 50, 50000m, "Active")
+        };
+        _m.OrderQuery
+            .Setup(s => s.GetTraderOrdersAsync(42, true, true, true, false))
+            .ReturnsAsync(Result<List<OrderInfo>>.Ok(ordersList));
+
+        await _engine.ProcessInput(UserId, "/admin_get_trader_orders");
+        var result = await _engine.ProcessInput(UserId, """{"telegramId": 42}""");
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.SentFilePath);
+        Assert.True(File.Exists(result.SentFilePath));
+        string content = File.ReadAllText(result.SentFilePath);
+        Assert.Contains("=== Orders for Trader 42 ===", content);
+        Assert.Contains("Filters: status=All, direction=All", content);
+        Assert.Contains("Total: 1 orders", content);
+        Assert.Contains("Order #1", content);
+        Assert.Contains("Symbol: BTC/USDT | Direction: Buy", content);
+        Assert.Contains($"Price: {50000m:F2}", content);
+        Assert.Contains("Status: Active", content);
+        _m.OrderQuery.Verify(s => s.GetTraderOrdersAsync(42, true, true, true, false), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdminGetTraderOrders_DirectionFilter_BuyOnly()
+    {
+        var allOrders = new List<OrderInfo>
+        {
+            new OrderInfo("1", "BTC/USDT", "BTC", "Buy", 1m, 0m, 0m, 50000m, "Active"),
+            new OrderInfo("2", "ETH/USDT", "ETH", "Sell", 2m, 0m, 0m, 3000m, "Active")
+        };
+        _m.OrderQuery
+            .Setup(s => s.GetTraderOrdersAsync(42, true, true, true, false))
+            .ReturnsAsync(Result<List<OrderInfo>>.Ok(allOrders));
+
+        await _engine.ProcessInput(UserId, "/admin_get_trader_orders");
+        var result = await _engine.ProcessInput(UserId, """{"telegramId": 42, "direction": "Buy"}""");
+
+        Assert.NotNull(result);
+        string content = File.ReadAllText(result.SentFilePath!);
+        Assert.Contains("Direction: Buy", content);
+        Assert.DoesNotContain("Direction: Sell", content);
+    }
+
+    [Fact]
+    public async Task AdminGetTraderOrders_NoOrders_ReturnsEmpty()
+    {
+        _m.OrderQuery
+            .Setup(s => s.GetTraderOrdersAsync(42, true, true, true, false))
+            .ReturnsAsync(Result<List<OrderInfo>>.Ok(new List<OrderInfo>()));
+
+        await _engine.ProcessInput(UserId, "/admin_get_trader_orders");
+        var result = await _engine.ProcessInput(UserId, """{"telegramId": 42}""");
+
+        Assert.NotNull(result);
+        string content = File.ReadAllText(result.SentFilePath!);
+        Assert.Contains("No orders found.", content);
+    }
+
+    [Fact]
+    public async Task AdminGetTraderOrders_TraderNotFound_ReturnsError()
+    {
+        _m.OrderQuery
+            .Setup(s => s.GetTraderOrdersAsync(999, true, true, true, false))
+            .ReturnsAsync(Result<List<OrderInfo>>.Fail("Failed to get orders."));
+
+        await _engine.ProcessInput(UserId, "/admin_get_trader_orders");
+        var result = await _engine.ProcessInput(UserId, """{"telegramId": 999}""");
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.Message);
+        Assert.Equal("Failed to get orders.", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminGetTraderOrders_MissingTelegramId_ReturnsError()
+    {
+        await _engine.ProcessInput(UserId, "/admin_get_trader_orders");
+        var result = await _engine.ProcessInput(UserId, """{"foo": "bar"}""");
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.Message);
+        Assert.Equal("Field \"telegramId\" is required.", result.Message);
+    }
+
+    #endregion
+
+    #region AdminGetTraderTrades
+
+    [Fact]
+    public async Task AdminGetTraderTrades_ReturnsTradesFile()
+    {
+        var tradesList = new List<TradeInfo>
+        {
+            new TradeInfo("Buyer", 100m, 5m, 25m, new DateTime(2024, 6, 1, 12, 0, 0, DateTimeKind.Utc), new TokenInfo("BTC", "Bitcoin", 100m, "icon.png", "img.png"))
+        };
+        _m.TradeQuery
+            .Setup(s => s.GetTraderTradesAsync(42, true))
+            .ReturnsAsync(Result<List<TradeInfo>>.Ok(tradesList));
+
+        await _engine.ProcessInput(UserId, "/admin_get_trader_trades");
+        var result = await _engine.ProcessInput(UserId, """{"telegramId": 42}""");
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.SentFilePath);
+        Assert.True(File.Exists(result.SentFilePath));
+        string content = File.ReadAllText(result.SentFilePath);
+        Assert.Contains("=== Trades for Trader 42 ===", content);
+        Assert.Contains("Filter: direction=All", content);
+        Assert.Contains("Total: 1 trades", content);
+        Assert.Contains("Buyer BTC", content);
+        Assert.Contains($"Price: {100m:F2}", content);
+        Assert.Contains("Qty: 5", content);
+        Assert.Contains($"PnL: {25m:+0.00;-0.00}", content);
+        _m.TradeQuery.Verify(s => s.GetTraderTradesAsync(42, true), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdminGetTraderTrades_BuyFilter_ShowsOnlyBuyers()
+    {
+        var tradesList = new List<TradeInfo>
+        {
+            new TradeInfo("Buyer", 10m, 1m, 0m, new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc), new TokenInfo("A", "A", 10m, "", "")),
+            new TradeInfo("Seller", 10m, 1m, 0m, new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc), new TokenInfo("B", "B", 10m, "", ""))
+        };
+        _m.TradeQuery
+            .Setup(s => s.GetTraderTradesAsync(42, true))
+            .ReturnsAsync(Result<List<TradeInfo>>.Ok(tradesList));
+
+        await _engine.ProcessInput(UserId, "/admin_get_trader_trades");
+        var result = await _engine.ProcessInput(UserId, """{"telegramId": 42, "direction": "Buy"}""");
+
+        Assert.NotNull(result);
+        string content = File.ReadAllText(result.SentFilePath!);
+        Assert.Contains("Buyer A", content);
+        Assert.DoesNotContain("Seller B", content);
+    }
+
+    [Fact]
+    public async Task AdminGetTraderTrades_NoTrades_ReturnsEmpty()
+    {
+        _m.TradeQuery
+            .Setup(s => s.GetTraderTradesAsync(42, true))
+            .ReturnsAsync(Result<List<TradeInfo>>.Ok(new List<TradeInfo>()));
+
+        await _engine.ProcessInput(UserId, "/admin_get_trader_trades");
+        var result = await _engine.ProcessInput(UserId, """{"telegramId": 42}""");
+
+        Assert.NotNull(result);
+        string content = File.ReadAllText(result.SentFilePath!);
+        Assert.Contains("No trades found.", content);
+    }
+
+    [Fact]
+    public async Task AdminGetTraderTrades_MissingTelegramId_ReturnsError()
+    {
+        await _engine.ProcessInput(UserId, "/admin_get_trader_trades");
+        var result = await _engine.ProcessInput(UserId, """{}""");
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.Message);
+        Assert.Equal("Field \"telegramId\" is required.", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminGetTraderTrades_FailedFetch_ReturnsErrorMessage()
+    {
+        _m.TradeQuery
+            .Setup(s => s.GetTraderTradesAsync(999, true))
+            .ReturnsAsync(Result<List<TradeInfo>>.Fail("Failed to get trades."));
+
+        await _engine.ProcessInput(UserId, "/admin_get_trader_trades");
+        var result = await _engine.ProcessInput(UserId, """{"telegramId": 999}""");
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.Message);
+        Assert.Equal("Failed to get trades.", result.Message);
+    }
+
+    #endregion
+
+    #region AdminGetTraderPortfolio
+
+    [Fact]
+    public async Task AdminGetTraderPortfolio_ReturnsPortfolioFile()
+    {
+        _m.PortfolioQuery
+            .Setup(s => s.GetTraderTokensAsync(42))
+            .ReturnsAsync(Result<PortfolioItemInfo[]>.Ok(new[]
+            {
+                new PortfolioItemInfo(10m, 50m, 700m, 40m, new TokenInfo("TEST", "TestCoin", 80m, "icon.png", "img.png"))
+            }));
+
+        await _engine.ProcessInput(UserId, "/admin_get_trader_portfolio");
+        var result = await _engine.ProcessInput(UserId, """{"telegramId": 42}""");
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.SentFilePath);
+        Assert.True(File.Exists(result.SentFilePath));
+        string content = File.ReadAllText(result.SentFilePath);
+        Assert.Contains("=== Portfolio for Trader 42 ===", content);
+        Assert.Contains("Filter: symbol=All", content);
+        Assert.Contains("Total: 1 tokens", content);
+        Assert.Contains("TEST (TestCoin)", content);
+        Assert.Contains("Quantity: 10", content);
+        Assert.Contains($"Avg Buy Price: {50m:F2}", content);
+        Assert.Contains($"Current Value: {700m:F2}", content);
+        Assert.Contains($"Profit: {40m:+0.00;-0.00}%", content);
+        _m.PortfolioQuery.Verify(s => s.GetTraderTokensAsync(42), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdminGetTraderPortfolio_SymbolFilter_FilteredCorrectly()
+    {
+        _m.PortfolioQuery
+            .Setup(s => s.GetTraderTokensAsync(42))
+            .ReturnsAsync(Result<PortfolioItemInfo[]>.Ok(new[]
+            {
+                new PortfolioItemInfo(1m, 100m, 200m, 100m, new TokenInfo("BTC", "Bitcoin", 100m, "", "")),
+                new PortfolioItemInfo(2m, 50m, 100m, 0m, new TokenInfo("ETH", "Ethereum", 50m, "", ""))
+            }));
+
+        await _engine.ProcessInput(UserId, "/admin_get_trader_portfolio");
+        var result = await _engine.ProcessInput(UserId, """{"telegramId": 42, "symbol": "btc"}""");
+
+        Assert.NotNull(result);
+        string content = File.ReadAllText(result.SentFilePath!);
+        Assert.Contains("Filter: symbol=btc", content);
+        Assert.Contains("BTC", content);
+        Assert.DoesNotContain("ETH", content);
+    }
+
+    [Fact]
+    public async Task AdminGetTraderPortfolio_EmptyPortfolio_ReturnsEmptyMessage()
+    {
+        _m.PortfolioQuery
+            .Setup(s => s.GetTraderTokensAsync(42))
+            .ReturnsAsync(Result<PortfolioItemInfo[]>.Ok(Array.Empty<PortfolioItemInfo>()));
+
+        await _engine.ProcessInput(UserId, "/admin_get_trader_portfolio");
+        var result = await _engine.ProcessInput(UserId, """{"telegramId": 42}""");
+
+        Assert.NotNull(result);
+        string content = File.ReadAllText(result.SentFilePath!);
+        Assert.Contains("Portfolio is empty.", content);
+    }
+
+    [Fact]
+    public async Task AdminGetTraderPortfolio_MissingTelegramId_ReturnsError()
+    {
+        await _engine.ProcessInput(UserId, "/admin_get_trader_portfolio");
+        var result = await _engine.ProcessInput(UserId, """{}""");
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.Message);
+        Assert.Equal("Field \"telegramId\" is required.", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminGetTraderPortfolio_PortfolioFetchFail_ReturnsError()
+    {
+        _m.PortfolioQuery
+            .Setup(s => s.GetTraderTokensAsync(999))
+            .ReturnsAsync(Result<PortfolioItemInfo[]>.Fail("Failed to get portfolio."));
+
+        await _engine.ProcessInput(UserId, "/admin_get_trader_portfolio");
+        var result = await _engine.ProcessInput(UserId, """{"telegramId": 999}""");
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.Message);
+        Assert.Equal("Failed to get portfolio.", result.Message);
+    }
+
+    #endregion
+
+    #region AdminMetrics
+
+    [Fact]
+    public async Task AdminMetrics_ReturnsMetricsFile()
+    {
+        _m.MetricsSnapshot
+            .Setup(s => s.GetMetricsTextAsync())
+            .ReturnsAsync("system_up 1\ncpu_usage 42\n");
+
+        var result = await _engine.ProcessInput(UserId, "/admin_metrics");
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.SentFilePath);
+        Assert.True(File.Exists(result.SentFilePath));
+        string content = File.ReadAllText(result.SentFilePath);
+        Assert.Contains("=== ArkWallet Metrics ===", content);
+        Assert.Contains("system_up 1", content);
+        Assert.Contains("cpu_usage 42", content);
+        Assert.Contains("/metrics (порт 5000)", content);
+        _m.MetricsSnapshot.Verify(s => s.GetMetricsTextAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdminMetrics_FetchError_ReturnsError()
+    {
+        _m.MetricsSnapshot
+            .Setup(s => s.GetMetricsTextAsync())
+            .Throws(new InvalidOperationException("Prometheus unreachable"));
+
+        var result = await _engine.ProcessInput(UserId, "/admin_metrics");
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.Message);
+        Assert.Equal("Error: Prometheus unreachable", result.Message);
+    }
+
+    #endregion
+
+    #region AdminSendMail
+
+    [Fact]
+    public async Task AdminSendMail_SingleRecipient_CreatesMailMessage()
+    {
+        _m.MailMessage
+            .Setup(s => s.CreateManyAsync(It.IsAny<IReadOnlyList<CreateCommand>>()))
+            .ReturnsAsync(Result<List<MailCreateResult>>.Ok(new List<MailCreateResult> { new(1) }));
+
+        await _engine.ProcessInput(UserId, "/admin_send_mail");
+        var result = await _engine.ProcessInput(UserId,
+            """{"recipientId": 100, "title": "Hello", "message": "World", "rewardSymbol": "TKN", "rewardAmount": 5.0}""");
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.Message);
+        Assert.Contains("✉️ Письма отправлены: 1 пользователям", result.Message!);
+        Assert.Contains("🎁 Награда:", result.Message!);
+        Assert.Contains("TKN", result.Message!);
+        _m.MailMessage.Verify(s => s.CreateManyAsync(It.Is<IReadOnlyList<CreateCommand>>(
+            cmds => cmds.Count == 1 && cmds[0].TraderId == 100)), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdminSendMail_AllRecipients_QueriesAndSendsToAll()
+    {
+        _m.TraderQuery
+            .Setup(s => s.GetAllTraderIdsAsync())
+            .ReturnsAsync(Result<List<long>>.Ok(new List<long> { 1, 2, 3 }));
+        _m.MailMessage
+            .Setup(s => s.CreateManyAsync(It.IsAny<IReadOnlyList<CreateCommand>>()))
+            .ReturnsAsync(Result<List<MailCreateResult>>.Ok(new List<MailCreateResult> { new(1), new(2), new(3) }));
+
+        await _engine.ProcessInput(UserId, "/admin_send_mail");
+        var result = await _engine.ProcessInput(UserId,
+            """{"recipientId": "all", "title": "Update", "message": "New feature released", "rewardSymbol": "", "rewardAmount": 0}""");
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.Message);
+        Assert.Contains("✉️ Письма отправлены: 3 пользователям", result.Message);
+        Assert.DoesNotContain("Награда", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminSendMail_MissingFields_ReturnsError()
+    {
+        await _engine.ProcessInput(UserId, "/admin_send_mail");
+        var result = await _engine.ProcessInput(UserId,
+            """{"recipientId": 100, "title": "", "message": ""}""");
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.Message);
+        Assert.Equal("title и message не могут быть пустыми.", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminSendMail_NoRecipientId_ReturnsError()
+    {
+        await _engine.ProcessInput(UserId, "/admin_send_mail");
+        var result = await _engine.ProcessInput(UserId,
+            """{"title": "Hello", "message": "World"}""");
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.Message);
+        Assert.Equal("recipientId обязателен.", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminSendMail_ArrayRecipients_AllIncluded()
+    {
+        _m.MailMessage
+            .Setup(s => s.CreateManyAsync(It.IsAny<IReadOnlyList<CreateCommand>>()))
+            .ReturnsAsync(Result<List<MailCreateResult>>.Ok(new List<MailCreateResult> { new(1), new(2) }));
+
+        await _engine.ProcessInput(UserId, "/admin_send_mail");
+        var result = await _engine.ProcessInput(UserId,
+            """{"recipientId": [10, 20], "title": "Multi", "message": "Send", "rewardSymbol": "", "rewardAmount": 0}""");
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.Message);
+        Assert.Contains("✉️ Письма отправлены: 2 пользователям", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminSendMail_InvalidRecipientType_ReturnsError()
+    {
+        await _engine.ProcessInput(UserId, "/admin_send_mail");
+        var result = await _engine.ProcessInput(UserId,
+            """{"recipientId": "invalid", "title": "T", "message": "M"}""");
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.Message);
+        Assert.Equal("recipientId должен быть Telegram ID, массивом ID или \"all\".", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminSendMail_AllButNoTraders_ReturnsError()
+    {
+        _m.TraderQuery
+            .Setup(s => s.GetAllTraderIdsAsync())
+            .ReturnsAsync(Result<List<long>>.Fail("Нет пользователей"));
+
+        await _engine.ProcessInput(UserId, "/admin_send_mail");
+        var result = await _engine.ProcessInput(UserId,
+            """{"recipientId": "all", "title": "T", "message": "M"}""");
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.Message);
+        Assert.Equal("Нет зарегистрированных пользователей для рассылки.", result.Message);
+    }
+
+    #endregion
 }
