@@ -151,6 +151,9 @@ internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnap
     private sealed record PortfolioSnapshot(string CharacterTokenId, int Quantity);
 }
 
+/// <summary>
+/// Снимок суммарного баланса трейдера: основной баланс, резервы и портфель.
+/// </summary>
 public record BalanceSnapshotData(
     long traderTelegramId,
     decimal totalBalance,

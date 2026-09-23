@@ -39,31 +39,7 @@ internal sealed class SubscriptionExpiryWorker(
                 using var scope = scopeFactory.CreateScope();
                 var service = scope.ServiceProvider.GetRequiredService<ISubscriptionExpiryService>();
 
-                var next = await service.GetNextExpiryAsync(stoppingToken);
-
-                if (next is null)
-                {
-                    await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
-                    continue;
-                }
-
-                var delay = CalculateDelay(next);
-
-                using var linked = CancellationTokenSource.CreateLinkedTokenSource(
-                    stoppingToken, delayCts.Token);
-
-                try
-                {
-                    await Task.Delay(delay, linked.Token);
-                }
-                catch (OperationCanceledException) when (!stoppingToken.IsCancellationRequested)
-                {
-                    continue;
-                }
-
-                var downgradedNow = await service.DowngradeToBasicAsync(next.TraderId, stoppingToken);
-                if (downgradedNow > 0)
-                    logger.LogInformation("Переведено на базовую подписку: {Count} трейдеров", downgradedNow);
+                await WaitForNextExpiryAndDowngradeAsync(service, delayCts.Token, stoppingToken);
             }
             catch (OperationCanceledException)
             {
@@ -75,6 +51,38 @@ internal sealed class SubscriptionExpiryWorker(
                 await Task.Delay(TimeSpan.FromSeconds(20), stoppingToken);
             }
         }
+    }
+
+    private async Task WaitForNextExpiryAndDowngradeAsync(
+        ISubscriptionExpiryService service,
+        CancellationToken recomputeToken,
+        CancellationToken stoppingToken)
+    {
+        var next = await service.GetNextExpiryAsync(stoppingToken);
+
+        if (next is null)
+        {
+            await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
+            return;
+        }
+
+        var delay = CalculateDelay(next);
+
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(
+            stoppingToken, recomputeToken);
+
+        try
+        {
+            await Task.Delay(delay, linked.Token);
+        }
+        catch (OperationCanceledException) when (!stoppingToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        var downgradedNow = await service.DowngradeToBasicAsync(next.TraderId, stoppingToken);
+        if (downgradedNow > 0)
+            logger.LogInformation("Переведено на базовую подписку: {Count} трейдеров", downgradedNow);
     }
 
     private async Task RunStartupFallbackAsync(CancellationToken stoppingToken)

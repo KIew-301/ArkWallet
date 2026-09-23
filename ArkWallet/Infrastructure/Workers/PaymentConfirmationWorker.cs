@@ -62,25 +62,8 @@ internal sealed class PaymentConfirmationWorker(
 
                 if (status.IsSucceeded)
                 {
-                    var period = (SubscriptionPeriod)record.Period;
-                    var activationResult = await activation.ActivateAsync(record.TraderId, record.SubscriptionId, period, record.AmountRubles, record.ExternalPaymentId, cancellationToken);
-                    if (!activationResult.Success)
-                    {
-                        logger.LogError("Не удалось активировать подписку {SubscriptionId} для трейдера {TraderId} после оплаты", record.SubscriptionId, record.TraderId);
-                        continue;
-                    }
-
-                    if (!string.IsNullOrEmpty(status.SavedPaymentMethodId))
-                    {
-                        record.PaymentMethodId = status.SavedPaymentMethodId;
-                        var trader = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == record.TraderId, cancellationToken);
-                        if (trader is not null)
-                            trader.SavedPaymentMethodId = status.SavedPaymentMethodId;
-                    }
-
-                    record.Status = "succeeded";
-                    record.SucceededAtUtc = now;
-                    changed = true;
+                    if (await TryMarkSucceededAsync(db, activation, record, status, now, cancellationToken))
+                        changed = true;
                 }
                 else if (status.IsCanceled)
                 {
@@ -97,5 +80,37 @@ internal sealed class PaymentConfirmationWorker(
         {
             logger.LogError(ex, "Ошибка при обработке подтверждений платежей");
         }
+    }
+
+    private async Task<bool> TryMarkSucceededAsync(
+        ArkWalletDbContext db,
+        ISubscriptionActivationService activation,
+        SubscriptionPayment record,
+        PaymentStatusResult status,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var effectiveStatus = status;
+        var savedPaymentMethodId = effectiveStatus.SavedPaymentMethodId ?? record.PaymentMethodId;
+
+        var period = (SubscriptionPeriod)record.Period;
+        var activationResult = await activation.ActivateAsync(record.TraderId, record.SubscriptionId, period, record.AmountRubles, record.ExternalPaymentId, cancellationToken);
+        if (!activationResult.Success)
+        {
+            logger.LogError("Не удалось активировать подписку {SubscriptionId} для трейдера {TraderId} после оплаты", record.SubscriptionId, record.TraderId);
+            return false;
+        }
+
+        if (!string.IsNullOrEmpty(savedPaymentMethodId))
+        {
+            record.PaymentMethodId = savedPaymentMethodId;
+            var trader = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == record.TraderId, cancellationToken);
+            if (trader is not null)
+                trader.SavedPaymentMethodId = savedPaymentMethodId;
+        }
+
+        record.Status = "succeeded";
+        record.SucceededAtUtc = now;
+        return true;
     }
 }

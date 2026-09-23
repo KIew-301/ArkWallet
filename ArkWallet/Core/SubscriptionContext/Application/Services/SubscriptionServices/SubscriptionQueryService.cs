@@ -110,45 +110,60 @@ internal class SubscriptionQueryService(TimeProvider timeProvider, ArkWalletDbCo
 
             foreach (var s in subscriptions)
             {
-                SubscriptionOfferAction action;
-                int? bonusMinutes = null;
-
-                if (activeSubscription is null)
-                {
-                    action = SubscriptionOfferAction.Buy;
-                }
-                else if (s.Level == activeSubscription.Level)
-                {
-                    action = SubscriptionOfferAction.Renew;
-                }
-                else if (s.Level > activeSubscription.Level)
-                {
-                    action = SubscriptionOfferAction.Upgrade;
-
-                    if (activeExpiresAtUtc.HasValue && s.PriceMonthRubles > 0)
-                    {
-                        var remaining = activeExpiresAtUtc.Value - now;
-                        if (remaining > TimeSpan.Zero)
-                        {
-                            var ratio = activeSubscription.PriceMonthRubles / s.PriceMonthRubles;
-                            bonusMinutes = (int)Math.Floor((decimal)remaining.TotalMinutes * ratio);
-                        }
-                    }
-                }
-                else
-                {
-                    continue;
-                }
-
-                offers.Add(new SubscriptionOfferInfo(
-                    s.Id, s.Name, s.Level,
-                    s.PriceRubles,
-                    s.PriceWeekRubles, s.PriceMonthRubles, s.PriceYearRubles,
-                    s.MaxOrders, s.MaxMiningMachines, s.DurationMinutes,
-                    action, bonusMinutes));
+                var offer = BuildOffer(s, activeSubscription, activeExpiresAtUtc, now);
+                if (offer is not null)
+                    offers.Add(offer);
             }
 
             return Result<List<SubscriptionOfferInfo>>.Ok(offers);
         }, logger, nameof(SubscriptionQueryService));
+    }
+
+    private static SubscriptionOfferInfo? BuildOffer(
+        Subscription s,
+        Subscription? activeSubscription,
+        DateTime? activeExpiresAtUtc,
+        DateTime now)
+    {
+        SubscriptionOfferAction action;
+        int? bonusMinutes = null;
+
+        if (activeSubscription is null)
+        {
+            action = SubscriptionOfferAction.Buy;
+        }
+        else if (s.Level == activeSubscription.Level)
+        {
+            action = SubscriptionOfferAction.Renew;
+        }
+        else if (s.Level > activeSubscription.Level)
+        {
+            action = SubscriptionOfferAction.Upgrade;
+            bonusMinutes = ComputeBonusMinutes(activeSubscription, s, activeExpiresAtUtc, now);
+        }
+        else
+        {
+            return null;
+        }
+
+        return new SubscriptionOfferInfo(
+            s.Id, s.Name, s.Level,
+            s.PriceRubles,
+            s.PriceWeekRubles, s.PriceMonthRubles, s.PriceYearRubles,
+            s.MaxOrders, s.MaxMiningMachines, s.DurationMinutes,
+            action, bonusMinutes);
+    }
+
+    private static int? ComputeBonusMinutes(Subscription activeSubscription, Subscription target, DateTime? activeExpiresAtUtc, DateTime now)
+    {
+        if (!activeExpiresAtUtc.HasValue || target.PriceMonthRubles <= 0)
+            return null;
+
+        var remaining = activeExpiresAtUtc.Value - now;
+        if (remaining <= TimeSpan.Zero)
+            return null;
+
+        var ratio = activeSubscription.PriceMonthRubles / target.PriceMonthRubles;
+        return (int)Math.Floor((decimal)remaining.TotalMinutes * ratio);
     }
 }

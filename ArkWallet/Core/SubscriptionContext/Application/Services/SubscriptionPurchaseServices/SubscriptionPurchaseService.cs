@@ -58,26 +58,9 @@ internal class SubscriptionPurchaseService(
 
             if (paymentResult.RequiresConfirmation)
             {
-                dbContext.SubscriptionPayments.Add(new SubscriptionPayment
-                {
-                    TraderId = traderTelegramId,
-                    SubscriptionId = sub.Id,
-                    Period = (int)period,
-                    AmountRubles = amount,
-                    ExternalPaymentId = paymentResult.PaymentId ?? paymentResult.TransactionId ?? string.Empty,
-                    Status = "pending",
-                    ConfirmationUrl = paymentResult.ConfirmationUrl,
-                    PaymentMethodId = paymentResult.SavedPaymentMethodId,
-                    CreatedAtUtc = now
-                });
-                await dbContext.SaveChangesAsync(cancellationToken);
+                return await SavePendingPaymentAsync(trader, sub, period, amount, paymentResult, now, cancellationToken);
+            }
 
-                return new PurchaseResult(true, $"Счёт на оплату создан для подписки {sub.Name}", paymentResult.TransactionId, null)
-                {
-                    ConfirmationUrl = paymentResult.ConfirmationUrl,
-                    RequiresConfirmation = true
-                };
-}
             var activationResult = await activationService.ActivateAsync(traderTelegramId, sub.Id, period, amount, paymentResult.TransactionId, cancellationToken);
             if (!activationResult.Success)
                 return PurchaseResult.Fail("Не удалось активировать подписку");
@@ -89,6 +72,36 @@ internal class SubscriptionPurchaseService(
             logger.LogError(ex, "Ошибка при покупке подписки для трейдера {TraderId}, подписка {SubscriptionId}", traderTelegramId, subscriptionId);
             return PurchaseResult.Fail($"Произошла ошибка: {ex.Message}");
         }
+    }
+
+    private async Task<PurchaseResult> SavePendingPaymentAsync(
+        Trader trader,
+        Subscription sub,
+        SubscriptionPeriod period,
+        decimal amount,
+        PaymentResult paymentResult,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        dbContext.SubscriptionPayments.Add(new SubscriptionPayment
+        {
+            TraderId = trader.TelegramId,
+            SubscriptionId = sub.Id,
+            Period = (int)period,
+            AmountRubles = amount,
+            ExternalPaymentId = paymentResult.PaymentId ?? paymentResult.TransactionId ?? string.Empty,
+            Status = "pending",
+            ConfirmationUrl = paymentResult.ConfirmationUrl,
+            PaymentMethodId = paymentResult.SavedPaymentMethodId,
+            CreatedAtUtc = now
+        });
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new PurchaseResult(true, $"Счёт на оплату создан для подписки {sub.Name}", paymentResult.TransactionId, null)
+        {
+            ConfirmationUrl = paymentResult.ConfirmationUrl,
+            RequiresConfirmation = true
+        };
     }
 
     private async Task<Subscription?> GetActiveSubscriptionAsync(Trader trader, DateTime now, CancellationToken cancellationToken)

@@ -140,12 +140,12 @@ public class SubscriptionQueryServiceTest
         Assert.DoesNotContain(offers, o => o.Level == 1);
 
         // Уровень 2 = активный → продление
-        var current = Assert.Single(offers.Where(o => o.Level == 2));
+        var current = Assert.Single(offers, o => o.Level == 2);
         Assert.Equal(SubscriptionOfferAction.Renew, current.Action);
         Assert.Null(current.BonusMinutes);
 
         // Уровень 3 выше → улучшение с бонусом
-        var upper = Assert.Single(offers.Where(o => o.Level == 3));
+        var upper = Assert.Single(offers, o => o.Level == 3);
         Assert.Equal(SubscriptionOfferAction.Upgrade, upper.Action);
         Assert.NotNull(upper.BonusMinutes);
         Assert.True(upper.BonusMinutes > 0);

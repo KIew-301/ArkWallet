@@ -1645,7 +1645,7 @@ public class UserWizardCommandsTest : IDisposable
 
         Assert.NotNull(result);
         Assert.NotNull(result.Message);
-        Assert.True(result.Message.Contains("trader_profile_42.txt"));
+        Assert.Contains("trader_profile_42.txt", result.Message);
         Assert.NotNull(result.SentFilePath);
         Assert.True(File.Exists(result.SentFilePath));
         string content = File.ReadAllText(result.SentFilePath);

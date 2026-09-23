@@ -181,15 +181,18 @@ internal class HelpMethods
         return trader ?? throw new ArgumentNullException($"Trader not found for telegramId={telegramId}");
     }
 
-    public static async Task<PortfolioItem> GetPortfolio(ArkWalletDbContext db, long traderId, string symbol = "ZZZ") =>
-        await db.PortfolioItems
+    public static async Task<PortfolioItem> GetPortfolio(ArkWalletDbContext db, long traderId, string symbol = "ZZZ")
+    {
+        var item = await db.PortfolioItems
             .Include(p => p.CharacterToken)
             .FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterToken!.Symbol == symbol);
+        return item ?? throw new ArgumentNullException($"Portfolio not found for traderId={traderId}, symbol={symbol}");
+    }
 
     public static async Task<TradeOrder[]> GetTraderOrders(ArkWalletDbContext db, long traderId, string symbol = "ZZZ", OrderStatus status = OrderStatus.Active) =>
         await db.TradeOrders
             .Include(o => o.CharacterToken)
-            .Where(o => o.TraderTelegramId == traderId && o.CharacterToken.Symbol == symbol && o.Status == status)
+            .Where(o => o.TraderTelegramId == traderId && o.CharacterToken!.Symbol == symbol && o.Status == status)
             .ToArrayAsync();
 
     public static async Task<BalanceSnapshot[]> GetBalanceHistory(ArkWalletDbContext db, long traderId) =>

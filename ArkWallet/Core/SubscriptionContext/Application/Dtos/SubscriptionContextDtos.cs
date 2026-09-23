@@ -73,13 +73,25 @@ public record PurchaseHistoryEntry(
     DateTime? ExpiresAtUtc,
     string? TransactionId);
 
+/// <summary>
+/// Действие, предлагаемое трейдеру для подписки
+/// относительно его текущей активной подписки.
+/// </summary>
 public enum SubscriptionOfferAction
 {
+    /// <summary>Покупка подписки (нет активной подписки).</summary>
     Buy,
+
+    /// <summary>Продление подписки того же уровня.</summary>
     Renew,
+
+    /// <summary>Апгрейд на подписку более высокого уровня.</summary>
     Upgrade
 }
 
+/// <summary>
+/// Информация о подписке для отображения трейдеру при выборе.
+/// </summary>
 public sealed record SubscriptionOfferInfo(
     int Id, string Name, int Level,
     decimal PriceRubles,

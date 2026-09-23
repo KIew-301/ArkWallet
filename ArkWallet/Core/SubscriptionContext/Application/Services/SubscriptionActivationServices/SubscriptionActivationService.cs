@@ -47,11 +47,7 @@ internal class SubscriptionActivationService(
             dbContext.SubscriptionPurchaseHistory.Add(historyEntry);
             await dbContext.SaveChangesAsync(cancellationToken);
 
-            var operation = currentActive is null
-                ? SubscriptionChangeOperation.Purchased
-                : (sub.Level > currentActive.Level
-                    ? SubscriptionChangeOperation.Upgraded
-                    : SubscriptionChangeOperation.Renewed);
+            var operation = ResolveOperation(currentActive, sub);
 
             await eventPublisher.PublishAsync(
                 new TraderSubscriptionChangedEvent(
@@ -68,6 +64,16 @@ internal class SubscriptionActivationService(
             logger.LogError(ex, "Ошибка при активации подписки для трейдера {TraderId}, подписка {SubscriptionId}", traderTelegramId, subscriptionId);
             return new SubscriptionActivationResult(false, null);
         }
+    }
+
+    private static SubscriptionChangeOperation ResolveOperation(Subscription? currentActive, Subscription sub)
+    {
+        if (currentActive is null)
+            return SubscriptionChangeOperation.Purchased;
+
+        return sub.Level > currentActive.Level
+            ? SubscriptionChangeOperation.Upgraded
+            : SubscriptionChangeOperation.Renewed;
     }
 
     private async Task<Subscription?> GetActiveSubscriptionAsync(Trader trader, DateTime now, CancellationToken cancellationToken)
