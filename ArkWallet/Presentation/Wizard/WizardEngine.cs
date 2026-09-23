@@ -446,6 +446,13 @@ namespace ArkWallet.Infrastructure.Wizard
                         return await HandleQuickAdminSetTraderSubscription(uid, parts[1]);
                 }
 
+                if (inp.StartsWith("/admin_update_subscription "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                        return await HandleQuickAdminUpdateSubscription(uid, parts[1]);
+                }
+
                 if (inp.StartsWith("/open_mail"))
                 {
                     var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -512,6 +519,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 || input.StartsWith("sub_buy ")
                 || input.StartsWith("/admin_create_subscription ")
                 || input.StartsWith("/admin_set_trader_subscription ")
+                || input.StartsWith("/admin_update_subscription ")
                 || input.StartsWith("/open_mail")
                 || input.StartsWith("/send_gift")
                 || input.StartsWith("gift_send"))

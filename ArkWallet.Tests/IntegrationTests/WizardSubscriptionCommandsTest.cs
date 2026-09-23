@@ -2,6 +2,7 @@ using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionPurchaseServices;
 using ArkWallet.Core.SubscriptionContext.Application.Dtos;
 using ArkWallet.Infrastructure.Wizard;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 
 namespace ArkWallet.Tests.IntegrationTests;
@@ -197,5 +198,106 @@ public class WizardSubscriptionCommandsTest
         Assert.Contains("Не удалось купить подписку", result.Message);
         Assert.NotNull(result.Buttons);
         Assert.Contains(result.Buttons!, b => b.Value == "/subscriptions");
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  /admin_update_subscription — обновление данных подписки
+    // ═══════════════════════════════════════════════════════════
+
+    private const long AdminUserId = 999999;
+
+    [Fact]
+    public async Task AdminUpdateSubscription_ShowsJsonPrompt()
+    {
+        var result = await _engine.ProcessInput(AdminUserId, "/admin_update_subscription");
+
+        Assert.NotNull(result.Message);
+        Assert.Contains("subscriptionId", result.Message);
+        Assert.Contains("name", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminUpdateSubscription_NonAdmin_Rejects()
+    {
+        var result = await _engine.ProcessInput(UserId, "/admin_update_subscription");
+        var prompt = await _engine.ProcessInput(UserId, """{"subscriptionId": 2, "name": "X"}""");
+
+        Assert.NotNull(prompt.Message);
+        Assert.Contains("Admin_Main only", prompt.Message);
+    }
+
+    [Fact]
+    public async Task AdminUpdateSubscription_MissingId_ReturnsError()
+    {
+        _ = await _engine.ProcessInput(AdminUserId, "/admin_update_subscription");
+        var result = await _engine.ProcessInput(AdminUserId, """{"name": "X"}""");
+
+        Assert.Contains("Required fields: subscriptionId", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminUpdateSubscription_UnknownSubscription_ReturnsError()
+    {
+        await _m.Db.Database.EnsureCreatedAsync();
+        _ = await _engine.ProcessInput(AdminUserId, "/admin_update_subscription");
+        var result = await _engine.ProcessInput(AdminUserId, """{"subscriptionId": 999}""");
+
+        Assert.Contains("not found", result.Message);
+    }
+
+    [Fact]
+    public async Task AdminUpdateSubscription_UpdatesNameAndDescription()
+    {
+        await _m.Db.Database.EnsureCreatedAsync();
+        _m.Db.Subscriptions.Add(new ArkWallet.Infrastructure.Data.Subscription
+        {
+            Id = 2,
+            Name = "Премиум",
+            Level = 2,
+            PriceWeekRubles = 30,
+            PriceMonthRubles = 90,
+            PriceYearRubles = 900,
+            MaxOrders = 20,
+            MaxMiningMachines = 20
+        });
+        await _m.Db.SaveChangesAsync();
+
+        _ = await _engine.ProcessInput(AdminUserId, "/admin_update_subscription");
+        var result = await _engine.ProcessInput(AdminUserId, """{"subscriptionId": 2, "name": "VIP", "description": "Описание VIP"}""");
+
+        Assert.Contains("updated", result.Message);
+        var updated = await _m.Db.Subscriptions.FirstOrDefaultAsync(s => s.Id == 2);
+        Assert.NotNull(updated);
+        Assert.Equal("VIP", updated!.Name);
+        Assert.Equal("Описание VIP", updated.Description);
+        Assert.Equal(43200, updated.DurationMinutes);
+    }
+
+    [Fact]
+    public async Task AdminUpdateSubscription_LevelValidation_RequiresLowerLevel()
+    {
+        await _m.Db.Database.EnsureCreatedAsync();
+        _m.Db.Subscriptions.Add(new ArkWallet.Infrastructure.Data.Subscription
+        {
+            Id = 1,
+            Name = "Базовая",
+            Level = 1,
+            MaxOrders = 5,
+            MaxMiningMachines = 5
+        });
+        _m.Db.Subscriptions.Add(new ArkWallet.Infrastructure.Data.Subscription
+        {
+            Id = 2,
+            Name = "Премиум",
+            Level = 2,
+            MaxOrders = 20,
+            MaxMiningMachines = 20
+        });
+        await _m.Db.SaveChangesAsync();
+
+        _ = await _engine.ProcessInput(AdminUserId, "/admin_update_subscription");
+        var result = await _engine.ProcessInput(AdminUserId, """{"subscriptionId": 2, "level": 4}""");
+
+        Assert.Contains("required to exist first", result.Message);
     }
 }

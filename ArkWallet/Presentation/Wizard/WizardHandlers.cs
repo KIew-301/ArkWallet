@@ -727,7 +727,6 @@ namespace ArkWallet.Infrastructure.Wizard
             sb.AppendLine();
             sb.AppendLine($"📦 Макс. ордеров: {sub.MaxOrders}");
             sb.AppendLine($"🖥️ Макс. машин: {sub.MaxMiningMachines}");
-            sb.AppendLine($"⏳ Срок: {(sub.DurationMinutes.HasValue ? $"{(decimal)sub.DurationMinutes.Value / 1440} дн." : "бессрочно")}");
 
             var action = sub.Action switch
             {

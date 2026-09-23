@@ -328,6 +328,28 @@ namespace ArkWallet.Entities.Configurations
                 }
             };
 
+            Commands["/admin_update_subscription"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Отправьте JSON, чтобы изменить данные подписки. Обязателен только subscriptionId, остальные поля опциональны:\n\n" +
+                        "{\n" +
+                        "  \"subscriptionId\": 2,\n" +
+                        "  \"name\": \"Премиум\",\n" +
+                        "  \"level\": 3,\n" +
+                        "  \"priceWeekRubles\": 99,\n" +
+                        "  \"priceMonthRubles\": 299,\n" +
+                        "  \"priceYearRubles\": 999,\n" +
+                        "  \"maxOrders\": 100,\n" +
+                        "  \"maxMiningMachines\": 5,\n" +
+                        "  \"description\": \"Расширенный доступ\"\n" +
+                        "}\n\n" +
+                        "maxOrders и maxMiningMachines должны быть не меньше, чем у подписки уровнем ниже (базовая не считается)."
+                }
+            };
+
             Commands["/admin_help_access"] = new List<WizardStep>
             {
                 new() { Name = "request", OneStep = true }
