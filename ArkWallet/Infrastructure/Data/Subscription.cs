@@ -15,6 +15,7 @@ namespace ArkWallet.Infrastructure.Data
         public decimal PriceYearRubles { get; set; }
         public int MaxOrders { get; set; }
         public int MaxMiningMachines { get; set; }
+        public string Description { get; set; } = string.Empty;
         public int? DurationMinutes { get; set; }
         public virtual ICollection<SubscriptionPurchaseHistory> PurchaseHistory { get; set; } = new List<SubscriptionPurchaseHistory>();
     }

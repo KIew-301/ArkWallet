@@ -680,6 +680,8 @@ namespace ArkWallet.Infrastructure.Wizard
                 lines.Add($"#{s.Id} {s.Name} (уровень {s.Level})");
                 lines.Add($"   📦 Ордера: {s.MaxOrders}   🖥️ Машины: {s.MaxMiningMachines}");
                 lines.Add($"   💳 Неделя: {s.PriceWeekRubles:F2} ₽ | Месяц: {s.PriceMonthRubles:F2} ₽ | Год: {s.PriceYearRubles:F2} ₽");
+                if (!string.IsNullOrWhiteSpace(s.Description))
+                    lines.Add($"   📝 {s.Description}");
 
                 var action = s.Action switch
                 {
@@ -720,6 +722,8 @@ namespace ArkWallet.Infrastructure.Wizard
 
             var sb = new System.Text.StringBuilder();
             sb.AppendLine($"💎 {sub.Name} (уровень {sub.Level})");
+            if (!string.IsNullOrWhiteSpace(sub.Description))
+                sb.AppendLine($"📝 {sub.Description}");
             sb.AppendLine();
             sb.AppendLine($"📦 Макс. ордеров: {sub.MaxOrders}");
             sb.AppendLine($"🖥️ Макс. машин: {sub.MaxMiningMachines}");

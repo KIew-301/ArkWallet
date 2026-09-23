@@ -13,6 +13,7 @@ namespace ArkWallet.Core.SubscriptionContext.Application.Dtos;
 /// <param name="MaxOrders">Максимальное количество ордеров.</param>
 /// <param name="MaxMiningMachines">Максимальное количество майнинг-машин.</param>
 /// <param name="DurationMinutes">Длительность подписки в минутах (null — бессрочная).</param>
+/// <param name="Description">Описание подписки.</param>
 public record SubscriptionInfo(
     int Id,
     string Name,
@@ -23,7 +24,8 @@ public record SubscriptionInfo(
     decimal PriceYearRubles,
     int MaxOrders,
     int MaxMiningMachines,
-    int? DurationMinutes);
+    int? DurationMinutes,
+    string Description = "");
 
 /// <summary>
 /// Результат операции покупки подписки.
@@ -98,4 +100,5 @@ public sealed record SubscriptionOfferInfo(
     decimal PriceWeekRubles, decimal PriceMonthRubles, decimal PriceYearRubles,
     int MaxOrders, int MaxMiningMachines, int? DurationMinutes,
     SubscriptionOfferAction Action,
-    int? BonusMinutes);
+    int? BonusMinutes,
+    string Description = "");

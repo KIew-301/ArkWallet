@@ -24,7 +24,8 @@ internal class SubscriptionQueryService(TimeProvider timeProvider, ArkWalletDbCo
                     s.PriceYearRubles,
                     s.MaxOrders,
                     s.MaxMiningMachines,
-                    s.DurationMinutes))
+                    s.DurationMinutes,
+                    s.Description))
                 .ToListAsync();
 
             return Result<List<SubscriptionInfo>>.Ok(subscriptions);
@@ -50,7 +51,8 @@ internal class SubscriptionQueryService(TimeProvider timeProvider, ArkWalletDbCo
             sub.PriceYearRubles,
             sub.MaxOrders,
             sub.MaxMiningMachines,
-            sub.DurationMinutes);
+            sub.DurationMinutes,
+            sub.Description);
     }
 
     public async Task<Result<SubscriptionInfo?>> GetByIdAsync(int id)
@@ -73,7 +75,8 @@ internal class SubscriptionQueryService(TimeProvider timeProvider, ArkWalletDbCo
                 sub.PriceYearRubles,
                 sub.MaxOrders,
                 sub.MaxMiningMachines,
-                sub.DurationMinutes));
+                sub.DurationMinutes,
+                sub.Description));
         }, logger, nameof(SubscriptionQueryService));
     }
 
@@ -151,7 +154,7 @@ internal class SubscriptionQueryService(TimeProvider timeProvider, ArkWalletDbCo
             s.PriceRubles,
             s.PriceWeekRubles, s.PriceMonthRubles, s.PriceYearRubles,
             s.MaxOrders, s.MaxMiningMachines, s.DurationMinutes,
-            action, bonusMinutes);
+            action, bonusMinutes, s.Description);
     }
 
     private static int? ComputeBonusMinutes(Subscription activeSubscription, Subscription target, DateTime? activeExpiresAtUtc, DateTime now)

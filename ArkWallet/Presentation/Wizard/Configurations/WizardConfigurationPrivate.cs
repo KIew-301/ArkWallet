@@ -293,6 +293,41 @@ namespace ArkWallet.Entities.Configurations
                 new() { Name = "request", OneStep = true }
             };
 
+            Commands["/admin_create_subscription"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Отправьте JSON, чтобы создать подписку. Длительность подписки (неделя/месяц/год) рассчитывается автоматически:\n\n" +
+                        "{\n" +
+                        "  \"name\": \"Премиум\",\n" +
+                        "  \"level\": 2,\n" +
+                        "  \"priceWeekRubles\": 49,\n" +
+                        "  \"priceMonthRubles\": 149,\n" +
+                        "  \"priceYearRubles\": 499,\n" +
+                        "  \"maxOrders\": 50,\n" +
+                        "  \"maxMiningMachines\": 3,\n" +
+                        "  \"description\": \"Премиум доступ: больше ордеров и майнинг-машин\"\n" +
+                        "}\n\n" +
+                        "maxOrders и maxMiningMachines должны быть не меньше, чем у подписки уровнем ниже (базовая не считается)."
+                }
+            };
+
+            Commands["/admin_set_trader_subscription"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "set_options",
+                    Question =
+                        "Отправьте JSON, чтобы назначить подписку трейдеру:\n\n" +
+                        "{\n" +
+                        "  \"telegramId\": 123456789,\n" +
+                        "  \"subscriptionId\": 2\n" +
+                        "}"
+                }
+            };
+
             Commands["/admin_help_access"] = new List<WizardStep>
             {
                 new() { Name = "request", OneStep = true }
