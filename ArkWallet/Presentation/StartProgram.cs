@@ -376,9 +376,15 @@ class Program
                         PriceRubles = 0,
                         MaxOrders = 5,
                         MaxMiningMachines = 5,
-                        DurationMinutes = null
+                        DurationMinutes = null,
+                        Description = "Базовая подписка по умолчанию."
                     };
                     db.Subscriptions.Add(sub);
+                    await db.SaveChangesAsync();
+                }
+                else if (string.IsNullOrWhiteSpace(sub.Description))
+                {
+                    sub.Description = "Базовая подписка по умолчанию.";
                     await db.SaveChangesAsync();
                 }
                 Console.WriteLine("Basic subscription loaded.");
