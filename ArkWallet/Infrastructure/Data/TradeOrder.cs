@@ -23,8 +23,8 @@ namespace ArkWallet.Infrastructure.Data
         /// <summary>Идентификатор токена, с которым работает ордер (например, "BTC", "ETH").</summary>
         public string CharacterTokenId { get; set; } = string.Empty;
 
-        /// <summary>Telegram ID трейдера, разместившего ордер.</summary>
-        public long TraderTelegramId { get; set; }
+        /// <summary>ID трейдера, разместившего ордер.</summary>
+        public long TraderId { get; set; }
 
         /// <summary>Цена за один токен в базовой валюте.</summary>
         public decimal Price { get; set; }
@@ -83,7 +83,7 @@ namespace ArkWallet.Infrastructure.Data
             {
                 Type = orderType,
                 CharacterTokenId = symbol,
-                TraderTelegramId = traderId,
+                TraderId = traderId,
                 Price = price,
                 Quantity = quantity,
                 AverageExecutePrice = 0
@@ -96,7 +96,7 @@ namespace ArkWallet.Infrastructure.Data
             if (!IsActive)
                 throw new DomainException("Можно отменить только активный ордер.");
 
-            if (TraderTelegramId != initiatorTraderId)
+            if (TraderId != initiatorTraderId)
                 throw new DomainException("Нельзя отменить чужой ордер.");
 
             Status = OrderStatus.Cancelled;

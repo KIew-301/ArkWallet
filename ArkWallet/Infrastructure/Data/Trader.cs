@@ -1,15 +1,14 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace ArkWallet.Infrastructure.Data
 {
-    internal class Trader : EntityData
+internal class Trader : EntityData
     {
-        [Key]
-        public long TelegramId { get; set; }
+public long Id { get; set; }
+        public long? TelegramId { get; set; }
         public string? Username { get; set; }
         public decimal Balance { get; set; } = DefaultBalance;
         public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
         public bool NotificationOn { get; set; }
+        public bool IsBot { get; set; }
         public int? SubscriptionId { get; set; }
         public virtual Subscription? Subscription { get; set; }
         public DateTime? SubscriptionExpiresAtUtc { get; set; }
@@ -18,7 +17,7 @@ namespace ArkWallet.Infrastructure.Data
         public virtual ICollection<TradeOrder> Orders { get; set; } = new List<TradeOrder>();
         public virtual ICollection<BalanceSnapshot> BalanceSnapshots { get; set; } = new List<BalanceSnapshot>();
         public virtual ICollection<SubscriptionPurchaseHistory> SubscriptionPurchaseHistory { get; set; } = new List<SubscriptionPurchaseHistory>();
-        public static Trader Create(long telegramId, string? username)
+        public static Trader Create(string? username, bool isBot = false, long? telegramId = null)
         {
             return new Trader
             {
@@ -26,7 +25,8 @@ namespace ArkWallet.Infrastructure.Data
                 Username = username,
                 Balance = DefaultBalance,
                 JoinedAt = DateTime.UtcNow,
-                NotificationOn = true
+                NotificationOn = !isBot,
+                IsBot = isBot
             };
         }
 

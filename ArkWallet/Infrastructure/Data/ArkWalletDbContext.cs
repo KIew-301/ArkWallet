@@ -15,7 +15,7 @@ internal class ArkWalletDbContext : DbContext
     public DbSet<TradeOrder> TradeOrders { get; set; }
     public DbSet<PriceCandle> PriceCandles { get; set; }
     public DbSet<BalanceSnapshot> BalanceSnapshots { get; set; }
-    public DbSet<MarketMakerBot> MarketMakerBots { get; set; }
+    public DbSet<MarketMakerBotRecord> MarketMakerBots { get; set; }
     public DbSet<MiningMachine> MiningMachines { get; set; }
     public DbSet<MiningMachineRule> MiningMachineRules { get; set; }
     public DbSet<MiningMachineSlot> MiningMachineSlots { get; set; }
@@ -38,6 +38,12 @@ internal class ArkWalletDbContext : DbContext
     {
         modelBuilder.Entity<BalanceSnapshot>()
             .HasIndex(b => new { b.TraderId, b.SnapshotDateTime });
+
+        modelBuilder.Entity<PriceCandle>(candle =>
+        {
+            candle.HasKey(c => c.Id);
+            candle.HasIndex(c => new { c.CharacterTokenId, c.Timestamp });
+        });
 
         modelBuilder.Entity<MiningMachine>(machine =>
         {
@@ -149,11 +155,16 @@ internal class ArkWalletDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
-        modelBuilder.Entity<Trader>()
-            .HasOne(t => t.Subscription)
-            .WithMany()
-            .HasForeignKey(t => t.SubscriptionId)
-            .OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<Trader>(trader =>
+        {
+            trader.HasKey(t => t.Id);
+            trader.Property(t => t.Id).ValueGeneratedOnAdd();
+            trader.HasIndex(t => t.TelegramId).IsUnique();
+            trader.HasOne(t => t.Subscription)
+                .WithMany()
+                .HasForeignKey(t => t.SubscriptionId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
 
         var longListComparer = new ValueComparer<List<long>>(
             (a, b) => SequenceEqual(a, b),
