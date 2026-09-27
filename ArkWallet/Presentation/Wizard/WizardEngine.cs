@@ -22,6 +22,7 @@ using ArkWallet.Core.General.Domain.ValueObjects;
 using ArkWallet.Entities.Configurations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using ArkWallet.Core.ShoppingContext.Application.Contracts.Orchestrators;
@@ -345,6 +346,8 @@ namespace ArkWallet.Infrastructure.Wizard
             // Local function to avoid code duplication
             async Task<WizardResult> ExecuteCommandAsync(long uid, string inp, string cmd, long? replyUid)
             {
+                var traderId = await ResolveTraderIdByTelegramIdAsync(uid);
+
                 if (inp.StartsWith("/get_order_book "))
                 {
                     var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -356,14 +359,14 @@ namespace ArkWallet.Infrastructure.Wizard
                 {
                     var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length == 2)
-                        return await HandleQuickTrades(uid, parts[1]);
+                        return await HandleQuickTrades(traderId, parts[1]);
                 }
 
                 if (inp.StartsWith("/get_tops "))
                 {
                     var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length == 2)
-                        return await HandleQuickTops(uid, parts[1]);
+                        return await HandleQuickTops(traderId, parts[1]);
                 }
 
                 if (inp.StartsWith("/admin_bots_activity "))
@@ -384,21 +387,21 @@ namespace ArkWallet.Infrastructure.Wizard
                 {
                     var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length == 2)
-                        return await HandleQuickMiningBuy(uid, parts[1]);
+                        return await HandleQuickMiningBuy(traderId, parts[1]);
                 }
 
                 if (inp.StartsWith("/mining_take "))
                 {
                     var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length == 2)
-                        return await HandleQuickMiningTake(uid, parts[1]);
+                        return await HandleQuickMiningTake(traderId, parts[1]);
                 }
 
                 if (inp.StartsWith("/mining_sell "))
                 {
                     var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length == 2)
-                        return await HandleQuickMiningSell(uid, parts[1]);
+                        return await HandleQuickMiningSell(traderId, parts[1]);
                 }
 
                 if (inp.StartsWith("/buy_subscription "))
@@ -407,7 +410,7 @@ namespace ArkWallet.Infrastructure.Wizard
                     if (parts.Length == 3
                         && int.TryParse(parts[1], out var subscriptionId)
                         && TryParseSubscriptionPeriod(parts[2], out var period))
-                        return await HandleQuickBuySubscription(uid, subscriptionId, period);
+                        return await HandleQuickBuySubscription(traderId, subscriptionId, period);
 
                     return new WizardResult { Message = "Формат: /buy_subscription <id> <неделя|месяц|год>" };
                 }
@@ -416,7 +419,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 {
                     var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length == 2 && int.TryParse(parts[1], out var subId))
-                        return await HandleSubscriptionDetail(uid, subId);
+                        return await HandleSubscriptionDetail(traderId, subId);
 
                     return new WizardResult { Message = "Подписка не найдена." };
                 }
@@ -427,7 +430,7 @@ namespace ArkWallet.Infrastructure.Wizard
                     if (parts.Length == 3
                         && int.TryParse(parts[1], out var subId)
                         && TryParseSubscriptionPeriod(parts[2], out var period))
-                        return await HandleQuickBuySubscription(uid, subId, period);
+                        return await HandleQuickBuySubscription(traderId, subId, period);
 
                     return new WizardResult { Message = "Формат: sub_buy <id> <неделя|месяц|год>" };
                 }
@@ -436,36 +439,36 @@ namespace ArkWallet.Infrastructure.Wizard
                 {
                     var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length == 2)
-                        return await HandleQuickAdminCreateSubscription(uid, parts[1]);
+                        return await HandleQuickAdminCreateSubscription(traderId, parts[1]);
                 }
 
                 if (inp.StartsWith("/admin_set_trader_subscription "))
                 {
                     var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length == 2)
-                        return await HandleQuickAdminSetTraderSubscription(uid, parts[1]);
+                        return await HandleQuickAdminSetTraderSubscription(traderId, parts[1]);
                 }
 
                 if (inp.StartsWith("/admin_update_subscription "))
                 {
                     var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length == 2)
-                        return await HandleQuickAdminUpdateSubscription(uid, parts[1]);
+                        return await HandleQuickAdminUpdateSubscription(traderId, parts[1]);
                 }
 
                 if (inp.StartsWith("/open_mail"))
                 {
                     var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length == 1)
-                        return await HandleMailOpen(uid);
+                        return await HandleMailOpen(traderId);
                     if (parts.Length == 2)
-                        return await HandleMailList(uid, parts[1]);
+                        return await HandleMailList(traderId, parts[1]);
                     if (parts.Length == 3 && parts[1] == "open")
-                        return await HandleMailRead(uid, parts[2]);
+                        return await HandleMailRead(traderId, parts[2]);
                     if (parts.Length == 3 && parts[1] == "accept")
-                        return await HandleMailAccept(uid, parts[2]);
+                        return await HandleMailAccept(traderId, parts[2]);
                     if (parts.Length == 2 && parts[1] == "accept_all")
-                        return await HandleMailAcceptAll(uid);
+                        return await HandleMailAcceptAll(traderId);
                 }
 
                 if (inp.StartsWith("/send_gift"))
@@ -478,10 +481,10 @@ namespace ArkWallet.Infrastructure.Wizard
                             if (replyUid is null)
                                 return new WizardResult { Message = "Ответьте на сообщение пользователя, которому хотите отправить подарок." };
 
-                            return await HandleQuickGift(uid, replyUid.Value.ToString());
+                            return await HandleQuickGift(traderId, replyUid.Value.ToString());
                         }
 
-                        return await HandleGiftListUsers(uid);
+                        return await HandleGiftListUsers(traderId, uid);
                     }
                 }
 
@@ -489,11 +492,11 @@ namespace ArkWallet.Infrastructure.Wizard
                 {
                     var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length == 2)
-                        return await HandleQuickGift(uid, parts[1]);
+                        return await HandleQuickGift(traderId, parts[1]);
                 }
 
                 if (_config.Commands.ContainsKey(inp))
-                    return await StartCommand(uid, inp);
+                    return await StartCommand(traderId, uid, inp);
 
                 if (_sessionStore.TryGet(uid, out var session) && session != null)
                     return await ContinueCommand(uid, inp, session);
@@ -536,25 +539,26 @@ namespace ArkWallet.Infrastructure.Wizard
             return "unknown";
         }
 
-        private async Task<WizardResult> StartCommand(long userId, string command)
+        private async Task<WizardResult> StartCommand(long traderId, long telegramId, string command)
         {
             if (command is "/cancel_order" or "/cancel_all_orders")
             {
-                var hasActiveOrders = await _cancelOrderService.HasActiveOrdersAsync(userId);
+                var hasActiveOrders = await _cancelOrderService.HasActiveOrdersAsync(traderId);
                 if (!hasActiveOrders)
                     return new WizardResult { Message = "Нет активных ордеров для отмены." };
             }
 
             if (command == "/start")
             {
-                var isRegistered = await _traderRegistrationService.CheckTraderAlreadyRegistered(userId);
+                var isRegistered = await _traderRegistrationService.CheckTraderAlreadyRegistered(telegramId);
                 if (isRegistered)
                     return new WizardResult { Message = "Вы уже зарегистрированы! Используйте /get_profile для просмотра профиля." };
             }
 
             var session = new UserSession
             {
-                Id = userId,
+                Id = traderId,
+                TelegramId = telegramId,
                 CurrentCommand = command,
                 CurrentStep = _config.Commands[command].First().Name
             };
@@ -564,7 +568,7 @@ namespace ArkWallet.Infrastructure.Wizard
 
             if (!currentStep.OneStep)
             {
-                _sessionStore.Set(userId, session);
+                _sessionStore.Set(telegramId, session);
 
                 var nextStep = commandSteps.First(s => s.Name == session.CurrentStep);
 
@@ -580,7 +584,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 if (!result.Success)
                 {
                     _logger.LogWarning("Wizard OneStep handler error for user {UserId}, command {Command}: {Error}",
-                        userId, command, result.Message);
+                        telegramId, command, result.Message);
                     return new WizardResult { Message = ErrorMessageFor(command, result.Message) };
                 }
 
@@ -643,6 +647,19 @@ namespace ArkWallet.Infrastructure.Wizard
         /// </summary>
         private static string ErrorMessageFor(string command, string? error)
             => error ?? ServerErrorMessage;
+
+        /// <summary>
+        /// Переводит внешний telegram_id пользователя во внутренний Id трейдера.
+        /// Если трейдер не зарегистрирован, возвращает telegram_id как идентификатор сессии.
+        /// </summary>
+        private async Task<long> ResolveTraderIdByTelegramIdAsync(long telegramId)
+        {
+            var trader = await _dbContext.Traders
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => t.TelegramId == telegramId);
+
+            return trader?.Id ?? telegramId;
+        }
 
         /// <summary>
         /// Убирает все кнопки для групповых чатов.

@@ -587,7 +587,11 @@ namespace ArkWallet.Infrastructure.Wizard
                         return StepResult.Error($"Failed to register user: {regResult.Message}");
                 }
 
-                var token = _tokenService.GenerateToken(targetTelegramId);
+                long traderId = await ResolveTraderIdByTelegramIdAsync(targetTelegramId);
+                if (traderId == 0)
+                    return StepResult.Error($"Failed to resolve user {targetTelegramId}.");
+
+                var token = _tokenService.GenerateToken(traderId);
 
                 var sb = new System.Text.StringBuilder();
                 sb.AppendLine($"Auth token for user {targetTelegramId}:");
@@ -615,16 +619,20 @@ namespace ArkWallet.Infrastructure.Wizard
                 if (targetTelegramId <= 0)
                     return StepResult.Error("telegramId must be a positive number.");
 
-                var profileResult = await _traderQueryService.GetTraderProfileAsync(targetTelegramId);
+                long traderId = await ResolveTraderIdByTelegramIdAsync(targetTelegramId);
+                if (traderId == 0)
+                    return StepResult.Error($"Trader {targetTelegramId} not found.");
+
+                var profileResult = await _traderQueryService.GetTraderProfileAsync(traderId);
                 if (!profileResult.TryGetData(out var profile))
                     return StepResult.Error(profileResult.Message ?? "Trader not found.");
 
-                var snapshotResult = await _balanceSnapshotService.TakeTotalTraderBalanceSnapshot(targetTelegramId);
+                var snapshotResult = await _balanceSnapshotService.TakeTotalTraderBalanceSnapshot(traderId);
                 decimal totalBalance = profile.Balance;
                 if (snapshotResult.IsSuccess && snapshotResult.TryGetData(out var snapshot))
                     totalBalance = snapshot.totalBalance;
 
-                var portfolioResult = await _portfolioQueryService.GetTraderTokensAsync(targetTelegramId);
+                var portfolioResult = await _portfolioQueryService.GetTraderTokensAsync(traderId);
 
                 var sb = new System.Text.StringBuilder();
                 sb.AppendLine($"=== Trader Profile: {targetTelegramId} ===");
@@ -651,7 +659,7 @@ namespace ArkWallet.Infrastructure.Wizard
                     sb.AppendLine("Portfolio: empty");
                 }
 
-                var positionResult = await _leadersTopByBalanceQueryService.GetTraderPositionAsync(targetTelegramId);
+                var positionResult = await _leadersTopByBalanceQueryService.GetTraderPositionAsync(traderId);
                 if (positionResult.IsSuccess && positionResult.TryGetData(out var posData))
                 {
                     sb.AppendLine();
@@ -679,6 +687,10 @@ namespace ArkWallet.Infrastructure.Wizard
                 if (targetTelegramId <= 0)
                     return StepResult.Error("telegramId must be a positive number.");
 
+                long traderId = await ResolveTraderIdByTelegramIdAsync(targetTelegramId);
+                if (traderId == 0)
+                    return StepResult.Error($"Trader {targetTelegramId} not found.");
+
                 string statusFilter = tradeData.TryGetValue("status", out var statusObj) ? statusObj?.ToString() ?? "All" : "All";
                 string directionFilter = tradeData.TryGetValue("direction", out var dirObj) ? dirObj?.ToString() ?? "All" : "All";
 
@@ -687,7 +699,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 bool includeCancelled = statusFilter.Equals("All", StringComparison.OrdinalIgnoreCase) || statusFilter.Equals("Cancelled", StringComparison.OrdinalIgnoreCase);
 
                 var ordersResult = await _orderQueryService.GetTraderOrdersAsync(
-                    targetTelegramId, includeActive, includeFilled, includeCancelled);
+                    traderId, includeActive, includeFilled, includeCancelled);
 
                 if (!ordersResult.TryGetData(out var orders))
                     return StepResult.Error(ordersResult.Message ?? "Failed to get orders.");
@@ -740,9 +752,13 @@ namespace ArkWallet.Infrastructure.Wizard
                 if (targetTelegramId <= 0)
                     return StepResult.Error("telegramId must be a positive number.");
 
+                long traderId = await ResolveTraderIdByTelegramIdAsync(targetTelegramId);
+                if (traderId == 0)
+                    return StepResult.Error($"Trader {targetTelegramId} not found.");
+
                 string directionFilter = tradeData.TryGetValue("direction", out var dirObj) ? dirObj?.ToString() ?? "All" : "All";
 
-                var tradesResult = await _tradeQueryService.GetTraderTradesAsync(targetTelegramId, withTokenInfo: true);
+                var tradesResult = await _tradeQueryService.GetTraderTradesAsync(traderId, withTokenInfo: true);
                 if (!tradesResult.TryGetData(out var trades))
                     return StepResult.Error(tradesResult.Message ?? "Failed to get trades.");
 
@@ -792,10 +808,14 @@ namespace ArkWallet.Infrastructure.Wizard
                 if (targetTelegramId <= 0)
                     return StepResult.Error("telegramId must be a positive number.");
 
+                long traderId = await ResolveTraderIdByTelegramIdAsync(targetTelegramId);
+                if (traderId == 0)
+                    return StepResult.Error($"Trader {targetTelegramId} not found.");
+
                 string? symbolFilter = tradeData.TryGetValue("symbol", out var symObj) && symObj != null
                     ? symObj.ToString() : null;
 
-                var portfolioResult = await _portfolioQueryService.GetTraderTokensAsync(targetTelegramId);
+                var portfolioResult = await _portfolioQueryService.GetTraderTokensAsync(traderId);
                 if (!portfolioResult.TryGetData(out var portfolio))
                     return StepResult.Error(portfolioResult.Message ?? "Failed to get portfolio.");
 
