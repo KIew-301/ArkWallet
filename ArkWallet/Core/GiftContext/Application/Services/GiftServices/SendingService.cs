@@ -29,7 +29,7 @@ internal class SendingService(
                 var sender = await dbContext.Traders.FindAsync(senderId)
                     ?? throw new InvalidOperationException("Отправитель не найден");
 
-                var recipientExists = await dbContext.Traders.AnyAsync(t => t.TelegramId == recipientId);
+                var recipientExists = await dbContext.Traders.AnyAsync(t => t.Id == recipientId);
                 if (!recipientExists)
                     return Result<GiftSendResult>.Fail("Получатель не найден");
 
@@ -79,7 +79,7 @@ internal class SendingService(
         Dictionary<string, decimal> tokenPrices)
     {
         var portfolioItems = await dbContext.PortfolioItems
-            .Where(p => p.TraderTelegramId == senderId)
+            .Where(p => p.TraderId == senderId)
             .ToListAsync();
 
         var portfolio = portfolioItems

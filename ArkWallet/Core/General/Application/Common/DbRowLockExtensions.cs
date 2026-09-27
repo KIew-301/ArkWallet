@@ -12,7 +12,7 @@ internal static class DbRowLockExtensions
             return;
 
         await LockRowsAsync(dbContext, "trader",
-            $"SELECT \"TelegramId\" FROM \"Traders\" WHERE \"TelegramId\" = ANY({ids}) ORDER BY \"TelegramId\" FOR UPDATE");
+            $"SELECT \"Id\" FROM \"Traders\" WHERE \"Id\" = ANY({ids}) ORDER BY \"Id\" FOR UPDATE");
     }
 
     internal static async Task LockTokenAsync(this ArkWalletDbContext dbContext, string symbol)

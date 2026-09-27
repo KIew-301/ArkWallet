@@ -1,4 +1,4 @@
-using ArkWallet.Core.ShoppingContext.Domain.Machine;
+﻿using ArkWallet.Core.ShoppingContext.Domain.Machine;
 using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.ShoppingContext.Application.Contracts.MiningMachineServices;
 using ArkWallet.Infrastructure.Data;
@@ -49,7 +49,7 @@ internal class MachineSlotBuyingService(
     /// <summary>Loads the trader and machine and verifies every precondition for buying the machine.</summary>
     private async Task<Result<PurchaseContext>> EnsurePurchaseAllowedAsync(long traderId, long machineId)
     {
-        var trader = await dbContext.Traders.Include(t => t.Subscription).FirstOrDefaultAsync(t => t.TelegramId == traderId);
+        var trader = await dbContext.Traders.Include(t => t.Subscription).FirstOrDefaultAsync(t => t.Id == traderId);
         if (trader == null)
             return Result<PurchaseContext>.Fail("Трейдера не существует");
 
@@ -83,9 +83,9 @@ internal class MachineSlotBuyingService(
     /// <summary>Determines whether the trader has reached the maximum number of owned machines.</summary>
     private async Task<bool> HasReachedMachinesLimitAsync(Trader trader)
     {
-        if (BotFilter.IsBot(trader.TelegramId)) return false;
+        if (trader.IsBot) return false;
         var slotsCount = await dbContext.MiningMachineSlots.CountAsync(s =>
-            s.TraderId == trader.TelegramId && s.Status != MiningMachineSlotStatus.Sold);
+            s.TraderId == trader.Id && s.Status != MiningMachineSlotStatus.Sold);
         return slotsCount >= GetMachineLimit(trader);
     }
 

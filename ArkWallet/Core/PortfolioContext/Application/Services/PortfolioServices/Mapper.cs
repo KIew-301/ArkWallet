@@ -1,4 +1,4 @@
-using ArkWallet.Core.PortfolioContext.Domain.Position;
+﻿using ArkWallet.Core.PortfolioContext.Domain.Position;
 using Records = global::ArkWallet.Infrastructure.Data;
 
 namespace ArkWallet.Core.PortfolioContext.Application.Services.PortfolioServices;
@@ -12,7 +12,7 @@ internal static class Mapper
     {
         return Position.Load(new PositionData(
             item.Id,
-            item.TraderTelegramId,
+            item.TraderId,
             item.CharacterTokenId,
             item.Quantity,
             item.SellingQuantity,
@@ -36,6 +36,6 @@ internal static class Mapper
 
     internal static Records.PortfolioItem ToRecord(Position position)
     {
-        return Records.PortfolioItem.Create(position.TraderTelegramId, position.Symbol, position.Quantity, position.AverageBuyPrice);
+        return Records.PortfolioItem.Create(position.TraderId, position.Symbol, position.Quantity, position.AverageBuyPrice);
     }
 }

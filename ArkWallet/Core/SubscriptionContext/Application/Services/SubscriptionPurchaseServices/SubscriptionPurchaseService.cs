@@ -16,7 +16,7 @@ internal class SubscriptionPurchaseService(
     TimeProvider timeProvider,
     ILogger<SubscriptionPurchaseService> logger) : IPurchaseService
 {
-    public async Task<PurchaseResult> PurchaseAsync(long traderTelegramId, int subscriptionId, SubscriptionPeriod period, CancellationToken cancellationToken = default)
+    public async Task<PurchaseResult> PurchaseAsync(long traderId, int subscriptionId, SubscriptionPeriod period, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -24,7 +24,7 @@ internal class SubscriptionPurchaseService(
             if (sub is null)
                 return PurchaseResult.Fail("Подписка не найдена");
 
-            var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderTelegramId, cancellationToken);
+            var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.Id == traderId, cancellationToken);
             if (trader is null)
                 return PurchaseResult.Fail("Трейдер не найден");
 
@@ -39,7 +39,7 @@ internal class SubscriptionPurchaseService(
             var paymentResult = await payment.CreatePaymentAsync(
                 new PaymentRequest
                 {
-                    TraderTelegramId = traderTelegramId,
+                    TraderTelegramId = traderId,
                     AmountRubles = amount,
                     SubscriptionId = sub.Id,
                     Description = $"Покупка подписки {sub.Name} на {period.ToDisplayName()}",
@@ -61,7 +61,7 @@ internal class SubscriptionPurchaseService(
                 return await SavePendingPaymentAsync(trader, sub, period, amount, paymentResult, now, cancellationToken);
             }
 
-            var activationResult = await activationService.ActivateAsync(traderTelegramId, sub.Id, period, amount, paymentResult.TransactionId, cancellationToken);
+            var activationResult = await activationService.ActivateAsync(traderId, sub.Id, period, amount, paymentResult.TransactionId, cancellationToken);
             if (!activationResult.Success)
                 return PurchaseResult.Fail("Не удалось активировать подписку");
 
@@ -69,7 +69,7 @@ internal class SubscriptionPurchaseService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Ошибка при покупке подписки для трейдера {TraderId}, подписка {SubscriptionId}", traderTelegramId, subscriptionId);
+            logger.LogError(ex, "Ошибка при покупке подписки для трейдера {TraderId}, подписка {SubscriptionId}", traderId, subscriptionId);
             return PurchaseResult.Fail($"Произошла ошибка: {ex.Message}");
         }
     }
@@ -85,7 +85,7 @@ internal class SubscriptionPurchaseService(
     {
         dbContext.SubscriptionPayments.Add(new SubscriptionPayment
         {
-            TraderId = trader.TelegramId,
+            TraderId = trader.Id,
             SubscriptionId = sub.Id,
             Period = (int)period,
             AmountRubles = amount,

@@ -1,4 +1,4 @@
-using ArkWallet.Core.General.Application.Common;
+﻿using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
 using ArkWallet.Core.MiningContext.Application.Contracts.Orchestrators;
 using ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices;
@@ -62,7 +62,7 @@ internal class MiningMachineSlotTakingTokenOrchestrator(
             return Ok();
 
         var existing = await dbContext.PortfolioItems
-            .FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == collection.Symbol);
+            .FirstOrDefaultAsync(p => p.TraderId == traderId && p.CharacterTokenId == collection.Symbol);
         var total = (existing?.Quantity ?? 0) + collection.TokensCollected;
 
         var portfolioResult = await portfolioUpdatingService

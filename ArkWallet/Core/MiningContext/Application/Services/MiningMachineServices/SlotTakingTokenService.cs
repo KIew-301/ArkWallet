@@ -1,4 +1,4 @@
-using ArkWallet.Core.General.Application.Common;
+﻿using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -20,7 +20,7 @@ internal class MiningMachineSlotTakingTokenService(
                 await dbContext.LockTradersAsync([traderId]);
                 await dbContext.LockMiningMachineSlotsAsync([miningMachineSlotId]);
 
-                var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
+                var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.Id == traderId);
                 if (trader == null)
                     return Fail("Трейдера не существует");
 
@@ -50,7 +50,7 @@ internal class MiningMachineSlotTakingTokenService(
             {
                 await dbContext.LockTradersAsync([traderId]);
 
-                var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
+                var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.Id == traderId);
                 if (trader == null)
                     return Result<List<MiningTokenCollectionResult>>.Fail("Трейдера не существует");
 

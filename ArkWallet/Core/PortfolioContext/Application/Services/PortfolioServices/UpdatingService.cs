@@ -1,4 +1,4 @@
-using ArkWallet.Core.General.Application.Common;
+﻿using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices;
 using ArkWallet.Core.PortfolioContext.Domain.Position;
 using ArkWallet.Infrastructure.Data;
@@ -28,7 +28,7 @@ internal class UpdatingService(ArkWalletDbContext dbContext, ILogger<UpdatingSer
                 if (token == null)
                     return Fail("Токена не существует");
 
-                var item = await dbContext.PortfolioItems.FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
+                var item = await dbContext.PortfolioItems.FirstOrDefaultAsync(p => p.TraderId == traderId && p.CharacterTokenId == symbol);
 
                 if (item == null)
                 {
@@ -54,7 +54,7 @@ internal class UpdatingService(ArkWalletDbContext dbContext, ILogger<UpdatingSer
                 await dbContext.LockTradersAsync([command.TraderId]);
                 await dbContext.LockTokenAsync(command.Symbol);
 
-                var item = await dbContext.PortfolioItems.FirstOrDefaultAsync(p => p.TraderTelegramId == command.TraderId && p.CharacterTokenId == command.Symbol);
+                var item = await dbContext.PortfolioItems.FirstOrDefaultAsync(p => p.TraderId == command.TraderId && p.CharacterTokenId == command.Symbol);
 
                 if (item == null)
                 {

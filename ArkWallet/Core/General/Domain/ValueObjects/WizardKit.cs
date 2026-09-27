@@ -55,6 +55,7 @@ namespace ArkWallet.Core.General.Domain.ValueObjects
     public class UserSession
     {
         public long Id { get; set; }
+        public long TelegramId { get; set; }
         public string? CurrentCommand { get; set; }
         public string? CurrentStep { get; set; }
         public Dictionary<string, object> Data { get; set; } = [];

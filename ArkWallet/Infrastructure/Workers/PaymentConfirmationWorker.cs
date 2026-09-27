@@ -104,7 +104,7 @@ internal sealed class PaymentConfirmationWorker(
         if (!string.IsNullOrEmpty(savedPaymentMethodId))
         {
             record.PaymentMethodId = savedPaymentMethodId;
-            var trader = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == record.TraderId, cancellationToken);
+            var trader = await db.Traders.FirstOrDefaultAsync(t => t.Id == record.TraderId, cancellationToken);
             if (trader is not null)
                 trader.SavedPaymentMethodId = savedPaymentMethodId;
         }

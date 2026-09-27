@@ -14,7 +14,7 @@ internal class SubscriptionActivationService(
     TimeProvider timeProvider,
     ILogger<SubscriptionActivationService> logger) : ISubscriptionActivationService
 {
-    public async Task<SubscriptionActivationResult> ActivateAsync(long traderTelegramId, int subscriptionId, SubscriptionPeriod period, decimal amountRubles, string? transactionId, CancellationToken cancellationToken = default)
+    public async Task<SubscriptionActivationResult> ActivateAsync(long traderId, int subscriptionId, SubscriptionPeriod period, decimal amountRubles, string? transactionId, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -22,7 +22,7 @@ internal class SubscriptionActivationService(
             if (sub is null)
                 return new SubscriptionActivationResult(false, null);
 
-            var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderTelegramId, cancellationToken);
+            var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.Id == traderId, cancellationToken);
             if (trader is null)
                 return new SubscriptionActivationResult(false, null);
 
@@ -36,7 +36,7 @@ internal class SubscriptionActivationService(
 
             var historyEntry = new SubscriptionPurchaseHistory
             {
-                TraderId = trader.TelegramId,
+                TraderId = trader.Id,
                 SubscriptionId = sub.Id,
                 PriceRubles = amountRubles,
                 PurchasedAtUtc = now,
@@ -51,7 +51,7 @@ internal class SubscriptionActivationService(
 
             await eventPublisher.PublishAsync(
                 new TraderSubscriptionChangedEvent(
-                    trader.TelegramId,
+                    trader.Id,
                     operation,
                     sub.Name,
                     sub.Level,
@@ -61,7 +61,7 @@ internal class SubscriptionActivationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Ошибка при активации подписки для трейдера {TraderId}, подписка {SubscriptionId}", traderTelegramId, subscriptionId);
+            logger.LogError(ex, "Ошибка при активации подписки для трейдера {TraderId}, подписка {SubscriptionId}", traderId, subscriptionId);
             return new SubscriptionActivationResult(false, null);
         }
     }
