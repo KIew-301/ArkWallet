@@ -1,4 +1,4 @@
-using ArkWallet.Core.General.Application.Common;
+﻿using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Core.TradingContext.Application.Contracts.TradeServices;
 using ArkWallet.Infrastructure.Data;
@@ -13,13 +13,13 @@ internal class TradeQueryService(
     ArkWalletDbContext dbContext,
     ILogger<TradeQueryService> logger) : ITradeQueryService
 {
-    public async Task<Result<List<TradeInfo>>> GetTraderTradesAsync(long traderTelegramId, bool withTokenInfo = false)
+    public async Task<Result<List<TradeInfo>>> GetTraderTradesAsync(long traderId, bool withTokenInfo = false)
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             var trades = await dbContext.Trades
                 .AsNoTracking()
-                .Where(t => (t.BuyerId == traderTelegramId || t.SellerId == traderTelegramId) && t.CharacterToken != null)
+                .Where(t => (t.BuyerId == traderId || t.SellerId == traderId) && t.CharacterToken != null)
                 .OrderByDescending(t => t.ExecutedAt)
                 .Select(t => new
                 {
@@ -41,7 +41,7 @@ internal class TradeQueryService(
             var result = trades
                 .Select(t =>
                 {
-                    var isBuyer = t.BuyerId == traderTelegramId;
+                    var isBuyer = t.BuyerId == traderId;
                     return new TradeInfo(
                         isBuyer ? "Buyer" : "Seller",
                         t.Price,

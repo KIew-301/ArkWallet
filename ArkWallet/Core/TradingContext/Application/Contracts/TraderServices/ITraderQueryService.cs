@@ -30,7 +30,14 @@ public interface ITraderQueryService
     /// Возвращает список всех трейдеров (без ботов) с именем и Telegram ID
     /// </summary>
     /// <returns>Список кортежей (Username, TelegramId)</returns>
-    Task<Result<List<(string Username, long TelegramId)>>> GetAllTradersWithoutBotsAsync();
+    Task<Result<List<(string Username, long? TelegramId)>>> GetAllTradersWithoutBotsAsync();
+
+    /// <summary>
+    /// Возвращает внутренний идентификатор трейдера по его Telegram ID
+    /// </summary>
+    /// <param name="telegramId">Telegram ID трейдера</param>
+    /// <returns>Внутренний Id трейдера или 0, если трейдер не найден</returns>
+    Task<long> GetTraderIdByTelegramIdAsync(long telegramId);
 }
 
 /// <summary>

@@ -1,6 +1,5 @@
 using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.TradingContext.Application.Contracts.MarketMaker;
-using ArkWallet.Core.TradingContext.Application.Contracts.TraderServices;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -11,11 +10,10 @@ using static Result<MarketMakerBotRegistrationData>;
 
 internal class MarketMakerBotRegistrationService(
     ArkWalletDbContext dbContext,
-    ITraderRegistrationService traderRegistrationService,
     ILogger<MarketMakerBotRegistrationService> logger,
     TimeProvider? timeProvider = null) : IMarketMakerBotRegistrationService
 {
-    public async Task<Result<MarketMakerBotRegistrationData>> RegisterBotAsync(int telegramFakeId, string symbol, BotRole botRole, decimal initialPower = 50)
+    public async Task<Result<MarketMakerBotRegistrationData>> RegisterBotAsync(string symbol, BotRole botRole, decimal initialPower = 50)
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
@@ -27,12 +25,11 @@ internal class MarketMakerBotRegistrationService(
             if (initialPower <= 0)
                 return Fail("Начальная мощность должна быть больше нуля");
 
-            var registrationResult = await traderRegistrationService.RegisterTraderAsync(telegramFakeId, $"MarketMakerBot_{symbol}", false);
+            var trader = Trader.Create($"MarketMakerBot_{symbol}", isBot: true);
+            await dbContext.Traders.AddAsync(trader);
+            await dbContext.SaveChangesAsync();
 
-            if (!registrationResult.IsSuccess && registrationResult.Message != "Пользователь уже существует")
-                return Fail($"Не удалось зарегистрировать трейдера: {registrationResult.Message}");
-
-            var bot = MarketMakerBot.Create(telegramFakeId, symbol, botRole, initialPower, timeProvider);
+            var bot = MarketMakerBotRecord.Create(trader.Id, symbol, botRole, initialPower, timeProvider);
 
             await dbContext.MarketMakerBots.AddAsync(bot);
             await dbContext.SaveChangesAsync();
@@ -41,7 +38,7 @@ internal class MarketMakerBotRegistrationService(
 
             return Ok(new MarketMakerBotRegistrationData(
                 BotId: bot.Id,
-                TraderId: telegramFakeId
+                TraderId: trader.Id
             ));
         }, logger, nameof(MarketMakerBotRegistrationService));
     }

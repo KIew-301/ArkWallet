@@ -24,7 +24,7 @@ internal class TraderRegistrationService(ArkWalletDbContext dbContext, ILogger<T
             if (isRegistered)
                 return Fail("Пользователь уже существует");
 
-            var trader = Trader.Create(telegramId, name);
+            var trader = Trader.Create(username: name, telegramId: telegramId);
 
             if (!enableNotyfi)
                 trader.NotificationOn = false;

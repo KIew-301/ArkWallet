@@ -19,7 +19,7 @@ internal class BalanceSnapshotOrchestrator(
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             var traderIds = await dbContext.Traders
-                .Select(t => t.TelegramId)
+                .Select(t => t.Id)
                 .ToArrayAsync();
 
             if (traderIds.Length == 0)
@@ -46,7 +46,7 @@ internal class BalanceSnapshotOrchestrator(
                     }
 
                     var savingResult = await balanceSavingService.SaveBalanceToDatabase(
-                        snapshot.traderTelegramId,
+                        snapshot.traderId,
                         snapshot.totalBalance,
                         snapshot.mainBalance,
                         snapshot.longOrderReserve,

@@ -1,3 +1,4 @@
+using ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
 using ArkWallet.Core.TradingContext.Domain.TokenAggregate;
 using ArkWallet.Core.TradingContext.Domain.TraderAggregate;
 using ArkWallet.Core.TradingContext.Domain.TradeAggregate;
@@ -12,3 +13,5 @@ internal sealed record OrderFilledEvent(Order Order) : INotification;
 internal sealed record TradeExecutedEvent(Trade Trade) : INotification;
 
 internal sealed record TokenPriceUpdatedEvent(Token Token) : INotification;
+
+internal sealed record BotPublicOrdersEvent(IReadOnlyCollection<CreateMarketOrderCommand> Orders) : INotification;

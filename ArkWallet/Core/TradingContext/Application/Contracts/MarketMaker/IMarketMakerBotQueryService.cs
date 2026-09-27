@@ -13,14 +13,14 @@ internal interface IMarketMakerBotQueryService
     /// </summary>
     /// <param name="symbol">Символ токена</param>
     /// <returns>Список ботов</returns>
-    Task<Result<List<MarketMakerBot>>> GetBotsBySymbolAsync(string symbol);
+    Task<Result<List<MarketMakerBotRecord>>> GetBotsBySymbolAsync(string symbol);
 
     /// <summary>
     /// Получает бота по ID
     /// </summary>
     /// <param name="botId">ID бота</param>
     /// <returns>Данные бота</returns>
-    Task<Result<MarketMakerBot>> GetBotByIdAsync(long botId);
+    Task<Result<MarketMakerBotRecord>> GetBotByIdAsync(long botId);
 
     /// <summary>
     /// Обновляет параметры бота (null = оставить текущее значение)

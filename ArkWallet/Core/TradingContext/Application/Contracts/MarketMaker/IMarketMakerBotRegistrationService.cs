@@ -11,7 +11,6 @@ public interface IMarketMakerBotRegistrationService
     /// <summary>
     /// Регистрирует нового бота-маркетмейкера как трейдера
     /// </summary>
-    /// <param name="telegramFakeId">Ложный телеграмм Id для регистрации</param>
     /// <param name="symbol">Символ токена, с которым работает бот</param>
     /// <param name="botRole">Роль бота (Buyer/Seller)</param>
     /// <param name="initialPower">Начальная мощность бота</param>
@@ -19,12 +18,12 @@ public interface IMarketMakerBotRegistrationService
     /// <remarks>
     /// <para>
     /// Выполняет:
-    /// - Создание трейдера для бота (через ITraderRegistrationService)
-    /// - Создание сущности MarketMakerBot
+    /// - Создание трейдера-бота (IsBot = true, без TelegramId)
+    /// - Создание сущности MarketMakerBotRecord, связанной с трейдером по Id
     /// - Возвращает данные бота с привязкой к трейдеру
     /// </para>
     /// </remarks>
-    Task<Result<MarketMakerBotRegistrationData>> RegisterBotAsync(int telegramFakeId, string symbol, BotRole botRole, decimal initialPower = 50);
+    Task<Result<MarketMakerBotRegistrationData>> RegisterBotAsync(string symbol, BotRole botRole, decimal initialPower = 50);
 }
 
 /// <summary>

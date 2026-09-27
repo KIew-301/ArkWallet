@@ -1,4 +1,4 @@
-using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
+﻿using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Core.General.Domain.ValueObjects;
 using TradingOrder = ArkWallet.Core.TradingContext.Domain.TraderAggregate.Order;
@@ -37,7 +37,7 @@ namespace ArkWallet.Core.TradingContext.Application.Dtos
             return new(
                 order.Id,
                 order.Type,
-                order.TraderTelegramId,
+                order.TraderId,
                 order.CharacterTokenId,
                 order.Quantity,
                 order.Price,
