@@ -1,6 +1,6 @@
 using System.Globalization;
 using System.Text;
-using ArkWallet.Domain.Entities;
+using ArkWallet.Infrastructure.Data;
 
 namespace ArkWallet.SimulationTests;
 

@@ -1,8 +1,14 @@
-using ArkWallet.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Core.MailContext.Application.Contracts.MailServices;
+using ArkWallet.Core.General.Application.Contracts.Other;
+using ArkWallet.Core.TradingContext.Application.Contracts.Other;
+using ArkWallet.Core.MailContext.Application.Services.MailServices;
 using ArkWallet.Infrastructure;
 using ArkWallet.Infrastructure.Data;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 
 namespace ArkWallet.SimulationTests.HelpTools;
 
@@ -14,6 +20,13 @@ internal static class TestMediatorFactory
         services.AddLogging();
         services.AddSingleton(db);
         services.AddSingleton(candleUpdateService);
+        var taskDispatcher = new Mock<ITaskDispatcher>().Object;
+        services.AddSingleton(taskDispatcher);
+        services.AddSingleton<IMessageService>(new MessageService(
+            db,
+            taskDispatcher,
+            NullLogger<MessageService>.Instance,
+            TimeProvider.System));
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<OrderPlacedEventHandler>());
         return services.BuildServiceProvider().GetRequiredService<IMediator>();
     }
