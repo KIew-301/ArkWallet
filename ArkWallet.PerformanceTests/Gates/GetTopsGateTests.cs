@@ -1,5 +1,5 @@
-using ArkWallet.Application.Services.Leaders;
-using ArkWallet.Application.Services.TraderServices;
+using ArkWallet.Core.General.Application.Services.Leaders;
+using ArkWallet.Core.TradingContext.Application.Services.TraderServices;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.PerformanceTests.Helpers;
 using ArkWallet.PerformanceTests.Measurement;

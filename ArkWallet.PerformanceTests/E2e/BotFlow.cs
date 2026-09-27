@@ -1,7 +1,8 @@
-using ArkWallet.Domain.ValueObjects;
+using ArkWallet.Core.General.Domain.ValueObjects;
+using ArkWallet.Infrastructure.AccessControl;
 using ArkWallet.Infrastructure.Wizard;
-using ArkWallet.Presentation.Telegram;
 using ArkWallet.Telegram;
+using ArkWallet.Presentation.Telegram;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using System.Reflection;
@@ -28,10 +29,12 @@ internal sealed class BotFlow
         var bot = _host.Services.GetRequiredService<TelegramBot>();
 
         var loadConfiguration = typeof(TelegramBot).GetMethod("LoadConfiguration", BindingFlags.Instance | BindingFlags.NonPublic)!;
-        loadConfiguration.Invoke(bot, new object[] { new ConfigurationService(_host.Configuration) });
+        var accessControl = _host.Services.GetRequiredService<AccessControlService>();
+        loadConfiguration.Invoke(bot, new object[] { new ConfigurationService(_host.Configuration), accessControl });
 
         var mock = new Mock<ITelegramBotClient>(MockBehavior.Loose);
-        var handleUpdate = typeof(TelegramBot).GetMethod("HandleUpdateAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        var handleUpdate = typeof(TelegramBot).GetMethod("HandleUpdateAsync", BindingFlags.Instance | BindingFlags.NonPublic, new[] { typeof(ITelegramBotClient), typeof(Update), typeof(CancellationToken) })
+            ?? typeof(TelegramBot).GetMethod("HandleUpdateAsync", BindingFlags.Instance | BindingFlags.Public, new[] { typeof(ITelegramBotClient), typeof(Update), typeof(CancellationToken) })!;
 
         foreach (var input in inputs)
         {

@@ -1,11 +1,13 @@
-using ArkWallet.Application.Contracts.TradeOrderServices;
-using ArkWallet.Application.Services.CharacterTokenServices;
-using ArkWallet.Application.Services.Leaders;
-using ArkWallet.Application.Services.MarketMaker;
-using ArkWallet.Application.Services.Orchestrators;
-using ArkWallet.Application.Services.TradeOrderServices;
-using ArkWallet.Application.Services.TraderServices;
-using ArkWallet.Domain.Engines;
+using ArkWallet.Core.General.Application.Services.Leaders;
+using ArkWallet.Core.General.Application.Services.Orchestrators;
+using ArkWallet.Core.General.Application.Common;
+using ArkWallet.Core.General.Application.Contracts.Orchestrators;
+using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
+using ArkWallet.Core.TradingContext.Application.Services.CharacterTokenServices;
+using ArkWallet.Core.TradingContext.Application.Services.MarketMaker;
+using ArkWallet.Core.TradingContext.Application.Services.TradeOrderServices;
+using ArkWallet.Core.TradingContext.Application.Services.TraderServices;
+using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Infrastructure;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.PerformanceTests.Helpers;
@@ -17,7 +19,7 @@ namespace ArkWallet.PerformanceTests.Repeats;
 internal static class ScenarioBodies
 {
     private const string Symbol = "TKN000";
-    private const long TraderId = 101;
+    private const long TraderTelegramId = 101;
     private const decimal TraderBalance = 100_000_000m;
 
     public static async Task<PerfReport> TokenQueryAsync(QueryCounter counter)
@@ -49,7 +51,7 @@ internal static class ScenarioBodies
         using var scope = new PerfScope(counter);
         using (scope.Step("TakeMainBalanceChanges"))
         {
-            var result = await service.TakeMainBalanceChanges(TraderId, 1);
+            var result = await service.TakeMainBalanceChanges(TraderTelegramId, 1);
             if (!result.IsSuccess)
                 throw new InvalidOperationException(result.Message);
         }
@@ -66,7 +68,7 @@ internal static class ScenarioBodies
         using var scope = new PerfScope(counter);
         using (scope.Step("TakeTotalBalanceChanges"))
         {
-            var result = await service.TakeTotalBalanceChanges(TraderId, 1);
+            var result = await service.TakeTotalBalanceChanges(TraderTelegramId, 1);
             if (!result.IsSuccess)
                 throw new InvalidOperationException(result.Message);
         }
@@ -98,13 +100,14 @@ internal static class ScenarioBodies
     public static async Task<PerfReport> OrderCreateAsync(QueryCounter counter, string direction)
     {
         using var db = await CreateOrderSeededDbAsync(counter);
+        long realTraderId = db.Traders.First().Id;
         var service = BuildOrderService(db);
 
         counter.Reset();
         using var scope = new PerfScope(counter);
         using (scope.Step(direction == "купить" ? "CreateBuyOrder" : "CreateSellOrder"))
         {
-            var result = await service.CreateOrderAsync(new CreateOrderCommand(TraderId, direction, Symbol, 10, 1000m));
+            var result = await service.CreateOrderAsync(new CreateOrderCommand(realTraderId, direction, Symbol, 10, 1000m));
             if (!result.IsSuccess)
                 throw new InvalidOperationException(result.Message);
         }
@@ -124,7 +127,7 @@ internal static class ScenarioBodies
         using var scope = new PerfScope(counter);
         using (scope.Step($"ProcessBotsAsync({tokenCount}t)"))
         {
-            var result = await orchestrator.ProcessBotsAsync();
+            var result = await orchestrator.UpdateBotsGridsAsync();
             if (!result.IsSuccess)
                 throw new InvalidOperationException(result.Message);
         }
@@ -136,11 +139,11 @@ internal static class ScenarioBodies
     {
         var db = PerfDb.CreateDbContext(counter);
         await db.Database.EnsureCreatedAsync();
-        await GatesSeed.SeedTraderAsync(db, TraderId, 3500m);
-        await GatesSeed.SaveBalanceSnapshotAsync(db, TraderId, 1000m, DateTime.UtcNow.AddDays(-7));
-        await GatesSeed.SaveBalanceSnapshotAsync(db, TraderId, 1500m, DateTime.UtcNow.AddDays(-1));
+        await GatesSeed.SeedTraderAsync(db, TraderTelegramId, 3500m);
+        await GatesSeed.SaveBalanceSnapshotAsync(db, TraderTelegramId, 1000m, DateTime.UtcNow.AddDays(-7));
+        await GatesSeed.SaveBalanceSnapshotAsync(db, TraderTelegramId, 1500m, DateTime.UtcNow.AddDays(-1));
         await GatesSeed.SeedTokenCatalogAsync(db, 1);
-        await GatesSeed.SeedTraderPortfolioAsync(db, TraderId, Symbol, 10);
+        await GatesSeed.SeedTraderPortfolioAsync(db, TraderTelegramId, Symbol, 10);
         return db;
     }
 
@@ -154,9 +157,9 @@ internal static class ScenarioBodies
     {
         var db = PerfDb.CreateDbContext(counter);
         await db.Database.EnsureCreatedAsync();
-        await GatesSeed.SeedTraderAsync(db, TraderId, TraderBalance);
+        await GatesSeed.SeedTraderAsync(db, TraderTelegramId, TraderBalance);
         await GatesSeed.SeedTokenCatalogAsync(db, 1);
-        await GatesSeed.SeedTraderPortfolioAsync(db, TraderId, Symbol, 1_000_000);
+        await GatesSeed.SeedTraderPortfolioAsync(db, TraderTelegramId, Symbol, 1_000_000);
         return db;
     }
 
@@ -173,7 +176,7 @@ internal static class ScenarioBodies
             NullLogger<OrderCreationService>.Instance);
     }
 
-    private static MarketMakerOrchestrator BuildMmOrchestrator(ArkWalletDbContext db)
+    private static IBotOrchestrator BuildMmOrchestrator(ArkWalletDbContext db)
     {
         var candleUpdateService = new TokenPriceCandleUpdateService(
             db, TimeProvider.System, NullLogger<TokenPriceCandleUpdateService>.Instance);
@@ -185,18 +188,14 @@ internal static class ScenarioBodies
             new FakeTaskDispatcher(),
             NullLogger<OrderCreationService>.Instance);
 
-        var marketMakerOrderService = new MarketMakerOrderService(
+        return new BotOrchestrator(
             db,
+            new PlanModifierCollection(),
+            new OrderCollector(),
             orderCreationService,
-            NullLogger<MarketMakerOrderService>.Instance);
-
-        return new MarketMakerOrchestrator(
-            db,
             null!,
             null!,
-            orderCreationService,
-            marketMakerOrderService,
-            new MarketMakerGridEngine(),
-            NullLogger<MarketMakerOrchestrator>.Instance);
+            new MediatREventPublisher(TestMediatorFactory.Create(db, candleUpdateService)),
+            NullLogger<BotOrchestrator>.Instance);
     }
 }

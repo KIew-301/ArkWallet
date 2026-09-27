@@ -1,10 +1,10 @@
-using ArkWallet.Application.Services.Other;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Web;
+using ArkWallet.Core.TradingContext.Application.Services.Other;
 using Microsoft.Extensions.Configuration;
 
 namespace ArkWallet.PerformanceTests.E2e;

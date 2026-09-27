@@ -1,5 +1,5 @@
-using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Services.CharacterTokenServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Core.TradingContext.Application.Services.CharacterTokenServices;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.PerformanceTests.Helpers;
 using ArkWallet.PerformanceTests.Measurement;
