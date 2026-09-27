@@ -1,4 +1,4 @@
-using ArkWallet.Core.TradingContext.Application.Services.CharacterTokenServices;
+﻿using ArkWallet.Core.TradingContext.Application.Services.CharacterTokenServices;
 using ArkWallet.Core.General.Domain.ValueObjects;
 using ArkWallet.Core.TradingContext.Domain.TraderAggregate;
 using ArkWallet.Core.TradingContext.Domain.TokenAggregate;
@@ -59,7 +59,7 @@ public class TokenDeletionServiceTest
         var orderResult = await HelpMethods.PlaceOrder(db, 1001, "купить", "ZZZ", 10, 90);
         Assert.True(orderResult.IsSuccess);
 
-        db.MarketMakerBots.Add(MarketMakerBot.Create(1001, "ZZZ", BotRole.Buyer, 50));
+        db.MarketMakerBots.Add(MarketMakerBotRecord.Create(1001, "ZZZ", BotRole.Buyer, 50));
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
 
@@ -151,8 +151,8 @@ public class TokenDeletionServiceTest
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
         await HelpMethods.CreateToken(db, "ZZZ");
-        db.MarketMakerBots.Add(MarketMakerBot.Create(101, "ZZZ", BotRole.Buyer, 50));
-        db.MarketMakerBots.Add(MarketMakerBot.Create(102, "ZZZ", BotRole.Seller, 50));
+        db.MarketMakerBots.Add(MarketMakerBotRecord.Create(101, "ZZZ", BotRole.Buyer, 50));
+        db.MarketMakerBots.Add(MarketMakerBotRecord.Create(102, "ZZZ", BotRole.Seller, 50));
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
 
@@ -169,7 +169,7 @@ public class TokenDeletionServiceTest
     {
         await using var db = await DbTest.CreateInitializedDbContextAsync();
         await HelpMethods.CreateToken(db, "Loony");
-        db.MarketMakerBots.Add(MarketMakerBot.Create(101, "Loony", BotRole.Buyer, 50));
+        db.MarketMakerBots.Add(MarketMakerBotRecord.Create(101, "Loony", BotRole.Buyer, 50));
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
 

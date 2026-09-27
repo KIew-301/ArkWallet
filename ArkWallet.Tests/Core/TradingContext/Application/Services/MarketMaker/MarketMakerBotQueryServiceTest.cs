@@ -1,4 +1,4 @@
-using ArkWallet.Core.General.Domain.ValueObjects;
+﻿using ArkWallet.Core.General.Domain.ValueObjects;
 using ArkWallet.Core.TradingContext.Domain.TraderAggregate;
 using ArkWallet.Core.TradingContext.Domain.TokenAggregate;
 using ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
@@ -26,9 +26,9 @@ public class MarketMakerBotQueryServiceTest
         await db.Database.EnsureCreatedAsync();
 
         db.MarketMakerBots.AddRange(
-            MarketMakerBot.Create(101, "ARK_001", BotRole.Buyer),
-            MarketMakerBot.Create(102, "ARK_001", BotRole.Seller),
-            MarketMakerBot.Create(103, "ARK_002", BotRole.Buyer));
+            MarketMakerBotRecord.Create(101, "ARK_001", BotRole.Buyer),
+            MarketMakerBotRecord.Create(102, "ARK_001", BotRole.Seller),
+            MarketMakerBotRecord.Create(103, "ARK_002", BotRole.Buyer));
         await db.SaveChangesAsync();
 
         var service = new MarketMakerBotQueryService(db, NullLogger<MarketMakerBotQueryService>.Instance);
@@ -75,7 +75,7 @@ public class MarketMakerBotQueryServiceTest
         using var db = DbTest.CreateDbContext();
         await db.Database.EnsureCreatedAsync();
 
-        var bot = MarketMakerBot.Create(101, "ARK_001", BotRole.Buyer);
+        var bot = MarketMakerBotRecord.Create(101, "ARK_001", BotRole.Buyer);
         db.MarketMakerBots.Add(bot);
         await db.SaveChangesAsync();
 
@@ -108,7 +108,7 @@ public class MarketMakerBotQueryServiceTest
         using var db = DbTest.CreateDbContext();
         await db.Database.EnsureCreatedAsync();
 
-        var bot = MarketMakerBot.Create(101, "ARK_001", BotRole.Buyer, 50);
+        var bot = MarketMakerBotRecord.Create(101, "ARK_001", BotRole.Buyer, 50);
         db.MarketMakerBots.Add(bot);
         await db.SaveChangesAsync();
 
@@ -127,7 +127,7 @@ public class MarketMakerBotQueryServiceTest
         using var db = DbTest.CreateDbContext();
         await db.Database.EnsureCreatedAsync();
 
-        var bot = MarketMakerBot.Create(101, "ARK_001", BotRole.Buyer);
+        var bot = MarketMakerBotRecord.Create(101, "ARK_001", BotRole.Buyer);
         db.MarketMakerBots.Add(bot);
         await db.SaveChangesAsync();
 
@@ -146,7 +146,7 @@ public class MarketMakerBotQueryServiceTest
         using var db = DbTest.CreateDbContext();
         await db.Database.EnsureCreatedAsync();
 
-        var bot = MarketMakerBot.Create(101, "ARK_001", BotRole.Buyer);
+        var bot = MarketMakerBotRecord.Create(101, "ARK_001", BotRole.Buyer);
         db.MarketMakerBots.Add(bot);
         await db.SaveChangesAsync();
 

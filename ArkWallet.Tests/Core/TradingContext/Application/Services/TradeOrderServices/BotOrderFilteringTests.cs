@@ -1,4 +1,4 @@
-using ArkWallet.Core.General.Application.Common;
+﻿using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.General.Domain.ValueObjects;
 using ArkWallet.Tests.HelpTools;
 using Microsoft.EntityFrameworkCore;
@@ -28,7 +28,7 @@ public class BotOrderFilteringTests
         Assert.True(result.IsSuccess, result.Message);
 
         var botOrders = await db.TradeOrders
-            .Where(o => o.TraderTelegramId == BotId)
+            .Where(o => o.TraderId == BotId)
             .ToArrayAsync();
 
         Assert.Empty(botOrders);
@@ -51,7 +51,7 @@ public class BotOrderFilteringTests
         Assert.True(result.IsSuccess, result.Message);
 
         var botOrders = await db.TradeOrders
-            .Where(o => o.TraderTelegramId == BotId)
+            .Where(o => o.TraderId == BotId)
             .ToArrayAsync();
 
         Assert.Empty(botOrders);
@@ -73,7 +73,7 @@ public class BotOrderFilteringTests
         Assert.True(cancelResult.IsSuccess, cancelResult.Message);
 
         var botOrders = await db.TradeOrders
-            .Where(o => o.TraderTelegramId == BotId)
+            .Where(o => o.TraderId == BotId)
             .ToArrayAsync();
 
         Assert.Empty(botOrders);
@@ -95,7 +95,7 @@ public class BotOrderFilteringTests
         Assert.True(result.IsSuccess, result.Message);
 
         var botOrders = await db.TradeOrders
-            .Where(o => o.TraderTelegramId == BotId)
+            .Where(o => o.TraderId == BotId)
             .ToArrayAsync();
 
         Assert.Empty(botOrders);
@@ -162,7 +162,7 @@ public class BotOrderFilteringTests
         Assert.True(result.IsSuccess, result.Message);
 
         var userOrders = await db.TradeOrders
-            .Where(o => o.TraderTelegramId == UserId && o.Status == OrderStatus.Filled)
+            .Where(o => o.TraderId == UserId && o.Status == OrderStatus.Filled)
             .ToArrayAsync();
 
         Assert.Single(userOrders);
@@ -185,7 +185,7 @@ public class BotOrderFilteringTests
         Assert.True(result.IsSuccess, result.Message);
 
         var botOrders = await db.TradeOrders
-            .Where(o => o.TraderTelegramId == BotId)
+            .Where(o => o.TraderId == BotId)
             .ToArrayAsync();
 
         Assert.Single(botOrders);

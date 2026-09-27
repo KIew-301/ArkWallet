@@ -8,7 +8,7 @@ public class MarketMakerOrderEngineTest
     [Fact]
     public void BuildActiveOrder_Buyer_ReturnsBuyCommand()
     {
-        var bot = MarketMaker.Create(101, "ZZZ", MarketMakerRole.Buyer, 50);
+        var bot = MarketMakerBot.Create(101, "ZZZ", MarketMakerRole.Buyer, 50);
         var currentPrice = 1000m;
 
         var cmd = MarketMakerOrderEngine.BuildActiveOrder(bot, currentPrice);
@@ -22,7 +22,7 @@ public class MarketMakerOrderEngineTest
     [Fact]
     public void BuildActiveOrder_Seller_ReturnsSellCommand()
     {
-        var bot = MarketMaker.Create(101, "ZZZ", MarketMakerRole.Seller, 50);
+        var bot = MarketMakerBot.Create(101, "ZZZ", MarketMakerRole.Seller, 50);
         var currentPrice = 1000m;
 
         var cmd = MarketMakerOrderEngine.BuildActiveOrder(bot, currentPrice);
@@ -36,7 +36,7 @@ public class MarketMakerOrderEngineTest
     [Fact]
     public void BuildActiveOrder_Buyer_PriceAboveCurrent()
     {
-        var bot = MarketMaker.Create(201, "XYZ", MarketMakerRole.Buyer, 50);
+        var bot = MarketMakerBot.Create(201, "XYZ", MarketMakerRole.Buyer, 50);
         var currentPrice = 100m;
 
         var cmd = MarketMakerOrderEngine.BuildActiveOrder(bot, currentPrice);
@@ -48,7 +48,7 @@ public class MarketMakerOrderEngineTest
     [Fact]
     public void BuildActiveOrder_Seller_PriceBelowCurrent()
     {
-        var bot = MarketMaker.Create(202, "XYZ", MarketMakerRole.Seller, 50);
+        var bot = MarketMakerBot.Create(202, "XYZ", MarketMakerRole.Seller, 50);
         var currentPrice = 100m;
 
         var cmd = MarketMakerOrderEngine.BuildActiveOrder(bot, currentPrice);
@@ -62,11 +62,23 @@ public class MarketMakerOrderEngineTest
     [InlineData(MarketMakerRole.Seller)]
     public void BuildActiveOrder_MinimumQuantityAtLeastOne(MarketMakerRole role)
     {
-        var bot = MarketMaker.Create(301, "TTT", role, 50);
+        var bot = MarketMakerBot.Create(301, "TTT", role, 50);
         var currentPrice = 50m;
 
         var cmd = MarketMakerOrderEngine.BuildActiveOrder(bot, currentPrice);
 
         Assert.True(cmd.Quantity >= 1);
+    }
+
+    [Fact]
+    public void BuildActiveOrder_MultiplierReducesQuantity()
+    {
+        var bot = MarketMakerBot.Create(401, "ZZZ", MarketMakerRole.Buyer, 50);
+        var currentPrice = 1000m;
+
+        var cmdWithout = MarketMakerOrderEngine.BuildActiveOrder(bot, currentPrice);
+        var cmdWith = MarketMakerOrderEngine.BuildActiveOrder(bot, currentPrice, 0.5m);
+
+        Assert.True(cmdWith.Quantity <= cmdWithout.Quantity);
     }
 }

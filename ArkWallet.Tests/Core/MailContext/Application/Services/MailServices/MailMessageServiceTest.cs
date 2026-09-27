@@ -108,7 +108,7 @@ public class MailMessageServiceTest
     public async Task CreateAsync_NotificationOff_DoesNotDispatch()
     {
         using var db = CreateDb();
-        var trader = ArkWallet.Infrastructure.Data.Trader.Create(2002, "u");
+        var trader = ArkWallet.Infrastructure.Data.Trader.Create("u", telegramId: 2002);
         trader.NotificationOn = false;
         db.Traders.Add(trader);
         await db.SaveChangesAsync();

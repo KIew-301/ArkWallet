@@ -40,7 +40,8 @@ public class NotificationEventTest
     [Fact]
     public void FromOrderList_FilledOrderWithNotificationOn_ReturnsNotification()
     {
-        var trader = Trader.Create(101, "User1");
+        var trader = Trader.Create("User1", telegramId: 101);
+        trader.Id = 101;
         trader.NotificationOn = true;
 
         var order = TradeOrder.Create(OrderType.Buy, "ZZZ", 101, 100m, 10);
@@ -61,7 +62,7 @@ public class NotificationEventTest
     [Fact]
     public void FromOrderList_FilledOrderWithNotificationOff_ReturnsEmpty()
     {
-        var trader = Trader.Create(101, "User1");
+        var trader = Trader.Create("User1", telegramId: 101);
         trader.NotificationOn = false;
 
         var order = TradeOrder.Create(OrderType.Buy, "ZZZ", 101, 100m, 10);
@@ -80,7 +81,7 @@ public class NotificationEventTest
     [Fact]
     public void FromOrderList_ActiveOrder_ReturnsEmpty()
     {
-        var trader = Trader.Create(101, "User1");
+        var trader = Trader.Create("User1", telegramId: 101);
         trader.NotificationOn = true;
 
         var order = TradeOrder.Create(OrderType.Buy, "ZZZ", 101, 100m, 10);
@@ -96,9 +97,11 @@ public class NotificationEventTest
     [Fact]
     public void FromOrderList_MultipleOrders_ReturnsOnlyFilledWithNotification()
     {
-        var trader1 = Trader.Create(101, "User1");
+        var trader1 = Trader.Create("User1", telegramId: 101);
+        trader1.Id = 101;
         trader1.NotificationOn = true;
-        var trader2 = Trader.Create(102, "User2");
+        var trader2 = Trader.Create("User2", telegramId: 102);
+        trader2.Id = 102;
         trader2.NotificationOn = false;
 
         var filledOrder = TradeOrder.Create(OrderType.Buy, "ZZZ", 101, 100m, 10);

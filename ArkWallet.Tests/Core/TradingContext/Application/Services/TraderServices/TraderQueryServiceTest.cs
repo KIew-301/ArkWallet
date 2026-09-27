@@ -33,7 +33,8 @@ public class TraderQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        var trader = global::ArkWallet.Infrastructure.Data.Trader.Create(101, null);
+        var trader = global::ArkWallet.Infrastructure.Data.Trader.Create(null, telegramId: 101);
+        trader.Id = 101;
         db.Traders.Add(trader);
         await db.SaveChangesAsync();
 
@@ -197,7 +198,7 @@ public class TraderQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        var trader = global::ArkWallet.Infrastructure.Data.Trader.Create(1500, null);
+        var trader = global::ArkWallet.Infrastructure.Data.Trader.Create(null, telegramId: 1500);
         db.Traders.Add(trader);
         await db.SaveChangesAsync();
 

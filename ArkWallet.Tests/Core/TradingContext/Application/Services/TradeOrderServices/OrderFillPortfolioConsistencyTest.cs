@@ -1,4 +1,4 @@
-using ArkWallet.Core.General.Application.Common;
+﻿using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.General.Domain.ValueObjects;
 using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Core.General.Application.Contracts.Other;
@@ -118,12 +118,12 @@ public class OrderFillPortfolioConsistencyTest : IDisposable
         Assert.Equal(tickQuantities.Length, trades.Length); // trades recorded
 
         var userBuyOrder = await verify.TradeOrders
-            .Where(o => o.TraderTelegramId == UserId && o.Type == OrderType.Buy)
+            .Where(o => o.TraderId == UserId && o.Type == OrderType.Buy)
             .SingleAsync();
         Assert.Equal(cumulative, userBuyOrder.FilledQuantity); // FilledQuantity persisted
 
         var userItem = await verify.PortfolioItems
-            .SingleAsync(p => p.TraderTelegramId == UserId && p.CharacterTokenId == Sym);
+            .SingleAsync(p => p.TraderId == UserId && p.CharacterTokenId == Sym);
 
         // KEY: bought tokens must land in the free portfolio quantity
         Assert.Equal(cumulative, userItem.Quantity);
@@ -137,7 +137,7 @@ public class OrderFillPortfolioConsistencyTest : IDisposable
 
         // Token conservation: bot component sum stays constant (reserve merely moves between ledgers)
         var botItem = await verify.PortfolioItems
-            .SingleAsync(p => p.TraderTelegramId == BotId && p.CharacterTokenId == Sym);
+            .SingleAsync(p => p.TraderId == BotId && p.CharacterTokenId == Sym);
         Assert.Equal(5000, botItem.Quantity + botItem.SellingQuantity + botItem.ReserveQuantity);
 
         // User: initial 2000 (locked by the wall) + bought amount
@@ -195,18 +195,18 @@ public class OrderFillPortfolioConsistencyTest : IDisposable
         using var verify = NewScope();
 
         var userItem = await verify.PortfolioItems
-            .SingleAsync(p => p.TraderTelegramId == UserId && p.CharacterTokenId == Sym);
+            .SingleAsync(p => p.TraderId == UserId && p.CharacterTokenId == Sym);
 
         Assert.Equal(19, userItem.Quantity);          // group-1 purchase must survive
         Assert.Equal(10, userItem.SellingQuantity);   // sold by group-2
         Assert.Equal(1990, userItem.ReserveQuantity); // wall remainder
 
         var userBuy = await verify.TradeOrders.SingleAsync(o =>
-            o.TraderTelegramId == UserId && o.Type == OrderType.Buy);
+            o.TraderId == UserId && o.Type == OrderType.Buy);
         Assert.Equal(19, userBuy.FilledQuantity);
 
         var userWall = await verify.TradeOrders.SingleAsync(o =>
-            o.TraderTelegramId == UserId && o.Type == OrderType.Sell);
+            o.TraderId == UserId && o.Type == OrderType.Sell);
         Assert.Equal(10, userWall.FilledQuantity);
     }
 

@@ -19,7 +19,7 @@ public class MarketMakerGridEngineTest
     [Fact]
     public void GetOrdersToPlace_BuyerRole_ReturnsCommands()
     {
-        var bot = MarketMaker.Create(101, "ZZZ", MarketMakerRole.Buyer, 50);
+        var bot = MarketMakerBot.Create(101, "ZZZ", MarketMakerRole.Buyer, 50);
 
         var currentPrice = 1000m;
         var existingOrders = new List<Order>();
@@ -38,7 +38,7 @@ public class MarketMakerGridEngineTest
     [Fact]
     public void GetOrdersToPlace_SellerRole_ReturnsCommands()
     {
-        var bot = MarketMaker.Create(101, "ZZZ", MarketMakerRole.Seller, 50);
+        var bot = MarketMakerBot.Create(101, "ZZZ", MarketMakerRole.Seller, 50);
 
         var currentPrice = 1000m;
         var existingOrders = new List<Order>();
@@ -57,7 +57,7 @@ public class MarketMakerGridEngineTest
     [Fact]
     public void GetOrdersToPlace_WhenOrdersExistInAllRanges_ReturnsEmpty()
     {
-        var bot = MarketMaker.Create(101, "ZZZ", MarketMakerRole.Buyer, 50);
+        var bot = MarketMakerBot.Create(101, "ZZZ", MarketMakerRole.Buyer, 50);
 
         var currentPrice = 1000m;
         var existingOrders = new List<Order>();
@@ -82,7 +82,7 @@ public class MarketMakerGridEngineTest
     [Fact]
     public void GetOrdersToPlace_BuyerGrid_PriceWithinBounds()
     {
-        var bot = MarketMaker.Create(101, "ZZZ", MarketMakerRole.Buyer, 50);
+        var bot = MarketMakerBot.Create(101, "ZZZ", MarketMakerRole.Buyer, 50);
 
         var currentPrice = 1000m;
         var existingOrders = new List<Order>();
@@ -99,7 +99,7 @@ public class MarketMakerGridEngineTest
     [Fact]
     public void GetOrdersToPlace_SellerGrid_PriceWithinBounds()
     {
-        var bot = MarketMaker.Create(101, "ZZZ", MarketMakerRole.Seller, 50);
+        var bot = MarketMakerBot.Create(101, "ZZZ", MarketMakerRole.Seller, 50);
 
         var currentPrice = 1000m;
         var existingOrders = new List<Order>();
@@ -116,8 +116,8 @@ public class MarketMakerGridEngineTest
     [Fact]
     public void GetOrdersToPlace_DifferentBotPower_QuantityScales()
     {
-        var botWeak = MarketMaker.Create(101, "ZZZ", MarketMakerRole.Buyer, 10);
-        var botStrong = MarketMaker.Create(102, "ZZZ", MarketMakerRole.Buyer, 100);
+        var botWeak = MarketMakerBot.Create(101, "ZZZ", MarketMakerRole.Buyer, 10);
+        var botStrong = MarketMakerBot.Create(102, "ZZZ", MarketMakerRole.Buyer, 100);
 
         var currentPrice = 1000m;
         var existingOrders = new List<Order>();
@@ -134,7 +134,7 @@ public class MarketMakerGridEngineTest
     [Fact]
     public void GetOrdersToPlace_OnlyMissingRanges_Filled()
     {
-        var bot = MarketMaker.Create(101, "ZZZ", MarketMakerRole.Buyer, 50);
+        var bot = MarketMakerBot.Create(101, "ZZZ", MarketMakerRole.Buyer, 50);
 
         var currentPrice = 1000m;
         var existingOrders = new List<Order>();
@@ -151,7 +151,7 @@ public class MarketMakerGridEngineTest
     [Fact]
     public void GetOrdersToPlace_ExistingOrdersIgnoredIfInactive()
     {
-        var bot = MarketMaker.Create(101, "ZZZ", MarketMakerRole.Buyer, 50);
+        var bot = MarketMakerBot.Create(101, "ZZZ", MarketMakerRole.Buyer, 50);
 
         var currentPrice = 1000m;
         var existingOrders = new List<Order>();
@@ -168,7 +168,7 @@ public class MarketMakerGridEngineTest
     [Fact]
     public void GetOrdersToPlace_DefaultParameters_WorkCorrectly()
     {
-        var bot = MarketMaker.Create(101, "ZZZ", MarketMakerRole.Buyer, 50);
+        var bot = MarketMakerBot.Create(101, "ZZZ", MarketMakerRole.Buyer, 50);
 
         var currentPrice = 1000m;
         var existingOrders = new List<Order>();
@@ -183,7 +183,7 @@ public class MarketMakerGridEngineTest
     [Fact]
     public void GetOrdersToPlace_WhenOrderExistsInRange_ShouldNotCreateDuplicate()
     {
-        var bot = MarketMaker.Create(101, "ZZZ", MarketMakerRole.Buyer, 20);
+        var bot = MarketMakerBot.Create(101, "ZZZ", MarketMakerRole.Buyer, 20);
         var currentPrice = 100m;
 
         var existingOrder = Order.Create(
@@ -204,7 +204,7 @@ public class MarketMakerGridEngineTest
     [Fact]
     public void GetOrdersToPlace_WhenPriceRounding_ShouldStillDetectExistingOrder()
     {
-        var bot = MarketMaker.Create(101, "ZZZ", MarketMakerRole.Buyer, 20);
+        var bot = MarketMakerBot.Create(101, "ZZZ", MarketMakerRole.Buyer, 20);
         var currentPrice = 100m;
 
         var existingOrder = Order.Create(
