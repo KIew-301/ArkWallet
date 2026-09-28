@@ -52,7 +52,7 @@ internal class BotOrchestrator(
                     if (!processed)
                         continue;
 
-                    await RefreshPortfolioBatchAsync(bot, activeTokenSymbols, portfolioTokens, ct);
+                    await RefreshPortfolioBatchAsync(bot, activeTokenSymbols, portfolioTokens);
                 }
 
                 return Result.Ok();
@@ -83,7 +83,7 @@ internal class BotOrchestrator(
     }
 
     private async Task RefreshPortfolioBatchAsync(
-        MarketMakerBotRecord bot, IReadOnlyList<string> activeTokenSymbols, int portfolioTokens, CancellationToken ct)
+        MarketMakerBotRecord bot, IReadOnlyList<string> activeTokenSymbols, int portfolioTokens)
     {
         var symbols = GetSymbolList(bot, activeTokenSymbols);
         foreach (var symbol in symbols)
@@ -127,7 +127,7 @@ internal class BotOrchestrator(
                 await eventPublisher.PublishAsync(new BotPublicOrdersEvent(plan), ct);
             }
 
-            return await PlaceCollectedAsync(ct);
+            return await PlaceCollectedAsync();
         }, logger, nameof(BotOrchestrator));
     }
 
@@ -155,7 +155,7 @@ internal class BotOrchestrator(
                 await eventPublisher.PublishAsync(new BotPublicOrdersEvent(plan), ct);
             }
 
-            return await PlaceCollectedAsync(ct);
+            return await PlaceCollectedAsync();
         }, logger, nameof(BotOrchestrator));
     }
 
@@ -189,7 +189,7 @@ internal class BotOrchestrator(
                 await eventPublisher.PublishAsync(new BotPublicOrdersEvent(plan), ct);
             }
 
-            return await PlaceCollectedAsync(ct);
+            return await PlaceCollectedAsync();
         }, logger, nameof(BotOrchestrator));
     }
 
@@ -236,7 +236,7 @@ internal class BotOrchestrator(
             {
                 foreach (var role in RequiredRoles())
                 {
-                    var result = await EnsureBotRoleExistsAsync(symbol, role, existing, ct);
+                    var result = await EnsureBotRoleExistsAsync(symbol, role, existing);
                     if (!result.IsSuccess)
                         return result;
                 }
@@ -250,7 +250,7 @@ internal class BotOrchestrator(
         => new[] { BotRole.Buyer, BotRole.Seller, BotRole.Waller };
 
     private async Task<Result> EnsureBotRoleExistsAsync(
-        string symbol, BotRole role, IReadOnlyCollection<dynamic> existing, CancellationToken ct)
+        string symbol, BotRole role, IReadOnlyCollection<dynamic> existing)
     {
         foreach (var e in existing)
         {
@@ -265,7 +265,7 @@ internal class BotOrchestrator(
         return Result.Ok();
     }
 
-    private async Task<Result> PlaceCollectedAsync(CancellationToken ct)
+    private async Task<Result> PlaceCollectedAsync()
     {
         var collections = orderCollector.TakeAll();
         if (collections.Count == 0)

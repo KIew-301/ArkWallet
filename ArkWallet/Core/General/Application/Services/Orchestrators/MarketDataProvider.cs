@@ -124,6 +124,6 @@ internal sealed class MarketDataProvider(ArkWalletDbContext dbContext)
     }
 
     private static IReadOnlyCollection<PlacedOrderLevel> GetLevelsForSymbol(
-        string symbol, IReadOnlyDictionary<string, IReadOnlyCollection<PlacedOrderLevel>> levelsByTokenId)
+        string symbol, Dictionary<string, IReadOnlyCollection<PlacedOrderLevel>> levelsByTokenId)
         => levelsByTokenId.TryGetValue(symbol, out var found) ? found : Array.Empty<PlacedOrderLevel>();
 }
