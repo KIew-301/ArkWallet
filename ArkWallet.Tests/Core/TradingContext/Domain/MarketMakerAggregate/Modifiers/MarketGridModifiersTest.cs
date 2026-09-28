@@ -25,7 +25,7 @@ public class MarketGridModifiersTest
         var modifier = new BuyerGridModifier();
         var result = modifier.Build(bot, conditions, plan);
 
-        Assert.True(result.Count() >= plan.Count() + 19);
+        Assert.True(result.Count >= plan.Length + 19);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public class MarketGridModifiersTest
         var modifier = new SellerGridModifier();
         var result = modifier.Build(bot, conditions, plan);
 
-        Assert.True(result.Count() >= plan.Count() + 19);
+        Assert.True(result.Count >= plan.Length + 19);
     }
 
     [Fact]
@@ -130,7 +130,7 @@ public class MarketGridModifiersTest
         var modifier = new WallGridModifier();
         var result = modifier.Build(bot, conditions, plan).ToList();
 
-        int originalCount = plan.Count();
+        int originalCount = plan.Length;
         int wallOrders = result.Count - originalCount;
         Assert.True(wallOrders >= 18); // WallBlockerEngine generates 20 levels
 
@@ -178,7 +178,7 @@ public class MarketGridModifiersTest
         var modifier = new MarketOrderModifier();
         var result = modifier.Build(bot, conditions, plan).ToList();
 
-        Assert.Equal(plan.Count() + 1, result.Count);
+        Assert.Equal(plan.Length + 1, result.Count);
         var marketOrder = result.Last();
         Assert.Equal("купить", marketOrder.Direction);
         Assert.True(marketOrder.Price >= 100m); // buyer pays more than current price
@@ -197,7 +197,7 @@ public class MarketGridModifiersTest
         var modifier = new MarketOrderModifier();
         var result = modifier.Build(bot, conditions, plan).ToList();
 
-        Assert.Equal(plan.Count() + 1, result.Count);
+        Assert.Equal(plan.Length + 1, result.Count);
         var marketOrder = result.Last();
         Assert.Equal("продать", marketOrder.Direction);
         Assert.True(marketOrder.Price <= 100m); // seller asks less than current price

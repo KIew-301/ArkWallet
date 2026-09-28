@@ -10,9 +10,11 @@ namespace ArkWallet.Tests.Core.General.Application.Services.Orchestrators;
 public class MarketDataProviderTest : IDisposable
 {
     private readonly List<IAsyncDisposable> _disposables = new();
+    private static readonly IReadOnlyCollection<string> Tkn01Symbols = new[] { "TKN01" };
 
     public void Dispose()
     {
+        GC.SuppressFinalize(this);
         foreach (var d in _disposables)
             d.DisposeAsync().AsTask().GetAwaiter().GetResult();
     }
@@ -36,7 +38,7 @@ public class MarketDataProviderTest : IDisposable
         var provider = new MarketDataProvider(db);
         var mask = MarketDataMasks.CurrentPrice | MarketDataMasks.ExistingLevels;
 
-        var result = await provider.LoadAsync(mask, new[] { "TKN01" }, CancellationToken.None);
+        var result = await provider.LoadAsync(mask, Tkn01Symbols, CancellationToken.None);
 
         Assert.Contains(result, kvp => string.Equals(kvp.Key, "TKN01", StringComparison.OrdinalIgnoreCase));
         var conditions = result["TKN01"];
@@ -57,7 +59,7 @@ public class MarketDataProviderTest : IDisposable
         var provider = new MarketDataProvider(db);
         var mask = MarketDataMasks.CurrentPrice | MarketDataMasks.DayAgoPrice;
 
-        var result = await provider.LoadAsync(mask, new[] { "TKN01" }, CancellationToken.None);
+        var result = await provider.LoadAsync(mask, Tkn01Symbols, CancellationToken.None);
 
         Assert.Single(result);
         Assert.Equal(555m, result["TKN01"].DayAgoPrice);
@@ -73,7 +75,7 @@ public class MarketDataProviderTest : IDisposable
         var provider = new MarketDataProvider(db);
         var mask = MarketDataMasks.CurrentPrice | MarketDataMasks.DayAgoPrice;
 
-        var result = await provider.LoadAsync(mask, new[] { "TKN01" }, CancellationToken.None);
+        var result = await provider.LoadAsync(mask, Tkn01Symbols, CancellationToken.None);
 
         Assert.Empty(result);
     }
@@ -100,13 +102,13 @@ public class MarketDataProviderTest : IDisposable
         var provider = new MarketDataProvider(db);
         var mask = MarketDataMasks.CurrentPrice | MarketDataMasks.ExistingLevels;
 
-        var result = await provider.LoadAsync(mask, new[] { "TKN01" }, CancellationToken.None);
+        var result = await provider.LoadAsync(mask, Tkn01Symbols, CancellationToken.None);
 
         Assert.Single(result);
         var levels = result["TKN01"].ExistingLevels;
         Assert.Equal(2, levels.Count);
-        Assert.True(levels.Any(l => l.Price == 90m && l.IsBuy));
-        Assert.True(levels.Any(l => l.Price == 110m && !l.IsBuy));
+        Assert.Contains(levels, l => l.Price == 90m && l.IsBuy);
+        Assert.Contains(levels, l => l.Price == 110m && !l.IsBuy);
     }
 
     [Fact]
@@ -131,7 +133,7 @@ public class MarketDataProviderTest : IDisposable
         var provider = new MarketDataProvider(db);
         var mask = MarketDataMasks.CurrentPrice;
 
-        var result = await provider.LoadAsync(mask, new[] { "TKN01" }, CancellationToken.None);
+        var result = await provider.LoadAsync(mask, Tkn01Symbols, CancellationToken.None);
 
         Assert.Empty(result);
     }

@@ -22,6 +22,7 @@ public class BotOrchestratorTest : IDisposable
 
     public void Dispose()
     {
+        GC.SuppressFinalize(this);
         foreach (var d in _disposables)
             d.DisposeAsync().AsTask().GetAwaiter().GetResult();
     }
@@ -37,7 +38,7 @@ public class BotOrchestratorTest : IDisposable
         return db;
     }
 
-    private BotOrchestrator CreateOrchestrator(
+    private static BotOrchestrator CreateOrchestrator(
         ArkWalletDbContext db,
         Mock<IEventPublisher>? eventPublisher = null,
         Mock<IOrderCollector>? orderCollector = null,

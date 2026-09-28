@@ -20,7 +20,7 @@ public class PlanModifierCollectionTest
         Assert.Equal(4, coll.GridModifiers.Count);
         Assert.Equal(4, coll.MarketModifiers.Count);
         Assert.Equal(2, coll.WallGridModifiers.Count);
-        Assert.Equal(1, coll.PowerModifiers.Count);
+        Assert.Single(coll.PowerModifiers);
         Assert.Equal(2, coll.WallerPowerModifiers.Count);
     }
 

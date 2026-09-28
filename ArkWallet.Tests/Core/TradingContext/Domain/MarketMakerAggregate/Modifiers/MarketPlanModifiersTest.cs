@@ -8,7 +8,7 @@ public class MarketPlanModifiersTest
 
     private static MarketConditions Conditions => new(100m, null, null, EmptyLevels);
 
-    private static IReadOnlyCollection<CreateMarketOrderCommand> BuildPlan(string direction, int quantity)
+    private static CreateMarketOrderCommand[] BuildPlan(string direction, int quantity)
         => new[] { new CreateMarketOrderCommand(1, direction, "TEST", quantity, 100m) };
 
     // -----------------------------------------------------------------------
