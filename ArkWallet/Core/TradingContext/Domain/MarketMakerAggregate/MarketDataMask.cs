@@ -5,7 +5,7 @@ namespace ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
 /// Оркестратор объединяет маски всех модификаторов коллекции и собирает данные минимальным числом запросов.
 /// </summary>
 [Flags]
-internal enum MarketDataMask
+internal enum MarketDataMasks
 {
     None = 0,
     CurrentPrice = 1,

@@ -2,12 +2,14 @@ using ArkWallet.Core.TradingContext.Domain.Engines;
 
 namespace ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
 
-/// <summary>Источник ордеров стены (Waller): по уровням WallBlockerEngine, объём как в прежней логике.</summary>
+/// <summary>Источник ордеров стены (Waller): по уровням WallBlockerEngine, объём = BasePower × 8.</summary>
 internal sealed class WallGridModifier : IPlanModify
 {
+    private const decimal WallMultiplier = 8m;
+
     private readonly WallBlockerEngine _engine = new();
 
-    public MarketDataMask RequiredMarketData => MarketDataMask.CurrentPrice;
+    public MarketDataMasks RequiredMarketData => MarketDataMasks.CurrentPrice;
 
     public IReadOnlyCollection<CreateMarketOrderCommand> Build(
         MarketMakerBot bot, MarketConditions market, IReadOnlyCollection<CreateMarketOrderCommand> currentPlan)
@@ -21,10 +23,7 @@ internal sealed class WallGridModifier : IPlanModify
 
         var commands = levels.Select(level =>
         {
-            var spread = Random.Shared.Next(0, 41);
-            var quantity = (int)Math.Max(
-                bot.BasePower * Random.Shared.Next(20, 101) * (1m + spread / 100m),
-                1m);
+            var quantity = (int)Math.Max(bot.BasePower * WallMultiplier, 1m);
 
             return new CreateMarketOrderCommand(
                 bot.TraderId, level.Direction, bot.Symbol, quantity, Math.Round(level.Price, 2));

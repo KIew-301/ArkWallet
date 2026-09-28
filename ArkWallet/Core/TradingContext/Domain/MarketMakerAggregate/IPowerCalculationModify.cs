@@ -6,5 +6,7 @@ namespace ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
 /// </summary>
 public interface IPowerCalculationModify
 {
+    /// <summary>Applies the power calculation modification to the given bot.</summary>
+    /// <param name="bot">The market maker bot whose active power will be updated.</param>
     void Apply(MarketMakerBot bot);
 }

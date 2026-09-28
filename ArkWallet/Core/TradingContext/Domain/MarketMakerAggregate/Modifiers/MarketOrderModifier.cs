@@ -5,7 +5,7 @@ namespace ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
 /// <summary>Источник рыночного ордера: логика MarketMakerOrderEngine (Buyer — покупка, Seller — продажа).</summary>
 internal sealed class MarketOrderModifier : IPlanModify
 {
-    public MarketDataMask RequiredMarketData => MarketDataMask.CurrentPrice;
+    public MarketDataMasks RequiredMarketData => MarketDataMasks.CurrentPrice;
 
     public IReadOnlyCollection<CreateMarketOrderCommand> Build(
         MarketMakerBot bot, MarketConditions market, IReadOnlyCollection<CreateMarketOrderCommand> currentPlan)

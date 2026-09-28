@@ -10,31 +10,31 @@ using static ArkWallet.Core.General.Application.Common.Result<BalanceSnapshotDat
 
 internal class BalanceSnapshotService(ArkWalletDbContext db, ILogger<BalanceSnapshotService> logger) : IBalanceSnapshotService
 {
-public async Task<Result<BalanceSnapshotData>> TakeTotalTraderBalanceSnapshot(long traderId)
+public async Task<Result<BalanceSnapshotData>> TakeTotalTraderBalanceSnapshot(long traderTelegramId)
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            var data = await FetchTraderDataAsync(traderId);
+            var data = await FetchTraderDataAsync(traderTelegramId);
 
             if (data is null)
                 return Fail("Трейдер на найден");
 
             var tokenPrices = await LoadTokenPricesAsync(data.Value.ActiveOrders, data.Value.Portfolio);
-            var miningSlotsValue = await LoadMiningSlotsValueAsync(traderId);
+            var miningSlotsValue = await LoadMiningSlotsValueAsync(traderTelegramId);
 
             var tradingBalances = ComputeTradingBalances(data.Value.ActiveOrders, data.Value.Portfolio, tokenPrices);
 
             var totalBalance = data.Value.Balance + tradingBalances.LongOrderReserve + tradingBalances.ShortOrderReserve + tradingBalances.BalanceInTokens + miningSlotsValue;
 
-            return Ok(new(traderId, totalBalance, data.Value.Balance, tradingBalances.LongOrderReserve, tradingBalances.ShortOrderReserve, tradingBalances.BalanceInTokens, DateTime.UtcNow));
+            return Ok(new(traderTelegramId, totalBalance, data.Value.Balance, tradingBalances.LongOrderReserve, tradingBalances.ShortOrderReserve, tradingBalances.BalanceInTokens, DateTime.UtcNow));
         }, logger, nameof(BalanceSnapshotService));
     }
 
-    public async Task<Result<IReadOnlyDictionary<long, BalanceSnapshotData>>> TakeTotalTraderBalanceSnapshotsAsync(IEnumerable<long> traderIds)
+    public async Task<Result<IReadOnlyDictionary<long, BalanceSnapshotData>>> TakeTotalTraderBalanceSnapshotsAsync(IEnumerable<long> traderTelegramIds)
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            var ids = traderIds.Distinct().ToArray();
+            var ids = traderTelegramIds.Distinct().ToArray();
             if (ids.Length == 0)
                 return Result<IReadOnlyDictionary<long, BalanceSnapshotData>>.Ok(new Dictionary<long, BalanceSnapshotData>());
 

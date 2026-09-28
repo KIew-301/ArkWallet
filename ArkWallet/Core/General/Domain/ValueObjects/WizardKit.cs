@@ -36,6 +36,9 @@ namespace ArkWallet.Core.General.Domain.ValueObjects
         public string? SentFilePath { get; set; }
 
         public static StepResult Ok(string nextStep, string? message = null) => new() { Success = true, NextStep = nextStep, Message = message };
+
+        /// <summary>Создаёт результат ошибки шага мастера.</summary>
+        /// <param name="message">Текст ошибки.</param>
         public static StepResult Error(string message) => new() { Success = false, Message = message };
     }
 

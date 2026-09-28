@@ -9,7 +9,7 @@ internal sealed class BasePriceStabilityModifier : IPlanModify
     private const decimal ReductionPerPercent = 2m;
     private const decimal DeviationScaling = 1.2m;
 
-    public MarketDataMask RequiredMarketData => MarketDataMask.CurrentPrice | MarketDataMask.BasePrice;
+    public MarketDataMasks RequiredMarketData => MarketDataMasks.CurrentPrice | MarketDataMasks.BasePrice;
 
     public IReadOnlyCollection<CreateMarketOrderCommand> Build(
         MarketMakerBot bot, MarketConditions market, IReadOnlyCollection<CreateMarketOrderCommand> currentPlan)

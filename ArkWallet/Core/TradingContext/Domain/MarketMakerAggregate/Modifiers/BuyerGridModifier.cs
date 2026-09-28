@@ -9,7 +9,7 @@ internal sealed class BuyerGridModifier : IPlanModify
 
     private readonly MarketMakerGridEngine _engine = new();
 
-    public MarketDataMask RequiredMarketData => MarketDataMask.CurrentPrice | MarketDataMask.ExistingLevels;
+    public MarketDataMasks RequiredMarketData => MarketDataMasks.CurrentPrice | MarketDataMasks.ExistingLevels;
 
     public IReadOnlyCollection<CreateMarketOrderCommand> Build(
         MarketMakerBot bot, MarketConditions market, IReadOnlyCollection<CreateMarketOrderCommand> currentPlan)

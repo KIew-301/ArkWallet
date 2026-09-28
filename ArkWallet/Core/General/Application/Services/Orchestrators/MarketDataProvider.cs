@@ -20,18 +20,18 @@ internal sealed class MarketDataProvider(ArkWalletDbContext dbContext)
     private static readonly TimeSpan DayAgoTtl = TimeSpan.FromMinutes(30);
 
     public async Task<IReadOnlyDictionary<string, MarketConditions>> LoadAsync(
-        MarketDataMask mask, IReadOnlyCollection<string> symbols, CancellationToken ct)
+        MarketDataMasks mask, IReadOnlyCollection<string> symbols, CancellationToken ct)
     {
         var result = new Dictionary<string, MarketConditions>(StringComparer.OrdinalIgnoreCase);
-        if (symbols.Count == 0 || mask == MarketDataMask.None)
+        if (symbols.Count == 0 || mask == MarketDataMasks.None)
         {
             return result;
         }
 
-        var needCurrent = mask.HasFlag(MarketDataMask.CurrentPrice);
-        var needDayAgo = mask.HasFlag(MarketDataMask.DayAgoPrice);
-        var needBase = mask.HasFlag(MarketDataMask.BasePrice);
-        var needLevels = mask.HasFlag(MarketDataMask.ExistingLevels);
+        var needCurrent = mask.HasFlag(MarketDataMasks.CurrentPrice);
+        var needDayAgo = mask.HasFlag(MarketDataMasks.DayAgoPrice);
+        var needBase = mask.HasFlag(MarketDataMasks.BasePrice);
+        var needLevels = mask.HasFlag(MarketDataMasks.ExistingLevels);
 
         var dayAgoCutoff = DateTime.UtcNow.AddHours(-24);
 
@@ -43,8 +43,8 @@ internal sealed class MarketDataProvider(ArkWalletDbContext dbContext)
             : new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
 
         // Активные ордера по символам — уровни для дедупликации сеток.
-        IReadOnlyDictionary<string, IReadOnlyCollection<PlacedOrderLevel>> levelsBySymbol =
-            new Dictionary<string, IReadOnlyCollection<PlacedOrderLevel>>(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, IReadOnlyCollection<PlacedOrderLevel>> levelsBySymbol =
+            new(StringComparer.OrdinalIgnoreCase);
         if (needLevels)
         {
             var levelRows = await dbContext.TradeOrders

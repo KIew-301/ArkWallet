@@ -68,14 +68,13 @@ public class MarketMakerTickGateTests
             new FakeTaskDispatcher(),
             NullLogger<OrderCreationService>.Instance);
 
-        return new BotOrchestrator(
-            db,
-            new PlanModifierCollection(),
-            new OrderCollector(),
-            orderCreationService,
-            null!,
-            null!,
-            new MediatREventPublisher(TestMediatorFactory.Create(db, candleUpdateService)),
-            NullLogger<BotOrchestrator>.Instance);
+    return new BotOrchestrator(
+        db,
+        new PlanModifierCollection(),
+        new OrderCollector(),
+        orderCreationService,
+        null!,
+        new MediatREventPublisher(TestMediatorFactory.Create(db, candleUpdateService)),
+        NullLogger<BotOrchestrator>.Instance);
     }
 }

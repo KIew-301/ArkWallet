@@ -52,15 +52,15 @@ public class MarketMakerSimulationTest
         var botLogger = NullLogger<MarketMakerBotRegistrationService>.Instance;
         var botRegistration = new MarketMakerBotRegistrationService(db, botLogger, timeProvider);
 
-        var buyerResult = await botRegistration.RegisterBotAsync(Symbol, BotRole.Buyer, 100);
+        var buyerResult = await botRegistration.RegisterBotAsync(Symbol, BotRole.Buyer);
         Assert.True(buyerResult.IsSuccess, buyerResult.Message);
         Assert.True(buyerResult.TryGetData(out var buyerData));
 
-        var sellerResult = await botRegistration.RegisterBotAsync(Symbol, BotRole.Seller, 100);
+        var sellerResult = await botRegistration.RegisterBotAsync(Symbol, BotRole.Seller);
         Assert.True(sellerResult.IsSuccess, sellerResult.Message);
         Assert.True(sellerResult.TryGetData(out var sellerData));
 
-        var wallerResult = await botRegistration.RegisterBotAsync(Symbol, BotRole.Waller, 100);
+        var wallerResult = await botRegistration.RegisterBotAsync(Symbol, BotRole.Waller);
         Assert.True(wallerResult.IsSuccess, wallerResult.Message);
         Assert.True(wallerResult.TryGetData(out var wallerData));
 
@@ -205,17 +205,16 @@ public class MarketMakerSimulationTest
             mockTaskDispatcher.Object,
             NullLogger<OrderCreationService>.Instance);
 
-        return new BotOrchestrator(
-            db,
-            new PlanModifierCollection(),
-            new MarketMakerBotRegistrationService(db, NullLogger<MarketMakerBotRegistrationService>.Instance, timeProvider),
-            new OrderCollector(),
-            orderCreationService,
-            new UpdatingService(db, NullLogger<UpdatingService>.Instance),
-            new OrderCancellationService(db, NullLogger<OrderCancellationService>.Instance),
-            new MediatREventPublisher(TestMediatorFactory.Create(db, candleUpdateService)),
-            NullLogger<BotOrchestrator>.Instance,
-            timeProvider);
+    return new BotOrchestrator(
+        db,
+        new PlanModifierCollection(),
+        new MarketMakerBotRegistrationService(db, NullLogger<MarketMakerBotRegistrationService>.Instance, timeProvider),
+        new OrderCollector(),
+        orderCreationService,
+        new UpdatingService(db, NullLogger<UpdatingService>.Instance),
+        new OrderCancellationService(db, NullLogger<OrderCancellationService>.Instance),
+        new MediatREventPublisher(TestMediatorFactory.Create(db, candleUpdateService)),
+        NullLogger<BotOrchestrator>.Instance);
     }
 }
 

@@ -24,8 +24,7 @@ internal class BotOrchestrator(
     IUpdatingService portfolioUpdatingService,
     IOrderCancellationService orderCancellationService,
     IEventPublisher eventPublisher,
-    ILogger<BotOrchestrator> logger,
-    TimeProvider? timeProvider = null) : IBotOrchestrator
+    ILogger<BotOrchestrator> logger) : IBotOrchestrator
 {
     private readonly MarketDataProvider _marketDataProvider = new(dbContext);
 #pragma warning restore S107
@@ -48,7 +47,7 @@ internal class BotOrchestrator(
                 foreach (var bot in bots)
                 {
                     var domainBot = MarketMakerGridMapper.ToMarketMaker(bot);
-                    var (balance, portfolioTokens) = domainBot.GetDefaultResources();
+                    var (balance, portfolioTokens) = MarketMakerBot.GetDefaultResources();
 
                     var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.Id == bot.TraderId, ct);
                     if (trader == null)
@@ -263,9 +262,9 @@ internal class BotOrchestrator(
     private static IEnumerable<MarketMakerBotRecord> Shuffle(List<MarketMakerBotRecord> bots)
         => bots.OrderBy(_ => Guid.NewGuid());
 
-    private static MarketDataMask AggregateRequiredData(IReadOnlyCollection<IPlanModify> modifiers)
+    private static MarketDataMasks AggregateRequiredData(IReadOnlyCollection<IPlanModify> modifiers)
     {
-        var mask = MarketDataMask.None;
+        var mask = MarketDataMasks.None;
         foreach (var modifier in modifiers)
         {
             mask |= modifier.RequiredMarketData;
@@ -275,9 +274,9 @@ internal class BotOrchestrator(
     }
 
     private async Task<IReadOnlyDictionary<string, MarketConditions>> LoadSnapshotsAsync(
-        MarketDataMask mask, IReadOnlyCollection<MarketMakerBotRecord> bots, CancellationToken ct)
+        MarketDataMasks mask, IReadOnlyCollection<MarketMakerBotRecord> bots, CancellationToken ct)
     {
-        if (mask == MarketDataMask.None)
+        if (mask == MarketDataMasks.None)
         {
             return new Dictionary<string, MarketConditions>();
         }
@@ -289,11 +288,11 @@ internal class BotOrchestrator(
     private static IReadOnlyCollection<CreateMarketOrderCommand>? BuildPlan(
         MarketMakerBot bot,
         IReadOnlyCollection<IPlanModify> modifiers,
-        MarketDataMask mask,
+        MarketDataMasks mask,
         IReadOnlyDictionary<string, MarketConditions> snapshots,
         string symbol)
     {
-        if (mask == MarketDataMask.None)
+        if (mask == MarketDataMasks.None)
         {
             return bot.ExecutePlan(modifiers);
         }

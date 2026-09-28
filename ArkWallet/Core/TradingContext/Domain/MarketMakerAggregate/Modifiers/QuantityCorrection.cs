@@ -21,9 +21,11 @@ internal static class QuantityCorrection
 
         foreach (var order in plan)
         {
-            var adverse = order.Direction == "купить"
-                ? (deviationPercent > 0 ? deviationPercent : 0m)
-                : (deviationPercent < 0 ? -deviationPercent : 0m);
+            decimal adverse;
+            if (order.Direction == "купить")
+                adverse = deviationPercent > 0 ? deviationPercent : 0m;
+            else
+                adverse = deviationPercent < 0 ? -deviationPercent : 0m;
 
             decimal reduce;
             if (reductionPerPercentPoint > 0)

@@ -27,6 +27,10 @@ public class BotOrchestratorWorker : BackgroundService
     private readonly ILogger<BotOrchestratorWorker> _logger;
     private readonly TimeProvider _timeProvider;
 
+    /// <summary>Initializes a new instance of the <see cref="BotOrchestratorWorker"/> class.</summary>
+    /// <param name="serviceProvider">The service provider.</param>
+    /// <param name="logger">The logger.</param>
+    /// <param name="timeProvider">Optional time provider for deterministic testing.</param>
     public BotOrchestratorWorker(IServiceProvider serviceProvider, ILogger<BotOrchestratorWorker> logger, TimeProvider? timeProvider = null)
     {
         _serviceProvider = serviceProvider;
@@ -34,6 +38,8 @@ public class BotOrchestratorWorker : BackgroundService
         _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
+    /// <summary>Executes the background service: ensures default bots then runs scheduled jobs in a loop.</summary>
+    /// <param name="stoppingToken">Token to detect cancellation.</param>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("BotOrchestratorWorker started");
@@ -42,7 +48,7 @@ public class BotOrchestratorWorker : BackgroundService
         var initOrchestrator = initScope.ServiceProvider.GetRequiredService<IBotOrchestrator>();
         var ensureResult = await initOrchestrator.EnsureDefaultBotsAsync(stoppingToken);
         if (!ensureResult.IsSuccess)
-            _logger.LogWarning(ensureResult.Message, "EnsureDefaultBotsAsync failed — default bots may not be available");
+            _logger.LogWarning(ensureResult.Message);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -60,6 +66,8 @@ public class BotOrchestratorWorker : BackgroundService
         _logger.LogInformation("BotOrchestratorWorker stopped");
     }
 
+    /// <summary>Runs all scheduled jobs (power rebalancing, grid updates, market orders, balance updates, wall updates).</summary>
+    /// <param name="ct">Cancellation token.</param>
     public async Task RunScheduledJobsAsync(CancellationToken ct)
     {
         using var scope = _serviceProvider.CreateScope();

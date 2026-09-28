@@ -10,10 +10,10 @@ internal sealed class RandomnessPowerModifier : IPowerCalculationModify
     }
 }
 
-/// <summary>Усиление: повышает фактическую (текущую активную) силу в 20 раз.</summary>
+/// <summary>Усиление: повышает фактическую (текущую активную) силу в 8 раз.</summary>
 internal sealed class AmplificationPowerModifier : IPowerCalculationModify
 {
-    private const int Multiplier = 20;
+    private const int Multiplier = 8;
 
     public void Apply(MarketMakerBot bot)
         => bot.SetActivePower(bot.ActivePower * Multiplier);

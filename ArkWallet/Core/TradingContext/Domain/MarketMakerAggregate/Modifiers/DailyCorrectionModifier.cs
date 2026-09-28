@@ -10,7 +10,7 @@ internal sealed class DailyCorrectionModifier : IPlanModify
     private const decimal DeadBandPercent = 10m;
     private const decimal FullReductionPercent = 50m;
 
-    public MarketDataMask RequiredMarketData => MarketDataMask.CurrentPrice | MarketDataMask.DayAgoPrice;
+    public MarketDataMasks RequiredMarketData => MarketDataMasks.CurrentPrice | MarketDataMasks.DayAgoPrice;
 
     public IReadOnlyCollection<CreateMarketOrderCommand> Build(
         MarketMakerBot bot, MarketConditions market, IReadOnlyCollection<CreateMarketOrderCommand> currentPlan)

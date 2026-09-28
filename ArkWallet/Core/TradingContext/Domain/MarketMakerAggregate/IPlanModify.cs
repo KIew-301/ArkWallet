@@ -9,7 +9,7 @@ namespace ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
 internal interface IPlanModify
 {
     /// <summary>Данные рынка, необходимые модификатору. Оркестратор мержит маски и собирает их пакетно.</summary>
-    MarketDataMask RequiredMarketData { get; }
+    MarketDataMasks RequiredMarketData { get; }
 
     IReadOnlyCollection<CreateMarketOrderCommand> Build(
         MarketMakerBot bot,

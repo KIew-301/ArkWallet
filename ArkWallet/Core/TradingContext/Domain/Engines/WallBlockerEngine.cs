@@ -14,7 +14,7 @@ internal record WallBlockerLevel(decimal Price, string Direction);
 /// </summary>
 internal class WallBlockerEngine
 {
-    private const int LevelsPerSide = 5;
+    private const int LevelsPerSide = 10;
     private const decimal NearestOffsetMin = 0.03m;
     private const decimal NearestOffsetMax = 0.05m;
     private const decimal StepOffsetMin = 0.02m;

@@ -27,7 +27,7 @@ internal class AccessSettingFilter(AccessControlService accessControl, ArkWallet
 
         var Id = trader.Id;
 
-        if (!accessControl.IsAuthorized(Id!))
+        if (!accessControl.IsAuthorized(Id))
         {
             context.Result = new StatusCodeResult(403);
         }
