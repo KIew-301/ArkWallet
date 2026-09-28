@@ -9,11 +9,11 @@ using static Result;
 
 internal class TraderQueryService(ArkWalletDbContext dbContext, ILogger<TraderQueryService> logger) : ITraderQueryService
 {
-    public async Task<Result<TraderProfileInfo>> GetTraderProfileAsync(long traderId)
+    public async Task<Result<TraderProfileInfo>> GetTraderProfileAsync(long traderTelegramId)
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.Id == traderId);
+            var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.Id == traderTelegramId);
 
             if (trader == null)
                 return Result<TraderProfileInfo>.Fail("Данные профиля не найдены.");

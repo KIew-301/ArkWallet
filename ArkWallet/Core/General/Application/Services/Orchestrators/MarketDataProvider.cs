@@ -24,113 +24,106 @@ internal sealed class MarketDataProvider(ArkWalletDbContext dbContext)
     {
         var result = new Dictionary<string, MarketConditions>(StringComparer.OrdinalIgnoreCase);
         if (symbols.Count == 0 || mask == MarketDataMasks.None)
-        {
             return result;
-        }
 
-        var needCurrent = mask.HasFlag(MarketDataMasks.CurrentPrice);
-        var needDayAgo = mask.HasFlag(MarketDataMasks.DayAgoPrice);
-        var needBase = mask.HasFlag(MarketDataMasks.BasePrice);
-        var needLevels = mask.HasFlag(MarketDataMasks.ExistingLevels);
-
-        var dayAgoCutoff = DateTime.UtcNow.AddHours(-24);
-
-        // Текущая цена — одна строка на символ.
-        var currentBySymbol = needCurrent
-            ? await dbContext.CharacterTokens
-                .Where(t => symbols.Contains(t.Symbol))
-                .ToDictionaryAsync(t => t.Symbol, t => t.CurrentPrice, ct)
-            : new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
-
-        // Активные ордера по символам — уровни для дедупликации сеток.
-        Dictionary<string, IReadOnlyCollection<PlacedOrderLevel>> levelsBySymbol =
-            new(StringComparer.OrdinalIgnoreCase);
-        if (needLevels)
-        {
-            var levelRows = await dbContext.TradeOrders
-                .Where(o => o.Status == OrderStatus.Active && symbols.Contains(o.CharacterTokenId))
-                .Select(o => new { o.CharacterTokenId, o.Price, o.Type })
-                .ToListAsync(ct);
-
-            levelsBySymbol = levelRows
-                .GroupBy(r => r.CharacterTokenId)
-                .ToDictionary(
-                    g => g.Key,
-                    g => (IReadOnlyCollection<PlacedOrderLevel>)g
-                        .Select(r => new PlacedOrderLevel(r.Price, r.Type == OrderType.Buy))
-                        .ToList(),
-                    StringComparer.OrdinalIgnoreCase);
-        }
+        var currentBySymbol = await LoadCurrentPricesAsync(mask, symbols, ct);
+        var levelsByTokenId = await LoadLevelsByTokenIdsAsync(mask, symbols, ct);
 
         foreach (var symbol in symbols)
         {
-            if (needCurrent && !currentBySymbol.ContainsKey(symbol))
-            {
+            decimal? basePrice = GetCachedBasePrice(symbol, ct);
+            if (!basePrice.HasValue)
                 continue;
-            }
-
-            var current = needCurrent ? currentBySymbol[symbol] : 0m;
-
-            decimal? basePrice = null;
-            if (needBase)
-            {
-                if (!_basePriceCache.TryGetValue(symbol, out var cached))
-                {
-                    cached = await dbContext.PriceCandles
-                        .Where(c => c.CharacterTokenId == symbol)
-                        .OrderBy(c => c.Timestamp)
-                        .Select(c => c.OpenPrice)
-                        .FirstOrDefaultAsync(ct);
-                    _basePriceCache[symbol] = cached;
-                }
-
-                if (cached == 0m)
-                {
-                    continue;
-                }
-
-                basePrice = cached;
-            }
 
             decimal? dayAgo = null;
-            if (needDayAgo)
-            {
-                if (_dayAgoCache.TryGetValue(symbol, out var cached) &&
-                    DateTime.UtcNow - cached.FetchedAt < DayAgoTtl)
-                {
-                    dayAgo = cached.Value;
-                }
-                else
-                {
-                    dayAgo = await dbContext.PriceCandles
-                        .Where(c => c.CharacterTokenId == symbol && c.Timestamp <= dayAgoCutoff)
-                        .OrderByDescending(c => c.Timestamp)
-                        .Select(c => c.OpenPrice)
-                        .FirstOrDefaultAsync(ct);
+            if (mask.HasFlag(MarketDataMasks.DayAgoPrice))
+                dayAgo = await LoadDayAgoPriceAsync(symbol, ct);
 
-                    if (dayAgo is 0m or null)
-                    {
-                        _dayAgoCache.TryAdd(symbol, (null, DateTime.UtcNow));
-                    }
-                    else
-                    {
-                        _dayAgoCache[symbol] = (dayAgo, DateTime.UtcNow);
-                    }
-                }
+            if (dayAgo is 0m or null)
+                continue;
 
-                if (dayAgo is 0m or null)
-                {
-                    continue;
-                }
-            }
+            var levels = GetLevelsForSymbol(symbol, levelsByTokenId);
 
-            var levels = needLevels && levelsBySymbol.TryGetValue(symbol, out var found)
-                ? found
-                : Array.Empty<PlacedOrderLevel>();
-
-            result[symbol] = new MarketConditions(current, dayAgo, basePrice, levels);
+            result[symbol] = new MarketConditions(currentBySymbol[symbol], dayAgo, basePrice.Value, levels);
         }
 
         return result;
     }
+
+    private async Task<Dictionary<string, decimal>> LoadCurrentPricesAsync(
+        MarketDataMasks mask, IReadOnlyCollection<string> symbols, CancellationToken ct)
+    {
+        if (!mask.HasFlag(MarketDataMasks.CurrentPrice))
+            return new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+
+        return await dbContext.CharacterTokens
+            .Where(t => symbols.Contains(t.Symbol))
+            .ToDictionaryAsync(t => t.Symbol, t => t.CurrentPrice, ct);
+    }
+
+    private async Task<Dictionary<string, IReadOnlyCollection<PlacedOrderLevel>>> LoadLevelsByTokenIdsAsync(
+        MarketDataMasks mask, IReadOnlyCollection<string> symbols, CancellationToken ct)
+    {
+        if (!mask.HasFlag(MarketDataMasks.ExistingLevels))
+            return new Dictionary<string, IReadOnlyCollection<PlacedOrderLevel>>(StringComparer.OrdinalIgnoreCase);
+
+        var selectedIds = symbols.ToArray();
+        var levelRows = await dbContext.TradeOrders
+            .Where(o => o.Status == OrderStatus.Active && selectedIds.Contains(o.CharacterTokenId))
+            .Select(o => new { o.CharacterTokenId, o.Price, o.Type })
+            .ToListAsync(ct);
+
+        return levelRows
+            .GroupBy(r => r.CharacterTokenId)
+            .ToDictionary(g => g.Key,
+                g => (IReadOnlyCollection<PlacedOrderLevel>)g
+                    .Select(r => new PlacedOrderLevel(r.Price, r.Type == OrderType.Buy))
+                    .ToList(),
+                StringComparer.OrdinalIgnoreCase);
+    }
+
+    private async Task<decimal?> LoadDayAgoPriceAsync(string symbol, CancellationToken ct)
+    {
+        var dayAgoCutoff = DateTime.UtcNow.AddHours(-24);
+
+        if (_dayAgoCache.TryGetValue(symbol, out var cached) &&
+            DateTime.UtcNow - cached.FetchedAt < DayAgoTtl)
+        {
+            return cached.Value;
+        }
+
+        var dayAgo = await dbContext.PriceCandles
+            .Where(c => c.CharacterTokenId == symbol && c.Timestamp <= dayAgoCutoff)
+            .OrderByDescending(c => c.Timestamp)
+            .Select(c => c.OpenPrice)
+            .FirstOrDefaultAsync(ct);
+
+        if (dayAgo == 0m)
+            _dayAgoCache.TryAdd(symbol, (null, DateTime.UtcNow));
+        else
+            _dayAgoCache[symbol] = (dayAgo, DateTime.UtcNow);
+
+        return dayAgo;
+    }
+
+    private decimal? GetCachedBasePrice(string symbol, CancellationToken ct)
+    {
+        if (!_basePriceCache.TryGetValue(symbol, out var cached))
+        {
+            cached = dbContext.PriceCandles
+                .Where(c => c.CharacterTokenId == symbol)
+                .OrderBy(c => c.Timestamp)
+                .Select(c => c.OpenPrice)
+                .FirstOrDefaultAsync(ct)
+                .Result;
+
+            _basePriceCache[symbol] = cached;
+        }
+
+        return cached == 0m ? (decimal?)null : cached;
+    }
+
+    private static IReadOnlyCollection<PlacedOrderLevel> GetLevelsForSymbol(
+        string symbol, IReadOnlyDictionary<string, IReadOnlyCollection<PlacedOrderLevel>> levelsByTokenId)
+        => levelsByTokenId.TryGetValue(symbol, out var found) ? found : Array.Empty<PlacedOrderLevel>();
 }

@@ -80,14 +80,14 @@ internal class SubscriptionQueryService(TimeProvider timeProvider, ArkWalletDbCo
         }, logger, nameof(SubscriptionQueryService));
     }
 
-    public async Task<Result<List<SubscriptionOfferInfo>>> GetOffersForTraderAsync(long traderId, CancellationToken cancellationToken = default)
+    public async Task<Result<List<SubscriptionOfferInfo>>> GetOffersForTraderAsync(long traderTelegramId, CancellationToken cancellationToken = default)
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             var now = timeProvider.GetUtcNow().UtcDateTime;
 
             var activeSubscriptionId = await dbContext.Traders
-                .Where(t => t.Id == traderId)
+                .Where(t => t.Id == traderTelegramId)
                 .Select(t => t.SubscriptionId)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -100,7 +100,7 @@ internal class SubscriptionQueryService(TimeProvider timeProvider, ArkWalletDbCo
                     .FirstOrDefaultAsync(s => s.Id == activeSubscriptionId.Value, cancellationToken);
 
                 activeExpiresAtUtc = await dbContext.Traders
-                    .Where(t => t.Id == traderId)
+                    .Where(t => t.Id == traderTelegramId)
                     .Select(t => t.SubscriptionExpiresAtUtc)
                     .FirstOrDefaultAsync(cancellationToken);
             }

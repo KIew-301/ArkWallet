@@ -48,7 +48,7 @@ public class BotOrchestratorWorker : BackgroundService
         var initOrchestrator = initScope.ServiceProvider.GetRequiredService<IBotOrchestrator>();
         var ensureResult = await initOrchestrator.EnsureDefaultBotsAsync(stoppingToken);
         if (!ensureResult.IsSuccess)
-            _logger.LogWarning(ensureResult.Message);
+            _logger.LogWarning("{EnsureMessage}", ensureResult.Message);
 
         while (!stoppingToken.IsCancellationRequested)
         {

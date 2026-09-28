@@ -18,29 +18,29 @@ public enum MarketMakerRole
 /// <summary>Represents a market maker bot with configurable power, role, and trading parameters.</summary>
 public sealed class MarketMakerBot
 {
-    /// <summary>The default trader balance for the bot.</summary>
+    /// <summary>Баланс трейдера по умолчанию для бота — 10 000 000.</summary>
     public const decimal DefaultBalance = 10_000_000m;
 
-    /// <summary>Портфель (токены символа) по умолчанию для бота.</summary>
+    /// <summary>Портфель (токены символа) по умолчанию для бота — 1 000 000.</summary>
     public const int DefaultPortfolioTokens = 1_000_000;
 
-    /// <summary>Unique identifier of the bot.</summary>
+    /// <summary>Уникальный идентификатор бота.</summary>
     public long Id { get; private set; }
-    /// <summary>ID of the trader this bot belongs to.</summary>
+    /// <summary>Идентификатор трейдера, которому принадлежит этот бот.</summary>
     public long TraderId { get; }
-    /// <summary>The trading pair symbol (e.g., BTC/USDT).</summary>
+    /// <summary>Торговая пара символа (например, BTC/USDT).</summary>
     public string Symbol { get; }
-    /// <summary>The base power value used for calculations.</summary>
+    /// <summary>Базовое значение мощности, используемое для расчётов.</summary>
     public decimal BasePower { get; private set; }
-    /// <summary>The currently active power after applying modifiers.</summary>
+    /// <summary>Текущая активная мощность после применения модификаторов.</summary>
     public decimal ActivePower { get; private set; }
-    /// <summary>The role this bot plays in the market.</summary>
+    /// <summary>Роль, которую бот выполняет на рынке.</summary>
     public MarketMakerRole Role { get; private set; }
-    /// <summary>Coefficient for power deviation calculations.</summary>
+    /// <summary>Коэффициент для расчётов отклонения мощности.</summary>
     public decimal PowerDeviationCoeff { get; private set; }
-    /// <summary>Whether this bot is currently active.</summary>
+    /// <summary>Активен ли этот бот в настоящее время.</summary>
     public bool IsActive { get; private set; }
-    /// <summary>The UTC timestamp when this bot was created.</summary>
+    /// <summary>Метка времени создания бота (UTC).</summary>
     public DateTime CreatedAt { get; }
 
     private MarketMakerBot(long traderId, string symbol, MarketMakerRole role, decimal basePower, DateTime createdAt)
@@ -55,13 +55,15 @@ public sealed class MarketMakerBot
         CreatedAt = createdAt;
     }
 
-    /// <summary>Creates a new market maker bot instance.</summary>
-    /// <param name="traderId">The ID of the trader this bot belongs to.</param>
-    /// <param name="symbol">The trading pair symbol.</param>
-    /// <param name="role">The market making role.</param>
-    /// <param name="initialPower">The initial base power (default: 50).</param>
-    /// <param name="timeProvider">Optional time provider for deterministic testing.</param>
-    /// <returns>A new <see cref="MarketMakerBot"/> instance.</returns>
+    /// <summary>
+    /// Создаёт новый экземпляр бота-маркетмейкера.
+    /// </summary>
+    /// <param name="traderId">Идентификатор трейдера, которому принадлежит бот.</param>
+    /// <param name="symbol">Торговый символ пары (например, BTC/USDT).</param>
+    /// <param name="role">Роль маркетмейкера на рынке.</param>
+    /// <param name="initialPower">Начальная базовая мощность (по умолчанию 50).</param>
+    /// <param name="timeProvider">Поставщик времени для детерминированного тестирования.</param>
+    /// <returns>Новый экземпляр <see cref="MarketMakerBot"/>.</returns>
     public static MarketMakerBot Create(long traderId, string symbol, MarketMakerRole role, decimal initialPower = 50m, TimeProvider? timeProvider = null)
     {
         if (string.IsNullOrWhiteSpace(symbol))
@@ -73,6 +75,17 @@ public sealed class MarketMakerBot
         return new MarketMakerBot(traderId, symbol, role, initialPower, createdAt);
     }
 
+    /// <summary>
+    /// Восстанавливает бота из сохранённых данных (загрузка из БД).
+    /// </summary>
+    /// <param name="id">Идентификатор бота.</param>
+    /// <param name="traderId">ID трейдера.</param>
+    /// <param name="symbol">Торговый символ.</param>
+    /// <param name="role">Роль бота.</param>
+    /// <param name="basePower">Базовая мощность.</param>
+    /// <param name="isActive">Флаг активности.</param>
+    /// <param name="createdAt">Дата создания.</param>
+    /// <param name="powerDeviationCoeff">Коэффициент отклонения мощности.</param>
     internal static MarketMakerBot Load(long id, long traderId, string symbol, MarketMakerRole role, decimal basePower, bool isActive, DateTime createdAt, decimal powerDeviationCoeff = 1)
     {
         var marketMakerBot = new MarketMakerBot(traderId, symbol, role, basePower, createdAt)
@@ -84,9 +97,11 @@ public sealed class MarketMakerBot
         return marketMakerBot;
     }
 
-    /// <summary>Updates the base power with a random deviation clamped to the specified range.</summary>
-    /// <param name="minPower">The minimum allowed power value.</param>
-    /// <param name="maxPower">The maximum allowed power value.</param>
+    /// <summary>
+    /// Обновляет базовую мощность со случайным отклонением, ограниченным заданным диапазоном.
+    /// </summary>
+    /// <param name="minPower">Минимально допустимое значение мощности.</param>
+    /// <param name="maxPower">Максимально допустимое значение мощности.</param>
     public void UpdatePower(decimal minPower, decimal maxPower)
     {
         if (minPower >= maxPower)
@@ -96,16 +111,18 @@ public sealed class MarketMakerBot
         BasePower = Math.Clamp(BasePower + change, minPower, maxPower);
     }
 
-    /// <summary>Updates the power deviation coefficient, clamping it to [1, 5.5].</summary>
-    /// <param name="newCoeff">The new deviation coefficient.</param>
+    /// <summary>
+    /// Обновляет коэффициент отклонения мощности, ограничивая его диапазоном [1; 5,5].
+    /// </summary>
+    /// <param name="newCoeff">Новое значение коэффициента.</param>
     public void UpdatePowerDeviationCoeff(decimal newCoeff) => PowerDeviationCoeff = Math.Clamp(newCoeff, 1m, 5.5m);
 
-    /// <summary>Sets the trading role of this bot.</summary>
-    /// <param name="role">The new market maker role.</param>
+    /// <summary>Устанавливает торговую роль этого бота.</summary>
+    /// <param name="role">Новая роль маркетмейкера.</param>
     public void SetRole(MarketMakerRole role) => Role = role;
 
-    /// <summary>Sets the active status of this bot.</summary>
-    /// <param name="isActive">Whether the bot is active.</param>
+    /// <summary>Устанавливает активный статус этого бота.</summary>
+    /// <param name="isActive">Активен ли бот.</param>
     public void SetActive(bool isActive) => IsActive = isActive;
 
     /// <summary>
@@ -128,6 +145,7 @@ public sealed class MarketMakerBot
     /// <summary>
     /// Пересчитывает активную мощность: прогоняет коллекцию модификаторов, каждый из которых меняет ActivePower.
     /// </summary>
+    /// <param name="modifiers">Коллекция модификаторов расчёта мощности для применения.</param>
     public void RebalancePower(IReadOnlyCollection<IPowerCalculationModify> modifiers)
     {
         foreach (var modify in modifiers)
@@ -138,5 +156,6 @@ public sealed class MarketMakerBot
     internal void SetActivePower(decimal value) => ActivePower = value;
 
     /// <summary>Возвращает дефолтные ресурсы бота: баланс трейдера и размер портфеля токенов.</summary>
+    /// <returns>Кортеж с балансом трейдера и количеством токенов портфеля.</returns>
     public static (decimal Balance, int PortfolioTokens) GetDefaultResources() => (DefaultBalance, DefaultPortfolioTokens);
 }

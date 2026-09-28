@@ -21,27 +21,28 @@ internal static class QuantityCorrection
 
         foreach (var order in plan)
         {
-            decimal adverse;
-            if (order.Direction == "купить")
-                adverse = deviationPercent > 0 ? deviationPercent : 0m;
-            else
-                adverse = deviationPercent < 0 ? -deviationPercent : 0m;
-
-            decimal reduce;
-            if (reductionPerPercentPoint > 0)
-            {
-                reduce = Math.Clamp(adverse * reductionPerPercentPoint, 0m, 100m);
-            }
-            else
-            {
-                var beyondDeadBand = Math.Max(adverse - deadBandPercent, 0m);
-                reduce = Math.Clamp(beyondDeadBand * coefficient, 0m, 100m);
-            }
+            var adverse = CalculateAdverse(order.Direction, deviationPercent);
+            var reduce = CalculateReduce(adverse, reductionPerPercentPoint, deadBandPercent, coefficient);
             var quantity = (int)(order.Quantity * (1m - reduce / 100m));
             if (quantity >= 1)
                 result.Add(order with { Quantity = quantity });
         }
 
         return result;
+    }
+
+    private static decimal CalculateAdverse(string direction, decimal deviationPercent)
+        => direction == "купить"
+            ? Math.Max(deviationPercent, 0m)
+            : Math.Max(-deviationPercent, 0m);
+
+    private static decimal CalculateReduce(
+        decimal adverse, decimal reductionPerPercentPoint, decimal deadBandPercent, decimal coefficient)
+    {
+        if (reductionPerPercentPoint > 0)
+            return Math.Clamp(adverse * reductionPerPercentPoint, 0m, 100m);
+
+        var beyondDeadBand = Math.Max(adverse - deadBandPercent, 0m);
+        return Math.Clamp(beyondDeadBand * coefficient, 0m, 100m);
     }
 }

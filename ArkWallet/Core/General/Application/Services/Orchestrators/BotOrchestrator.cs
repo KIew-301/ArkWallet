@@ -46,36 +46,13 @@ internal class BotOrchestrator(
             {
                 foreach (var bot in bots)
                 {
-                    var domainBot = MarketMakerGridMapper.ToMarketMaker(bot);
                     var (balance, portfolioTokens) = MarketMakerBot.GetDefaultResources();
 
-                    var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.Id == bot.TraderId, ct);
-                    if (trader == null)
-                    {
-                        logger.LogWarning("Trader {TraderId} not found for bot {BotId}", bot.TraderId, bot.Id);
+                    var processed = await ProcessBotTraderAsync(bot, balance, ct);
+                    if (!processed)
                         continue;
-                    }
 
-                    if (trader.Balance < balance)
-                    {
-                        trader.Balance = balance;
-                        await dbContext.SaveChangesAsync(ct);
-                        logger.LogInformation("Trader {TraderId} balance replenished to {Balance}", trader.Id, balance);
-                    }
-
-                    var symbols = bot.Symbol == "*"
-                        ? (IReadOnlyList<string>)activeTokenSymbols
-                        : new List<string> { bot.Symbol };
-
-                    foreach (var symbol in symbols)
-                    {
-                        var portfolioResult = await portfolioUpdatingService
-                            .CreateOrUpdatePortfolioAsync(bot.TraderId, symbol, portfolioTokens);
-                        if (!portfolioResult.IsSuccess)
-                            logger.LogWarning(
-                                "Failed to update portfolio for trader {TraderId} on {Symbol}: {Error}",
-                                bot.TraderId, symbol, portfolioResult.Message);
-                    }
+                    await RefreshPortfolioBatchAsync(bot, activeTokenSymbols, portfolioTokens, ct);
                 }
 
                 return Result.Ok();
@@ -84,6 +61,47 @@ internal class BotOrchestrator(
             return Result.Ok();
         }, logger, nameof(BotOrchestrator));
     }
+
+    private async Task<bool> ProcessBotTraderAsync(
+        MarketMakerBotRecord bot, decimal requiredBalance, CancellationToken ct)
+    {
+        var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.Id == bot.TraderId, ct);
+        if (trader == null)
+        {
+            logger.LogWarning("Trader {TraderId} not found for bot {BotId}", bot.TraderId, bot.Id);
+            return false;
+        }
+
+        if (trader.Balance < requiredBalance)
+        {
+            trader.Balance = requiredBalance;
+            await dbContext.SaveChangesAsync(ct);
+            logger.LogInformation("Trader {TraderId} balance replenished to {Balance}", trader.Id, requiredBalance);
+        }
+
+        return true;
+    }
+
+    private async Task RefreshPortfolioBatchAsync(
+        MarketMakerBotRecord bot, IReadOnlyList<string> activeTokenSymbols, int portfolioTokens, CancellationToken ct)
+    {
+        var symbols = GetSymbolList(bot, activeTokenSymbols);
+        foreach (var symbol in symbols)
+        {
+            var portfolioResult = await portfolioUpdatingService
+                .CreateOrUpdatePortfolioAsync(bot.TraderId, symbol, portfolioTokens);
+            if (!portfolioResult.IsSuccess)
+                logger.LogWarning(
+                    "Failed to update portfolio for trader {TraderId} on {Symbol}: {Error}",
+                    bot.TraderId, symbol, portfolioResult.Message);
+        }
+    }
+
+    private static IReadOnlyList<string> GetSymbolList(
+        MarketMakerBotRecord bot, IReadOnlyList<string> activeTokenSymbols)
+        => bot.Symbol == "*"
+            ? activeTokenSymbols
+            : (IReadOnlyList<string>)new List<string> { bot.Symbol };
 
     public async Task<Result> UpdateBotsGridsAsync(CancellationToken ct = default)
     {
@@ -214,23 +232,37 @@ internal class BotOrchestrator(
                 .Select(b => new { b.Symbol, b.Role })
                 .ToListAsync(ct);
 
-            BotRole[] requiredRoles = { BotRole.Buyer, BotRole.Seller, BotRole.Waller };
-
             foreach (var symbol in symbols)
             {
-                foreach (var role in requiredRoles)
+                foreach (var role in RequiredRoles())
                 {
-                    if (existing.Any(e => e.Symbol == symbol && e.Role == role))
-                        continue;
-
-                    var result = await botRegistration.RegisterBotAsync(symbol, role, 100m);
+                    var result = await EnsureBotRoleExistsAsync(symbol, role, existing, ct);
                     if (!result.IsSuccess)
-                        return Result.Fail($"Не удалось создать бота {role} для {symbol}: {result.Message}");
+                        return result;
                 }
             }
 
             return Result.Ok();
         }, logger, nameof(BotOrchestrator));
+    }
+
+    private static BotRole[] RequiredRoles()
+        => new[] { BotRole.Buyer, BotRole.Seller, BotRole.Waller };
+
+    private async Task<Result> EnsureBotRoleExistsAsync(
+        string symbol, BotRole role, IReadOnlyCollection<dynamic> existing, CancellationToken ct)
+    {
+        foreach (var e in existing)
+        {
+            if (e.Symbol == symbol && e.Role == role)
+                return Result.Ok();
+        }
+
+        var result = await botRegistration.RegisterBotAsync(symbol, role, 100m);
+        if (!result.IsSuccess)
+            return Result.Fail($"Не удалось создать бота {role} для {symbol}: {result.Message}");
+
+        return Result.Ok();
     }
 
     private async Task<Result> PlaceCollectedAsync(CancellationToken ct)
