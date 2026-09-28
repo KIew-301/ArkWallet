@@ -78,21 +78,14 @@ public sealed class MarketMakerBot
     /// <summary>
     /// Восстанавливает бота из сохранённых данных (загрузка из БД).
     /// </summary>
-    /// <param name="id">Идентификатор бота.</param>
-    /// <param name="traderId">ID трейдера.</param>
-    /// <param name="symbol">Торговый символ.</param>
-    /// <param name="role">Роль бота.</param>
-    /// <param name="basePower">Базовая мощность.</param>
-    /// <param name="isActive">Флаг активности.</param>
-    /// <param name="createdAt">Дата создания.</param>
-    /// <param name="powerDeviationCoeff">Коэффициент отклонения мощности.</param>
-    internal static MarketMakerBot Load(long id, long traderId, string symbol, MarketMakerRole role, decimal basePower, bool isActive, DateTime createdAt, decimal powerDeviationCoeff = 1)
+    /// <param name="data">Снимок сохранённых параметров бота.</param>
+    internal static MarketMakerBot Load(MarketMakerBotLoadData data)
     {
-        var marketMakerBot = new MarketMakerBot(traderId, symbol, role, basePower, createdAt)
+        var marketMakerBot = new MarketMakerBot(data.TraderId, data.Symbol, data.Role, data.BasePower, data.CreatedAt)
         {
-            Id = id,
-            IsActive = isActive,
-            PowerDeviationCoeff = powerDeviationCoeff
+            Id = data.Id,
+            IsActive = data.IsActive,
+            PowerDeviationCoeff = data.PowerDeviationCoeff
         };
         return marketMakerBot;
     }
@@ -159,3 +152,14 @@ public sealed class MarketMakerBot
     /// <returns>Кортеж с балансом трейдера и количеством токенов портфеля.</returns>
     public static (decimal Balance, int PortfolioTokens) GetDefaultResources() => (DefaultBalance, DefaultPortfolioTokens);
 }
+
+/// <summary>Снимок сохранённых параметров бота для восстановления из БД.</summary>
+internal sealed record MarketMakerBotLoadData(
+    long Id,
+    long TraderId,
+    string Symbol,
+    MarketMakerRole Role,
+    decimal BasePower,
+    bool IsActive,
+    DateTime CreatedAt,
+    decimal PowerDeviationCoeff);

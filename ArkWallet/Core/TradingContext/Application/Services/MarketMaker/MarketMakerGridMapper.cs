@@ -15,15 +15,15 @@ internal static class MarketMakerGridMapper
 {
     internal static MarketMakerBot ToMarketMaker(
         Records.MarketMakerBotRecord source)
-        => MarketMakerBot.Load(
-        source.Id,
-        source.TraderId,
-        source.Symbol,
-        (MarketMakerRole)(int)source.Role,
-        source.BasePower,
-        source.IsActive,
-        source.CreatedAt,
-        source.PowerDeviationCoeff);
+        => MarketMakerBot.Load(new MarketMakerBotLoadData(
+            source.Id,
+            source.TraderId,
+            source.Symbol,
+            (MarketMakerRole)(int)source.Role,
+            source.BasePower,
+            source.IsActive,
+            source.CreatedAt,
+            source.PowerDeviationCoeff));
 
     internal static List<CreateOrderCommand> CollectGridCommands(
         MarketMakerGridEngine engine,
