@@ -37,10 +37,11 @@ internal sealed class MarketDataProvider(ArkWalletDbContext dbContext)
 
             decimal? dayAgo = null;
             if (mask.HasFlag(MarketDataMasks.DayAgoPrice))
+            {
                 dayAgo = await LoadDayAgoPriceAsync(symbol, ct);
-
-            if (dayAgo is 0m or null)
-                continue;
+                if (dayAgo == 0m)
+                    continue;
+            }
 
             var levels = GetLevelsForSymbol(symbol, levelsByTokenId);
 
