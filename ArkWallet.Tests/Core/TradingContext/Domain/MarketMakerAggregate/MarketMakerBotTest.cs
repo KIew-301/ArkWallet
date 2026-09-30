@@ -105,4 +105,35 @@ public class MarketMakerBotTest
 
         Assert.True(bot.NextRebalance > before);
     }
+
+    [Fact]
+    public void MoveToTrader_ReturnsPreviousTraderId()
+    {
+        var bot = MarketMakerBot.Create(42, "ARK_001", ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate.MarketMakerRole.Buyer);
+        long previous = bot.MoveToTrader(99);
+
+        Assert.Equal(42, previous);
+        Assert.Equal(99, bot.TraderId);
+    }
+
+    [Fact]
+    public void MoveToTrader_SameTrader_ReturnsSameAndKeeps()
+    {
+        var bot = MarketMakerBot.Create(55, "ARK_001", ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate.MarketMakerRole.Seller);
+        long first = bot.MoveToTrader(55);
+        long second = bot.MoveToTrader(55);
+
+        Assert.Equal(55, first);
+        Assert.Equal(55, second);
+        Assert.Equal(55, bot.TraderId);
+    }
+
+    [Fact]
+    public void MoveToTrader_InvalidTraderId_Throws()
+    {
+        var bot = MarketMakerBot.Create(10, "ARK_001", ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate.MarketMakerRole.Waller);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => bot.MoveToTrader(0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => bot.MoveToTrader(-7));
+    }
 }

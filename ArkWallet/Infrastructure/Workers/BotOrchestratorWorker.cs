@@ -44,11 +44,14 @@ public class BotOrchestratorWorker : BackgroundService
     {
         _logger.LogInformation("BotOrchestratorWorker started");
 
-        using var initScope = _serviceProvider.CreateScope();
-        var initOrchestrator = initScope.ServiceProvider.GetRequiredService<IBotOrchestrator>();
-        var ensureResult = await initOrchestrator.EnsureDefaultBotsAsync(stoppingToken);
-        if (!ensureResult.IsSuccess)
-            _logger.LogWarning("{EnsureMessage}", ensureResult.Message);
+        try
+        {
+            await EnsureBotsAndRefreshAsync(stoppingToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to ensure default bots at startup");
+        }
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -64,6 +67,43 @@ public class BotOrchestratorWorker : BackgroundService
             await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
         }
         _logger.LogInformation("BotOrchestratorWorker stopped");
+    }
+
+    /// <summary>
+    /// Обеспечивает дефолтный состав ботов и, если состав изменился (созданы/переселены боты),
+    /// немедленно обновляет сетки buyer/seller, стены и силы ботов, не дожидаясь расписания.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    public async Task EnsureBotsAndRefreshAsync(CancellationToken ct)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var orchestrator = scope.ServiceProvider.GetRequiredService<IBotOrchestrator>();
+
+        var ensureResult = await orchestrator.EnsureDefaultBotsAsync(ct);
+        if (!ensureResult.IsSuccess)
+        {
+            _logger.LogWarning("Bot composition ensure failed: {EnsureMessage}", ensureResult.Message);
+            return;
+        }
+
+        if (!ensureResult.TryGetData(out var data) || !data.Changed)
+            return;
+
+        _logger.LogInformation(
+            "Bot composition changed (added: {BotsAdded}, moved: {BotsMoved}); refreshing grids and powers now",
+            data.BotsAdded, data.BotsMoved);
+
+        var grids = await orchestrator.UpdateBotsGridsAsync(ct);
+        if (!grids.IsSuccess)
+            _logger.LogWarning("Grid refresh after ensure failed: {Message}", grids.Message);
+
+        var wall = await orchestrator.UpdateWallBotGridsAsync(ct);
+        if (!wall.IsSuccess)
+            _logger.LogWarning("Wall refresh after ensure failed: {Message}", wall.Message);
+
+        var power = await orchestrator.RebalanceAllBotsPowerAsync(ct);
+        if (!power.IsSuccess)
+            _logger.LogWarning("Power refresh after ensure failed: {Message}", power.Message);
     }
 
     /// <summary>Runs all scheduled jobs (power rebalancing, grid updates, market orders, balance updates, wall updates).</summary>

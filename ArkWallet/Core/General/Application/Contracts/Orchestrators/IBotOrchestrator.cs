@@ -28,9 +28,12 @@ public interface IBotOrchestrator
 
     /// <summary>
     /// Гарантирует дефолтный состав ботов для каждого активного символа: Buyer, Seller и Waller.
-    /// Для каждого отсутствующего бота создаёт его с отдельным трейдером. Повторный вызов безопасен (идемпотентен).
+    /// Создаёт недостающих ботов с отдельным трейдером и переселяет существующих, чей трейдер
+    /// не является выделенным (используется более чем одним ботом либо не является ботом),
+    /// на собственного трейдера (агрегат отменяет ордера прежнего трейдера).
+    /// Идемпотентно: повторный вызов без нарушений не меняет состояние (Changed = false).
     /// </summary>
-    Task<Result> EnsureDefaultBotsAsync(CancellationToken ct = default);
+    Task<Result<BotEnsuringResult>> EnsureDefaultBotsAsync(CancellationToken ct = default);
 }
 
 /// <summary>

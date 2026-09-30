@@ -42,4 +42,22 @@ internal class MarketMakerBotRegistrationService(
             ));
         }, logger, nameof(MarketMakerBotRegistrationService));
     }
+
+    public async Task<Result<long>> CreateDedicatedTraderAsync(string symbol, BotRole role)
+    {
+        await using var transaction = await dbContext.Database.BeginTransactionAsync();
+        try
+        {
+            var trader = Trader.Create($"MarketMakerBot_{symbol}_{role}", isBot: true);
+            await dbContext.Traders.AddAsync(trader);
+            await dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return Result<long>.Ok(trader.Id);
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
 }

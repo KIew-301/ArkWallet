@@ -43,7 +43,8 @@ public class BotOrchestratorTest : IDisposable
         Mock<IEventPublisher>? eventPublisher = null,
         Mock<IOrderCollector>? orderCollector = null,
         Mock<IMarketMakerBotRegistrationService>? botRegistration = null,
-        Mock<IUpdatingService>? updatingService = null)
+        Mock<IUpdatingService>? updatingService = null,
+        Mock<IOrderCancellationService>? cancellationService = null)
     {
         eventPublisher ??= new();
         orderCollector ??= new();
@@ -52,7 +53,7 @@ public class BotOrchestratorTest : IDisposable
         updatingService ??= new();
         updatingService.Setup(s => s.CreateOrUpdatePortfolioAsync(It.IsAny<long>(), It.IsAny<string>(), It.IsAny<int>()))
             .ReturnsAsync(Result.Ok());
-        var cancellationService = new Mock<IOrderCancellationService>();
+        cancellationService ??= new();
         cancellationService.Setup(c => c.CancelAllOrderAsync(It.IsAny<long>()))
             .ReturnsAsync(Result<int>.Ok(0));
         return new BotOrchestrator(
@@ -293,6 +294,10 @@ public class BotOrchestratorTest : IDisposable
         var result = await orch.EnsureDefaultBotsAsync();
 
         Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var data));
+        Assert.True(data.Changed);
+        Assert.Equal(3, data.BotsAdded);
+        Assert.Equal(0, data.BotsMoved);
         regMock.Verify(r => r.RegisterBotAsync("TKN_DEF", BotRole.Buyer, 100m), Times.Once);
         regMock.Verify(r => r.RegisterBotAsync("TKN_DEF", BotRole.Seller, 100m), Times.Once);
         regMock.Verify(r => r.RegisterBotAsync("TKN_DEF", BotRole.Waller, 100m), Times.Once);
@@ -306,6 +311,8 @@ public class BotOrchestratorTest : IDisposable
         await db.Database.EnsureCreatedAsync();
         await HelpMethods.CreateToken(db, "TKN_EXISTING", isActive: true);
 
+        await HelpMethods.RegisterTrader(db, 100, "MarketMakerBot_TKN_EXISTING");
+
         var existingBot = MarketMakerBotRecord.Create(100L, "TKN_EXISTING", BotRole.Buyer, 50m);
         await db.MarketMakerBots.AddAsync(existingBot);
         await db.SaveChangesAsync();
@@ -315,11 +322,18 @@ public class BotOrchestratorTest : IDisposable
             .ReturnsAsync(Result<MarketMakerBotRegistrationData>.Ok(new MarketMakerBotRegistrationData(200L, 200L)));
 
         var orch = CreateOrchestrator(db, botRegistration: regMock);
-        await orch.EnsureDefaultBotsAsync();
+        var result = await orch.EnsureDefaultBotsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var data));
+        Assert.Equal(2, data.BotsAdded);
+        Assert.Equal(0, data.BotsMoved);
 
         var buyerCount = await db.MarketMakerBots.CountAsync(b => b.Symbol == "TKN_EXISTING" && b.Role == BotRole.Buyer);
         Assert.Equal(1, buyerCount);
         regMock.Verify(r => r.RegisterBotAsync("TKN_EXISTING", BotRole.Buyer, It.IsAny<decimal>()), Times.Never);
+        regMock.Verify(r => r.RegisterBotAsync("TKN_EXISTING", BotRole.Seller, 100m), Times.Once);
+        regMock.Verify(r => r.RegisterBotAsync("TKN_EXISTING", BotRole.Waller, 100m), Times.Once);
     }
 
     [Fact]
@@ -361,6 +375,201 @@ public class BotOrchestratorTest : IDisposable
         regMock.Verify(r => r.RegisterBotAsync("SYM_B", BotRole.Buyer, 100m), Times.Once);
         regMock.Verify(r => r.RegisterBotAsync("SYM_B", BotRole.Seller, 100m), Times.Once);
         regMock.Verify(r => r.RegisterBotAsync("SYM_B", BotRole.Waller, 100m), Times.Once);
+    }
+
+    [Fact]
+    public async Task EnsureDefaultBotsAsync_ThreeRolesShareTrader_MigratesTwoToDedicated()
+    {
+        var db = DbTest.CreateDbContext();
+        _disposables.Add(db);
+        await db.Database.EnsureCreatedAsync();
+        await HelpMethods.CreateToken(db, "TKN_SHARED", isActive: true);
+        await HelpMethods.RegisterTrader(db, 150, "SharedTrader");
+
+        await db.MarketMakerBots.AddAsync(MarketMakerBotRecord.Create(150L, "TKN_SHARED", BotRole.Buyer, 50m));
+        await db.MarketMakerBots.AddAsync(MarketMakerBotRecord.Create(150L, "TKN_SHARED", BotRole.Seller, 50m));
+        await db.MarketMakerBots.AddAsync(MarketMakerBotRecord.Create(150L, "TKN_SHARED", BotRole.Waller, 50m));
+        await db.SaveChangesAsync();
+
+        long traderForBuyerId = 0;
+        long traderForSellerId = 0;
+        var regMock = new Mock<IMarketMakerBotRegistrationService>();
+        regMock.Setup(r => r.RegisterBotAsync(It.IsAny<string>(), It.IsAny<BotRole>(), 100m))
+            .ReturnsAsync(Result<MarketMakerBotRegistrationData>.Ok(new MarketMakerBotRegistrationData(900L, 900L)));
+        regMock.Setup(r => r.CreateDedicatedTraderAsync(It.IsAny<string>(), It.IsAny<BotRole>()))
+            .Returns(async (string symbol, BotRole role) =>
+            {
+                var trader = Trader.Create($"MarketMakerBot_{symbol}_{role}", isBot: true);
+                await db.Traders.AddAsync(trader);
+                await db.SaveChangesAsync();
+                if (role == BotRole.Buyer && traderForBuyerId == 0) traderForBuyerId = trader.Id;
+                if (role == BotRole.Seller && traderForSellerId == 0) traderForSellerId = trader.Id;
+                return Result<long>.Ok(trader.Id);
+            });
+
+        var cancelMock = new Mock<IOrderCancellationService>();
+        cancelMock.Setup(c => c.CancelAllOrderAsync(It.IsAny<long>()))
+            .ReturnsAsync(Result<int>.Ok(0));
+
+        var orch = CreateOrchestrator(db, botRegistration: regMock, cancellationService: cancelMock);
+        var result = await orch.EnsureDefaultBotsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var data));
+        Assert.True(data.Changed);
+        Assert.Equal(0, data.BotsAdded);
+        Assert.Equal(2, data.BotsMoved);
+        regMock.Verify(r => r.CreateDedicatedTraderAsync(It.IsAny<string>(), It.IsAny<BotRole>()), Times.Exactly(2));
+        cancelMock.Verify(c => c.CancelAllOrderAsync(150L), Times.Exactly(2));
+        regMock.Verify(r => r.RegisterBotAsync(It.IsAny<string>(), It.IsAny<BotRole>(), It.IsAny<decimal>()), Times.Never);
+
+        var botsAfter = await db.MarketMakerBots.Where(b => b.Symbol == "TKN_SHARED").ToListAsync();
+        Assert.Equal(3, botsAfter.Count);
+        var uniqueTraderIds = botsAfter.Select(b => b.TraderId).Distinct().ToList();
+        Assert.Equal(3, uniqueTraderIds.Count);
+        Assert.Contains(150L, uniqueTraderIds);
+        var newTraders = await db.Traders.Where(t => t.Username.StartsWith("MarketMakerBot_TKN_SHARED_")).CountAsync();
+        Assert.Equal(2, newTraders);
+    }
+
+    [Fact]
+    public async Task EnsureDefaultBotsAsync_SharedTraderAcrossSymbols_MigratesOneBuyer()
+    {
+        var db = DbTest.CreateDbContext();
+        _disposables.Add(db);
+        await db.Database.EnsureCreatedAsync();
+        await HelpMethods.CreateToken(db, "SYM_X", isActive: true);
+        await HelpMethods.CreateToken(db, "SYM_Y", isActive: true);
+        await HelpMethods.RegisterTrader(db, 160, "SharedXY");
+
+        await db.MarketMakerBots.AddAsync(MarketMakerBotRecord.Create(160L, "SYM_X", BotRole.Buyer, 50m));
+        await db.MarketMakerBots.AddAsync(MarketMakerBotRecord.Create(160L, "SYM_Y", BotRole.Buyer, 50m));
+        await db.SaveChangesAsync();
+
+        var regMock = new Mock<IMarketMakerBotRegistrationService>();
+        regMock.Setup(r => r.RegisterBotAsync(It.IsAny<string>(), It.IsAny<BotRole>(), 100m))
+            .ReturnsAsync(Result<MarketMakerBotRegistrationData>.Ok(new MarketMakerBotRegistrationData(910L, 910L)));
+        regMock.Setup(r => r.CreateDedicatedTraderAsync(It.IsAny<string>(), It.IsAny<BotRole>()))
+            .Returns(async (string symbol, BotRole role) =>
+            {
+                var trader = Trader.Create($"MarketMakerBot_{symbol}_{role}", isBot: true);
+                await db.Traders.AddAsync(trader);
+                await db.SaveChangesAsync();
+                return Result<long>.Ok(trader.Id);
+            });
+
+        var cancelMock = new Mock<IOrderCancellationService>();
+        cancelMock.Setup(c => c.CancelAllOrderAsync(It.IsAny<long>()))
+            .ReturnsAsync(Result<int>.Ok(0));
+
+        var orch = CreateOrchestrator(db, botRegistration: regMock, cancellationService: cancelMock);
+        var result = await orch.EnsureDefaultBotsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var data));
+        Assert.True(data.Changed);
+        Assert.Equal(4, data.BotsAdded);
+        Assert.Equal(1, data.BotsMoved);
+        cancelMock.Verify(c => c.CancelAllOrderAsync(160L), Times.Once);
+        regMock.Verify(r => r.CreateDedicatedTraderAsync(It.IsAny<string>(), It.IsAny<BotRole>()), Times.Once);
+
+        var buyerXBots = await db.MarketMakerBots.Where(b => b.Symbol == "SYM_X" && b.Role == BotRole.Buyer).ToListAsync();
+        var buyerYBots = await db.MarketMakerBots.Where(b => b.Symbol == "SYM_Y" && b.Role == BotRole.Buyer).ToListAsync();
+        Assert.Single(buyerXBots);
+        Assert.Single(buyerYBots);
+        Assert.NotEqual(buyerXBots[0].TraderId, buyerYBots[0].TraderId);
+        Assert.Contains(160L, new[] { buyerXBots[0].TraderId, buyerYBots[0].TraderId });
+    }
+
+    [Fact]
+    public async Task EnsureDefaultBotsAsync_BotWithHumanTrader_MigratesToBotTrader()
+    {
+        var db = DbTest.CreateDbContext();
+        _disposables.Add(db);
+        await db.Database.EnsureCreatedAsync();
+        await HelpMethods.CreateToken(db, "TKN_HUMAN", isActive: true);
+        await HelpMethods.RegisterTrader(db, 7001, "Human");
+
+        await db.MarketMakerBots.AddAsync(MarketMakerBotRecord.Create(7001L, "TKN_HUMAN", BotRole.Buyer, 50m));
+        await db.SaveChangesAsync();
+
+        var regMock = new Mock<IMarketMakerBotRegistrationService>();
+        regMock.Setup(r => r.RegisterBotAsync(It.IsAny<string>(), It.IsAny<BotRole>(), 100m))
+            .ReturnsAsync(Result<MarketMakerBotRegistrationData>.Ok(new MarketMakerBotRegistrationData(920L, 920L)));
+        regMock.Setup(r => r.CreateDedicatedTraderAsync(It.IsAny<string>(), It.IsAny<BotRole>()))
+            .Returns(async (string symbol, BotRole role) =>
+            {
+                var trader = Trader.Create($"MarketMakerBot_{symbol}_{role}", isBot: true);
+                await db.Traders.AddAsync(trader);
+                await db.SaveChangesAsync();
+                return Result<long>.Ok(trader.Id);
+            });
+
+        var cancelMock = new Mock<IOrderCancellationService>();
+        cancelMock.Setup(c => c.CancelAllOrderAsync(It.IsAny<long>()))
+            .ReturnsAsync(Result<int>.Ok(0));
+
+        var orch = CreateOrchestrator(db, botRegistration: regMock, cancellationService: cancelMock);
+        var result = await orch.EnsureDefaultBotsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var data));
+        Assert.True(data.Changed);
+        Assert.Equal(2, data.BotsAdded);
+        Assert.Equal(1, data.BotsMoved);
+        cancelMock.Verify(c => c.CancelAllOrderAsync(7001L), Times.Once);
+        regMock.Verify(r => r.CreateDedicatedTraderAsync(It.IsAny<string>(), It.IsAny<BotRole>()), Times.Once);
+        regMock.Verify(r => r.RegisterBotAsync("TKN_HUMAN", BotRole.Buyer, It.IsAny<decimal>()), Times.Never);
+
+        var buyerBots = await db.MarketMakerBots.Where(b => b.Symbol == "TKN_HUMAN" && b.Role == BotRole.Buyer).ToListAsync();
+        Assert.Single(buyerBots);
+        Assert.NotEqual(7001L, buyerBots[0].TraderId);
+        var movedTrader = await db.Traders.FindAsync(buyerBots[0].TraderId);
+        Assert.NotNull(movedTrader);
+        Assert.True(movedTrader.IsBot);
+    }
+
+    [Fact]
+    public async Task EnsureDefaultBotsAsync_AllDedicated_DoesNotRepair()
+    {
+        var db = DbTest.CreateDbContext();
+        _disposables.Add(db);
+        await db.Database.EnsureCreatedAsync();
+        await HelpMethods.CreateToken(db, "TKN_OK", isActive: true);
+        await HelpMethods.RegisterTrader(db, 210, "TB");
+        await HelpMethods.RegisterTrader(db, 211, "TS");
+        await HelpMethods.RegisterTrader(db, 212, "TW");
+
+        await db.MarketMakerBots.AddAsync(MarketMakerBotRecord.Create(210L, "TKN_OK", BotRole.Buyer, 50m));
+        await db.MarketMakerBots.AddAsync(MarketMakerBotRecord.Create(211L, "TKN_OK", BotRole.Seller, 50m));
+        await db.MarketMakerBots.AddAsync(MarketMakerBotRecord.Create(212L, "TKN_OK", BotRole.Waller, 50m));
+        await db.SaveChangesAsync();
+
+        var regMock = new Mock<IMarketMakerBotRegistrationService>();
+        regMock.Setup(r => r.RegisterBotAsync(It.IsAny<string>(), It.IsAny<BotRole>(), 100m))
+            .ReturnsAsync(Result<MarketMakerBotRegistrationData>.Ok(new MarketMakerBotRegistrationData(930L, 930L)));
+
+        var cancelMock = new Mock<IOrderCancellationService>();
+        cancelMock.Setup(c => c.CancelAllOrderAsync(It.IsAny<long>()))
+            .ReturnsAsync(Result<int>.Ok(0));
+
+        var orch = CreateOrchestrator(db, botRegistration: regMock, cancellationService: cancelMock);
+        var result = await orch.EnsureDefaultBotsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var data));
+        Assert.False(data.Changed);
+        Assert.Equal(0, data.BotsAdded);
+        Assert.Equal(0, data.BotsMoved);
+        regMock.Verify(r => r.CreateDedicatedTraderAsync(It.IsAny<string>(), It.IsAny<BotRole>()), Times.Never);
+        cancelMock.Verify(c => c.CancelAllOrderAsync(It.IsAny<long>()), Times.Never);
+        regMock.Verify(r => r.RegisterBotAsync(It.IsAny<string>(), It.IsAny<BotRole>(), It.IsAny<decimal>()), Times.Never);
+
+        var allBots = await db.MarketMakerBots.Where(b => b.Symbol == "TKN_OK").ToListAsync();
+        Assert.Equal(3, allBots.Count);
+        Assert.Equal(210L, allBots.First(b => b.Role == BotRole.Buyer).TraderId);
+        Assert.Equal(211L, allBots.First(b => b.Role == BotRole.Seller).TraderId);
+        Assert.Equal(212L, allBots.First(b => b.Role == BotRole.Waller).TraderId);
     }
 
     // ─── Edge: bot without matching trader ───

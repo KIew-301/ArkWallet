@@ -27,7 +27,7 @@ public sealed class MarketMakerBot
     /// <summary>Уникальный идентификатор бота.</summary>
     public long Id { get; private set; }
     /// <summary>Идентификатор трейдера, которому принадлежит этот бот.</summary>
-    public long TraderId { get; }
+    public long TraderId { get; private set; }
     /// <summary>Торговая пара символа (например, BTC/USDT).</summary>
     public string Symbol { get; }
     /// <summary>Базовое значение мощности, используемое для расчётов.</summary>
@@ -117,6 +117,21 @@ public sealed class MarketMakerBot
     /// <summary>Устанавливает активный статус этого бота.</summary>
     /// <param name="isActive">Активен ли бот.</param>
     public void SetActive(bool isActive) => IsActive = isActive;
+
+    /// <summary>
+    /// Перемещает бота на указанного (нового/своего) трейдера.
+    /// Возвращает идентификатор предыдущего трейдера: контракт метода требует, чтобы
+    /// вызывающая сторона после переезда гарантированно обработала активные ордера
+    /// предыдущего трейдера (отменила их) — это обязательство домена.
+    /// </summary>
+    public long MoveToTrader(long newTraderId)
+    {
+        if (newTraderId <= 0)
+            throw new ArgumentOutOfRangeException(nameof(newTraderId), "Идентификатор трейдера должен быть положительным.");
+        var previousTraderId = TraderId;
+        TraderId = newTraderId;
+        return previousTraderId;
+    }
 
     /// <summary>
     /// Выполняет план: прогоняет коллекцию модификаторов по конвейеру.
