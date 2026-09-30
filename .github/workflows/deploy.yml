@@ -126,14 +126,20 @@ jobs:
             echo "[3/5] Ensuring nginx setup..."
             bash "$APP_DIR/scripts/ensure-nginx.sh" "$APP_DIR"
 
+            # Backup DB before the app restarts: pending migrations are applied
+            # on startup, and MigrateTraderToIdPk is irreversible. If the backup
+            # fails the deploy aborts here and the DB is never touched.
+            echo "[4/6] Backing up database..."
+            bash "$APP_DIR/scripts/backup-db.sh" "$APP_DIR/backups"
+
             # Pull new image and restart
-            echo "[4/5] Pulling image and restarting at $(date)..."
+            echo "[5/6] Pulling image and restarting at $(date)..."
             docker compose pull app
             docker compose up -d --remove-orphans
-            echo "[4/5] Containers restarted at $(date)"
+            echo "[5/6] Containers restarted at $(date)"
 
             # Clean up old images
-            echo "[5/5] Pruning old images..."
+            echo "[6/6] Pruning old images..."
             docker image prune -f
 
             echo "=== Deploy complete at $(date) ==="

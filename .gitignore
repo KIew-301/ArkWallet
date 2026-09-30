@@ -432,3 +432,5 @@ appsettings.*.json
 !appsettings.example.json
 messages.html
 mockServiceWorker.js
+# DB backups created by scripts/backup-db.sh
+backups/
