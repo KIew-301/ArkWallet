@@ -32,13 +32,12 @@ internal class OrderCreationService(
 
                 await tradingEngine.ProcessOrder(context);
 
-                TradingContextMapper.SyncTradersAndPortfolios(context, dbContext);
-                TradingContextMapper.SyncToken(context, dbContext);
+                SyncContextMappings(context, dbContext);
                 await dbContext.SaveChangesAsync();
 
                 await NotifyAsync(context);
 
-                return Result<OrderCreationData>.Ok(TradingContextMapper.ToOrderCreationResults(context)[0]);
+                return Result<OrderCreationData>.Ok(MapOrderCreationResults(context)[0]);
             });
         }, logger, nameof(OrderCreationService));
     }
@@ -111,11 +110,10 @@ internal class OrderCreationService(
 
         await tradingEngine.ProcessOrders(context);
 
-        TradingContextMapper.SyncTradersAndPortfolios(context, dbContext);
-        TradingContextMapper.SyncToken(context, dbContext);
+        SyncContextMappings(context, dbContext);
         await dbContext.SaveChangesAsync();
 
-        allResults.AddRange(TradingContextMapper.ToOrderCreationResults(context));
+        allResults.AddRange(MapOrderCreationResults(context));
 
         await NotifyAsync(context);
     }
@@ -344,7 +342,7 @@ internal class OrderCreationService(
 
     private async Task NotifyAsync(TradingEngineContext context)
     {
-        var ordersToNotify = TradingContextMapper.CollectFilledOrderRecords(context, dbContext);
+        var ordersToNotify = CollectFilledOrderRecords(context, dbContext);
 
         if (ordersToNotify.Count > 0)
         {
@@ -433,4 +431,18 @@ internal class OrderCreationService(
 
         return null;
     }
+
+    private static void SyncContextMappings(TradingEngineContext context, ArkWalletDbContext dbContext)
+    {
+        TradingContextMapper.SyncTradersAndPortfolios(context, dbContext);
+        TradingContextMapper.SyncToken(context, dbContext);
+    }
+
+    private static List<OrderCreationData> MapOrderCreationResults(TradingEngineContext context) =>
+        TradingContextMapper.ToOrderCreationResults(context);
+
+    private static List<Records.TradeOrder> CollectFilledOrderRecords(
+        TradingEngineContext context,
+        ArkWalletDbContext dbContext) =>
+        TradingContextMapper.CollectFilledOrderRecords(context, dbContext);
 }

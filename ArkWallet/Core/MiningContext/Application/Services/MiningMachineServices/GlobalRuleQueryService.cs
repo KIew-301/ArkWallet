@@ -49,18 +49,38 @@ internal class MiningGlobalRuleQueryService(
         var minFuture = futureCoefficients.Min();
         var maxFuture = futureCoefficients.Max();
 
-        var result = tokens
-            .Select(token => MiningContextMapper.BuildRuleData(
+        var result = BuildRuleDataList(
+            tokens,
+            rulesByToken,
+            miningEngine,
+            minBaseProfit,
+            maxBaseProfit,
+            minFuture,
+            maxFuture);
+
+        return Result<List<TokensMiningRuleData>>.Ok(result);
+    }
+
+    private static List<TokensMiningRuleData> BuildRuleDataList(
+        List<CharacterToken> tokens,
+        Dictionary<string, MiningGlobalRule> rulesByToken,
+        MiningEngine miningEngine,
+        decimal minBaseProfit,
+        decimal maxBaseProfit,
+        decimal minFuture,
+        decimal maxFuture)
+    {
+        var result = new List<TokensMiningRuleData>(tokens.Count);
+        foreach (var token in tokens)
+            result.Add(MiningContextMapper.BuildRuleData(
                 miningEngine,
                 token,
                 rulesByToken.GetValueOrDefault(token.Symbol),
                 minBaseProfit,
                 maxBaseProfit,
                 minFuture,
-                maxFuture))
-            .OrderByDescending(r => r.BaseProfit)
-            .ToList();
-
-        return Result<List<TokensMiningRuleData>>.Ok(result);
+                maxFuture));
+        result.Sort((a, b) => b.BaseProfit.CompareTo(a.BaseProfit));
+        return result;
     }
 }
