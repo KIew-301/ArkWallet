@@ -23,7 +23,7 @@ public class BotsWizardCommandsTest
         _engine = _m.Engine;
     }
 
-    private static string Normalize(string s) => s.Replace("\r\n", "\n").Replace("\r", "\n");
+    private static string Normalize(string? s) => (s ?? string.Empty).Replace("\r\n", "\n").Replace("\r", "\n");
 
     // ═══════════════════════════════════════════════════════════
     //  Helpers
