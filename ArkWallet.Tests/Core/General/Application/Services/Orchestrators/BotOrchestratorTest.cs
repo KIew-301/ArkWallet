@@ -704,4 +704,100 @@ public class BotOrchestratorTest : IDisposable
         var allBots = await db.MarketMakerBots.ToListAsync();
         Assert.Equal(2, allBots.Count);
     }
+
+    // ═══════ New feature tests ═══════
+
+    [Fact]
+    public async Task RebalanceAllBotsPowerAsync_PersistsActivePowerToDatabase()
+    {
+        var db = await SeedTokenAsync();
+
+        var traderId = 13001L;
+        await HelpMethods.RegisterTrader(db, traderId);
+
+        var basePower = 50m;
+        var bot = MarketMakerBotRecord.Create(traderId, "TKN01", BotRole.Buyer, basePower);
+        await db.MarketMakerBots.AddAsync(bot);
+        await db.SaveChangesAsync();
+
+        var orch = CreateOrchestrator(db);
+        var result = await orch.RebalanceAllBotsPowerAsync();
+
+        Assert.True(result.IsSuccess);
+        var updatedBot = await db.MarketMakerBots.FirstAsync(b => b.Id == bot.Id);
+        Assert.True(updatedBot.ActivePower >= 25m && updatedBot.ActivePower < 75m);
+    }
+
+    [Fact]
+    public async Task RebalanceAllBotsPowerAsync_AmplifiesWallPowerByFactorEight()
+    {
+        var db = await SeedTokenAsync();
+
+        var traderId = 13002L;
+        await HelpMethods.RegisterTrader(db, traderId);
+
+        var bot = MarketMakerBotRecord.Create(traderId, "TKN01", BotRole.Waller, 100m);
+        await db.MarketMakerBots.AddAsync(bot);
+        await db.SaveChangesAsync();
+
+        var orch = CreateOrchestrator(db);
+        var result = await orch.RebalanceAllBotsPowerAsync();
+
+        Assert.True(result.IsSuccess);
+        var updatedBot = await db.MarketMakerBots.FirstAsync(b => b.Id == bot.Id);
+        Assert.True(updatedBot.ActivePower >= 400m && updatedBot.ActivePower < 1200m);
+    }
+
+    [Fact]
+    public async Task UpdateBotsGridsForRoleAsync_UpdatesOnlyRequestedRole()
+    {
+        var db = await SeedTokenAsync();
+
+        var buyerId = 13101L;
+        var sellerId = 13102L;
+        var wallerId = 13103L;
+        await HelpMethods.RegisterTrader(db, buyerId);
+        await HelpMethods.RegisterTrader(db, sellerId);
+        await HelpMethods.RegisterTrader(db, wallerId);
+
+        var buyerBot = MarketMakerBotRecord.Create(buyerId, "TKN01", BotRole.Buyer, 50m);
+        var sellerBot = MarketMakerBotRecord.Create(sellerId, "TKN01", BotRole.Seller, 50m);
+        var wallerBot = MarketMakerBotRecord.Create(wallerId, "AAA", BotRole.Waller, 100m);
+        await db.MarketMakerBots.AddRangeAsync(buyerBot, sellerBot, wallerBot);
+        await db.SaveChangesAsync();
+
+        var evMock = new Mock<IEventPublisher>();
+        var collMock = new Mock<IOrderCollector>();
+        collMock.Setup(c => c.TakeAll()).Returns(() => Array.Empty<IReadOnlyCollection<CreateOrderCommand>>());
+
+        var orch = CreateOrchestrator(db, eventPublisher: evMock, orderCollector: collMock);
+        var result = await orch.UpdateBotsGridsForRoleAsync(MarketMakerRole.Seller);
+
+        Assert.True(result.IsSuccess);
+        evMock.Verify(
+            e => e.PublishAsync(It.IsAny<BotPublicOrdersEvent>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateBotsGridsForRoleAsync_ReturnsOk_WhenNoBotsForRole()
+    {
+        var db = await SeedTokenAsync();
+
+        var traderId = 13201L;
+        await HelpMethods.RegisterTrader(db, traderId);
+
+        var bot = MarketMakerBotRecord.Create(traderId, "TKN01", BotRole.Buyer, 50m);
+        await db.MarketMakerBots.AddAsync(bot);
+        await db.SaveChangesAsync();
+
+        var collMock = new Mock<IOrderCollector>();
+        collMock.Setup(c => c.TakeAll()).Returns(() => Array.Empty<IReadOnlyCollection<CreateOrderCommand>>());
+
+        var orch = CreateOrchestrator(db, orderCollector: collMock);
+        var result = await orch.UpdateBotsGridsForRoleAsync(MarketMakerRole.Waller);
+
+        Assert.True(result.IsSuccess);
+        collMock.Verify(c => c.Add(It.IsAny<IReadOnlyCollection<CreateOrderCommand>>()), Times.Never);
+    }
 }

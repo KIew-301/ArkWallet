@@ -136,4 +136,32 @@ public class MarketMakerBotTest
         Assert.Throws<ArgumentOutOfRangeException>(() => bot.MoveToTrader(0));
         Assert.Throws<ArgumentOutOfRangeException>(() => bot.MoveToTrader(-7));
     }
+
+    [Fact]
+    public void Load_RestoresActivePowerFromLoadData()
+    {
+        var data = new ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate.MarketMakerBotLoadData(
+            1L,
+            42L,
+            "AAA",
+            ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate.MarketMakerRole.Buyer,
+            50m,
+            true,
+            DateTime.UtcNow,
+            1m,
+            42m);
+
+        var bot = MarketMakerBot.Load(data);
+
+        Assert.Equal(42m, bot.ActivePower);
+        Assert.Equal(50m, bot.BasePower);
+    }
+
+    [Fact]
+    public void Create_SetsActivePowerEqualToBasePower()
+    {
+        var bot = MarketMakerBot.Create(42, "AAA", ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate.MarketMakerRole.Buyer, 50m);
+
+        Assert.Equal(50m, bot.ActivePower);
+    }
 }
