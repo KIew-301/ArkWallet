@@ -16,4 +16,10 @@ public interface IStatusUpdatingService
     /// Пометить письмо как принятое (награда принята)
     /// </summary>
     Task<Result> MarkAsAcceptedAsync(long mailId, long traderId);
+
+    /// <summary>
+    /// Принять награды во всех письмах пользователя, где награда ещё доступна.
+    /// Возвращает количество принятых писем.
+    /// </summary>
+    Task<Result<int>> MarkAllRewardMailsAsAcceptedAsync(long traderId);
 }
