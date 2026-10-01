@@ -12,9 +12,6 @@ internal class MarketMakerBotRecord : EntityData
     /// <summary>Базовая мощность (объём ордера в токенах)</summary>
     public decimal BasePower { get; internal set; }
 
-    /// <summary>Коэффициент отклонения мощности</summary>
-    public decimal PowerDeviationCoeff { get; internal set; } = 1m;
-
     /// <summary>Фактическая мощность после применения модификаторов (объём ордера в токенах)</summary>
     public decimal ActivePower { get; internal set; }
 
@@ -42,7 +39,6 @@ internal class MarketMakerBotRecord : EntityData
             Symbol = symbol,
             BasePower = initialPower,
             ActivePower = initialPower,
-            PowerDeviationCoeff = 1m,
             Role = botRole,
             NextPowerChange = utcNow.AddMinutes(Random.Shared.Next(2, 5)),
         };

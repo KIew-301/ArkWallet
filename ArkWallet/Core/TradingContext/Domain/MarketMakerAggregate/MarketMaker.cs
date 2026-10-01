@@ -36,8 +36,6 @@ public sealed class MarketMakerBot
     public decimal ActivePower { get; private set; }
     /// <summary>Роль, которую бот выполняет на рынке.</summary>
     public MarketMakerRole Role { get; private set; }
-    /// <summary>Коэффициент для расчётов отклонения мощности.</summary>
-    public decimal PowerDeviationCoeff { get; private set; }
     /// <summary>Активен ли этот бот в настоящее время.</summary>
     public bool IsActive { get; private set; }
     /// <summary>Метка времени создания бота (UTC).</summary>
@@ -50,7 +48,6 @@ public sealed class MarketMakerBot
         Role = role;
         BasePower = basePower;
         ActivePower = basePower;
-        PowerDeviationCoeff = 1m;
         IsActive = true;
         CreatedAt = createdAt;
     }
@@ -85,7 +82,6 @@ public sealed class MarketMakerBot
         {
             Id = data.Id,
             IsActive = data.IsActive,
-            PowerDeviationCoeff = data.PowerDeviationCoeff,
             ActivePower = data.ActivePower
         };
         return marketMakerBot;
@@ -104,12 +100,6 @@ public sealed class MarketMakerBot
         var change = Random.Shared.Next(-35, 35);
         BasePower = Math.Clamp(BasePower + change, minPower, maxPower);
     }
-
-    /// <summary>
-    /// Обновляет коэффициент отклонения мощности, ограничивая его диапазоном [1; 5,5].
-    /// </summary>
-    /// <param name="newCoeff">Новое значение коэффициента.</param>
-    public void UpdatePowerDeviationCoeff(decimal newCoeff) => PowerDeviationCoeff = Math.Clamp(newCoeff, 1m, 5.5m);
 
     /// <summary>Устанавливает торговую роль этого бота.</summary>
     /// <param name="role">Новая роль маркетмейкера.</param>
@@ -178,5 +168,4 @@ internal sealed record MarketMakerBotLoadData(
     decimal BasePower,
     bool IsActive,
     DateTime CreatedAt,
-    decimal PowerDeviationCoeff,
     decimal ActivePower);

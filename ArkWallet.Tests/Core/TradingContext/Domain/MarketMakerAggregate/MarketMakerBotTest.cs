@@ -148,7 +148,6 @@ public class MarketMakerBotTest
             50m,
             true,
             DateTime.UtcNow,
-            1m,
             42m);
 
         var bot = MarketMakerBot.Load(data);
