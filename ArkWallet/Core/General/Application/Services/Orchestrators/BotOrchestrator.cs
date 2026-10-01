@@ -271,7 +271,7 @@ internal class BotOrchestrator(
     private async Task<(bool Added, bool Moved)> EnsureBotForRoleAsync(
         string symbol,
         BotRole role,
-        IReadOnlyDictionary<(string Symbol, BotRole Role), (long Id, long TraderId)> botsBySymbolRole,
+        Dictionary<(string Symbol, BotRole Role), (long Id, long TraderId)> botsBySymbolRole,
         Dictionary<long, int> traderUsage,
         List<long> botTraderIds,
         CancellationToken ct)
