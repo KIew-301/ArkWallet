@@ -286,7 +286,7 @@ public class MailQueryServiceTest
     }
 
     [Fact]
-    public async Task GetUserMailAsync_ReturnsMailOfTrader()
+    public async Task GetUserMailAsync_ReturnsMailOfTrader_FailsForOtherTradersMail()
     {
         using var db = CreateDb();
         await HelpMethods.RegisterTrader(db, 2002);
