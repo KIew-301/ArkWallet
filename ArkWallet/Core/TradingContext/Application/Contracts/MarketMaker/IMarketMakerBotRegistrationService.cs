@@ -24,6 +24,15 @@ public interface IMarketMakerBotRegistrationService
     /// </para>
     /// </remarks>
     Task<Result<MarketMakerBotRegistrationData>> RegisterBotAsync(string symbol, BotRole botRole, decimal initialPower = 50);
+
+    /// <summary>
+    /// Создаёт отдельного (выделенного) трейдера-бота для указанного символа и роли.
+    /// Используется при переселении существующего бота на собственного трейдера.
+    /// </summary>
+    /// <param name="symbol">Символ токена</param>
+    /// <param name="role">Роль бота (Buyer/Seller)</param>
+    /// <returns>ID созданного трейдера</returns>
+    Task<Result<long>> CreateDedicatedTraderAsync(string symbol, BotRole role);
 }
 
 /// <summary>

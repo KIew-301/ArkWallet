@@ -250,5 +250,5 @@ internal sealed class RecordingBotOrchestrator(IBotOrchestrator inner) : IBotOrc
     public Task<Result> UpdateBotsGridsAsync(CancellationToken ct = default) => inner.UpdateBotsGridsAsync(ct);
     public Task<Result> UpdateWallBotGridsAsync(CancellationToken ct = default) => inner.UpdateWallBotGridsAsync(ct);
     public Task<Result> RebalanceAllBotsPowerAsync(CancellationToken ct = default) => inner.RebalanceAllBotsPowerAsync(ct);
-    public Task<Result> EnsureDefaultBotsAsync(CancellationToken ct = default) => inner.EnsureDefaultBotsAsync(ct);
+    public Task<Result<BotEnsuringResult>> EnsureDefaultBotsAsync(CancellationToken ct = default) => inner.EnsureDefaultBotsAsync(ct);
 }

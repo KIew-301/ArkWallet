@@ -215,6 +215,87 @@ public sealed class BotOrchestratorWorkerTest : IDisposable
         orchMock.Verify(o => o.UpdateWallBotGridsAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Fact]
+    public async Task EnsureBotsAndRefresh_Changed_RefreshesGridsAndPowers()
+    {
+        // Arrange
+        var orchMock = new Mock<IBotOrchestrator>();
+        orchMock.Setup(o => o.EnsureDefaultBotsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<BotEnsuringResult>.Ok(new BotEnsuringResult(true, 2, 1)));
+        orchMock.Setup(o => o.UpdateBotsGridsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(Result.Ok());
+        orchMock.Setup(o => o.UpdateWallBotGridsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(Result.Ok());
+        orchMock.Setup(o => o.RebalanceAllBotsPowerAsync(It.IsAny<CancellationToken>())).ReturnsAsync(Result.Ok());
+
+        var services = new ServiceCollection();
+        services.AddScoped<IBotOrchestrator>(_ => orchMock.Object);
+        var provider = services.BuildServiceProvider();
+
+        var worker = new BotOrchestratorWorker(provider, NullLogger<BotOrchestratorWorker>.Instance);
+
+        // Act
+        await worker.EnsureBotsAndRefreshAsync(CancellationToken.None);
+
+        // Assert
+        orchMock.Verify(o => o.EnsureDefaultBotsAsync(It.IsAny<CancellationToken>()), Times.Once);
+        orchMock.Verify(o => o.UpdateBotsGridsAsync(It.IsAny<CancellationToken>()), Times.Once);
+        orchMock.Verify(o => o.UpdateWallBotGridsAsync(It.IsAny<CancellationToken>()), Times.Once);
+        orchMock.Verify(o => o.RebalanceAllBotsPowerAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task EnsureBotsAndRefresh_NotChanged_DoesNotRefresh()
+    {
+        // Arrange
+        var orchMock = new Mock<IBotOrchestrator>();
+        orchMock.Setup(o => o.EnsureDefaultBotsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<BotEnsuringResult>.Ok(new BotEnsuringResult(false, 0, 0)));
+        orchMock.Setup(o => o.UpdateBotsGridsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(Result.Ok());
+        orchMock.Setup(o => o.UpdateWallBotGridsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(Result.Ok());
+        orchMock.Setup(o => o.RebalanceAllBotsPowerAsync(It.IsAny<CancellationToken>())).ReturnsAsync(Result.Ok());
+
+        var services = new ServiceCollection();
+        services.AddScoped<IBotOrchestrator>(_ => orchMock.Object);
+        var provider = services.BuildServiceProvider();
+
+        var worker = new BotOrchestratorWorker(provider, NullLogger<BotOrchestratorWorker>.Instance);
+
+        // Act
+        await worker.EnsureBotsAndRefreshAsync(CancellationToken.None);
+
+        // Assert
+        orchMock.Verify(o => o.EnsureDefaultBotsAsync(It.IsAny<CancellationToken>()), Times.Once);
+        orchMock.Verify(o => o.UpdateBotsGridsAsync(It.IsAny<CancellationToken>()), Times.Never);
+        orchMock.Verify(o => o.UpdateWallBotGridsAsync(It.IsAny<CancellationToken>()), Times.Never);
+        orchMock.Verify(o => o.RebalanceAllBotsPowerAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task EnsureBotsAndRefresh_EnsureFails_DoesNotRefresh()
+    {
+        // Arrange
+        var orchMock = new Mock<IBotOrchestrator>();
+        orchMock.Setup(o => o.EnsureDefaultBotsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<BotEnsuringResult>.Fail("boom"));
+        orchMock.Setup(o => o.UpdateBotsGridsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(Result.Ok());
+        orchMock.Setup(o => o.UpdateWallBotGridsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(Result.Ok());
+        orchMock.Setup(o => o.RebalanceAllBotsPowerAsync(It.IsAny<CancellationToken>())).ReturnsAsync(Result.Ok());
+
+        var services = new ServiceCollection();
+        services.AddScoped<IBotOrchestrator>(_ => orchMock.Object);
+        var provider = services.BuildServiceProvider();
+
+        var worker = new BotOrchestratorWorker(provider, NullLogger<BotOrchestratorWorker>.Instance);
+
+        // Act — не должен бросить
+        await worker.EnsureBotsAndRefreshAsync(CancellationToken.None);
+
+        // Assert
+        orchMock.Verify(o => o.EnsureDefaultBotsAsync(It.IsAny<CancellationToken>()), Times.Once);
+        orchMock.Verify(o => o.UpdateBotsGridsAsync(It.IsAny<CancellationToken>()), Times.Never);
+        orchMock.Verify(o => o.UpdateWallBotGridsAsync(It.IsAny<CancellationToken>()), Times.Never);
+        orchMock.Verify(o => o.RebalanceAllBotsPowerAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     public void Dispose()
     {
         foreach (var disposable in _disposables)

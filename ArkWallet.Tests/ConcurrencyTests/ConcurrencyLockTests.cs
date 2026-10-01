@@ -87,8 +87,7 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
 
         await using (var seed = CreateContext())
         {
-            seed.Traders.Add(Trader.Create("Seller", telegramId: 101));
-            await seed.SaveChangesAsync();
+            await HelpMethods.RegisterTrader(seed, 101);
         }
 
         await using var holder = CreateContext();

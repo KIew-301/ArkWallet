@@ -68,4 +68,51 @@ public class MarketMakerBotRegistrationServiceTest
         Assert.False(result.IsSuccess);
         Assert.Equal("Начальная мощность должна быть больше нуля", result.Message);
     }
+
+    [Fact]
+    public async Task CreateDedicatedTraderAsync_CreatesBotTrader_ReturnId()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var logger = NullLogger<MarketMakerBotRegistrationService>.Instance;
+        var service = new MarketMakerBotRegistrationService(db, logger);
+
+        var result = await service.CreateDedicatedTraderAsync("TKN01", BotRole.Buyer);
+
+        Assert.True(result.TryGetData(out var traderId));
+        Assert.True(traderId > 0);
+        var trader = db.Traders.Find(traderId);
+        Assert.NotNull(trader);
+        Assert.True(trader.IsBot);
+        Assert.Contains("TKN01", trader.Username);
+        Assert.Contains("Buyer", trader.Username);
+    }
+
+    [Fact]
+    public async Task CreateDedicatedTraderAsync_BuyerAndSeller_GetSeparateTraders()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        var logger = NullLogger<MarketMakerBotRegistrationService>.Instance;
+        var service = new MarketMakerBotRegistrationService(db, logger);
+
+        var buyerResult = await service.CreateDedicatedTraderAsync("TKN01", BotRole.Buyer);
+        var sellerResult = await service.CreateDedicatedTraderAsync("TKN01", BotRole.Seller);
+
+        Assert.True(buyerResult.TryGetData(out var buyerId));
+        Assert.True(sellerResult.TryGetData(out var sellerId));
+        Assert.NotEqual(buyerId, sellerId);
+        Assert.True(buyerId > 0);
+        Assert.True(sellerId > 0);
+
+        var buyersTrader = db.Traders.Find(buyerId);
+        var sellersTrader = db.Traders.Find(sellerId);
+
+        Assert.NotNull(buyersTrader);
+        Assert.NotNull(sellersTrader);
+        Assert.True(buyersTrader.IsBot);
+        Assert.True(sellersTrader.IsBot);
+    }
 }
