@@ -635,7 +635,7 @@ namespace ArkWallet.Infrastructure.Wizard
             {
                 var ratio = bot.BasePower == 0 ? 0 : bot.ActivePower / bot.BasePower;
                 sb.AppendLine(
-                    $"Bot #{bot.Id} {bot.Symbol} {bot.Role}: base={bot.BasePower} active={bot.ActivePower} (x{ratio:0.###}) active={bot.IsActive}");
+                    $"Bot #{bot.Id} {bot.Symbol} {bot.Role}: base={bot.BasePower} active={bot.ActivePower} (x{ratio:0.###}) isActive={bot.IsActive}");
             }
 
             return sb.ToString();
