@@ -90,8 +90,8 @@ public class BotOrchestratorWorker : BackgroundService
             return;
 
         _logger.LogInformation(
-            "Bot composition changed (added: {BotsAdded}, moved: {BotsMoved}); refreshing grids and powers now",
-            data.BotsAdded, data.BotsMoved);
+            "Bot composition changed (added: {BotsAdded}, moved: {BotsMoved}, powers normalized: {BotsPowerNormalized}); refreshing grids and powers now",
+            data.BotsAdded, data.BotsMoved, data.BotsPowerNormalized);
 
         var grids = await orchestrator.UpdateBotsGridsAsync(ct);
         if (!grids.IsSuccess)

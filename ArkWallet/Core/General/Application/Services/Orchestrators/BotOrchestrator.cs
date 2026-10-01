@@ -255,7 +255,7 @@ internal class BotOrchestrator(
                 var bot = existing.FirstOrDefault(b => b.Symbol == symbol && b.Role == role);
                 if (bot is null)
                 {
-                    var regResult = await botRegistration.RegisterBotAsync(symbol, role, 100m);
+                    var regResult = await botRegistration.RegisterBotAsync(symbol, role, DefaultPowerFor(role));
                     if (!regResult.IsSuccess)
                         return Result<BotEnsuringResult>.Fail(regResult.Message);
                     added++;
@@ -292,9 +292,27 @@ internal class BotOrchestrator(
             }
         }
 
-        var changed = added > 0 || moved > 0;
-        return Result<BotEnsuringResult>.Ok(new BotEnsuringResult(changed, added, moved));
+        var normalized = 0;
+        var allBotRecords = await dbContext.MarketMakerBots.ToListAsync(ct);
+        foreach (var record in allBotRecords)
+        {
+            var target = DefaultPowerFor(record.Role);
+            if (record.BasePower != target)
+            {
+                record.BasePower = target;
+                normalized++;
+            }
+        }
+
+        if (normalized > 0)
+            await dbContext.SaveChangesAsync(ct);
+
+        var changed = added > 0 || moved > 0 || normalized > 0;
+        return Result<BotEnsuringResult>.Ok(new BotEnsuringResult(changed, added, moved, normalized));
     }
+
+    private static decimal DefaultPowerFor(BotRole role)
+        => role == BotRole.Waller ? 100m : 50m;
 
     private static BotRole[] RequiredRoles()
         => new[] { BotRole.Buyer, BotRole.Seller, BotRole.Waller };
