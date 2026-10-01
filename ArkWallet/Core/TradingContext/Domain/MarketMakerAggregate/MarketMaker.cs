@@ -85,7 +85,8 @@ public sealed class MarketMakerBot
         {
             Id = data.Id,
             IsActive = data.IsActive,
-            PowerDeviationCoeff = data.PowerDeviationCoeff
+            PowerDeviationCoeff = data.PowerDeviationCoeff,
+            ActivePower = data.ActivePower
         };
         return marketMakerBot;
     }
@@ -177,4 +178,5 @@ internal sealed record MarketMakerBotLoadData(
     decimal BasePower,
     bool IsActive,
     DateTime CreatedAt,
-    decimal PowerDeviationCoeff);
+    decimal PowerDeviationCoeff,
+    decimal ActivePower);

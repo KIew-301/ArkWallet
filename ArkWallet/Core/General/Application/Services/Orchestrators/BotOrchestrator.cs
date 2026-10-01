@@ -105,21 +105,34 @@ internal class BotOrchestrator(
 
     public async Task<Result> UpdateBotsGridsAsync(CancellationToken ct = default)
     {
+        var buyerResult = await UpdateBotsGridsForRoleAsync(MarketMakerRole.Buyer, ct);
+        if (!buyerResult.IsSuccess)
+            return buyerResult;
+
+        return await UpdateBotsGridsForRoleAsync(MarketMakerRole.Seller, ct);
+    }
+
+    public async Task<Result> UpdateBotsGridsForRoleAsync(MarketMakerRole role, CancellationToken ct = default)
+    {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            var bots = await LoadActiveBotsAsync(ct,
-                MarketMakerRole.Buyer, MarketMakerRole.Seller);
-
+            var bots = await LoadActiveBotsAsync(ct, role);
             if (bots.Count == 0)
                 return Result.Ok();
 
-            var gridMask = AggregateRequiredData(modifierCollection.GridModifiers);
-            var gridSnapshots = await LoadSnapshotsAsync(gridMask, bots, ct);
+            var isWall = role == MarketMakerRole.Waller;
+            var modifiers = isWall ? modifierCollection.WallGridModifiers : modifierCollection.GridModifiers;
+
+            var mask = AggregateRequiredData(modifiers);
+            var snapshots = await LoadSnapshotsAsync(mask, bots, ct);
 
             foreach (var bot in Shuffle(bots))
             {
+                if (isWall)
+                    await CancelWallOrdersAsync(bot.TraderId);
+
                 var domainBot = MarketMakerGridMapper.ToMarketMaker(bot);
-                var plan = BuildPlan(domainBot, modifierCollection.GridModifiers, gridMask, gridSnapshots, bot.Symbol);
+                var plan = BuildPlan(domainBot, modifiers, mask, snapshots, bot.Symbol);
                 if (plan == null)
                     continue;
 
@@ -129,6 +142,17 @@ internal class BotOrchestrator(
 
             return await PlaceCollectedAsync();
         }, logger, nameof(BotOrchestrator));
+    }
+
+    private async Task CancelWallOrdersAsync(long traderId)
+    {
+        var cancelResult = await orderCancellationService.CancelAllOrderAsync(traderId);
+        if (!cancelResult.IsSuccess &&
+            !string.Equals(cancelResult.Message, "Нет активных ордеров для отмены", StringComparison.OrdinalIgnoreCase))
+        {
+            logger.LogWarning("Failed to cancel wall orders for trader {TraderId}: {Error}",
+                traderId, cancelResult.Message);
+        }
     }
 
     public async Task<Result> ExecuteMarketOrdersAsync(CancellationToken ct = default)
@@ -159,39 +183,8 @@ internal class BotOrchestrator(
         }, logger, nameof(BotOrchestrator));
     }
 
-    public async Task<Result> UpdateWallBotGridsAsync(CancellationToken ct = default)
-    {
-        return await ServiceErrorHandler.ExecuteAsync(async () =>
-        {
-            var bots = await LoadActiveBotsAsync(ct, MarketMakerRole.Waller);
-            if (bots.Count == 0)
-                return Result.Ok();
-
-            var wallMask = AggregateRequiredData(modifierCollection.WallGridModifiers);
-            var wallSnapshots = await LoadSnapshotsAsync(wallMask, bots, ct);
-
-            foreach (var bot in Shuffle(bots))
-            {
-                var cancelResult = await orderCancellationService.CancelAllOrderAsync(bot.TraderId);
-                if (!cancelResult.IsSuccess &&
-                    !string.Equals(cancelResult.Message, "Нет активных ордеров для отмены", StringComparison.OrdinalIgnoreCase))
-                {
-                    logger.LogWarning("Failed to cancel wall orders for trader {TraderId}: {Error}",
-                        bot.TraderId, cancelResult.Message);
-                }
-
-                var domainBot = MarketMakerGridMapper.ToMarketMaker(bot);
-                var plan = BuildPlan(domainBot, modifierCollection.WallGridModifiers, wallMask, wallSnapshots, bot.Symbol);
-                if (plan == null)
-                    continue;
-
-                orderCollector.Add(MarketMakerGridMapper.ToCommands(plan));
-                await eventPublisher.PublishAsync(new BotPublicOrdersEvent(plan), ct);
-            }
-
-            return await PlaceCollectedAsync();
-        }, logger, nameof(BotOrchestrator));
-    }
+    public Task<Result> UpdateWallBotGridsAsync(CancellationToken ct = default)
+        => UpdateBotsGridsForRoleAsync(MarketMakerRole.Waller, ct);
 
     public async Task<Result> RebalanceAllBotsPowerAsync(CancellationToken ct = default)
     {
@@ -208,6 +201,7 @@ internal class BotOrchestrator(
                     ? modifierCollection.WallerPowerModifiers
                     : modifierCollection.PowerModifiers;
                 domainBot.RebalancePower(powerModifiers);
+                bot.ActivePower = domainBot.ActivePower;
             }
 
             await dbContext.SaveChangesAsync(ct);

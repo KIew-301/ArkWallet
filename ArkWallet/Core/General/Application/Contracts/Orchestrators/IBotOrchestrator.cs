@@ -17,6 +17,13 @@ public interface IBotOrchestrator
     /// <summary>Обновляет сетки buyer/seller: каждый бот выполняет план (ExecutePlan) с сеточными модификаторами.</summary>
     Task<Result> UpdateBotsGridsAsync(CancellationToken ct = default);
 
+    /// <summary>
+    /// Обновляет сетки ботов одной роли: <see cref="MarketMakerRole.Buyer"/>,
+    /// <see cref="MarketMakerRole.Seller"/> или <see cref="MarketMakerRole.Waller"/>.
+    /// Для стены дополнительно отменяет её прошлые ордера перед построением сетки.
+    /// </summary>
+    Task<Result> UpdateBotsGridsForRoleAsync(MarketMakerRole role, CancellationToken ct = default);
+
     /// <summary>Активирует рыночные ордера buyer/seller: каждый бот выполняет план (ExecutePlan) с рыночными модификаторами.</summary>
     Task<Result> ExecuteMarketOrdersAsync(CancellationToken ct = default);
 
@@ -54,6 +61,6 @@ internal interface IPlanModifierCollection
     /// <summary>Модификаторы пересчёта активной мощности обычных ботов (buyer/seller).</summary>
     IReadOnlyCollection<IPowerCalculationModify> PowerModifiers { get; }
 
-    /// <summary>Модификаторы пересчёта активной мощности стены (усиление ×20).</summary>
+    /// <summary>Модификаторы пересчёта активной мощности стены (усиление ×8).</summary>
     IReadOnlyCollection<IPowerCalculationModify> WallerPowerModifiers { get; }
 }
