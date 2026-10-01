@@ -780,6 +780,75 @@ public class BotOrchestratorTest : IDisposable
     }
 
     [Fact]
+    public async Task UpdateBotsGridsForRoleAsync_DoesNotCancelOrders_ForBuyerByDefault()
+    {
+        var db = await SeedTokenAsync();
+
+        var buyerId = 13301L;
+        await HelpMethods.RegisterTrader(db, buyerId);
+
+        var buyerBot = MarketMakerBotRecord.Create(buyerId, "TKN01", BotRole.Buyer, 50m);
+        await db.MarketMakerBots.AddAsync(buyerBot);
+        await db.SaveChangesAsync();
+
+        var cancellationMock = new Mock<IOrderCancellationService>();
+        cancellationMock.Setup(c => c.CancelAllOrderAsync(It.IsAny<long>()))
+            .ReturnsAsync(Result<int>.Ok(0));
+
+        var orch = CreateOrchestrator(db, cancellationService: cancellationMock);
+        var result = await orch.UpdateBotsGridsForRoleAsync(MarketMakerRole.Buyer);
+
+        Assert.True(result.IsSuccess);
+        cancellationMock.Verify(c => c.CancelAllOrderAsync(It.IsAny<long>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateBotsGridsForRoleAsync_CancelsOrders_ForBuyerWhenForced()
+    {
+        var db = await SeedTokenAsync();
+
+        var buyerId = 13302L;
+        await HelpMethods.RegisterTrader(db, buyerId);
+
+        var buyerBot = MarketMakerBotRecord.Create(buyerId, "TKN01", BotRole.Buyer, 50m);
+        await db.MarketMakerBots.AddAsync(buyerBot);
+        await db.SaveChangesAsync();
+
+        var cancellationMock = new Mock<IOrderCancellationService>();
+        cancellationMock.Setup(c => c.CancelAllOrderAsync(It.IsAny<long>()))
+            .ReturnsAsync(Result<int>.Ok(0));
+
+        var orch = CreateOrchestrator(db, cancellationService: cancellationMock);
+        var result = await orch.UpdateBotsGridsForRoleAsync(MarketMakerRole.Buyer, cancelExistingOrders: true);
+
+        Assert.True(result.IsSuccess);
+        cancellationMock.Verify(c => c.CancelAllOrderAsync(buyerId), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateBotsGridsForRoleAsync_CancelsOrders_ForWallerByDefault()
+    {
+        var db = await SeedTokenAsync();
+
+        var wallerId = 13303L;
+        await HelpMethods.RegisterTrader(db, wallerId);
+
+        var wallerBot = MarketMakerBotRecord.Create(wallerId, "AAA", BotRole.Waller, 100m);
+        await db.MarketMakerBots.AddAsync(wallerBot);
+        await db.SaveChangesAsync();
+
+        var cancellationMock = new Mock<IOrderCancellationService>();
+        cancellationMock.Setup(c => c.CancelAllOrderAsync(It.IsAny<long>()))
+            .ReturnsAsync(Result<int>.Ok(0));
+
+        var orch = CreateOrchestrator(db, cancellationService: cancellationMock);
+        var result = await orch.UpdateBotsGridsForRoleAsync(MarketMakerRole.Waller);
+
+        Assert.True(result.IsSuccess);
+        cancellationMock.Verify(c => c.CancelAllOrderAsync(wallerId), Times.Once);
+    }
+
+    [Fact]
     public async Task UpdateBotsGridsForRoleAsync_ReturnsOk_WhenNoBotsForRole()
     {
         var db = await SeedTokenAsync();

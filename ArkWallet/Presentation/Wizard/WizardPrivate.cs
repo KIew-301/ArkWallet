@@ -586,7 +586,7 @@ namespace ArkWallet.Infrastructure.Wizard
             if (!Enum.TryParse<MarketMakerRole>(roleStr, ignoreCase: true, out var role))
                 return new WizardResult { Message = "Role must be one of: Buyer, Seller, Waller." };
 
-            var gridResult = await _botOrchestrator.UpdateBotsGridsForRoleAsync(role);
+            var gridResult = await _botOrchestrator.UpdateBotsGridsForRoleAsync(role, cancelExistingOrders: true);
             if (!gridResult.IsSuccess)
                 return new WizardResult { Message = $"Grid update failed: {gridResult.Message}" };
 

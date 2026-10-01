@@ -20,9 +20,13 @@ public interface IBotOrchestrator
     /// <summary>
     /// Обновляет сетки ботов одной роли: <see cref="MarketMakerRole.Buyer"/>,
     /// <see cref="MarketMakerRole.Seller"/> или <see cref="MarketMakerRole.Waller"/>.
-    /// Для стены дополнительно отменяет её прошлые ордера перед построением сетки.
+    /// Для стены прошлые ордера отменяются всегда; для buyer/seller — только при
+    /// <paramref name="cancelExistingOrders"/> = true (принудительное обновление по команде администратора).
     /// </summary>
-    Task<Result> UpdateBotsGridsForRoleAsync(MarketMakerRole role, CancellationToken ct = default);
+    /// <param name="role">Роль ботов, чьи сетки пересобираются.</param>
+    /// <param name="cancelExistingOrders">Отменять ли прошлые ордера бота до построения новой сетки (для buyer/seller).</param>
+    /// <param name="ct">Токен отмены.</param>
+    Task<Result> UpdateBotsGridsForRoleAsync(MarketMakerRole role, bool cancelExistingOrders = false, CancellationToken ct = default);
 
     /// <summary>Активирует рыночные ордера buyer/seller: каждый бот выполняет план (ExecutePlan) с рыночными модификаторами.</summary>
     Task<Result> ExecuteMarketOrdersAsync(CancellationToken ct = default);
