@@ -234,6 +234,10 @@ internal class BotOrchestrator(
             .Select(b => new { b.Id, b.Symbol, b.Role, b.TraderId })
             .ToListAsync(ct);
 
+        var botsBySymbolRole = existing
+            .GroupBy(b => (b.Symbol, b.Role))
+            .ToDictionary(g => g.Key, g => (g.First().Id, g.First().TraderId));
+
         var allBots = await dbContext.MarketMakerBots
             .Select(b => new { b.TraderId })
             .ToListAsync(ct);
@@ -247,68 +251,84 @@ internal class BotOrchestrator(
 
         var added = 0;
         var moved = 0;
-
         foreach (var symbol in symbols)
         {
             foreach (var role in RequiredRoles())
             {
-                var bot = existing.FirstOrDefault(b => b.Symbol == symbol && b.Role == role);
-                if (bot is null)
-                {
-                    var regResult = await botRegistration.RegisterBotAsync(symbol, role, DefaultPowerFor(role));
-                    if (!regResult.IsSuccess)
-                        return Result<BotEnsuringResult>.Fail(regResult.Message);
-                    added++;
-                    continue;
-                }
-
-                var dedicated =
-                    traderUsage.TryGetValue(bot.TraderId, out var count) && count == 1 &&
-                    botTraderIds.Contains(bot.TraderId);
-                if (dedicated)
-                    continue;
-
-                var traderResult = await botRegistration.CreateDedicatedTraderAsync(symbol, role);
-                if (!traderResult.IsSuccess || !traderResult.TryGetData(out var newTraderId))
-                    return Result<BotEnsuringResult>.Fail(traderResult.Message);
-
-                var record = await dbContext.MarketMakerBots.FirstOrDefaultAsync(b => b.Id == bot.Id, ct);
-                if (record is null)
-                    continue;
-
-                var domainBot = MarketMakerGridMapper.ToMarketMaker(record);
-                var previousTraderId = domainBot.MoveToTrader(newTraderId);
-                record.TraderId = newTraderId;
-                await dbContext.SaveChangesAsync(ct);
-
-                await orderCancellationService.CancelAllOrderAsync(previousTraderId);
-
-                if (traderUsage.TryGetValue(bot.TraderId, out var usage) && usage > 1)
-                    traderUsage[bot.TraderId] = usage - 1;
-                else
-                    traderUsage.Remove(bot.TraderId);
-                traderUsage[newTraderId] = 1;
-                moved++;
+                var outcome = await EnsureBotForRoleAsync(
+                    symbol, role, botsBySymbolRole, traderUsage, botTraderIds, ct);
+                added += outcome.Added ? 1 : 0;
+                moved += outcome.Moved ? 1 : 0;
             }
         }
 
+        var normalized = await NormalizeBotPowersAsync(ct);
+
+        var changed = added > 0 || moved > 0 || normalized > 0;
+        return Result<BotEnsuringResult>.Ok(new BotEnsuringResult(changed, added, moved, normalized));
+    }
+
+    private async Task<(bool Added, bool Moved)> EnsureBotForRoleAsync(
+        string symbol,
+        BotRole role,
+        IReadOnlyDictionary<(string Symbol, BotRole Role), (long Id, long TraderId)> botsBySymbolRole,
+        Dictionary<long, int> traderUsage,
+        List<long> botTraderIds,
+        CancellationToken ct)
+    {
+        if (!botsBySymbolRole.TryGetValue((symbol, role), out var bot))
+        {
+            var regResult = await botRegistration.RegisterBotAsync(symbol, role, DefaultPowerFor(role));
+            if (!regResult.IsSuccess)
+                throw new InvalidOperationException(regResult.Message);
+            return (true, false);
+        }
+
+        var dedicated =
+            traderUsage.TryGetValue(bot.TraderId, out var count) && count == 1 &&
+            botTraderIds.Contains(bot.TraderId);
+        if (dedicated)
+            return (false, false);
+
+        var traderResult = await botRegistration.CreateDedicatedTraderAsync(symbol, role);
+        if (!traderResult.IsSuccess || !traderResult.TryGetData(out var newTraderId))
+            throw new InvalidOperationException(traderResult.Message);
+
+        var record = await dbContext.MarketMakerBots.FirstOrDefaultAsync(b => b.Id == bot.Id, ct);
+        if (record is null)
+            return (false, false);
+
+        var domainBot = MarketMakerGridMapper.ToMarketMaker(record);
+        var previousTraderId = domainBot.MoveToTrader(newTraderId);
+        record.TraderId = newTraderId;
+        await dbContext.SaveChangesAsync(ct);
+
+        await orderCancellationService.CancelAllOrderAsync(previousTraderId);
+
+        if (traderUsage.TryGetValue(bot.TraderId, out var usage) && usage > 1)
+            traderUsage[bot.TraderId] = usage - 1;
+        else
+            traderUsage.Remove(bot.TraderId);
+        traderUsage[newTraderId] = 1;
+        return (false, true);
+    }
+
+    private async Task<int> NormalizeBotPowersAsync(CancellationToken ct)
+    {
         var normalized = 0;
         var allBotRecords = await dbContext.MarketMakerBots.ToListAsync(ct);
         foreach (var record in allBotRecords)
         {
             var target = DefaultPowerFor(record.Role);
-            if (record.BasePower != target)
-            {
-                record.BasePower = target;
-                normalized++;
-            }
+            if (record.BasePower == target)
+                continue;
+            record.BasePower = target;
+            normalized++;
         }
 
         if (normalized > 0)
             await dbContext.SaveChangesAsync(ct);
-
-        var changed = added > 0 || moved > 0 || normalized > 0;
-        return Result<BotEnsuringResult>.Ok(new BotEnsuringResult(changed, added, moved, normalized));
+        return normalized;
     }
 
     private static decimal DefaultPowerFor(BotRole role)

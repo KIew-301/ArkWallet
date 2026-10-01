@@ -438,7 +438,7 @@ public class BotOrchestratorTest : IDisposable
         var uniqueTraderIds = botsAfter.Select(b => b.TraderId).Distinct().ToList();
         Assert.Equal(3, uniqueTraderIds.Count);
         Assert.Contains(150L, uniqueTraderIds);
-        var newTraders = await db.Traders.Where(t => t.Username.StartsWith("MarketMakerBot_TKN_SHARED_")).CountAsync();
+        var newTraders = await db.Traders.Where(t => t.Username != null && t.Username.StartsWith("MarketMakerBot_TKN_SHARED_")).CountAsync();
         Assert.Equal(2, newTraders);
     }
 
