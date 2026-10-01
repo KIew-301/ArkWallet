@@ -1,4 +1,4 @@
-using ArkWallet.Core.General.Domain.ValueObjects;
+﻿using ArkWallet.Core.General.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Core.TradingContext.Domain.TokenAggregate;
 using ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
@@ -23,7 +23,7 @@ public class TradeOrderTest
 
         Assert.Equal(OrderType.Buy, order.Type);
         Assert.Equal("ZZZ", order.CharacterTokenId);
-        Assert.Equal(101, order.TraderTelegramId);
+        Assert.Equal(101, order.TraderId);
         Assert.Equal(100m, order.Price);
         Assert.Equal(10, order.Quantity);
         Assert.Equal(OrderStatus.Active, order.Status);

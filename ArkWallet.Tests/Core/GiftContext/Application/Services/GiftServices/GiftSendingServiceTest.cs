@@ -1,4 +1,4 @@
-using ArkWallet.Core.General.Application.Common;
+﻿using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Core.GiftContext.Application.Services.GiftServices;
 using ArkWallet.Core.General.Domain.Common;
@@ -158,7 +158,7 @@ public class GiftSendingServiceTest
         var result = await service.SendGiftAsync(1001, 2002);
 
         Assert.True(result.IsSuccess);
-        Assert.False(await db.PortfolioItems.AnyAsync(p => p.TraderTelegramId == 1001 && p.CharacterTokenId == "AAA"));
+        Assert.False(await db.PortfolioItems.AnyAsync(p => p.TraderId == 1001 && p.CharacterTokenId == "AAA"));
     }
 
     [Fact]
@@ -229,7 +229,8 @@ public class GiftSendingServiceTest
     public async Task SendGiftAsync_SenderWithoutUsername_UsesFallbackName()
     {
         using var db = CreateDb();
-        var trader = global::ArkWallet.Infrastructure.Data.Trader.Create(1001, null);
+        var trader = global::ArkWallet.Infrastructure.Data.Trader.Create(null, telegramId: 1001);
+        trader.Id = 1001;
         db.Traders.Add(trader);
         await db.SaveChangesAsync();
         await HelpMethods.RegisterTrader(db, 2002);

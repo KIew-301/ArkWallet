@@ -1,8 +1,10 @@
-using ArkWallet.Application.Services.CharacterTokenServices;
-using ArkWallet.Application.Services.MarketMaker;
-using ArkWallet.Application.Services.Orchestrators;
-using ArkWallet.Application.Services.TradeOrderServices;
-using ArkWallet.Domain.Engines;
+using ArkWallet.Core.TradingContext.Application.Services.CharacterTokenServices;
+using ArkWallet.Core.TradingContext.Application.Services.MarketMaker;
+using ArkWallet.Core.General.Application.Services.Orchestrators;
+using ArkWallet.Core.TradingContext.Application.Services.TradeOrderServices;
+using ArkWallet.Core.General.Application.Contracts.Orchestrators;
+using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
+using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Infrastructure;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.PerformanceTests.Helpers;
@@ -34,7 +36,7 @@ public class MarketMakerTickGateTests
         using var scope = new PerfScope(counter);
         using (scope.Step($"ProcessBotsAsync({tokenCount}t)"))
         {
-            var result = await orchestrator.ProcessBotsAsync();
+            var result = await orchestrator.UpdateBotsGridsAsync();
             Assert.True(result.IsSuccess, result.Message);
         }
 
@@ -50,11 +52,11 @@ public class MarketMakerTickGateTests
         {
             await GatesSeed.SeedMarketMakerScenarioAsync(warmupDb, 1);
             var warmupOrchestrator = BuildOrchestrator(warmupDb);
-            await warmupOrchestrator.ProcessBotsAsync();
+            await warmupOrchestrator.UpdateBotsGridsAsync();
         });
     }
 
-    private static MarketMakerOrchestrator BuildOrchestrator(ArkWalletDbContext db)
+    private static IBotOrchestrator BuildOrchestrator(ArkWalletDbContext db)
     {
         var candleUpdateService = new TokenPriceCandleUpdateService(
             db, TimeProvider.System, NullLogger<TokenPriceCandleUpdateService>.Instance);
@@ -66,18 +68,13 @@ public class MarketMakerTickGateTests
             new FakeTaskDispatcher(),
             NullLogger<OrderCreationService>.Instance);
 
-        var marketMakerOrderService = new MarketMakerOrderService(
-            db,
-            orderCreationService,
-            NullLogger<MarketMakerOrderService>.Instance);
-
-        return new MarketMakerOrchestrator(
-            db,
-            null!,
-            null!,
-            orderCreationService,
-            marketMakerOrderService,
-            new MarketMakerGridEngine(),
-            NullLogger<MarketMakerOrchestrator>.Instance);
+    return new BotOrchestrator(
+        db,
+        new PlanModifierCollection(),
+        new OrderCollector(),
+        orderCreationService,
+        null!,
+        new MediatREventPublisher(TestMediatorFactory.Create(db, candleUpdateService)),
+        NullLogger<BotOrchestrator>.Instance);
     }
 }

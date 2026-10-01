@@ -1,4 +1,4 @@
-using ArkWallet.Core.General.Domain.Exceptions;
+﻿using ArkWallet.Core.General.Domain.Exceptions;
 using ArkWallet.Core.PortfolioContext.Domain.Position;
 
 namespace ArkWallet.Tests.Core.PortfolioContext.Domain.Position;
@@ -15,7 +15,7 @@ public class PositionTest
     {
         var p = CreatePosition();
 
-        Assert.Equal(1001, p.TraderTelegramId);
+        Assert.Equal(1001, p.TraderId);
         Assert.Equal("ZZZ", p.Symbol);
         Assert.Equal(100, p.Quantity);
         Assert.Equal(10m, p.AverageBuyPrice);

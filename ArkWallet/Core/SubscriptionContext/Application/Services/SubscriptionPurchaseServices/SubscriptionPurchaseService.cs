@@ -24,7 +24,7 @@ internal class SubscriptionPurchaseService(
             if (sub is null)
                 return PurchaseResult.Fail("Подписка не найдена");
 
-            var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderTelegramId, cancellationToken);
+            var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.Id == traderTelegramId, cancellationToken);
             if (trader is null)
                 return PurchaseResult.Fail("Трейдер не найден");
 
@@ -85,7 +85,7 @@ internal class SubscriptionPurchaseService(
     {
         dbContext.SubscriptionPayments.Add(new SubscriptionPayment
         {
-            TraderId = trader.TelegramId,
+            TraderId = trader.Id,
             SubscriptionId = sub.Id,
             Period = (int)period,
             AmountRubles = amount,

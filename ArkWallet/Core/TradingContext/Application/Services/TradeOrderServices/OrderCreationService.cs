@@ -1,4 +1,4 @@
-using ArkWallet.Core.TradingContext.Application.Dtos;
+﻿using ArkWallet.Core.TradingContext.Application.Dtos;
 using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.General.Application.Dtos;
 using ArkWallet.Core.General.Application.Contracts.Other;
@@ -67,6 +67,42 @@ internal class OrderCreationService(
         }, logger, nameof(OrderCreationService));
     }
 
+    public async Task<Result> PlaceCollectedAsync(IReadOnlyCollection<IReadOnlyCollection<CreateOrderCommand>> collections)
+    {
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
+        {
+            var candidates = collections
+                .Where(c => c is { Count: > 0 })
+                .ToList();
+
+            if (candidates.Count == 0)
+                return Result.Ok();
+
+            var placedGroups = 0;
+            var failedGroups = 0;
+            var errors = new List<string>();
+
+            foreach (var collection in candidates)
+            {
+                var result = await CreateOrdersAsync(collection);
+
+                if (result.IsSuccess)
+                {
+                    placedGroups++;
+                }
+                else
+                {
+                    failedGroups++;
+                    errors.Add(result.Message);
+                }
+            }
+
+            return failedGroups == 0
+                ? Result.Ok()
+                : Result.Fail($"Не размещено коллекций: {failedGroups} из {candidates.Count}. Ошибки: {string.Join("; ", errors)}");
+        }, logger, nameof(OrderCreationService));
+    }
+
     private async Task ProcessGroupAsync(
         IEnumerable<CreateOrderCommand> groupCommands,
         List<OrderCreationData> allResults)
@@ -92,12 +128,12 @@ internal class OrderCreationService(
 
         var order = Records.TradeOrder.Create(orderType, command.Symbol, command.TraderId, command.Price, command.Quantity);
 
-        await dbContext.LockTradersAsync([order.TraderTelegramId]);
+        await dbContext.LockTradersAsync([order.TraderId]);
         await dbContext.LockTokenAsync(order.CharacterTokenId);
 
         var takerIds = await GetTakerIdsForMatchingAsync(order);
 
-        var additionalTakerIds = takerIds.Except([order.TraderTelegramId]).ToArray();
+        var additionalTakerIds = takerIds.Except([order.TraderId]).ToArray();
         if (additionalTakerIds.Length > 0)
             await dbContext.LockTradersAsync(additionalTakerIds);
 
@@ -118,25 +154,25 @@ internal class OrderCreationService(
                        (order.IsLong ? o.Price <= order.Price : o.Price >= order.Price))
             .ToArrayAsync();
 
-        var traderIds = activeOrders.Select(o => o.TraderTelegramId)
-            .Append(order.TraderTelegramId).Distinct().ToArray();
+        var traderIds = activeOrders.Select(o => o.TraderId)
+            .Append(order.TraderId).Distinct().ToArray();
 
         var portfolioItems = await dbContext.PortfolioItems
-            .Where(p => traderIds.Contains(p.TraderTelegramId) && p.CharacterTokenId == order.CharacterTokenId)
+            .Where(p => traderIds.Contains(p.TraderId) && p.CharacterTokenId == order.CharacterTokenId)
             .ToArrayAsync();
 
         var traders = new Dictionary<long, Records.Trader>();
         foreach (var o in activeOrders)
-            if (o.Trader != null) traders.TryAdd(o.TraderTelegramId, o.Trader);
+            if (o.Trader != null) traders.TryAdd(o.TraderId, o.Trader);
 
         var newTrader = await dbContext.Traders.FindAsync(command.TraderId)
             ?? throw new InvalidOperationException("Пользователя не существует");
 
         await EnsureOrderLimitAsync([command.TraderId]);
 
-        traders.TryAdd(newTrader.TelegramId, newTrader);
+        traders.TryAdd(newTrader.Id, newTrader);
 
-        var portfolios = portfolioItems.ToDictionary(p => p.TraderTelegramId);
+        var portfolios = portfolioItems.ToDictionary(p => p.TraderId);
 
         return await TradingContextMapper.BuildContext(
             new[] { command },
@@ -244,7 +280,7 @@ internal class OrderCreationService(
     {
         var traders = new Dictionary<long, Records.Trader>();
         foreach (var o in activeOrders)
-            if (o.Trader != null) traders.TryAdd(o.TraderTelegramId, o.Trader);
+            if (o.Trader != null) traders.TryAdd(o.TraderId, o.Trader);
 
         var missingTraderIds = commandList
             .Select(c => c.TraderId)
@@ -255,8 +291,8 @@ internal class OrderCreationService(
         if (missingTraderIds.Length > 0)
         {
             var loaded = await dbContext.Traders
-                .Where(t => missingTraderIds.Contains(t.TelegramId))
-                .ToDictionaryAsync(t => t.TelegramId);
+                .Where(t => missingTraderIds.Contains(t.Id))
+                .ToDictionaryAsync(t => t.Id);
 
             foreach (var id in missingTraderIds)
             {
@@ -275,14 +311,14 @@ internal class OrderCreationService(
         List<CreateOrderCommand> commandList,
         string characterTokenId)
     {
-        var traderIds = activeOrders.Select(o => o.TraderTelegramId)
+        var traderIds = activeOrders.Select(o => o.TraderId)
             .Concat(commandList.Select(c => c.TraderId)).Distinct().ToArray();
 
         var portfolioItems = await dbContext.PortfolioItems
-            .Where(p => traderIds.Contains(p.TraderTelegramId) && p.CharacterTokenId == characterTokenId)
+            .Where(p => traderIds.Contains(p.TraderId) && p.CharacterTokenId == characterTokenId)
             .ToArrayAsync();
 
-        return portfolioItems.ToDictionary(p => p.TraderTelegramId);
+        return portfolioItems.ToDictionary(p => p.TraderId);
     }
 
     private async Task<long[]> GetTakerIdsForMatchingAsync(Records.TradeOrder order)
@@ -293,7 +329,7 @@ internal class OrderCreationService(
                            o.Status == ValueObjects.OrderStatus.Active &&
                            o.Type == ValueObjects.OrderType.Sell &&
                            o.Price <= order.Price)
-                .Select(o => o.TraderTelegramId)
+                .Select(o => o.TraderId)
                 .Distinct()
                 .ToArrayAsync()
             : await dbContext.TradeOrders
@@ -301,7 +337,7 @@ internal class OrderCreationService(
                            o.Status == ValueObjects.OrderStatus.Active &&
                            o.Type == ValueObjects.OrderType.Buy &&
                            o.Price >= order.Price)
-                .Select(o => o.TraderTelegramId)
+                .Select(o => o.TraderId)
                 .Distinct()
                 .ToArrayAsync();
     }
@@ -313,7 +349,7 @@ internal class OrderCreationService(
         if (ordersToNotify.Count > 0)
         {
             var traders = context.Traders.Values
-                .Select(t => dbContext.Traders.Local.FirstOrDefault(tr => tr.TelegramId == t.Id))
+                .Select(t => dbContext.Traders.Local.FirstOrDefault(tr => tr.Id == t.Id))
                 .Where(tr => tr != null)
                 .Select(tr => tr!)
                 .ToList();
@@ -355,7 +391,7 @@ internal class OrderCreationService(
     {
         var trader = await dbContext.Traders
             .Include(t => t.Subscription)
-            .FirstOrDefaultAsync(t => t.TelegramId == traderId);
+            .FirstOrDefaultAsync(t => t.Id == traderId);
 
         if (trader is null)
             throw new InvalidOperationException("Пользователя не существует");
@@ -371,12 +407,13 @@ internal class OrderCreationService(
     {
         foreach (var traderId in traderIds.Distinct())
         {
-            if (BotFilter.IsBot(traderId))
+            var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.Id == traderId);
+            if (trader?.IsBot == true)
                 continue;
 
             var maxOrders = await GetMaxActiveOrdersAsync(traderId);
             var activeCount = await dbContext.TradeOrders.CountAsync(o =>
-                o.TraderTelegramId == traderId && o.Status == ValueObjects.OrderStatus.Active);
+                o.TraderId == traderId && o.Status == ValueObjects.OrderStatus.Active);
 
             if (activeCount >= maxOrders)
                 throw new InvalidOperationException($"Достигнут лимит активных ордеров: {maxOrders}");

@@ -8,8 +8,12 @@ partial class WizardEngine
 {
     public async Task<WizardResult> HandleQuickGift(long senderId, string recipientIdStr)
     {
-        if (!long.TryParse(recipientIdStr, out var recipientId))
+        if (!long.TryParse(recipientIdStr, out var recipientTelegramId))
             return new WizardResult { Message = "Неверный ID получателя." };
+
+        var recipientId = await ResolveTraderIdByTelegramIdAsync(recipientTelegramId);
+        if (recipientId == 0)
+            return new WizardResult { Message = "Получатель не найден." };
 
         var giftResult = await _sendingService.SendGiftAsync(senderId, recipientId);
 
@@ -27,13 +31,13 @@ partial class WizardEngine
         };
     }
 
-    public async Task<WizardResult> HandleGiftListUsers(long senderId)
+    public async Task<WizardResult> HandleGiftListUsers(long senderId, long senderTelegramId)
     {
         var tradersResult = await _traderQueryService.GetAllTradersWithoutBotsAsync();
         if (!tradersResult.TryGetData(out var traders))
             return new WizardResult { Message = "Не удалось загрузить список пользователей." };
 
-        var otherTraders = traders.Where(t => t.TelegramId != senderId).ToList();
+        var otherTraders = traders.Where(t => t.TelegramId != senderTelegramId).ToList();
 
         if (otherTraders.Count == 0)
             return new WizardResult { Message = "Нет других пользователей для отправки подарка." };

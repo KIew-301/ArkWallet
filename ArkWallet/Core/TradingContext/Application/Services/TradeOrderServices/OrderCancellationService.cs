@@ -1,4 +1,4 @@
-using ArkWallet.Core.General.Application.Common;
+﻿using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Core.General.Domain.ValueObjects;
@@ -19,7 +19,7 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
                 await dbContext.LockTradersAsync([traderId]);
 
                 var order = await dbContext.TradeOrders.FirstOrDefaultAsync(o => o.Id == orderId);
-                var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
+                var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.Id == traderId);
 
                 if (trader == null)
                     return Fail("Трейдер не найден");
@@ -36,7 +36,7 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
                 dbContext.TradeOrders.Update(order);
                 await dbContext.SaveChangesAsync();
 
-                if (BotFilter.IsBot(traderId))
+                if (trader.IsBot)
                 {
                     dbContext.TradeOrders.Remove(order);
                     await dbContext.SaveChangesAsync();
@@ -55,13 +55,13 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
             {
                 await dbContext.LockTradersAsync([traderId]);
 
-                var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderId);
+                var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.Id == traderId);
 
                 if (trader == null)
                     return Result<int>.Fail("Трейдер не найден");
 
                 var orders = await dbContext.TradeOrders
-                    .Where(o => o.TraderTelegramId == traderId && o.Status == OrderStatus.Active)
+                    .Where(o => o.TraderId == traderId && o.Status == OrderStatus.Active)
                     .ToArrayAsync();
 
                 if (orders.Length == 0)
@@ -80,7 +80,7 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
     public async Task<bool> HasActiveOrdersAsync(long traderId)
     {
         return await dbContext.TradeOrders
-            .AnyAsync(o => o.TraderTelegramId == traderId && o.Status == OrderStatus.Active);
+            .AnyAsync(o => o.TraderId == traderId && o.Status == OrderStatus.Active);
     }
 
     private async Task<Dictionary<string, PortfolioItem>> LoadShortPortfolioItems(long traderId, TradeOrder[] orders)
@@ -95,7 +95,7 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
             return new Dictionary<string, PortfolioItem>();
 
         return (await dbContext.PortfolioItems
-                .Where(p => p.TraderTelegramId == traderId && shortTokens.Contains(p.CharacterTokenId))
+                .Where(p => p.TraderId == traderId && shortTokens.Contains(p.CharacterTokenId))
                 .ToArrayAsync())
             .GroupBy(p => p.CharacterTokenId)
             .ToDictionary(g => g.Key, g => g.First());
@@ -103,14 +103,16 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
 
     private async Task PersistCancellation(long traderId, TradeOrder[] orders)
     {
-        if (BotFilter.IsBot(traderId))
+        var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.Id == traderId);
+
+        if (trader?.IsBot == true)
         {
             dbContext.TradeOrders.RemoveRange(orders);
         }
         else
         {
             await dbContext.TradeOrders
-                .Where(o => o.TraderTelegramId == traderId && o.Status == OrderStatus.Active)
+                .Where(o => o.TraderId == traderId && o.Status == OrderStatus.Active)
                 .ExecuteUpdateAsync(o => o.SetProperty(o => o.Status, OrderStatus.Cancelled));
         }
 
@@ -126,7 +128,7 @@ internal class OrderCancellationService(ArkWalletDbContext dbContext, ILogger<Or
         else
         {
             var portfolioItem = dbContext.PortfolioItems
-                .FirstOrDefault(p => p.TraderTelegramId == traderId && p.CharacterTokenId == order.CharacterTokenId);
+                .FirstOrDefault(p => p.TraderId == traderId && p.CharacterTokenId == order.CharacterTokenId);
             if (portfolioItem is not null)
             {
                 portfolioItem.ReserveQuantity -= order.RemainingQuantity;

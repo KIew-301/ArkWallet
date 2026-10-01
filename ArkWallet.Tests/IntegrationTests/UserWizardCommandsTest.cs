@@ -1277,7 +1277,7 @@ public class UserWizardCommandsTest : IDisposable
     [Fact]
     public async Task AdminGetIds_ShowsTraderList()
     {
-        var traders = new List<(string Username, long TelegramId)>
+        var traders = new List<(string Username, long? TelegramId)>
         {
             ("Alice", 101),
             ("Bob", 200),
@@ -1286,7 +1286,7 @@ public class UserWizardCommandsTest : IDisposable
 
         _m.TraderQuery
             .Setup(s => s.GetAllTradersWithoutBotsAsync())
-            .ReturnsAsync(Result<List<(string Username, long TelegramId)>>.Ok(traders));
+            .ReturnsAsync(Result<List<(string Username, long? TelegramId)>>.Ok(traders));
 
         var result = await _engine.ProcessInput(UserId, "/admin_get_ids");
 
@@ -1304,7 +1304,7 @@ public class UserWizardCommandsTest : IDisposable
     {
         _m.TraderQuery
             .Setup(s => s.GetAllTradersWithoutBotsAsync())
-            .ReturnsAsync(Result<List<(string Username, long TelegramId)>>.Fail("DB error"));
+            .ReturnsAsync(Result<List<(string Username, long? TelegramId)>>.Fail("DB error"));
 
         var result = await _engine.ProcessInput(UserId, "/admin_get_ids");
 

@@ -1,4 +1,4 @@
-using ArkWallet.Core.General.Application.Common;
+﻿using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Core.General.Application.Contracts.Other;
 using ArkWallet.Core.TradingContext.Application.Contracts.Other;
@@ -87,7 +87,7 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
 
         await using (var seed = CreateContext())
         {
-            seed.Traders.Add(Trader.Create(101, "Seller"));
+            seed.Traders.Add(Trader.Create("Seller", telegramId: 101));
             await seed.SaveChangesAsync();
         }
 
@@ -279,12 +279,12 @@ public sealed class ConcurrencyLockTests(PostgresFixture fixture) : IClassFixtur
 
             await using var check = CreateContext();
             var sellerOrder = await check.TradeOrders
-                .SingleAsync(o => o.TraderTelegramId == sellerId && o.CharacterTokenId == symbol);
+                .SingleAsync(o => o.TraderId == sellerId && o.CharacterTokenId == symbol);
 
             Assert.Equal(100, sellerOrder.FilledQuantity);
 
             var buyersExecuted = await check.TradeOrders
-                .Where(o => (o.TraderTelegramId == 1002 || o.TraderTelegramId == 1003) && o.CharacterTokenId == symbol)
+                .Where(o => (o.TraderId == 1002 || o.TraderId == 1003) && o.CharacterTokenId == symbol)
                 .SumAsync(o => o.FilledQuantity);
 
             Assert.Equal(100, buyersExecuted);

@@ -1,5 +1,5 @@
-using ArkWallet.Domain.Entities;
-using ArkWallet.Domain.ValueObjects;
+﻿using ArkWallet.Core.General.Application.Contracts.Other;
+using ArkWallet.Core.General.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 
 namespace ArkWallet.PerformanceTests.Helpers;
@@ -30,15 +30,15 @@ internal static class GatesSeed
         await db.SaveChangesAsync();
     }
 
-    public static async Task SeedTraderAsync(ArkWalletDbContext db, long telegramId, decimal balance = 10_000m)
+    public static async Task<Trader> SeedTraderAsync(ArkWalletDbContext db, long telegramId, decimal balance = 10_000m)
     {
-        var trader = Trader.Create(telegramId, $"Trader_{telegramId}");
-
-        if (balance > Trader.GetDefaultBalance())
-            trader.AddToBalance(balance - Trader.GetDefaultBalance());
+        var trader = Trader.Create(null, false, telegramId);
+        trader.Balance = balance;
 
         await db.Traders.AddAsync(trader);
         await db.SaveChangesAsync();
+
+        return trader;
     }
 
     public static async Task SeedTraderPortfolioAsync(ArkWalletDbContext db, long traderId, string symbol, int quantity = 1_000_000)
@@ -60,23 +60,28 @@ internal static class GatesSeed
         var traders = new List<Trader>();
         var tokens = new List<CharacterToken>();
         var candles = new List<PriceCandle>();
-        var portfolios = new List<PortfolioItem>();
 
         for (int i = 0; i < traderCount; i++)
         {
             var symbol = Symbol(i);
-            var trader = Trader.Create(i + 1, $"Trader_{i + 1}");
-            trader.AddToBalance(1000m * (i + 1));
+            var telegramId = 10_000L + i;
+            var trader = Trader.Create(null, false, telegramId);
+            trader.Balance = 1000m * (i + 1);
 
             traders.Add(trader);
             tokens.Add(CharacterToken.Create(symbol, $"Token {i}", CharacterRarity.FourStar, BasePrice, 1_000_000, $"img{i}.png", $"icon{i}.png"));
             candles.Add(PriceCandle.Create(symbol, BasePrice, now));
-            portfolios.Add(PortfolioItem.Create(i + 1, symbol, 10, BasePrice));
         }
 
         await db.Traders.AddRangeAsync(traders);
         await db.CharacterTokens.AddRangeAsync(tokens);
         await db.PriceCandles.AddRangeAsync(candles);
+        await db.SaveChangesAsync();
+
+        var portfolios = new List<PortfolioItem>();
+        for (int i = 0; i < traderCount; i++)
+            portfolios.Add(PortfolioItem.Create(traders[i].Id, Symbol(i), 10, BasePrice));
+
         await db.PortfolioItems.AddRangeAsync(portfolios);
         await db.SaveChangesAsync();
     }
@@ -87,34 +92,46 @@ internal static class GatesSeed
         var traders = new List<Trader>();
         var tokens = new List<CharacterToken>();
         var candles = new List<PriceCandle>();
-        var bots = new List<MarketMakerBot>();
-        var portfolios = new List<PortfolioItem>();
-        var sellOrders = new List<TradeOrder>();
-
-        foreach (var id in new[] { 101L, 102L })
-        {
-            var trader = Trader.Create(id, $"MarketMakerBot_{id}");
-            trader.AddToBalance(100_000_000m);
-            traders.Add(trader);
-        }
 
         for (int i = 0; i < tokenCount; i++)
         {
             var symbol = Symbol(i);
 
+            var buyerTrader = Trader.Create($"MarketMakerBot_{symbol}_Buyer", isBot: true);
+            buyerTrader.Balance = 100_000_000m;
+            traders.Add(buyerTrader);
+
+            var sellerTrader = Trader.Create($"MarketMakerBot_{symbol}_Seller", isBot: true);
+            sellerTrader.Balance = 100_000_000m;
+            traders.Add(sellerTrader);
+
             tokens.Add(CharacterToken.Create(symbol, $"Token {i}", CharacterRarity.FourStar, BasePrice, 1_000_000, $"img{i}.png", $"icon{i}.png"));
             candles.Add(PriceCandle.Create(symbol, BasePrice, now));
-            bots.Add(MarketMakerBot.Create(101, symbol, BotRole.Buyer, 10m));
-            bots.Add(MarketMakerBot.Create(102, symbol, BotRole.Seller, 10m));
-            portfolios.Add(PortfolioItem.Create(101, symbol, 1_000_000, BasePrice));
-            portfolios.Add(PortfolioItem.Create(102, symbol, 1_000_000, BasePrice));
-            sellOrders.Add(TradeOrder.Create(OrderType.Sell, symbol, 102, BasePrice, 100_000));
-            sellOrders.Add(TradeOrder.Create(OrderType.Sell, symbol, 102, BasePrice + 1, 100_000));
         }
 
         await db.Traders.AddRangeAsync(traders);
         await db.CharacterTokens.AddRangeAsync(tokens);
         await db.PriceCandles.AddRangeAsync(candles);
+        await db.SaveChangesAsync();
+
+        var bots = new List<MarketMakerBotRecord>();
+        var portfolios = new List<PortfolioItem>();
+        var sellOrders = new List<TradeOrder>();
+
+        for (int i = 0; i < tokenCount; i++)
+        {
+            var symbol = Symbol(i);
+            var buyerTrader = traders[i * 2];
+            var sellerTrader = traders[i * 2 + 1];
+
+            bots.Add(MarketMakerBotRecord.Create(buyerTrader.Id, symbol, BotRole.Buyer, 10m));
+            bots.Add(MarketMakerBotRecord.Create(sellerTrader.Id, symbol, BotRole.Seller, 10m));
+            portfolios.Add(PortfolioItem.Create(buyerTrader.Id, symbol, 1_000_000, BasePrice));
+            portfolios.Add(PortfolioItem.Create(sellerTrader.Id, symbol, 1_000_000, BasePrice));
+            sellOrders.Add(TradeOrder.Create(OrderType.Sell, symbol, sellerTrader.Id, BasePrice, 100_000));
+            sellOrders.Add(TradeOrder.Create(OrderType.Sell, symbol, sellerTrader.Id, BasePrice + 1, 100_000));
+        }
+
         await db.MarketMakerBots.AddRangeAsync(bots);
         await db.PortfolioItems.AddRangeAsync(portfolios);
         await db.TradeOrders.AddRangeAsync(sellOrders);

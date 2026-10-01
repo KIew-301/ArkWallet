@@ -1,4 +1,4 @@
-using ArkWallet.Application.Contracts.Other;
+using ArkWallet.Core.General.Application.Contracts.Other;
 
 namespace ArkWallet.PerformanceTests.Helpers;
 

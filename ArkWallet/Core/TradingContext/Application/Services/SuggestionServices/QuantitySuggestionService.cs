@@ -1,4 +1,4 @@
-using ArkWallet.Core.TradingContext.Application.Contracts.SuggestionServices;
+﻿using ArkWallet.Core.TradingContext.Application.Contracts.SuggestionServices;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,7 +11,7 @@ namespace ArkWallet.Core.TradingContext.Application.Services.SuggestionServices
         public async Task<List<QuantitySuggestionDto>> GetBuyQuantitySuggestionsAsync(long traderId, string symbol)
         {
             var trader = await dbContext.Traders
-                .FirstOrDefaultAsync(t => t.TelegramId == traderId);
+                .FirstOrDefaultAsync(t => t.Id == traderId);
 
             if (trader == null)
                 return [];
@@ -36,7 +36,7 @@ namespace ArkWallet.Core.TradingContext.Application.Services.SuggestionServices
         public async Task<List<QuantitySuggestionDto>> GetSellQuantitySuggestionsAsync(long traderId, string symbol)
         {
             var portfolioItem = await dbContext.PortfolioItems
-                .FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
+                .FirstOrDefaultAsync(p => p.TraderId == traderId && p.CharacterTokenId == symbol);
 
             if (portfolioItem == null || portfolioItem.Quantity <= 0)
                 return [];

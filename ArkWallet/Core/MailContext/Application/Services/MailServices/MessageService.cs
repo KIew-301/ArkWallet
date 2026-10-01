@@ -73,17 +73,21 @@ internal class MessageService(
     {
         var traderIds = commands.Select(c => c.TraderId).Distinct().ToList();
 
-        var notificationOnIds = await dbContext.Traders
-            .Where(t => traderIds.Contains(t.TelegramId) && t.NotificationOn)
-            .Select(t => t.TelegramId)
-            .ToListAsync();
+        var notifyTelegramIds = await dbContext.Traders
+            .Where(t => traderIds.Contains(t.Id) && t.NotificationOn && t.TelegramId != null)
+            .Select(t => new { t.Id, t.TelegramId })
+            .ToDictionaryAsync(t => t.Id, t => t.TelegramId!);
 
-        if (notificationOnIds.Count == 0)
+        if (notifyTelegramIds.Count == 0)
             return;
 
         var notifications = commands
-            .Where(c => notificationOnIds.Contains(c.TraderId))
-            .Select(c => new NotificationEvent(c.TraderId, $"Новое сообщение, проверьте почту: {c.Title}"))
+            .Where(c => notifyTelegramIds.ContainsKey(c.TraderId) && notifyTelegramIds[c.TraderId] != null)
+            .Select(c =>
+            {
+                long telegramId = notifyTelegramIds[c.TraderId]!.Value;
+                return new NotificationEvent(telegramId, $"Новое сообщение, проверьте почту: {c.Title}");
+            })
             .ToList();
 
         if (notifications.Count == 0)

@@ -1,4 +1,4 @@
-using ArkWallet.Core.General.Application.Common;
+﻿using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.MiningContext.Application.Contracts.MiningMachineServices;
 using ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices;
 using ArkWallet.Core.PortfolioContext.Application.Services.PortfolioServices;
@@ -185,7 +185,7 @@ public class MiningMachineSlotTakingTokenOrchestratorTest
 
         Assert.True(result.IsSuccess, result.Message);
         var portfolio = await db.PortfolioItems
-            .FirstOrDefaultAsync(p => p.TraderTelegramId == 111 && p.CharacterTokenId == "AAA");
+            .FirstOrDefaultAsync(p => p.TraderId == 111 && p.CharacterTokenId == "AAA");
         Assert.NotNull(portfolio);
         Assert.Equal(25, portfolio.Quantity);
     }
@@ -217,7 +217,7 @@ public class MiningMachineSlotTakingTokenOrchestratorTest
 
         Assert.True(result.IsSuccess, result.Message);
         var portfolio = await db.PortfolioItems
-            .FirstOrDefaultAsync(p => p.TraderTelegramId == 111 && p.CharacterTokenId == "AAA");
+            .FirstOrDefaultAsync(p => p.TraderId == 111 && p.CharacterTokenId == "AAA");
         Assert.NotNull(portfolio);
         Assert.Equal(13, portfolio.Quantity);
     }

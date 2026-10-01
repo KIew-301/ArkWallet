@@ -18,7 +18,7 @@ public class TraderTest
     [Fact]
     public void Create_ValidData_ReturnsTrader()
     {
-        var trader = Trader.Create(101L, "testuser");
+        var trader = Trader.Create("testuser", telegramId: 101L);
 
         Assert.Equal(101L, trader.TelegramId);
         Assert.Equal("testuser", trader.Username);
@@ -29,7 +29,7 @@ public class TraderTest
     [Fact]
     public void Create_NullUsername_ReturnsTrader()
     {
-        var trader = Trader.Create(101L, null);
+        var trader = Trader.Create(null, telegramId: 101L);
 
         Assert.Null(trader.Username);
     }
@@ -38,7 +38,7 @@ public class TraderTest
     public void Create_SetsJoinedAt()
     {
         var before = DateTime.UtcNow;
-        var trader = Trader.Create(101L, "user");
+        var trader = Trader.Create("user", telegramId: 101L);
 
         Assert.True(trader.JoinedAt >= before);
     }
@@ -52,7 +52,7 @@ public class TraderTest
     [Fact]
     public void CanAfford_AmountLessThanBalance_ReturnsTrue()
     {
-        var trader = Trader.Create(101L, "user");
+        var trader = Trader.Create("user", telegramId: 101L);
 
         Assert.True(trader.Balance >= 500m);
     }
@@ -60,7 +60,7 @@ public class TraderTest
     [Fact]
     public void CanAfford_AmountMoreThanBalance_ReturnsFalse()
     {
-        var trader = Trader.Create(101L, "user");
+        var trader = Trader.Create("user", telegramId: 101L);
 
         Assert.False(trader.Balance >= 2000m);
     }
@@ -68,7 +68,7 @@ public class TraderTest
     [Fact]
     public void AddToBalance_IncreasesBalance()
     {
-        var trader = Trader.Create(101L, "user");
+        var trader = Trader.Create("user", telegramId: 101L);
 
         trader.Balance += 500m;
 

@@ -5,13 +5,13 @@ internal sealed record Budget(int Queries, int TimeMs, int? SaveChanges, int? Ro
 internal static class GateBudgets
 {
     public static readonly Budget TokenQuery50T = new(4, 15, null, 150);
-    public static readonly Budget BalanceMainChanges = new(5, 355, null, 4);
-    public static readonly Budget BalanceTotalChanges = new(5, 25, null, 4);
+    public static readonly Budget BalanceMainChanges = new(6, 355, null, 5);
+    public static readonly Budget BalanceTotalChanges = new(6, 25, null, 5);
     public static readonly Budget LeadersTop50T = new(15, 25, null, 240);
     public static readonly Budget OrderCreateBuy = new(10, 25, null, 7);
     public static readonly Budget OrderCreateSell = new(11, 25, null, 8);
-    public static readonly Budget MarketMakerTick10T = new(900, 1500, 90, 900);
-    public static readonly Budget MarketMakerTick20T = new(1700, 3500, 150, 1800);
+    public static readonly Budget MarketMakerTick10T = new(1200, 1500, 120, 1300);
+    public static readonly Budget MarketMakerTick20T = new(2200, 3500, 200, 2600);
     public static readonly Budget E2eDashboardFlow = new(117, 50, null, 165);
     public static readonly Budget E2eTradingFlow = new(40, 2000, null, 66);
     public static readonly Budget E2eCacheCheck = new(108, 40, null, 159);

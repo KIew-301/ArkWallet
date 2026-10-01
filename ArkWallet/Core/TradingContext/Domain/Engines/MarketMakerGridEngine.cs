@@ -8,10 +8,32 @@ internal class MarketMakerGridEngine
     private readonly Random _random = new();
 
     public List<CreateMarketOrderCommand> GetOrdersToPlace(
-        MarketMaker bot,
+        MarketMakerBot bot,
+        decimal currentPrice,
+        int stepsCount = 20)
+        => GetOrdersToPlaceCore(bot, currentPrice, stepsCount, (_) => true);
+
+    public List<CreateMarketOrderCommand> GetOrdersToPlace(
+        MarketMakerBot bot,
         decimal currentPrice,
         List<Order> existingOrders,
         int stepsCount = 20)
+        => GetOrdersToPlaceCore(bot, currentPrice, stepsCount,
+            level => !HasOrderInRange(existingOrders, level.Lower, level.Upper, level.IsBuy));
+
+    public List<CreateMarketOrderCommand> GetOrdersToPlace(
+        MarketMakerBot bot,
+        decimal currentPrice,
+        IReadOnlyCollection<PlacedOrderLevel> existingLevels,
+        int stepsCount = 20)
+        => GetOrdersToPlaceCore(bot, currentPrice, stepsCount,
+            level => !HasLevelInRange(existingLevels, level.Lower, level.Upper, level.IsBuy));
+
+    private List<CreateMarketOrderCommand> GetOrdersToPlaceCore(
+        MarketMakerBot bot,
+        decimal currentPrice,
+        int stepsCount,
+        Func<GridLevel, bool> isFree)
     {
         var commands = new List<CreateMarketOrderCommand>();
 
@@ -21,12 +43,11 @@ internal class MarketMakerGridEngine
 
             for (int i = 0; i < grid.Count - 1; i++)
             {
-                var lower = grid[i + 1];
-                var upper = grid[i];
+                var level = new GridLevel(grid[i + 1], grid[i], IsBuy: true);
 
-                if (!HasOrderInRange(existingOrders, lower, upper, isBuy: true))
+                if (isFree(level))
                 {
-                    var price = GetRandomPriceInRange(lower, upper);
+                    var price = GetRandomPriceInRange(level.Lower, level.Upper);
                     var spread = Random.Shared.Next(0, 41);
                     var quantity = (int)Math.Max(bot.BasePower * 0.3m * (1 + spread / 100m), 1);
 
@@ -46,12 +67,11 @@ internal class MarketMakerGridEngine
 
             for (int i = 0; i < grid.Count - 1; i++)
             {
-                var lower = grid[i];
-                var upper = grid[i + 1];
+                var level = new GridLevel(grid[i], grid[i + 1], IsBuy: false);
 
-                if (!HasOrderInRange(existingOrders, lower, upper, isBuy: false))
+                if (isFree(level))
                 {
-                    var price = GetRandomPriceInRange(lower, upper);
+                    var price = GetRandomPriceInRange(level.Lower, level.Upper);
                     var spread = Random.Shared.Next(0, 41);
                     var quantity = (int)Math.Max(bot.BasePower * 0.3m * (1 + spread / 100m), 1);
 
@@ -68,6 +88,8 @@ internal class MarketMakerGridEngine
 
         return commands;
     }
+
+    private sealed record GridLevel(decimal Lower, decimal Upper, bool IsBuy);
 
     private decimal GetRandomPriceInRange(decimal lowerBound, decimal upperBound)
     {
@@ -88,5 +110,16 @@ internal class MarketMakerGridEngine
             o.Price <= max &&
             o.IsActive() &&
             (isBuy ? o.IsLong() : o.IsShort()));
+    }
+
+    private static bool HasLevelInRange(IReadOnlyCollection<PlacedOrderLevel> levels, decimal lowerBound, decimal upperBound, bool isBuy)
+    {
+        var min = Math.Min(lowerBound, upperBound);
+        var max = Math.Max(lowerBound, upperBound);
+
+        return levels.Any(l =>
+            l.Price >= min &&
+            l.Price <= max &&
+            l.IsBuy == isBuy);
     }
 }

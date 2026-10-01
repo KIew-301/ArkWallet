@@ -1,4 +1,4 @@
-using ArkWallet.Core.General.Application.Common;
+﻿using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices;
 using ArkWallet.Core.General.Application.Dtos;
 using ArkWallet.Infrastructure.Data;
@@ -13,7 +13,7 @@ internal class QueryService(ArkWalletDbContext dbContext, ILogger<QueryService> 
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            var item = await dbContext.PortfolioItems.FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
+            var item = await dbContext.PortfolioItems.FirstOrDefaultAsync(p => p.TraderId == traderId && p.CharacterTokenId == symbol);
             if (item == null)
                 return Result<PortfolioItemInfo>.Fail("Токен в портфеле не найден");
 
@@ -25,7 +25,7 @@ internal class QueryService(ArkWalletDbContext dbContext, ILogger<QueryService> 
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            var items = await dbContext.PortfolioItems.Include(p => p.CharacterToken).Where(p => p.TraderTelegramId == traderId).ToListAsync();
+            var items = await dbContext.PortfolioItems.Include(p => p.CharacterToken).Where(p => p.TraderId == traderId).ToListAsync();
             if (items.Count == 0)
                 return Result<PortfolioItemInfo[]>.Ok([]);
 

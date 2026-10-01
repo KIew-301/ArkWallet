@@ -271,14 +271,12 @@ class Program
         // Background Services
         if (!isTesting)
         {
-            builder.Services.AddHostedService<MarketMakerWorker>();
-            builder.Services.AddHostedService<MarketWallBlockerWorker>();
             builder.Services.AddHostedService<NotificationWorker>();
             builder.Services.AddHostedService<BalanceSavingSnapshotWorker>();
             builder.Services.AddHostedService<MiningMachineCalculationWorker>();
             builder.Services.AddHostedService<MiningGlobalRuleCreationWorker>();
             builder.Services.AddHostedService<MiningMachineSlotSwitchingWorker>();
-            builder.Services.AddHostedService<PowerDeviationWorker>();
+            builder.Services.AddHostedService<BotOrchestratorWorker>();
             builder.Services.AddHostedService<GlobalGoalUpdateWorker>();
             builder.Services.AddHostedService<SubscriptionExpiryWorker>();
             builder.Services.AddHostedService<PaymentConfirmationWorker>();
@@ -298,34 +296,37 @@ class Program
         app.UseHttpsRedirection();
         // Глобальный кап анти-спама: не более 8 запросов/с с одного клиента на API (свечи — 3/с).
         // (на случай, когда спамят на разные эндпоинты — у каждого свой бакет основного лимитера).
-        app.UseRateLimiter(new RateLimiterOptions
+        if (!isTesting)
         {
-            RejectionStatusCode = StatusCodes.Status429TooManyRequests,
-            OnRejected = async (context, cancellationToken) =>
+            app.UseRateLimiter(new RateLimiterOptions
             {
-                context.HttpContext.Response.Headers.RetryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter)
-                    ? ((long)retryAfter.TotalSeconds).ToString()
-                    : "1";
-                await Task.CompletedTask;
-            },
-            GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
-            {
-                string client = GetClientKey(context);
-                bool isApi = context.Request.Path.StartsWithSegments("/api");
-                bool isCandles = context.Request.Path.StartsWithSegments("/api/v1/tokens/candle");
-                int permit = !isApi ? 1000 : isCandles ? 3 : 8;
-                return RateLimitPartition.GetSlidingWindowLimiter(client + "|" + (isApi ? "api" : "web"),
-                    _ => new SlidingWindowRateLimiterOptions
-                    {
-                        PermitLimit = permit,
-                        Window = TimeSpan.FromSeconds(1),
-                        SegmentsPerWindow = 1,
-                        QueueLimit = 0,
-                        AutoReplenishment = true
-                    });
-            })
-        });
-        app.UseRateLimiter();
+                RejectionStatusCode = StatusCodes.Status429TooManyRequests,
+                OnRejected = async (context, cancellationToken) =>
+                {
+                    context.HttpContext.Response.Headers.RetryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter)
+                        ? ((long)retryAfter.TotalSeconds).ToString()
+                        : "1";
+                    await Task.CompletedTask;
+                },
+                GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+                {
+                    string client = GetClientKey(context);
+                    bool isApi = context.Request.Path.StartsWithSegments("/api");
+                    bool isCandles = context.Request.Path.StartsWithSegments("/api/v1/tokens/candle");
+                    int permit = !isApi ? 1000 : isCandles ? 3 : 8;
+                    return RateLimitPartition.GetSlidingWindowLimiter(client + "|" + (isApi ? "api" : "web"),
+                        _ => new SlidingWindowRateLimiterOptions
+                        {
+                            PermitLimit = permit,
+                            Window = TimeSpan.FromSeconds(1),
+                            SegmentsPerWindow = 1,
+                            QueueLimit = 0,
+                            AutoReplenishment = true
+                        });
+                })
+            });
+            app.UseRateLimiter();
+        }
         app.UseCors();
         app.UseAuthentication();
         app.UseAuthorization();
@@ -468,6 +469,7 @@ class Program
         // TradeOrderServices
         services.AddScoped<IOrderCancellationService, OrderCancellationService>();
         services.AddScoped<IOrderCreationService, OrderCreationService>();
+        services.AddScoped<IOrderCollector, OrderCollector>();
         services.AddScoped<IOrderValidationService, OrderValidationService>();
         services.AddScoped<IOrderQueryService, OrderQueryService>();
         services.AddScoped<IOrderBookService, OrderBookService>();
@@ -483,13 +485,9 @@ class Program
 
         // MarketMaker
         services.AddScoped<IMarketMakerBotRegistrationService, MarketMakerBotRegistrationService>();
-        services.AddScoped<PowerDeviationCalculator>();
         services.AddScoped<IMarketMakerBotQueryService, MarketMakerBotQueryService>();
-        services.AddScoped<IMarketMakerOrchestrator, MarketMakerOrchestrator>();
-        services.AddScoped<IMarketMakerOrderService, MarketMakerOrderService>();
-
-        // MarketWallBlocker
-        services.AddScoped<IMarketWallBlockerOrchestrator, MarketWallBlockerOrchestrator>();
+        services.AddScoped<IBotOrchestrator, BotOrchestrator>();
+        services.AddSingleton<IPlanModifierCollection, PlanModifierCollection>();
 
         // MiningMachineServices
         services.AddScoped<ArkWallet.Core.ShoppingContext.Application.Contracts.MiningMachineServices.IMachineCreationService, ArkWallet.Core.ShoppingContext.Application.Services.MiningMachineServices.MachineCreationService>();

@@ -9,14 +9,11 @@ using static Result;
 
 internal class TraderQueryService(ArkWalletDbContext dbContext, ILogger<TraderQueryService> logger) : ITraderQueryService
 {
-    private const long BotIdMin = 100;
-    private const long BotIdMax = 1000;
-
     public async Task<Result<TraderProfileInfo>> GetTraderProfileAsync(long traderTelegramId)
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderTelegramId);
+            var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.Id == traderTelegramId);
 
             if (trader == null)
                 return Result<TraderProfileInfo>.Fail("Данные профиля не найдены.");
@@ -29,7 +26,7 @@ internal class TraderQueryService(ArkWalletDbContext dbContext, ILogger<TraderQu
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
-            var ids = await dbContext.Traders.Select(t => t.TelegramId).ToListAsync();
+            var ids = await dbContext.Traders.Select(t => t.Id).ToListAsync();
             return Result<List<long>>.Ok(ids);
         }, logger, nameof(TraderQueryService));
     }
@@ -39,18 +36,18 @@ internal class TraderQueryService(ArkWalletDbContext dbContext, ILogger<TraderQu
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             var count = await dbContext.Traders
-                .Where(t => t.TelegramId < BotIdMin || t.TelegramId > BotIdMax)
+                .Where(t => !t.IsBot)
                 .CountAsync();
             return Result<int>.Ok(count);
         }, logger, nameof(TraderQueryService));
     }
 
-    public async Task<Result<List<(string Username, long TelegramId)>>> GetAllTradersWithoutBotsAsync()
+    public async Task<Result<List<(string Username, long? TelegramId)>>> GetAllTradersWithoutBotsAsync()
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             var traders = await dbContext.Traders
-                .Where(t => t.TelegramId < BotIdMin || t.TelegramId > BotIdMax)
+                .Where(t => !t.IsBot)
                 .Select(t => new { t.Username, t.TelegramId })
                 .ToListAsync();
 
@@ -58,7 +55,16 @@ internal class TraderQueryService(ArkWalletDbContext dbContext, ILogger<TraderQu
                 .Select(t => (t.Username ?? "Unknown", t.TelegramId))
                 .ToList();
 
-            return Result<List<(string Username, long TelegramId)>>.Ok(result);
+            return Result<List<(string Username, long? TelegramId)>>.Ok(result);
         }, logger, nameof(TraderQueryService));
+    }
+
+    public async Task<long> GetTraderIdByTelegramIdAsync(long telegramId)
+    {
+        var trader = await dbContext.Traders
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.TelegramId == telegramId);
+
+        return trader?.Id ?? 0;
     }
 }

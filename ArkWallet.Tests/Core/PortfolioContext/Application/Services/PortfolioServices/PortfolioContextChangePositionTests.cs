@@ -1,4 +1,4 @@
-using ArkWallet.Core.General.Application.Common;
+﻿using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.PortfolioContext.Application.Services.PortfolioServices;
 using ArkWallet.Core.PortfolioContext.Domain.Position;
 using ArkWallet.Infrastructure.Data;
@@ -149,7 +149,7 @@ public class PortfolioContextChangePositionTests
 
         Assert.True(result.IsSuccess);
         var p = await db.PortfolioItems
-            .FirstOrDefaultAsync(item => item.TraderTelegramId == 2002 && item.CharacterTokenId == "ZZZ");
+            .FirstOrDefaultAsync(item => item.TraderId == 2002 && item.CharacterTokenId == "ZZZ");
         Assert.Null(p);
     }
 }

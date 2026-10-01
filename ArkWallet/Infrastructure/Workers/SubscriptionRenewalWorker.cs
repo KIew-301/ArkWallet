@@ -1,4 +1,4 @@
-using ArkWallet.Core.SubscriptionContext.Application.Contracts.PaymentServices;
+﻿using ArkWallet.Core.SubscriptionContext.Application.Contracts.PaymentServices;
 using ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionPurchaseServices;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -56,7 +56,7 @@ internal sealed class SubscriptionRenewalWorker(
                          && t.SubscriptionExpiresAtUtc.Value <= horizon
                          && t.SavedPaymentMethodId != null
                          && !db.SubscriptionPayments.Any(p =>
-                             p.TraderId == t.TelegramId && p.Status == "pending"))
+                             p.TraderId == t.Id && p.Status == "pending"))
                 .ToListAsync(cancellationToken);
 
             if (dueCandidates.Count == 0)
@@ -74,13 +74,13 @@ internal sealed class SubscriptionRenewalWorker(
                 if (!subscriptions.TryGetValue(trader.SubscriptionId!.Value, out var sub))
                     continue;
 
-                var period = await ResolvePeriodAsync(db, trader.TelegramId, sub, cancellationToken);
+                var period = await ResolvePeriodAsync(db, trader.Id, sub, cancellationToken);
                 var amount = GetPrice(sub, period);
 
                 var paymentResult = await payment.CreatePaymentAsync(
                     new PaymentRequest
                     {
-                        TraderTelegramId = trader.TelegramId,
+                        TraderTelegramId = trader.Id,
                         AmountRubles = amount,
                         SubscriptionId = sub.Id,
                         Description = $"Автопродление подписки {sub.Name}",
@@ -98,7 +98,7 @@ internal sealed class SubscriptionRenewalWorker(
 
                 db.SubscriptionPayments.Add(new SubscriptionPayment
                 {
-                    TraderId = trader.TelegramId,
+                    TraderId = trader.Id,
                     SubscriptionId = sub.Id,
                     Period = (int)period,
                     AmountRubles = amount,

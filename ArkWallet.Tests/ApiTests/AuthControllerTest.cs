@@ -92,10 +92,15 @@ public class AuthControllerTest
             .Setup(x => x.GenerateToken(It.IsAny<long>()))
             .Returns("token");
 
+        var mockTraderQueryService = new Mock<ITraderQueryService>();
+        mockTraderQueryService
+            .Setup(x => x.GetTraderIdByTelegramIdAsync(It.IsAny<long>()))
+            .ReturnsAsync(101);
+
         var mockLogger = new Mock<ILogger<AuthController>>();
 
         var authController = new AuthController(
-            mockTraderRegistrationService.Object, config,
+            mockTraderRegistrationService.Object, mockTraderQueryService.Object, config,
             mockTokenService.Object, mockTraderAuthService.Object,
             new AccessControlService(), mockLogger.Object);
 

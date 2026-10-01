@@ -10,6 +10,7 @@ using ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
 using ArkWallet.Core.TradingContext.Domain.Events;
 using ArkWallet.Infrastructure.Data;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace ArkWallet.Infrastructure;
 
@@ -33,7 +34,8 @@ internal sealed class OrderFilledEventHandler(ArkWalletDbContext dbContext) : IN
 
         TradingContextMapper.ApplyTo(trackedOrder, order);
 
-        if (BotFilter.IsBot(order.TraderId) && order.IsFilled())
+        var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.Id == order.TraderId, cancellationToken);
+        if (trader?.IsBot == true && order.IsFilled())
         {
             dbContext.TradeOrders.Remove(trackedOrder);
             await dbContext.SaveChangesAsync(cancellationToken);
@@ -43,15 +45,16 @@ internal sealed class OrderFilledEventHandler(ArkWalletDbContext dbContext) : IN
 
 internal sealed class TradeExecutedEventHandler(ArkWalletDbContext dbContext) : INotificationHandler<TradeExecutedEvent>
 {
-    public Task Handle(TradeExecutedEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(TradeExecutedEvent notification, CancellationToken cancellationToken)
     {
         var trade = notification.Trade;
 
-        if (BotFilter.IsBotBotTrade(trade.BuyerId, trade.SellerId))
-            return Task.CompletedTask;
+        var buyer = await dbContext.Traders.FirstOrDefaultAsync(t => t.Id == trade.BuyerId, cancellationToken);
+        var seller = await dbContext.Traders.FirstOrDefaultAsync(t => t.Id == trade.SellerId, cancellationToken);
+        if (buyer?.IsBot == true && seller?.IsBot == true)
+            return;
 
         dbContext.Trades.Add(TradingContextMapper.ToTrade(trade));
-        return Task.CompletedTask;
     }
 }
 

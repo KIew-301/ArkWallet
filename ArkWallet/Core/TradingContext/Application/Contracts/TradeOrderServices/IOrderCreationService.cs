@@ -48,6 +48,14 @@ namespace ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices
         /// </para>
         /// </remarks>
         Task<Result<List<OrderCreationData>>> CreateOrdersAsync(IEnumerable<CreateOrderCommand> commands);
+
+        /// <summary>
+        /// Размещает коллекции команд, собранные из событий ботов.
+        /// </summary>
+        /// <param name="collections">Коллекции команд от ботов. Каждая коллекция размещается атомарно (все ордера или ничего),
+        /// коллекции обрабатываются независимо (провал одной не отменяет остальные).</param>
+        /// <returns>Результат размещения с числом размещённых/проваленных коллекций.</returns>
+        Task<Result> PlaceCollectedAsync(IReadOnlyCollection<IReadOnlyCollection<CreateOrderCommand>> collections);
     }
 
     /// <summary>

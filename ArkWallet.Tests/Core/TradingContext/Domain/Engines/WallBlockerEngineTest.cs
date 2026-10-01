@@ -9,17 +9,17 @@ public class WallBlockerEngineTest
 
     public static TheoryData<decimal> TestPricesData => new(TestPrices);
 
-    [Theory]
+[Theory]
     [MemberData(nameof(TestPricesData))]
-    public void GetLevels_ReturnsTenLevels_FiveBuyAndFiveSell(decimal currentPrice)
+    public void GetLevels_ReturnsTwentyLevels_TenBuyAndTenSell(decimal currentPrice)
     {
         var engine = new WallBlockerEngine();
 
         var levels = engine.GetLevels(currentPrice);
 
-        Assert.Equal(10, levels.Count);
-        Assert.Equal(5, levels.Count(l => l.Direction == "купить"));
-        Assert.Equal(5, levels.Count(l => l.Direction == "продать"));
+        Assert.Equal(20, levels.Count);
+        Assert.Equal(10, levels.Count(l => l.Direction == "купить"));
+        Assert.Equal(10, levels.Count(l => l.Direction == "продать"));
     }
 
     [Theory]

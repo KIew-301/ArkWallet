@@ -1,4 +1,4 @@
-using ArkWallet.Core.General.Application.Common;
+﻿using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionServices;
 using ArkWallet.Core.SubscriptionContext.Application.Dtos;
 using ArkWallet.Infrastructure.Data;
@@ -87,7 +87,7 @@ internal class SubscriptionQueryService(TimeProvider timeProvider, ArkWalletDbCo
             var now = timeProvider.GetUtcNow().UtcDateTime;
 
             var activeSubscriptionId = await dbContext.Traders
-                .Where(t => t.TelegramId == traderTelegramId)
+                .Where(t => t.Id == traderTelegramId)
                 .Select(t => t.SubscriptionId)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -100,7 +100,7 @@ internal class SubscriptionQueryService(TimeProvider timeProvider, ArkWalletDbCo
                     .FirstOrDefaultAsync(s => s.Id == activeSubscriptionId.Value, cancellationToken);
 
                 activeExpiresAtUtc = await dbContext.Traders
-                    .Where(t => t.TelegramId == traderTelegramId)
+                    .Where(t => t.Id == traderTelegramId)
                     .Select(t => t.SubscriptionExpiresAtUtc)
                     .FirstOrDefaultAsync(cancellationToken);
             }

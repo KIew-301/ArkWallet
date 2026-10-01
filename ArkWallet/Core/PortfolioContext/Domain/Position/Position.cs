@@ -1,4 +1,4 @@
-using ArkWallet.Core.General.Domain.Exceptions;
+﻿using ArkWallet.Core.General.Domain.Exceptions;
 
 namespace ArkWallet.Core.PortfolioContext.Domain.Position;
 
@@ -11,7 +11,7 @@ internal class Position
     private const string InvalidQuantityMessage = "Количество токенов меньше 0";
 
     public string Id { get; }
-    public long TraderTelegramId { get; }
+    public long TraderId { get; }
     public string Symbol { get; }
     public int Quantity { get; private set; }
     public int SellingQuantity { get; private set; }
@@ -24,7 +24,7 @@ internal class Position
     private Position(PositionData data)
     {
         Id = data.Id;
-        TraderTelegramId = data.TraderTelegramId;
+        TraderId = data.TraderId;
         Symbol = data.Symbol;
         Quantity = data.Quantity;
         SellingQuantity = data.SellingQuantity;
@@ -53,7 +53,7 @@ internal class Position
 
         return new Position(new PositionData(
             Id: Guid.NewGuid().ToString(),
-            TraderTelegramId: traderTelegramId,
+            TraderId: traderTelegramId,
             Symbol: symbol,
             Quantity: quantity,
             SellingQuantity: 0,
@@ -244,7 +244,7 @@ internal class Position
 /// </summary>
 internal sealed record PositionData(
     string Id,
-    long TraderTelegramId,
+    long TraderId,
     string Symbol,
     int Quantity,
     int SellingQuantity,

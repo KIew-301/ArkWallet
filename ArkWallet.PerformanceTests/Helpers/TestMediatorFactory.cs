@@ -1,4 +1,4 @@
-using ArkWallet.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Infrastructure;
 using ArkWallet.Infrastructure.Data;
 using MediatR;

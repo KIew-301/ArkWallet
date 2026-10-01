@@ -1,4 +1,4 @@
-using ArkWallet.Core.General.Application.Common;
+﻿using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.General.Domain.Exceptions;
 using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
 using ArkWallet.Core.General.Application.Contracts.Other;
@@ -33,8 +33,22 @@ internal class HelpMethods
 {
     public static async Task<Result> RegisterTrader(ArkWalletDbContext db, long telegramId, string name = "User")
     {
-        var service = new TraderRegistrationService(db, NullLogger<TraderRegistrationService>.Instance);
-        return await service.RegisterTraderAsync(telegramId, name);
+        if (string.IsNullOrWhiteSpace(name))
+            return Result.Fail("Имя не может быть пустым");
+
+        if (telegramId <= 0)
+            return Result.Fail($"Некорректный ID пользователя {telegramId}");
+
+        var existing = await db.Traders.FirstOrDefaultAsync(t => t.TelegramId == telegramId);
+        if (existing != null)
+            return Result.Fail("Пользователь уже существует");
+
+        var isBot = telegramId >= 100 && telegramId <= 1000;
+        var trader = Trader.Create(name, isBot, telegramId);
+        trader.Id = telegramId;
+        await db.Traders.AddAsync(trader);
+        await db.SaveChangesAsync();
+        return Result.Ok();
     }
 
     public static async Task<Result> GiveMoney(ArkWalletDbContext db, long telegramId, decimal amount)
@@ -75,7 +89,7 @@ internal class HelpMethods
 
     public static async Task GiveToken(ArkWalletDbContext db, long traderId, string symbol, int quantity)
     {
-        var item = await db.PortfolioItems.FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
+        var item = await db.PortfolioItems.FirstOrDefaultAsync(p => p.TraderId == traderId && p.CharacterTokenId == symbol);
         if (item != null)
         {
             var totalCost = item.Quantity * item.AverageBuyPrice + quantity * item.AverageBuyPrice;
@@ -86,7 +100,7 @@ internal class HelpMethods
 
     public static async Task RemoveToken(ArkWalletDbContext db, long traderId, string symbol, int quantity)
     {
-        var item = await db.PortfolioItems.FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterTokenId == symbol);
+        var item = await db.PortfolioItems.FirstOrDefaultAsync(p => p.TraderId == traderId && p.CharacterTokenId == symbol);
         if (item != null)
         {
             if (quantity <= 0) throw new DomainException("Количество токенов меньше или равно 0");
@@ -132,7 +146,7 @@ internal class HelpMethods
 
     public static async Task<Result> SaveBalanceSnapshot(
         ArkWalletDbContext db,
-        long traderTelegramId,
+        long traderId,
         decimal totalBalance,
         decimal mainBalance,
         decimal longOrderReserve,
@@ -143,7 +157,7 @@ internal class HelpMethods
         var logger = NullLogger<BalanceSavingService>.Instance;
         var service = new BalanceSavingService(db, logger);
         return await service.SaveBalanceToDatabase(
-            traderTelegramId, totalBalance, mainBalance,
+            traderId, totalBalance, mainBalance,
             longOrderReserve, shortOrderReserve, balanceInTokens,
             snapshotDateTime)!;
     }
@@ -185,14 +199,14 @@ internal class HelpMethods
     {
         var item = await db.PortfolioItems
             .Include(p => p.CharacterToken)
-            .FirstOrDefaultAsync(p => p.TraderTelegramId == traderId && p.CharacterToken!.Symbol == symbol);
+            .FirstOrDefaultAsync(p => p.TraderId == traderId && p.CharacterToken!.Symbol == symbol);
         return item ?? throw new ArgumentNullException($"Portfolio not found for traderId={traderId}, symbol={symbol}");
     }
 
     public static async Task<TradeOrder[]> GetTraderOrders(ArkWalletDbContext db, long traderId, string symbol = "ZZZ", OrderStatus status = OrderStatus.Active) =>
         await db.TradeOrders
             .Include(o => o.CharacterToken)
-            .Where(o => o.TraderTelegramId == traderId && o.CharacterToken!.Symbol == symbol && o.Status == status)
+            .Where(o => o.TraderId == traderId && o.CharacterToken!.Symbol == symbol && o.Status == status)
             .ToArrayAsync();
 
     public static async Task<BalanceSnapshot[]> GetBalanceHistory(ArkWalletDbContext db, long traderId) =>

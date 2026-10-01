@@ -10,22 +10,22 @@ internal class MarketMakerBotQueryService(
     ArkWalletDbContext dbContext,
     ILogger<MarketMakerBotQueryService> logger) : IMarketMakerBotQueryService
 {
-    public async Task<Result<List<MarketMakerBot>>> GetBotsBySymbolAsync(string symbol)
+    public async Task<Result<List<MarketMakerBotRecord>>> GetBotsBySymbolAsync(string symbol)
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             if (string.IsNullOrWhiteSpace(symbol))
-                return Result<List<MarketMakerBot>>.Fail("Symbol cannot be empty");
+                return Result<List<MarketMakerBotRecord>>.Fail("Symbol cannot be empty");
 
             var bots = await dbContext.MarketMakerBots
                 .Where(b => b.Symbol == symbol)
                 .ToListAsync();
 
-            return Result<List<MarketMakerBot>>.Ok(bots);
+            return Result<List<MarketMakerBotRecord>>.Ok(bots);
         }, logger, nameof(MarketMakerBotQueryService));
     }
 
-    public async Task<Result<MarketMakerBot>> GetBotByIdAsync(long botId)
+    public async Task<Result<MarketMakerBotRecord>> GetBotByIdAsync(long botId)
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
@@ -33,9 +33,9 @@ internal class MarketMakerBotQueryService(
                 .FirstOrDefaultAsync(b => b.Id == botId);
 
             if (bot == null)
-                return Result<MarketMakerBot>.Fail($"Bot with ID {botId} not found");
+                return Result<MarketMakerBotRecord>.Fail($"Bot with ID {botId} not found");
 
-            return Result<MarketMakerBot>.Ok(bot);
+            return Result<MarketMakerBotRecord>.Ok(bot);
         }, logger, nameof(MarketMakerBotQueryService));
     }
 

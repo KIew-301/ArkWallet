@@ -1,4 +1,4 @@
-using ArkWallet.Core.TradingContext.Application.Contracts.SuggestionServices;
+﻿using ArkWallet.Core.TradingContext.Application.Contracts.SuggestionServices;
 using ArkWallet.Core.General.Domain.ValueObjects;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +10,7 @@ namespace ArkWallet.Core.TradingContext.Application.Services.SuggestionServices
         public async Task<List<PriceSuggestionDto>> GetBuyPriceSuggestionsAsync(long traderId, string symbol, int quantity)
         {
             var trader = await dbContext.Traders
-                .FirstOrDefaultAsync(t => t.TelegramId == traderId);
+                .FirstOrDefaultAsync(t => t.Id == traderId);
             var lastLongOrders = (await dbContext.TradeOrders
                 .Where(o => o.Type == OrderType.Buy && o.CharacterTokenId == symbol && o.Status == OrderStatus.Active)
                 .AsNoTracking()

@@ -564,14 +564,14 @@ namespace ArkWallet.Migrations
                     b.Property<int>("SellingQuantity")
                         .HasColumnType("integer");
 
-                    b.Property<long>("TraderTelegramId")
+                    b.Property<long>("TraderId")
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CharacterTokenId");
 
-                    b.HasIndex("TraderTelegramId");
+                    b.HasIndex("TraderId");
 
                     b.ToTable("PortfolioItems");
                 });
@@ -803,7 +803,7 @@ namespace ArkWallet.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
-                    b.Property<long>("TraderTelegramId")
+                    b.Property<long>("TraderId")
                         .HasColumnType("bigint");
 
                     b.Property<int>("Type")
@@ -813,21 +813,24 @@ namespace ArkWallet.Migrations
 
                     b.HasIndex("CharacterTokenId");
 
-                    b.HasIndex("TraderTelegramId");
+                    b.HasIndex("TraderId");
 
                     b.ToTable("TradeOrders");
                 });
 
             modelBuilder.Entity("ArkWallet.Infrastructure.Data.Trader", b =>
                 {
-                    b.Property<long>("TelegramId")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("TelegramId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<decimal>("Balance")
                         .HasColumnType("numeric");
+
+                    b.Property<bool>("IsBot")
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime>("JoinedAt")
                         .HasColumnType("timestamp with time zone");
@@ -844,12 +847,18 @@ namespace ArkWallet.Migrations
                     b.Property<int?>("SubscriptionId")
                         .HasColumnType("integer");
 
+                    b.Property<long?>("TelegramId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Username")
                         .HasColumnType("text");
 
-                    b.HasKey("TelegramId");
+                    b.HasKey("Id");
 
                     b.HasIndex("SubscriptionId");
+
+                    b.HasIndex("TelegramId")
+                        .IsUnique();
 
                     b.ToTable("Traders");
                 });
@@ -965,7 +974,7 @@ namespace ArkWallet.Migrations
 
                     b.HasOne("ArkWallet.Infrastructure.Data.Trader", "Trader")
                         .WithMany("Portfolio")
-                        .HasForeignKey("TraderTelegramId")
+                        .HasForeignKey("TraderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1041,7 +1050,7 @@ namespace ArkWallet.Migrations
 
                     b.HasOne("ArkWallet.Infrastructure.Data.Trader", "Trader")
                         .WithMany("Orders")
-                        .HasForeignKey("TraderTelegramId")
+                        .HasForeignKey("TraderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

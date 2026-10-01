@@ -1,4 +1,4 @@
-using ArkWallet.Core.General.Application.Common;
+﻿using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
 using ArkWallet.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -41,7 +41,7 @@ namespace ArkWallet.Core.TradingContext.Application.Services.TradeOrderServices
             if (!order.IsActive)
                 return new ValidationResult(false, "Нельзя отменить неактивный ордер");
 
-            if (order.TraderTelegramId != traderId)
+            if (order.TraderId != traderId)
                 return new ValidationResult(false, "Нельзя отменить не своей ордер");
 
             return new ValidationResult(true);

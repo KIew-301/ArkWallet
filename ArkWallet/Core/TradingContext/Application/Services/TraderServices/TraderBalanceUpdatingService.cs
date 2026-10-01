@@ -22,7 +22,7 @@ internal class TraderBalanceUpdatingService(ArkWalletDbContext dbContext, ILogge
 
                 var trader = await dbContext.Traders
                     .AsTracking()
-                    .FirstOrDefaultAsync(t => t.TelegramId == traderId);
+                    .FirstOrDefaultAsync(t => t.Id == traderId);
 
                 if (trader == null)
                     return Fail("Трейдера не существует");

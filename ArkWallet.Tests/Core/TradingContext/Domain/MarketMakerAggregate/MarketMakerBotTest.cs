@@ -1,4 +1,4 @@
-using ArkWallet.Core.General.Domain.ValueObjects;
+﻿using ArkWallet.Core.General.Domain.ValueObjects;
 using ArkWallet.Core.TradingContext.Domain.TraderAggregate;
 using ArkWallet.Core.TradingContext.Domain.TokenAggregate;
 using ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
@@ -19,7 +19,7 @@ public class MarketMakerBotTest
     [Fact]
     public void Create_ValidData_ReturnsBot()
     {
-        var bot = MarketMakerBot.Create(101, "ARK_001", BotRole.Buyer, 75);
+        var bot = MarketMakerBotRecord.Create(101, "ARK_001", BotRole.Buyer, 75);
 
         Assert.Equal(101, bot.TraderId);
         Assert.Equal("ARK_001", bot.Symbol);
@@ -32,7 +32,7 @@ public class MarketMakerBotTest
     [Fact]
     public void Create_DefaultPower_Returns50()
     {
-        var bot = MarketMakerBot.Create(101, "ARK_001", BotRole.Seller);
+        var bot = MarketMakerBotRecord.Create(101, "ARK_001", BotRole.Seller);
 
         Assert.Equal(50, bot.BasePower);
         Assert.Equal(BotRole.Seller, bot.Role);
@@ -42,7 +42,7 @@ public class MarketMakerBotTest
     public void Create_SetsCreatedAt()
     {
         var before = DateTime.UtcNow;
-        var bot = MarketMakerBot.Create(101, "ARK_001", BotRole.Buyer);
+        var bot = MarketMakerBotRecord.Create(101, "ARK_001", BotRole.Buyer);
         var after = DateTime.UtcNow;
 
         Assert.True(bot.CreatedAt >= before);
@@ -52,7 +52,7 @@ public class MarketMakerBotTest
     [Fact]
     public void SetRole_ChangesRole()
     {
-        var bot = MarketMakerBot.Create(101, "ARK_001", BotRole.Buyer);
+        var bot = MarketMakerBotRecord.Create(101, "ARK_001", BotRole.Buyer);
 
         bot.Role = BotRole.Seller;
 
@@ -62,7 +62,7 @@ public class MarketMakerBotTest
     [Fact]
     public void SetActive_ChangesActiveState()
     {
-        var bot = MarketMakerBot.Create(101, "ARK_001", BotRole.Buyer);
+        var bot = MarketMakerBotRecord.Create(101, "ARK_001", BotRole.Buyer);
 
         bot.IsActive = false;
 
@@ -72,7 +72,7 @@ public class MarketMakerBotTest
     [Fact]
     public void SetBasePower_ChangesPower()
     {
-        var bot = MarketMakerBot.Create(101, "ARK_001", BotRole.Buyer);
+        var bot = MarketMakerBotRecord.Create(101, "ARK_001", BotRole.Buyer);
 
         bot.BasePower = 200;
 
@@ -82,7 +82,7 @@ public class MarketMakerBotTest
     [Fact]
     public void UpdatePower_ClampsWithinBounds()
     {
-        var bot = MarketMakerBot.Create(101, "ARK_001", BotRole.Buyer, 50);
+        var bot = MarketMakerBotRecord.Create(101, "ARK_001", BotRole.Buyer, 50);
 
         for (int i = 0; i < 100; i++)
         {
@@ -98,7 +98,7 @@ public class MarketMakerBotTest
     [Fact]
     public void UpdateRebalanced_SetsNextRebalance()
     {
-        var bot = MarketMakerBot.Create(101, "ARK_001", BotRole.Buyer);
+        var bot = MarketMakerBotRecord.Create(101, "ARK_001", BotRole.Buyer);
         var before = DateTime.UtcNow;
 
         bot.NextRebalance = DateTime.UtcNow.AddMinutes(10);

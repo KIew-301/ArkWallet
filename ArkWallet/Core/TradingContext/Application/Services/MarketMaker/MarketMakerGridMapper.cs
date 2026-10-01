@@ -13,21 +13,21 @@ namespace ArkWallet.Core.TradingContext.Application.Services.MarketMaker;
 /// </summary>
 internal static class MarketMakerGridMapper
 {
-    internal static global::ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate.MarketMaker ToMarketMaker(
-        Records.MarketMakerBot source)
-        => global::ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate.MarketMaker.Load(
-        source.Id,
-        source.TraderId,
-        source.Symbol,
-        (MarketMakerRole)(int)source.Role,
-        source.BasePower,
-        source.IsActive,
-        source.CreatedAt,
-        source.PowerDeviationCoeff);
+    internal static MarketMakerBot ToMarketMaker(
+        Records.MarketMakerBotRecord source)
+        => MarketMakerBot.Load(new MarketMakerBotLoadData(
+            source.Id,
+            source.TraderId,
+            source.Symbol,
+            (MarketMakerRole)(int)source.Role,
+            source.BasePower,
+            source.IsActive,
+            source.CreatedAt,
+            source.PowerDeviationCoeff));
 
     internal static List<CreateOrderCommand> CollectGridCommands(
         MarketMakerGridEngine engine,
-        Records.MarketMakerBot bot,
+        Records.MarketMakerBotRecord bot,
         decimal currentPrice,
         List<Records.TradeOrder> existingOrders)
     {
@@ -36,12 +36,16 @@ internal static class MarketMakerGridMapper
 
         var commands = engine.GetOrdersToPlace(domainBot, currentPrice, domainOrders);
 
-        return commands
-            .Select(c => new CreateOrderCommand(c.TraderId, c.Direction, c.Symbol, c.Quantity, c.Price))
-            .ToList();
+        return ToCommands(commands);
     }
 
-    private static Order ToOrder(Records.TradeOrder source) => Order.Reconstruct(new OrderLoadCommand(
+    /// <summary>Маппит доменные команды бота в Application-команды размещения ордеров.</summary>
+    internal static List<CreateOrderCommand> ToCommands(IReadOnlyCollection<CreateMarketOrderCommand> commands)
+        => commands
+            .Select(c => new CreateOrderCommand(c.TraderId, c.Direction, c.Symbol, c.Quantity, c.Price))
+            .ToList();
+
+    internal static Order ToOrder(Records.TradeOrder source) => Order.Reconstruct(new OrderLoadCommand(
         source.Id,
         (TradingOrderType)(int)source.Type,
         source.CharacterTokenId,

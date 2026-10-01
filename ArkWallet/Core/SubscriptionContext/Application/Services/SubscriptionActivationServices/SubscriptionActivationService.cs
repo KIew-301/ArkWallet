@@ -22,7 +22,7 @@ internal class SubscriptionActivationService(
             if (sub is null)
                 return new SubscriptionActivationResult(false, null);
 
-            var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.TelegramId == traderTelegramId, cancellationToken);
+            var trader = await dbContext.Traders.FirstOrDefaultAsync(t => t.Id == traderTelegramId, cancellationToken);
             if (trader is null)
                 return new SubscriptionActivationResult(false, null);
 
@@ -36,7 +36,7 @@ internal class SubscriptionActivationService(
 
             var historyEntry = new SubscriptionPurchaseHistory
             {
-                TraderId = trader.TelegramId,
+                TraderId = trader.Id,
                 SubscriptionId = sub.Id,
                 PriceRubles = amountRubles,
                 PurchasedAtUtc = now,
@@ -51,7 +51,7 @@ internal class SubscriptionActivationService(
 
             await eventPublisher.PublishAsync(
                 new TraderSubscriptionChangedEvent(
-                    trader.TelegramId,
+                    trader.Id,
                     operation,
                     sub.Name,
                     sub.Level,

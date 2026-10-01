@@ -3,7 +3,7 @@ namespace ArkWallet.Infrastructure.Data;
 /// <summary>
 /// Бот для создания искусственной рыночной активности
 /// </summary>
-internal class MarketMakerBot : EntityData
+internal class MarketMakerBotRecord : EntityData
 {
     public long Id { get; internal set; }
     public string Symbol { get; internal set; } = string.Empty;
@@ -30,10 +30,10 @@ internal class MarketMakerBot : EntityData
     /// <summary>Время создания</summary>
     public DateTime CreatedAt { get; internal set; } = DateTime.UtcNow;
 
-    public static MarketMakerBot Create(long traderId, string symbol, BotRole botRole, decimal initialPower = 50, TimeProvider? timeProvider = null)
+    public static MarketMakerBotRecord Create(long traderId, string symbol, BotRole botRole, decimal initialPower = 50, TimeProvider? timeProvider = null)
     {
         var utcNow = (timeProvider ?? TimeProvider.System).GetUtcNow().UtcDateTime;
-        return new MarketMakerBot
+        return new MarketMakerBotRecord
         {
             TraderId = traderId,
             Symbol = symbol,
@@ -54,5 +54,8 @@ public enum BotRole
     Buyer,
 
     /// <summary>Бот выступает в роли продавца</summary>
-    Seller
+    Seller,
+
+    /// <summary>Бот-«стена» — привязка к трейдеру WallBlocker</summary>
+    Waller
 }

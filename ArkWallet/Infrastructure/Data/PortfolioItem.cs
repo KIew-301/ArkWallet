@@ -9,7 +9,7 @@ namespace ArkWallet.Infrastructure.Data
         public string Id { get; set; } = Guid.NewGuid().ToString();
 
         // Внешние ключи
-        public long TraderTelegramId { get; private set; }
+        public long TraderId { get; private set; }
         public string CharacterTokenId { get; private set; } = string.Empty;
 
         // Данные владения
@@ -48,13 +48,13 @@ namespace ArkWallet.Infrastructure.Data
             AverageReservePrice = averageReservePrice;
         }
 
-        public static PortfolioItem Create(long telegramId, string symbol, int quantity, decimal price)
+        public static PortfolioItem Create(long traderId, string symbol, int quantity, decimal price)
         {
             if (quantity == 0) throw new DomainException("Количество токенов меньше 0");
 
             return new PortfolioItem
             {
-                TraderTelegramId = telegramId,
+                TraderId = traderId,
                 CharacterTokenId = symbol,
                 Quantity = quantity,
                 AverageBuyPrice = price

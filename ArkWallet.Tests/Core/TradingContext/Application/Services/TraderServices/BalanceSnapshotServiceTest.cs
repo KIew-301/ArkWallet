@@ -1,4 +1,4 @@
-using ArkWallet.Core.TradingContext.Application.Services.TraderServices;
+﻿using ArkWallet.Core.TradingContext.Application.Services.TraderServices;
 using ArkWallet.Core.General.Domain.ValueObjects;
 using ArkWallet.Core.TradingContext.Domain.TraderAggregate;
 using ArkWallet.Core.TradingContext.Domain.TokenAggregate;
@@ -71,7 +71,7 @@ public class BalanceSnapshotServiceTest
 
         var saveSnapshotResult = await HelpMethods.SaveBalanceSnapshot(
             db,
-            resultSnapshot.traderTelegramId,
+            resultSnapshot.traderId,
             resultSnapshot.totalBalance,
             resultSnapshot.mainBalance,
             resultSnapshot.longOrderReserve,
@@ -80,7 +80,7 @@ public class BalanceSnapshotServiceTest
             resultSnapshot.dateTimeSnapshot
         );
 
-        var balanceHistory = await HelpMethods.GetBalanceHistory(db, resultSnapshot.traderTelegramId);
+        var balanceHistory = await HelpMethods.GetBalanceHistory(db, resultSnapshot.traderId);
 
         Assert.True(saveSnapshotResult.IsSuccess);
         Assert.Equal(2000, balanceHistory[0].TotalBalance);
@@ -101,7 +101,7 @@ public class BalanceSnapshotServiceTest
 
         var saveSnapshotResult = await HelpMethods.SaveBalanceSnapshot(
             db,
-            resultSnapshot.traderTelegramId,
+            resultSnapshot.traderId,
             resultSnapshot.totalBalance,
             resultSnapshot.mainBalance,
             resultSnapshot.longOrderReserve,
@@ -110,7 +110,7 @@ public class BalanceSnapshotServiceTest
             default
         );
 
-        var balanceHistory = await HelpMethods.GetBalanceHistory(db, resultSnapshot.traderTelegramId);
+        var balanceHistory = await HelpMethods.GetBalanceHistory(db, resultSnapshot.traderId);
 
         Assert.False(saveSnapshotResult.IsSuccess);
         Assert.Equal($"Некорректная дата и время снимка (default)", saveSnapshotResult.Message);

@@ -100,6 +100,7 @@ internal static class WizardEngineTestHelper
         configuration.Setup(c => c["Telegram:AdminId:Main"]).Returns("999999");
 
         var dbContext = DbTest.CreateDbContext();
+        dbContext.Database.EnsureCreated();
 
         var questionDecorator = new Mock<IQuestionDecorator>();
         questionDecorator

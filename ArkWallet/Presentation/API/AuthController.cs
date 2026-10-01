@@ -17,6 +17,7 @@ namespace ArkWallet.Presentation.API;
 [Route("api/v1/[controller]")]
 public class AuthController(
     ITraderRegistrationService traderRegistrationService,
+    ITraderQueryService traderQueryService,
     IConfiguration configuration, ITokenService tokenService,
     ITraderAuthService traderAuthService,
     AccessControlService accessControl,
@@ -65,7 +66,14 @@ public class AuthController(
             logger.LogInformation("Auto-registered new user {UserId} ({FirstName})", data.User.Id, data.User.FirstName);
         }
 
-        var token = tokenService.GenerateToken(data.User.Id);
+        long traderId = await traderQueryService.GetTraderIdByTelegramIdAsync(data.User.Id);
+        if (traderId == 0)
+        {
+            logger.LogWarning("Trader lookup failed for user {UserId} ({FirstName})", data.User.Id, data.User.FirstName);
+            return BadRequest("Не удалось определить трейдера");
+        }
+
+        var token = tokenService.GenerateToken(traderId);
         return Ok(new LoginResponse(token));
     }
 }

@@ -1,6 +1,6 @@
-using ArkWallet.Application.Contracts.CharacterTokenServices;
-using ArkWallet.Application.Contracts.Other;
-using ArkWallet.Application.Services.CharacterTokenServices;
+using ArkWallet.Core.TradingContext.Application.Contracts.CharacterTokenServices;
+using ArkWallet.Core.General.Application.Contracts.Other;
+using ArkWallet.Core.TradingContext.Application.Services.CharacterTokenServices;
 using ArkWallet.Infrastructure;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.PerformanceTests.Helpers;
@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -41,6 +42,7 @@ internal sealed class E2eHost : WebApplicationFactory<Program>
             services.RemoveAll<ITaskDispatcher>();
             services.AddScoped<ITaskDispatcher, FakeTaskDispatcher>();
 
+            services.RemoveAll<IDbContextOptionsConfiguration<ArkWalletDbContext>>();
             services.RemoveAll<DbContextOptions<ArkWalletDbContext>>();
             services.RemoveAll<ArkWalletDbContext>();
             services.AddDbContext<ArkWalletDbContext>(options => options

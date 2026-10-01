@@ -69,7 +69,7 @@ internal class SubscriptionExpiryService(
             {
                 await eventPublisher.PublishAsync(
                     new TraderSubscriptionChangedEvent(
-                        trader.TelegramId,
+                        trader.Id,
                         SubscriptionChangeOperation.Expired,
                         oldSub.Name,
                         oldSub.Level,
@@ -95,7 +95,7 @@ internal class SubscriptionExpiryService(
             .Where(t => t.SubscriptionExpiresAtUtc != null
                      && t.SubscriptionExpiresAtUtc.Value > now)
             .OrderBy(t => t.SubscriptionExpiresAtUtc)
-            .Select(t => new TraderSubscriptionExpiry(t.TelegramId, t.SubscriptionExpiresAtUtc!.Value))
+            .Select(t => new TraderSubscriptionExpiry(t.Id, t.SubscriptionExpiresAtUtc!.Value))
             .FirstOrDefaultAsync(cancellationToken);
 
         return next;
@@ -129,7 +129,7 @@ internal class SubscriptionExpiryService(
         // Защитный фильтр: снимаем только если ПОДПИСКА реально ИСТЕКЛА на текущий момент.
         // Это закрывает гонку, когда трейдер продлил подписку, пока воркер спал.
         var expiredTraders = await dbContext.Traders
-            .Where(t => ids.Contains(t.TelegramId)
+            .Where(t => ids.Contains(t.Id)
                     && t.SubscriptionId != null
                     && t.SubscriptionExpiresAtUtc != null
                     && t.SubscriptionExpiresAtUtc.Value <= now)
@@ -158,7 +158,7 @@ internal class SubscriptionExpiryService(
             {
                 await eventPublisher.PublishAsync(
                     new TraderSubscriptionChangedEvent(
-                        trader.TelegramId,
+                        trader.Id,
                         SubscriptionChangeOperation.Expired,
                         oldSub.Name,
                         oldSub.Level,
@@ -176,7 +176,7 @@ internal class SubscriptionExpiryService(
     {
         dbContext.SubscriptionPurchaseHistory.Add(new SubscriptionPurchaseHistory
         {
-            TraderId = trader.TelegramId,
+            TraderId = trader.Id,
             SubscriptionId = subscription.Id,
             PriceRubles = subscription.PriceRubles,
             PurchasedAtUtc = now,

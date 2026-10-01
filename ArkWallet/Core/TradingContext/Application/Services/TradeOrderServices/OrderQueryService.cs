@@ -1,4 +1,4 @@
-using ArkWallet.Core.General.Application.Common;
+﻿using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Core.General.Domain.ValueObjects;
@@ -29,7 +29,7 @@ internal class OrderQueryService(
 
             var orders = await dbContext.TradeOrders
                 .AsNoTracking()
-                .Where(o => o.TraderTelegramId == traderTelegramId && statuses.Contains(o.Status) && o.CharacterToken != null)
+                .Where(o => o.TraderId == traderTelegramId && statuses.Contains(o.Status) && o.CharacterToken != null)
                 .OrderByDescending(o => o.CreatedAt)
                 .Select(o => new
                 {

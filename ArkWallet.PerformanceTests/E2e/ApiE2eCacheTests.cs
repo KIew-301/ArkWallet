@@ -42,6 +42,7 @@ public sealed class ApiE2eCacheTests : IDisposable
         {
             await GetOkAsync("/api/v1/tokens/token");
         }
+        _host.ResetCounters();
         using (scope.Step("tokens-repeat"))
         {
             await GetOkAsync("/api/v1/tokens/token");

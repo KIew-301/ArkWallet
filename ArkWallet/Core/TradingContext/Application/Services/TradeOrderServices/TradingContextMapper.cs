@@ -1,4 +1,4 @@
-using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
+﻿using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
 using ArkWallet.Core.TradingContext.Application.Dtos;
 using ArkWallet.Core.TradingContext.Domain.Engines;
 using ArkWallet.Core.TradingContext.Domain.Events;
@@ -31,7 +31,7 @@ internal static class TradingContextMapper
         source.CreatedAt));
 
     internal static Trader ToTrader(Records.Trader source) => Trader.Load(new TraderLoadCommand(
-        source.TelegramId,
+        source.Id,
         source.Username,
         source.Balance,
         source.NotificationOn,
@@ -40,7 +40,7 @@ internal static class TradingContextMapper
         Array.Empty<PortfolioItemLoadCommand>()));
 
     internal static PortfolioItem ToPortfolioItem(Records.PortfolioItem source) => PortfolioItem.Reconstruct(new PortfolioItemLoadCommand(
-        source.TraderTelegramId,
+        source.TraderId,
         source.Id,
         source.CharacterTokenId,
         source.Quantity,
@@ -70,7 +70,7 @@ internal static class TradingContextMapper
         Type = (ValueObjects.OrderType)(int)source.Type,
         Status = (ValueObjects.OrderStatus)(int)source.Status,
         CharacterTokenId = source.TokenSymbol,
-        TraderTelegramId = source.TraderId,
+        TraderId = source.TraderId,
         Price = source.Price,
         AverageExecutePrice = source.AverageExecutePrice,
         Quantity = source.Quantity,
@@ -111,7 +111,7 @@ internal static class TradingContextMapper
         target.Type = (ValueObjects.OrderType)(int)source.Type;
         target.Status = (ValueObjects.OrderStatus)(int)source.Status;
         target.CharacterTokenId = source.TokenSymbol;
-        target.TraderTelegramId = source.TraderId;
+        target.TraderId = source.TraderId;
         target.Price = source.Price;
         target.AverageExecutePrice = source.AverageExecutePrice;
         target.Quantity = source.Quantity;
@@ -153,7 +153,7 @@ internal static class TradingContextMapper
         context.Token.SetEventPublisher(eventPublisher);
 
         var traderIds = commands.Select(c => c.TraderId)
-            .Concat(activeOrders.Select(o => o.TraderTelegramId))
+            .Concat(activeOrders.Select(o => o.TraderId))
             .Distinct();
 
         foreach (var traderId in traderIds)
@@ -175,7 +175,7 @@ internal static class TradingContextMapper
             order.SetEventPublisher(eventPublisher);
             context.ExistingOrders.Add(order);
 
-            if (context.Traders.TryGetValue(oldOrder.TraderTelegramId, out var owner))
+            if (context.Traders.TryGetValue(oldOrder.TraderId, out var owner))
                 owner.AttachOrder(order);
         }
 
@@ -201,7 +201,7 @@ internal static class TradingContextMapper
     {
         foreach (var trader in context.Traders.Values)
         {
-            var trackedTrader = dbContext.Traders.Local.FirstOrDefault(t => t.TelegramId == trader.Id);
+            var trackedTrader = dbContext.Traders.Local.FirstOrDefault(t => t.Id == trader.Id);
             if (trackedTrader != null)
                 ApplyTo(trackedTrader, trader);
 
