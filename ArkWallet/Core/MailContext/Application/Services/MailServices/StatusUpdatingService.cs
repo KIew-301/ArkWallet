@@ -70,4 +70,39 @@ internal class StatusUpdatingService(
         return await dbContext.MailMessages
             .FirstOrDefaultAsync(m => m.Id == mailId && m.TraderId == traderId);
     }
+
+    public async Task<Result<int>> MarkAllRewardMailsAsAcceptedAsync(long traderId)
+    {
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
+        {
+            var sent = MailMessageStatus.Sent.ToString();
+            var read = MailMessageStatus.Read.ToString();
+
+            var rewardMailIds = await dbContext.MailMessages
+                .Where(m => m.TraderId == traderId
+                    && (m.Status == sent || m.Status == read)
+                    && !string.IsNullOrEmpty(m.SymbolForReward)
+                    && m.AmountForReward > 0)
+                .OrderBy(m => m.CreatedAt)
+                .ThenBy(m => m.Id)
+                .Select(m => m.Id)
+                .ToListAsync();
+
+            var acceptedCount = 0;
+            foreach (var mailId in rewardMailIds)
+            {
+                var result = await MarkAsAcceptedAsync(mailId, traderId);
+                if (result.IsSuccess)
+                    acceptedCount++;
+            }
+
+            logger.LogInformation(
+                "All available mail rewards accepted: {AcceptedCount} of {TotalCount} by {TraderId}",
+                acceptedCount,
+                rewardMailIds.Count,
+                traderId);
+
+            return Result<int>.Ok(acceptedCount);
+        }, logger, nameof(StatusUpdatingService));
+    }
 }

@@ -149,4 +149,68 @@ public class MailStatusUpdatingServiceTest
         Assert.False(result.IsSuccess);
         Assert.Equal("Письмо не найдено", result.Message);
     }
+
+    [Fact]
+    public async Task MarkAllRewardMailsAsAcceptedAsync_AcceptsOnlyMailsWithAvailableReward()
+    {
+        using var db = CreateDb();
+        await HelpMethods.RegisterTrader(db, 2002);
+
+        MailMessage m1 = SeedMail(db, 2002, "ZZZ", 5, MailType.Reward);
+        m1.Status = "Sent";
+        db.SaveChanges();
+
+        MailMessage m2 = SeedMail(db, 2002, "XXX", 3, MailType.Reward);
+        m2.Status = "Read";
+        m2.ReadAt = new DateTime(2026, 1, 1, 13, 0, 0);
+        db.SaveChanges();
+
+        MailMessage m3 = SeedMail(db, 2002, "", 0, MailType.Notification);
+        m3.Status = "Sent";
+        db.SaveChanges();
+
+        MailMessage m4 = SeedMail(db, 2002, "YYY", 7, MailType.Reward);
+        m4.Status = "Accepted";
+        m4.AcceptedAt = new DateTime(2026, 1, 1, 14, 0, 0);
+        db.SaveChanges();
+
+        var service = BuildService(db);
+
+        var result1 = await service.MarkAllRewardMailsAsAcceptedAsync(2002);
+
+        Assert.True(result1.IsSuccess);
+        Assert.True(result1.TryGetData(out var count1));
+        Assert.Equal(2, count1);
+
+        foreach (var mm in db.MailMessages)
+        {
+            if (mm.Title == "Title")
+            {
+                switch (mm.Id)
+                {
+                    case var _ when mm.Id == m1.Id:
+                        Assert.Equal("Accepted", mm.Status);
+                        break;
+                    case var _ when mm.Id == m2.Id:
+                        Assert.Equal("Accepted", mm.Status);
+                        break;
+                    case var _ when mm.Id == m3.Id:
+                        Assert.Equal("Sent", mm.Status);
+                        break;
+                    case var _ when mm.Id == m4.Id:
+                        Assert.Equal("Accepted", mm.Status);
+                        break;
+                }
+            }
+        }
+
+        var result2 = await service.MarkAllRewardMailsAsAcceptedAsync(2002);
+
+        Assert.True(result2.IsSuccess);
+        Assert.True(result2.TryGetData(out var count2));
+        Assert.Equal(0, count2);
+
+        Assert.Equal(4, db.MailMessages.Count());
+    }
+
 }
