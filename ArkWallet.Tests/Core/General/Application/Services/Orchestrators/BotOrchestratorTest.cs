@@ -27,15 +27,33 @@ public class BotOrchestratorTest : IDisposable
             d.DisposeAsync().AsTask().GetAwaiter().GetResult();
     }
 
-    private async Task<ArkWalletDbContext> SeedTokenAsync()
+    private async Task<ArkWalletDbContext> SeedTokenAsync(long traderId = 0, string symbol = "TKN01")
     {
         var db = DbTest.CreateDbContext();
         _disposables.Add(db);
         await db.Database.EnsureCreatedAsync();
-        await HelpMethods.CreateToken(db, "TKN01", isActive: true);
-        await HelpMethods.CreatePriceCandle(db, "TKN01", 100m, DateTime.UtcNow.AddDays(-2));
-        await HelpMethods.CreatePriceCandle(db, "TKN01", 100m, DateTime.UtcNow);
+        await HelpMethods.CreateToken(db, symbol, isActive: true);
+        await HelpMethods.CreatePriceCandle(db, symbol, 100m, DateTime.UtcNow.AddDays(-2));
+        await HelpMethods.CreatePriceCandle(db, symbol, 100m, DateTime.UtcNow);
+
+        if (traderId > 0)
+            await SeedPortfolioAsync(db, traderId, symbol);
+
         return db;
+    }
+
+    private static async Task SeedPortfolioAsync(ArkWalletDbContext db, long traderId, string symbol)
+    {
+        var existing = await db.PortfolioItems
+            .FirstOrDefaultAsync(p => p.TraderId == traderId && p.CharacterToken!.Symbol == symbol);
+        if (existing != null)
+        {
+            existing.Quantity += 10;
+            await db.SaveChangesAsync();
+            return;
+        }
+
+        await HelpMethods.AddPortfolio(db, traderId, symbol, 10);
     }
 
     private static BotOrchestrator CreateOrchestrator(
@@ -154,6 +172,7 @@ public class BotOrchestratorTest : IDisposable
 
         var traderId = 7001L;
         await HelpMethods.RegisterTrader(db, traderId);
+        await SeedPortfolioAsync(db, traderId, "TKN01");
 
         var bot = MarketMakerBotRecord.Create(traderId, "TKN01", BotRole.Seller, 50m);
         await db.MarketMakerBots.AddAsync(bot);
@@ -210,6 +229,7 @@ public class BotOrchestratorTest : IDisposable
         var db = await SeedTokenAsync();
         var traderId = 8001L;
         await HelpMethods.RegisterTrader(db, traderId);
+        await SeedPortfolioAsync(db, traderId, "TKN01");
 
         var bot = MarketMakerBotRecord.Create(traderId, "TKN01", BotRole.Seller, 50m);
         await db.MarketMakerBots.AddAsync(bot);
@@ -242,6 +262,7 @@ public class BotOrchestratorTest : IDisposable
         var db = await SeedTokenAsync();
         var traderId = 9001L;
         await HelpMethods.RegisterTrader(db, traderId);
+        await SeedPortfolioAsync(db, traderId, "TKN01");
 
         var bot = MarketMakerBotRecord.Create(traderId, "TKN01", BotRole.Waller, 400m);
         await db.MarketMakerBots.AddAsync(bot);
@@ -751,7 +772,15 @@ public class BotOrchestratorTest : IDisposable
     [Fact]
     public async Task UpdateBotsGridsForRoleAsync_UpdatesOnlyRequestedRole()
     {
-        var db = await SeedTokenAsync();
+        var db = DbTest.CreateDbContext();
+        _disposables.Add(db);
+        await db.Database.EnsureCreatedAsync();
+        await HelpMethods.CreateToken(db, "TKN01", isActive: true);
+        await HelpMethods.CreatePriceCandle(db, "TKN01", 100m, DateTime.UtcNow.AddDays(-2));
+        await HelpMethods.CreatePriceCandle(db, "TKN01", 100m, DateTime.UtcNow);
+        await HelpMethods.CreateToken(db, "AAA", isActive: true);
+        await HelpMethods.CreatePriceCandle(db, "AAA", 200m, DateTime.UtcNow.AddDays(-2));
+        await HelpMethods.CreatePriceCandle(db, "AAA", 200m, DateTime.UtcNow);
 
         var buyerId = 13101L;
         var sellerId = 13102L;
@@ -759,6 +788,8 @@ public class BotOrchestratorTest : IDisposable
         await HelpMethods.RegisterTrader(db, buyerId);
         await HelpMethods.RegisterTrader(db, sellerId);
         await HelpMethods.RegisterTrader(db, wallerId);
+        await SeedPortfolioAsync(db, sellerId, "TKN01");
+        await SeedPortfolioAsync(db, wallerId, "AAA");
 
         var buyerBot = MarketMakerBotRecord.Create(buyerId, "TKN01", BotRole.Buyer, 50m);
         var sellerBot = MarketMakerBotRecord.Create(sellerId, "TKN01", BotRole.Seller, 50m);
@@ -782,10 +813,16 @@ public class BotOrchestratorTest : IDisposable
     [Fact]
     public async Task UpdateBotsGridsForRoleAsync_DoesNotCancelOrders_ForBuyerByDefault()
     {
-        var db = await SeedTokenAsync();
+        var db = DbTest.CreateDbContext();
+        _disposables.Add(db);
+        await db.Database.EnsureCreatedAsync();
+        await HelpMethods.CreateToken(db, "TKN01", isActive: true);
+        await HelpMethods.CreatePriceCandle(db, "TKN01", 100m, DateTime.UtcNow.AddDays(-2));
+        await HelpMethods.CreatePriceCandle(db, "TKN01", 100m, DateTime.UtcNow);
 
         var buyerId = 13301L;
         await HelpMethods.RegisterTrader(db, buyerId);
+        await SeedPortfolioAsync(db, buyerId, "TKN01");
 
         var buyerBot = MarketMakerBotRecord.Create(buyerId, "TKN01", BotRole.Buyer, 50m);
         await db.MarketMakerBots.AddAsync(buyerBot);
@@ -805,10 +842,16 @@ public class BotOrchestratorTest : IDisposable
     [Fact]
     public async Task UpdateBotsGridsForRoleAsync_CancelsOrders_ForBuyerWhenForced()
     {
-        var db = await SeedTokenAsync();
+        var db = DbTest.CreateDbContext();
+        _disposables.Add(db);
+        await db.Database.EnsureCreatedAsync();
+        await HelpMethods.CreateToken(db, "TKN01", isActive: true);
+        await HelpMethods.CreatePriceCandle(db, "TKN01", 100m, DateTime.UtcNow.AddDays(-2));
+        await HelpMethods.CreatePriceCandle(db, "TKN01", 100m, DateTime.UtcNow);
 
         var buyerId = 13302L;
         await HelpMethods.RegisterTrader(db, buyerId);
+        await SeedPortfolioAsync(db, buyerId, "TKN01");
 
         var buyerBot = MarketMakerBotRecord.Create(buyerId, "TKN01", BotRole.Buyer, 50m);
         await db.MarketMakerBots.AddAsync(buyerBot);
@@ -868,5 +911,127 @@ public class BotOrchestratorTest : IDisposable
 
         Assert.True(result.IsSuccess);
         collMock.Verify(c => c.Add(It.IsAny<IReadOnlyCollection<CreateOrderCommand>>()), Times.Never);
+    }
+
+    // ═══════ Backoff + preflight checks ═══════
+
+    [Fact]
+    public async Task UpdateBotsGridsForRoleAsync_BotNoPortfolio_SkipsAndDoesNotPlaceOrders()
+    {
+        var db = DbTest.CreateDbContext();
+        _disposables.Add(db);
+        await db.Database.EnsureCreatedAsync();
+        await HelpMethods.CreateToken(db, "TKN_NP", isActive: true);
+        await HelpMethods.CreatePriceCandle(db, "TKN_NP", 100m, DateTime.UtcNow.AddDays(-2));
+        await HelpMethods.CreatePriceCandle(db, "TKN_NP", 100m, DateTime.UtcNow);
+
+        var sellerId = 14001L;
+        await HelpMethods.RegisterTrader(db, sellerId);
+
+        // Бот-продавец создан, но портфеля по символу НЕТ
+        var bot = MarketMakerBotRecord.Create(sellerId, "TKN_NP", BotRole.Seller, 50m);
+        await db.MarketMakerBots.AddAsync(bot);
+        await db.SaveChangesAsync();
+
+        var evMock = new Mock<IEventPublisher>();
+        var collMock = new Mock<IOrderCollector>();
+        collMock.Setup(c => c.TakeAll()).Returns(() => Array.Empty<IReadOnlyCollection<CreateOrderCommand>>());
+
+        var orch = CreateOrchestrator(db, eventPublisher: evMock, orderCollector: collMock);
+        var result = await orch.UpdateBotsGridsForRoleAsync(MarketMakerRole.Seller);
+
+        Assert.True(result.IsSuccess);
+        evMock.Verify(e => e.PublishAsync(It.IsAny<BotPublicOrdersEvent>(), It.IsAny<CancellationToken>()), Times.Never);
+        collMock.Verify(c => c.Add(It.IsAny<IReadOnlyCollection<CreateOrderCommand>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ExecuteMarketOrdersAsync_BuyerZeroBalance_SkipsBot()
+    {
+        var db = DbTest.CreateDbContext();
+        _disposables.Add(db);
+        await db.Database.EnsureCreatedAsync();
+        await HelpMethods.CreateToken(db, "TKN_ZB", isActive: true);
+        await HelpMethods.CreatePriceCandle(db, "TKN_ZB", 100m, DateTime.UtcNow.AddDays(-2));
+        await HelpMethods.CreatePriceCandle(db, "TKN_ZB", 100m, DateTime.UtcNow);
+
+        var buyerId = 14101L;
+        await HelpMethods.RegisterTrader(db, buyerId);
+        await db.Database.ExecuteSqlRawAsync($"UPDATE Traders SET Balance = 0 WHERE Id = {buyerId}");
+
+        var bot = MarketMakerBotRecord.Create(buyerId, "TKN_ZB", BotRole.Buyer, 50m);
+        await db.MarketMakerBots.AddAsync(bot);
+        await db.SaveChangesAsync();
+
+        var collMock = new Mock<IOrderCollector>();
+        collMock.Setup(c => c.TakeAll()).Returns(() => Array.Empty<IReadOnlyCollection<CreateOrderCommand>>());
+
+        var orch = CreateOrchestrator(db, orderCollector: collMock);
+        var result = await orch.ExecuteMarketOrdersAsync();
+
+        Assert.True(result.IsSuccess);
+        collMock.Verify(c => c.Add(It.IsAny<IReadOnlyCollection<CreateOrderCommand>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateBotsGridsForRoleAsync_BotWithSufficientPortfolio_PlaceOrdersAsBefore()
+    {
+        var db = DbTest.CreateDbContext();
+        _disposables.Add(db);
+        await db.Database.EnsureCreatedAsync();
+        await HelpMethods.CreateToken(db, "TKN_WP", isActive: true);
+        await HelpMethods.CreatePriceCandle(db, "TKN_WP", 100m, DateTime.UtcNow.AddDays(-2));
+        await HelpMethods.CreatePriceCandle(db, "TKN_WP", 100m, DateTime.UtcNow);
+
+        var sellerId = 14201L;
+        await HelpMethods.RegisterTrader(db, sellerId);
+        await SeedPortfolioAsync(db, sellerId, "TKN_WP");
+
+        var bot = MarketMakerBotRecord.Create(sellerId, "TKN_WP", BotRole.Seller, 50m);
+        await db.MarketMakerBots.AddAsync(bot);
+        await db.SaveChangesAsync();
+
+        var collMock = new Mock<IOrderCollector>();
+        collMock.Setup(c => c.TakeAll()).Returns(() => Array.Empty<IReadOnlyCollection<CreateOrderCommand>>());
+
+        var orch = CreateOrchestrator(db, orderCollector: collMock);
+        var result = await orch.UpdateBotsGridsForRoleAsync(MarketMakerRole.Seller);
+
+        Assert.True(result.IsSuccess);
+        // Регрессия: ордер размещается как раньше — коллбек вызван
+        collMock.Verify(c => c.Add(It.IsAny<IReadOnlyCollection<CreateOrderCommand>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteMarketOrdersAsync_Backoff_CooldownSkipsBotAfterFailures()
+    {
+        var db = DbTest.CreateDbContext();
+        _disposables.Add(db);
+        await db.Database.EnsureCreatedAsync();
+        await HelpMethods.CreateToken(db, "TKN_BO", isActive: true);
+        await HelpMethods.CreatePriceCandle(db, "TKN_BO", 100m, DateTime.UtcNow.AddDays(-2));
+        await HelpMethods.CreatePriceCandle(db, "TKN_BO", 100m, DateTime.UtcNow);
+
+        var sellerId = 14301L;
+        await HelpMethods.RegisterTrader(db, sellerId);
+
+        // Бот без портфеля → первые 5 тиков подряд пропускается (инкремент счётчика)
+        var bot = MarketMakerBotRecord.Create(sellerId, "TKN_BO", BotRole.Seller, 50m);
+        await db.MarketMakerBots.AddAsync(bot);
+        await db.SaveChangesAsync();
+
+        var collMock = new Mock<IOrderCollector>();
+        collMock.Setup(c => c.TakeAll()).Returns(() => Array.Empty<IReadOnlyCollection<CreateOrderCommand>>());
+
+        var orch = CreateOrchestrator(db, orderCollector: collMock);
+
+        // Первые 5 вызовов — бот пропускается, счётчик растёт
+        for (int i = 0; i < 6; i++)
+        {
+            var result = await orch.ExecuteMarketOrdersAsync();
+            Assert.True(result.IsSuccess);
+            collMock.Verify(c => c.Add(It.IsAny<IReadOnlyCollection<CreateOrderCommand>>()), Times.Never);
+            collMock.Invocations.Clear();
+        }
     }
 }
