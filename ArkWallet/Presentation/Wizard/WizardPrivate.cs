@@ -6,6 +6,7 @@ using ArkWallet.Core.General.Application.Contracts.Other;
 using ArkWallet.Core.TradingContext.Application.Contracts.TraderServices;
 using ArkWallet.Core.TradingContext.Application.Contracts.TradeOrderServices;
 using ArkWallet.Core.TradingContext.Application.Contracts.TradeServices;
+using ArkWallet.Core.TradingContext.Domain.MarketMakerAggregate;
 using ArkWallet.Core.PortfolioContext.Application.Contracts.PortfolioServices;
 using ArkWallet.Core.GlobalGoalContext.Application.Contracts.GlobalGoalServices;
 using ArkWallet.Core.SubscriptionContext.Application.Contracts.SubscriptionPurchaseServices;
@@ -86,7 +87,13 @@ namespace ArkWallet.Infrastructure.Wizard
             "7) /admin_bots_reconstruction\n" +
             "   Updates bot parameters.\n" +
             "   JSON array: [{ \"botId\": 1, \"basePower\": 30, \"role\": \"Buyer\", \"isActive\": true }]\n" +
-            "   null = keep current value";
+            "   null = keep current value\n\n" +
+            "8) /admin_bots_powers\n" +
+            "   Shows base and actual (ActivePower) power of every bot.\n\n" +
+            "9) /admin_rebalance_bots_power\n" +
+            "   Immediately recalculates ActivePower of all active bots and persists it.\n\n" +
+            "10) /admin_update_bots_grid <role>\n" +
+            "   Immediately rebuilds grids for one role: Buyer, Seller or Waller.";
 
         private const string AdminHelpOtherText =
              "Other commands:\n\n" +
@@ -222,6 +229,9 @@ namespace ArkWallet.Infrastructure.Wizard
             _config.Commands["/admin_bots_activity"][0].Handler = AdminHandleBotsActivitySelectSymbol;
             _config.Commands["/admin_bots_activity"][1].Handler = AdminHandleBotsActivityShow;
             _config.Commands["/admin_bots_reconstruction"][0].Handler = AdminHandleBotsReconstruction;
+            _config.Commands["/admin_bots_powers"][0].Handler = AdminHandleBotsPowers;
+            _config.Commands["/admin_rebalance_bots_power"][0].Handler = AdminHandleRebalanceBotsPower;
+            _config.Commands["/admin_update_bots_grid"][0].Handler = AdminHandleUpdateBotsGrid;
             _config.Commands["/admin_generate_auth_token"][0].Handler = AdminHandleGenerateAuthToken;
             _config.Commands["/admin_get_trader_profile"][0].Handler = AdminHandleGetTraderProfile;
             _config.Commands["/admin_get_trader_orders"][0].Handler = AdminHandleGetTraderOrders;
@@ -537,6 +547,100 @@ namespace ArkWallet.Infrastructure.Wizard
             return new WizardResult { Message = message, Buttons = buttons };
         }
 
+        private async Task<WizardResult> HandleQuickAdminBotsPowers()
+        {
+            var message = await BuildBotsPowersMessage();
+            if (message == null)
+                return new WizardResult { Message = "No bots found." };
+
+            var buttons = new List<QuickButton>
+            {
+                new() { Text = "Refresh", Value = "/admin_bots_powers" },
+                new() { Text = "Rebalance", Value = "/admin_rebalance_bots_power" }
+            };
+
+            return new WizardResult { Message = message, Buttons = buttons };
+        }
+
+        private async Task<WizardResult> HandleQuickAdminRebalanceBotsPower()
+        {
+            var rebalanceResult = await _botOrchestrator.RebalanceAllBotsPowerAsync();
+            if (!rebalanceResult.IsSuccess)
+                return new WizardResult { Message = $"Rebalance failed: {rebalanceResult.Message}" };
+
+            var message = await BuildBotsPowersMessage();
+            var buttons = new List<QuickButton>
+            {
+                new() { Text = "Refresh", Value = "/admin_bots_powers" }
+            };
+
+            return new WizardResult
+            {
+                Message = $"Powers recalculated for all active bots.\n\n{message}",
+                Buttons = buttons
+            };
+        }
+
+        private async Task<WizardResult> HandleQuickAdminUpdateBotsGrid(string roleStr)
+        {
+            if (!Enum.TryParse<MarketMakerRole>(roleStr, ignoreCase: true, out var role))
+                return new WizardResult { Message = "Role must be one of: Buyer, Seller, Waller." };
+
+            var gridResult = await _botOrchestrator.UpdateBotsGridsForRoleAsync(role, cancelExistingOrders: true);
+            if (!gridResult.IsSuccess)
+                return new WizardResult { Message = $"Grid update failed: {gridResult.Message}" };
+
+            return new WizardResult { Message = $"{role} grids updated." };
+        }
+
+        private async Task<StepResult> AdminHandleBotsPowers(UserSession session, string input)
+        {
+            var result = await HandleQuickAdminBotsPowers();
+            return ToStepResult(result);
+        }
+
+        private async Task<StepResult> AdminHandleRebalanceBotsPower(UserSession session, string input)
+        {
+            var result = await HandleQuickAdminRebalanceBotsPower();
+            return ToStepResult(result);
+        }
+
+        private async Task<StepResult> AdminHandleUpdateBotsGrid(UserSession session, string input)
+        {
+            var result = string.IsNullOrWhiteSpace(input)
+                ? new WizardResult { Message = "Role must be one of: Buyer, Seller, Waller." }
+                : await HandleQuickAdminUpdateBotsGrid(input.Trim());
+
+            return ToStepResult(result);
+        }
+
+        private static StepResult ToStepResult(WizardResult result)
+        {
+            var stepResult = StepResult.Ok("completed", result.Message);
+            if (result.Buttons != null)
+                stepResult.Buttons = result.Buttons;
+            return stepResult;
+        }
+
+        private async Task<string?> BuildBotsPowersMessage()
+        {
+            var botsResult = await _botQueryService.GetAllBotsAsync();
+            if (!botsResult.TryGetData(out var bots) || bots.Count == 0)
+                return null;
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"Bot powers (count: {bots.Count}):\n");
+
+            foreach (var bot in bots)
+            {
+                var ratio = bot.BasePower == 0 ? 0 : bot.ActivePower / bot.BasePower;
+                sb.AppendLine(
+                    $"Bot #{bot.Id} {bot.Symbol} {bot.Role}: base={bot.BasePower} active={bot.ActivePower} (x{ratio:0.###}) isActive={bot.IsActive}");
+            }
+
+            return sb.ToString();
+        }
+
         private async Task<string?> BuildBotsMessage(string symbol)
         {
             var botsResult = await _botQueryService.GetBotsBySymbolAsync(symbol);
@@ -552,6 +656,7 @@ namespace ArkWallet.Infrastructure.Wizard
                 sb.AppendLine($"  Symbol: {bot.Symbol}");
                 sb.AppendLine($"  TraderId: {bot.TraderId}");
                 sb.AppendLine($"  BasePower: {bot.BasePower}");
+                sb.AppendLine($"  ActivePower: {bot.ActivePower}");
                 sb.AppendLine($"  Role: {bot.Role}");
                 sb.AppendLine($"  NextPowerChange: {bot.NextPowerChange:yyyy-MM-dd HH:mm:ss} UTC");
                 sb.AppendLine($"  NextRebalance: {bot.NextRebalance:yyyy-MM-dd HH:mm:ss} UTC");

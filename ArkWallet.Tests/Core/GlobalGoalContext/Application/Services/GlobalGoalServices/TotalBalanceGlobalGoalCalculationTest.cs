@@ -55,6 +55,24 @@ public class TotalBalanceGlobalGoalCalculationTest
         Assert.Equal(0m, sum);
     }
 
+    /// <summary>
+    /// Verify that huge balances (like 1e20) don't cause issues in the calculation pipeline.
+    /// </summary>
+    [Fact]
+    public async Task CalculateAsync_HugeBalances_NoException()
+    {
+        using var db = CreateDb();
+        await HelpMethods.RegisterTrader(db, 9901);
+        await HelpMethods.RegisterTrader(db, 9902);
+        db.BalanceSnapshots.Add(BalanceSnapshot.Create(9901, 1e20m, 0, 0, 0, 0, DateTime.UtcNow));
+        db.BalanceSnapshots.Add(BalanceSnapshot.Create(9902, 5e20m, 0, 0, 0, 0, DateTime.UtcNow));
+        await db.SaveChangesAsync();
+
+        var sum = await new TotalBalanceGlobalGoalCalculation().CalculateAsync(db);
+
+        Assert.True(sum > 0);
+    }
+
     private static void AddSnapshot(ArkWalletDbContext db, long traderId, decimal totalBalance, DateTime at)
         => db.BalanceSnapshots.Add(BalanceSnapshot.Create(traderId, totalBalance, 0, 0, 0, 0, at));
 }

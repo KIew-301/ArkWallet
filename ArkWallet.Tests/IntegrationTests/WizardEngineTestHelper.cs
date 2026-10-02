@@ -65,6 +65,7 @@ internal static class WizardEngineTestHelper
 
         var candleOrchestrator = new Mock<ICandleOrchestrator>();
         var botQueryService = new Mock<IMarketMakerBotQueryService>();
+        var botOrchestrator = new Mock<IBotOrchestrator>();
         var tokenService = new Mock<ITokenService>();
         var tradingVolumeService = new Mock<ITradingVolumeService>();
         var messageSender = new Mock<IMessageSender>();
@@ -134,6 +135,7 @@ var engine = new WizardEngine(
                 balanceSnapshotService.Object,
                 candleOrchestrator.Object,
                 botQueryService.Object,
+                botOrchestrator.Object,
                 tokenService.Object,
                 tradingVolumeService.Object,
                 messageSender.Object,
@@ -193,6 +195,7 @@ var engine = new WizardEngine(
             BalanceSnapshot = balanceSnapshotService,
             CandleOrchestrator = candleOrchestrator,
             BotQuery = botQueryService,
+            BotOrchestrator = botOrchestrator,
             TokenService = tokenService,
             TradingVolume = tradingVolumeService,
             MessageSender = messageSender,
@@ -248,6 +251,7 @@ internal class ServiceMocks
     public Mock<IBalanceSnapshotService> BalanceSnapshot { get; init; } = null!;
     public Mock<ICandleOrchestrator> CandleOrchestrator { get; init; } = null!;
     public Mock<IMarketMakerBotQueryService> BotQuery { get; init; } = null!;
+    public Mock<IBotOrchestrator> BotOrchestrator { get; init; } = null!;
     public Mock<ITokenService> TokenService { get; init; } = null!;
     public Mock<ITradingVolumeService> TradingVolume { get; init; } = null!;
     public Mock<IMessageSender> MessageSender { get; init; } = null!;

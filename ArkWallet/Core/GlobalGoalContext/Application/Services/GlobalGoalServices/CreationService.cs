@@ -72,8 +72,27 @@ internal class GlobalGoalCreationService(
         if (target <= 0)
             return 0;
 
-        var progress = actual / target;
-        return progress < 0 ? 0 : progress;
+        // Check for overflow before division: actual > target * SafeMaxProgress.
+        // SafeMaxProgress = 1m because progress of 1.0 means "goal achieved" —
+        // any further overshoot has no semantic meaning and would overflow decimal.
+        const decimal safeMaxProgress = 1m;
+        decimal threshold;
+        try
+        {
+            threshold = checked(target * safeMaxProgress);
+        }
+        catch (OverflowException)
+        {
+            threshold = decimal.MaxValue;
+        }
+
+        if (actual < 0m)
+            return 0;
+
+        if (actual > threshold)
+            return safeMaxProgress;
+
+        return actual / target;
     }
 
     public async Task<Result> AddStepAsync(AddGlobalGoalStepCommand command)
