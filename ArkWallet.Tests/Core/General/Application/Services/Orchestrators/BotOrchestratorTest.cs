@@ -957,7 +957,9 @@ public class BotOrchestratorTest : IDisposable
 
         var buyerId = 14101L;
         await HelpMethods.RegisterTrader(db, buyerId);
-        await db.Database.ExecuteSqlRawAsync($"UPDATE Traders SET Balance = 0 WHERE Id = {buyerId}");
+        var buyerTrader = await db.Traders.FirstAsync(t => t.TelegramId == buyerId);
+        buyerTrader.Balance = 0m;
+        await db.SaveChangesAsync();
 
         var bot = MarketMakerBotRecord.Create(buyerId, "TKN_ZB", BotRole.Buyer, 50m);
         await db.MarketMakerBots.AddAsync(bot);

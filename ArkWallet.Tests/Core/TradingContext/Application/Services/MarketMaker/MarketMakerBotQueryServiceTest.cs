@@ -19,6 +19,9 @@ namespace ArkWallet.Tests.Core.TradingContext.Application.Services.MarketMaker;
 
 public class MarketMakerBotQueryServiceTest
 {
+    private static readonly string[] ExpectedSymbols = ["ARK_001", "ARK_001", "ARK_002"];
+    private static readonly BotRole[] ExpectedRoles = [BotRole.Buyer, BotRole.Seller, BotRole.Buyer];
+
     [Fact]
     public async Task GetAllBotsAsync_ReturnsAllBots_SortedBySymbolThenRole()
     {
@@ -38,10 +41,8 @@ public class MarketMakerBotQueryServiceTest
         Assert.True(result.IsSuccess);
         Assert.True(result.TryGetData(out var bots));
         Assert.Equal(3, bots.Count);
-        Assert.Equal(new[] { "ARK_001", "ARK_001", "ARK_002" }, bots.Select(b => b.Symbol).ToArray());
-        Assert.Equal(
-            new[] { BotRole.Buyer, BotRole.Seller, BotRole.Buyer },
-            bots.Select(b => b.Role).ToArray());
+        Assert.Equal(ExpectedSymbols, bots.Select(b => b.Symbol).ToArray());
+        Assert.Equal(ExpectedRoles, bots.Select(b => b.Role).ToArray());
     }
 
     [Fact]

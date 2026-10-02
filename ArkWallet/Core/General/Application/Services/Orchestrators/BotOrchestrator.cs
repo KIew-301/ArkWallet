@@ -36,9 +36,10 @@ internal class BotOrchestrator(
 
     private sealed record BackoffState(int ConsecutiveFailures, DateTime LastCheckUtc);
 
-    private bool CanExecuteBot(MarketMakerBotRecord bot, long traderId, Dictionary<(long TraderId, string Symbol), int> sellerPortfolio, Dictionary<long, decimal> buyerBalances)
+    private bool CanExecuteBot(MarketMakerBotRecord bot, BotResources resources)
     {
-        var current = _botBackoff.GetOrAdd(bot.TraderId, _ => new BackoffState(0, DateTime.MinValue));
+        var traderId = bot.TraderId;
+        var current = _botBackoff.GetOrAdd(traderId, _ => new BackoffState(0, DateTime.MinValue));
 
         if (current.ConsecutiveFailures >= MaxConsecutiveFailures && (DateTime.UtcNow - current.LastCheckUtc) < CooldownInterval)
         {
@@ -48,25 +49,55 @@ internal class BotOrchestrator(
 
         if (bot.Role == BotRole.Seller || bot.Role == BotRole.Waller)
         {
-            var freeQty = sellerPortfolio.TryGetValue((traderId, bot.Symbol), out var qty) ? qty : 0;
+            var freeQty = resources.SellerQuantities.GetValueOrDefault((traderId, bot.Symbol));
             if (freeQty <= 0)
             {
                 logger.LogDebug("Bot {BotId} ({TraderId}) has no available portfolio for symbol {Symbol}, skipped", bot.Id, traderId, bot.Symbol);
                 return false;
             }
+
+            return true;
         }
-        else if (bot.Role == BotRole.Buyer)
+
+        var balance = resources.BuyerBalances.GetValueOrDefault(traderId);
+        if (balance <= 0m)
         {
-            var balance = buyerBalances.TryGetValue(traderId, out var b) ? b : 0m;
-            if (balance <= 0)
-            {
-                logger.LogDebug("Bot {BotId} ({TraderId}) has zero balance, skipped", bot.Id, traderId);
-                return false;
-            }
+            logger.LogDebug("Bot {BotId} ({TraderId}) has zero balance, skipped", bot.Id, traderId);
+            return false;
         }
 
         return true;
     }
+
+    /// <summary>
+    /// Resources available to bots this tick: free token quantities for seller/waller bots
+    /// and spendable balances for buyer bots. Loaded in two batched queries so the per-bot
+    /// check in the placement loop does not cause N+1 database traffic.
+    /// </summary>
+    private async Task<BotResources> LoadBotResourcesAsync(
+        IReadOnlyCollection<MarketMakerBotRecord> bots, CancellationToken ct)
+    {
+        var sellerQuantities = await LoadSellerPortfolioAsync(bots, ct);
+
+        var buyerTraders = bots
+            .Where(b => b.Role == BotRole.Buyer)
+            .Select(b => b.TraderId)
+            .Distinct()
+            .ToList();
+
+        var buyerBalances = buyerTraders.Count > 0
+            ? await dbContext.Traders
+                .Where(t => buyerTraders.Contains(t.Id))
+                .Where(t => t.Balance > 0)
+                .ToDictionaryAsync(t => t.Id, t => t.Balance, ct)
+            : new Dictionary<long, decimal>();
+
+        return new BotResources(sellerQuantities, buyerBalances);
+    }
+
+    private sealed record BotResources(
+        Dictionary<(long TraderId, string Symbol), int> SellerQuantities,
+        Dictionary<long, decimal> BuyerBalances);
 
     /// <summary>
     /// Loads free token quantities available to seller/waller bots, keyed by (TraderId, Symbol).
@@ -201,53 +232,45 @@ internal class BotOrchestrator(
         return await UpdateBotsGridsForRoleAsync(MarketMakerRole.Seller, ct: ct);
     }
 
-    public async Task<Result> UpdateBotsGridsForRoleAsync(MarketMakerRole role, bool cancelExistingOrders = false, CancellationToken ct = default)
-    {
-        return await ServiceErrorHandler.ExecuteAsync(async () =>
+public async Task<Result> UpdateBotsGridsForRoleAsync(MarketMakerRole role, bool cancelExistingOrders = false, CancellationToken ct = default)
         {
-            var bots = await LoadActiveBotsAsync(ct, role);
-            if (bots.Count == 0)
-                return Result.Ok();
-
-            var isWall = role == MarketMakerRole.Waller;
-            var shouldCancelOrders = isWall || cancelExistingOrders;
-            var modifiers = isWall ? modifierCollection.WallGridModifiers : modifierCollection.GridModifiers;
-
-            var mask = AggregateRequiredData(modifiers);
-            var snapshots = await LoadSnapshotsAsync(mask, bots, ct);
-
-            var sellerPortfolio = await LoadSellerPortfolioAsync(bots, ct);
-
-            var buyerTraders = bots.Where(b => b.Role == BotRole.Buyer).Select(b => b.TraderId).Distinct().ToList();
-            var buyerBalances = buyerTraders.Count > 0
-                ? await dbContext.Traders
-                    .Where(t => buyerTraders.Contains(t.Id))
-                    .Where(t => t.Balance > 0)
-                    .ToDictionaryAsync(t => t.Id, t => t.Balance, ct)
-                : new Dictionary<long, decimal>();
-
-            foreach (var bot in Shuffle(bots))
+            return await ServiceErrorHandler.ExecuteAsync(async () =>
             {
-                if (shouldCancelOrders)
-                    await CancelBotOrdersAsync(bot.TraderId);
+                var bots = await LoadActiveBotsAsync(ct, role);
+                if (bots.Count == 0)
+                    return Result.Ok();
 
-                if (!CanExecuteBot(bot, bot.TraderId, sellerPortfolio, buyerBalances))
+                var isWall = role == MarketMakerRole.Waller;
+                var shouldCancelOrders = isWall || cancelExistingOrders;
+                var modifiers = isWall ? modifierCollection.WallGridModifiers : modifierCollection.GridModifiers;
+
+                var mask = AggregateRequiredData(modifiers);
+                var snapshots = await LoadSnapshotsAsync(mask, bots, ct);
+
+                var resources = await LoadBotResourcesAsync(bots, ct);
+
+                foreach (var bot in Shuffle(bots))
                 {
-                    RecordBotSkip(bot.TraderId);
-                    continue;
+                    if (shouldCancelOrders)
+                        await CancelBotOrdersAsync(bot.TraderId);
+
+                    if (!CanExecuteBot(bot, resources))
+                    {
+                        RecordBotSkip(bot.TraderId);
+                        continue;
+                    }
+
+                    var domainBot = MarketMakerGridMapper.ToMarketMaker(bot);
+                    var plan = BuildPlan(domainBot, modifiers, mask, snapshots, bot.Symbol);
+                    if (plan == null)
+                        continue;
+
+                    orderCollector.Add(MarketMakerGridMapper.ToCommands(plan));
+                    await eventPublisher.PublishAsync(new BotPublicOrdersEvent(plan), ct);
                 }
 
-                var domainBot = MarketMakerGridMapper.ToMarketMaker(bot);
-                var plan = BuildPlan(domainBot, modifiers, mask, snapshots, bot.Symbol);
-                if (plan == null)
-                    continue;
-
-                orderCollector.Add(MarketMakerGridMapper.ToCommands(plan));
-                await eventPublisher.PublishAsync(new BotPublicOrdersEvent(plan), ct);
-            }
-
-            return await PlaceCollectedAsync();
-        }, logger, nameof(BotOrchestrator));
+return await PlaceCollectedAsync();
+            }, logger, nameof(BotOrchestrator));
     }
 
     private async Task CancelBotOrdersAsync(long traderId)
@@ -274,19 +297,11 @@ internal class BotOrchestrator(
             var marketMask = AggregateRequiredData(modifierCollection.MarketModifiers);
             var marketSnapshots = await LoadSnapshotsAsync(marketMask, bots, ct);
 
-            var sellerPortfolio = await LoadSellerPortfolioAsync(bots, ct);
-
-            var buyerTraders = bots.Where(b => b.Role == BotRole.Buyer).Select(b => b.TraderId).Distinct().ToList();
-            var buyerBalances = buyerTraders.Count > 0
-                ? await dbContext.Traders
-                    .Where(t => buyerTraders.Contains(t.Id))
-                    .Where(t => t.Balance > 0)
-                    .ToDictionaryAsync(t => t.Id, t => t.Balance, ct)
-                : new Dictionary<long, decimal>();
+            var resources = await LoadBotResourcesAsync(bots, ct);
 
             foreach (var bot in Shuffle(bots))
             {
-                if (!CanExecuteBot(bot, bot.TraderId, sellerPortfolio, buyerBalances))
+                if (!CanExecuteBot(bot, resources))
                 {
                     RecordBotSkip(bot.TraderId);
                     continue;
