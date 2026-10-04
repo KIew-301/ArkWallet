@@ -424,8 +424,8 @@ public class PriceSuggestionServiceTests
     {
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
+        await HelpMethods.RegisterTrader(db, 101, "Bot", isBot: true);
 
-        await HelpMethods.RegisterTrader(db, 101);
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.GiveMoney(db, 101, 100000);
         await HelpMethods.AddPortfolio(db, 101, "ZZZ", 100);

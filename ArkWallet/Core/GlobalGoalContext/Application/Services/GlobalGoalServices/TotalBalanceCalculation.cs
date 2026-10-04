@@ -11,13 +11,16 @@ namespace ArkWallet.Core.GlobalGoalContext.Application.Services.GlobalGoalServic
 /// </summary>
 internal class TotalBalanceGlobalGoalCalculation : IDomainGlobalGoalCalculation
 {
-    private const long BotTraderIdsMin = 100;
-    private const long BotTraderIdsMax = 1000;
     private const int BalanceScale = 4;
 
     public string GoalName => "Общий баланс";
 
     /// <remarks>
+    /// Bots are excluded through Traders.IsBot, the column the rest of the codebase uses.
+    /// Filtering by trader id range instead let every production bot into the total: production
+    /// bot ids are 5..40, so none of them matched the old 100..1000 window and all 34 bots were
+    /// counted. Their balances pushed the sum past the goal target and past decimal capacity.
+    ///
     /// BalanceSnapshot.TotalBalance is mapped to an unbounded PostgreSQL numeric, so the long
     /// fractional tail of token prices gives each snapshot up to ~29 significant digits. Every
     /// snapshot on its own still fits System.Decimal, but their aggregate does not: on production
@@ -30,7 +33,7 @@ internal class TotalBalanceGlobalGoalCalculation : IDomainGlobalGoalCalculation
     public async Task<decimal> CalculateAsync(ArkWalletDbContext dbContext)
     {
         var balances = await dbContext.BalanceSnapshots
-            .Where(s => s.TraderId < BotTraderIdsMin || s.TraderId > BotTraderIdsMax)
+            .Where(s => !s.Trader!.IsBot)
             .GroupBy(s => s.TraderId)
             .Select(g => g
                 .OrderByDescending(s => s.SnapshotDateTime)

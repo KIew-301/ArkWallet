@@ -31,7 +31,11 @@ using PriceCandle = global::ArkWallet.Infrastructure.Data.PriceCandle;
 
 internal class HelpMethods
 {
-    public static async Task<Result> RegisterTrader(ArkWalletDbContext db, long telegramId, string name = "User")
+    public static async Task<Result> RegisterTrader(
+        ArkWalletDbContext db,
+        long telegramId,
+        string name = "User",
+        bool isBot = false)
     {
         if (string.IsNullOrWhiteSpace(name))
             return Result.Fail("Имя не может быть пустым");
@@ -43,7 +47,6 @@ internal class HelpMethods
         if (existing != null)
             return Result.Fail("Пользователь уже существует");
 
-        var isBot = telegramId >= 100 && telegramId <= 1000;
         var trader = Trader.Create(name, isBot, telegramId);
         trader.Id = telegramId;
         await db.Traders.AddAsync(trader);

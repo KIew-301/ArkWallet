@@ -344,7 +344,7 @@ public class BotOrchestratorTest : IDisposable
         await db.Database.EnsureCreatedAsync();
         await HelpMethods.CreateToken(db, "TKN_EXISTING", isActive: true);
 
-        await HelpMethods.RegisterTrader(db, 100, "MarketMakerBot_TKN_EXISTING");
+        await HelpMethods.RegisterTrader(db, 100, "MarketMakerBot_TKN_EXISTING", isBot: true);
 
         var existingBot = MarketMakerBotRecord.Create(100L, "TKN_EXISTING", BotRole.Buyer, 50m);
         await db.MarketMakerBots.AddAsync(existingBot);
@@ -415,7 +415,7 @@ public class BotOrchestratorTest : IDisposable
         _disposables.Add(db);
         await db.Database.EnsureCreatedAsync();
         await HelpMethods.CreateToken(db, "TKN_SHARED", isActive: true);
-        await HelpMethods.RegisterTrader(db, 150, "SharedTrader");
+        await HelpMethods.RegisterTrader(db, 150, "SharedTrader", isBot: true);
 
         await db.MarketMakerBots.AddAsync(MarketMakerBotRecord.Create(150L, "TKN_SHARED", BotRole.Buyer, 50m));
         await db.MarketMakerBots.AddAsync(MarketMakerBotRecord.Create(150L, "TKN_SHARED", BotRole.Seller, 50m));
@@ -471,7 +471,7 @@ public class BotOrchestratorTest : IDisposable
         await db.Database.EnsureCreatedAsync();
         await HelpMethods.CreateToken(db, "SYM_X", isActive: true);
         await HelpMethods.CreateToken(db, "SYM_Y", isActive: true);
-        await HelpMethods.RegisterTrader(db, 160, "SharedXY");
+        await HelpMethods.RegisterTrader(db, 160, "SharedXY", isBot: true);
 
         await db.MarketMakerBots.AddAsync(MarketMakerBotRecord.Create(160L, "SYM_X", BotRole.Buyer, 50m));
         await db.MarketMakerBots.AddAsync(MarketMakerBotRecord.Create(160L, "SYM_Y", BotRole.Buyer, 50m));
@@ -567,9 +567,9 @@ public class BotOrchestratorTest : IDisposable
         _disposables.Add(db);
         await db.Database.EnsureCreatedAsync();
         await HelpMethods.CreateToken(db, "TKN_OK", isActive: true);
-        await HelpMethods.RegisterTrader(db, 210, "TB");
-        await HelpMethods.RegisterTrader(db, 211, "TS");
-        await HelpMethods.RegisterTrader(db, 212, "TW");
+        await HelpMethods.RegisterTrader(db, 210, "TB", isBot: true);
+        await HelpMethods.RegisterTrader(db, 211, "TS", isBot: true);
+        await HelpMethods.RegisterTrader(db, 212, "TW", isBot: true);
 
         await db.MarketMakerBots.AddAsync(MarketMakerBotRecord.Create(210L, "TKN_OK", BotRole.Buyer, 50m));
         await db.MarketMakerBots.AddAsync(MarketMakerBotRecord.Create(211L, "TKN_OK", BotRole.Seller, 50m));
@@ -610,9 +610,9 @@ public class BotOrchestratorTest : IDisposable
         _disposables.Add(db);
         await db.Database.EnsureCreatedAsync();
         await HelpMethods.CreateToken(db, "TKN_PWR", isActive: true);
-        await HelpMethods.RegisterTrader(db, 310, "PB");
-        await HelpMethods.RegisterTrader(db, 311, "PS");
-        await HelpMethods.RegisterTrader(db, 312, "PW");
+        await HelpMethods.RegisterTrader(db, 310, "PB", isBot: true);
+        await HelpMethods.RegisterTrader(db, 311, "PS", isBot: true);
+        await HelpMethods.RegisterTrader(db, 312, "PW", isBot: true);
 
         await db.MarketMakerBots.AddAsync(MarketMakerBotRecord.Create(310L, "TKN_PWR", BotRole.Buyer, 77m));
         await db.MarketMakerBots.AddAsync(MarketMakerBotRecord.Create(311L, "TKN_PWR", BotRole.Seller, 30m));
@@ -644,9 +644,9 @@ public class BotOrchestratorTest : IDisposable
         _disposables.Add(db);
         await db.Database.EnsureCreatedAsync();
         await HelpMethods.CreateToken(db, "TKN_PWR2", isActive: true);
-        await HelpMethods.RegisterTrader(db, 320, "PB");
-        await HelpMethods.RegisterTrader(db, 321, "PS");
-        await HelpMethods.RegisterTrader(db, 322, "PW");
+        await HelpMethods.RegisterTrader(db, 320, "PB", isBot: true);
+        await HelpMethods.RegisterTrader(db, 321, "PS", isBot: true);
+        await HelpMethods.RegisterTrader(db, 322, "PW", isBot: true);
 
         await db.MarketMakerBots.AddAsync(MarketMakerBotRecord.Create(320L, "TKN_PWR2", BotRole.Buyer, 50m));
         await db.MarketMakerBots.AddAsync(MarketMakerBotRecord.Create(321L, "TKN_PWR2", BotRole.Seller, 50m));

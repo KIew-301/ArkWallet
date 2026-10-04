@@ -102,10 +102,10 @@ public class LeadersTopByBalanceQueryServiceTest : IDisposable
     }
 
     [Fact]
-    public async Task GetTopAsync_ExcludesBots_Ids100To1000()
+    public async Task GetTopAsync_ExcludesBots_FromAnyIdRange()
     {
-        await HelpMethods.RegisterTrader(_db, 500, "Bot1");
-        await HelpMethods.RegisterTrader(_db, 501, "Bot2");
+        await HelpMethods.RegisterTrader(_db, 500, "Bot1", isBot: true);
+        await HelpMethods.RegisterTrader(_db, 501, "Bot2", isBot: true);
         await HelpMethods.RegisterTrader(_db, 1001, "Alice");
         await HelpMethods.RegisterTrader(_db, 1002, "Bob");
 
@@ -199,7 +199,7 @@ public class LeadersTopByBalanceQueryServiceTest : IDisposable
     [Fact]
     public async Task GetTraderPositionAsync_BotIds_ExcludedFromCount()
     {
-        await HelpMethods.RegisterTrader(_db, 500, "Bot");
+        await HelpMethods.RegisterTrader(_db, 500, "Bot", isBot: true);
         await HelpMethods.RegisterTrader(_db, 1001, "Alice");
         await HelpMethods.RegisterTrader(_db, 1002, "Bob");
 
