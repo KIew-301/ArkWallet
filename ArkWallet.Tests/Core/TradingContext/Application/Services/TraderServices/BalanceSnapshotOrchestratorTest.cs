@@ -35,6 +35,31 @@ public class BalanceSnapshotOrchestratorTest
     }
 
     [Fact]
+    public async Task CreateSnapshots_BotTrader_SnapshotNotCreated()
+    {
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 1001);
+        await HelpMethods.RegisterTrader(db, 1002, "Bot", isBot: true);
+        await HelpMethods.CreateToken(db, "ZZZ");
+        await HelpMethods.AddPortfolio(db, 1001, "ZZZ", 10);
+        await HelpMethods.AddPortfolio(db, 1002, "ZZZ", 10);
+
+        var snapshotService = new BalanceSnapshotService(db, NullLogger<BalanceSnapshotService>.Instance);
+        var savingService = new BalanceSavingService(db, NullLogger<BalanceSavingService>.Instance);
+        var logger = NullLogger<BalanceSnapshotOrchestrator>.Instance;
+
+        var orchestrator = new BalanceSnapshotOrchestrator(db, snapshotService, savingService, logger);
+        var result = await orchestrator.CreateSnapshotsForAllTradersAsync();
+
+        Assert.True(result.IsSuccess);
+
+        Assert.Single(await HelpMethods.GetBalanceHistory(db, 1001));
+        Assert.Empty(await HelpMethods.GetBalanceHistory(db, 1002));
+    }
+
+    [Fact]
     public async Task CreateSnapshots_NoTraders_ReturnsSuccess()
     {
         using var db = DbTest.CreateDbContext();
