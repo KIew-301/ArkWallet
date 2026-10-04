@@ -370,7 +370,7 @@ return await PlaceCollectedAsync();
             .ToDictionary(g => g.Key, g => (g.First().Id, g.First().TraderId));
 
         var allBots = await dbContext.MarketMakerBots
-            .Select(b => new { b.TraderId })
+            .Select(b => new { b.Id, b.TraderId })
             .ToListAsync(ct);
         var traderUsage = allBots
             .GroupBy(b => b.TraderId)
@@ -393,10 +393,55 @@ return await PlaceCollectedAsync();
             }
         }
 
+        // The loop above only visits records on active tokens with a required role. A record whose
+        // token was deactivated, or whose role is no longer required, would otherwise keep a shared
+        // or non-bot trader forever, so sweep every remaining record on its own.
+        var notDedicatedIds = await (
+                from b in dbContext.MarketMakerBots
+                join t in dbContext.Traders on b.TraderId equals t.Id into matched
+                from t in matched.DefaultIfEmpty()
+                where t == null || !t.IsBot
+                      || dbContext.MarketMakerBots.Count(x => x.TraderId == b.TraderId) != 1
+                select b.Id)
+            .ToListAsync(ct);
+
+        foreach (var botId in notDedicatedIds)
+        {
+            if (await MoveBotToDedicatedTraderAsync(botId, traderUsage, botTraderIds, ct))
+                moved++;
+        }
+
+        var orphansRemoved = await RemoveOrphanBotsAsync(ct);
+
         var normalized = await NormalizeBotPowersAsync(ct);
 
-        var changed = added > 0 || moved > 0 || normalized > 0;
-        return Result<BotEnsuringResult>.Ok(new BotEnsuringResult(changed, added, moved, normalized));
+        var changed = added > 0 || moved > 0 || normalized > 0 || orphansRemoved > 0;
+        return Result<BotEnsuringResult>.Ok(
+            new BotEnsuringResult(changed, added, moved, normalized, orphansRemoved));
+    }
+
+    /// <summary>
+    /// Removes bot traders that no market maker record refers to. Composition is fixed at three
+    /// records per active token, so a bot without a record is surplus left over from an older
+    /// registration scheme and would otherwise sit forever: nothing selects it, but it keeps
+    /// balance, portfolio and open orders that are never managed again.
+    /// </summary>
+    private async Task<int> RemoveOrphanBotsAsync(CancellationToken ct)
+    {
+        var orphans = await dbContext.Traders
+            .Where(t => t.IsBot && !dbContext.MarketMakerBots.Any(b => b.TraderId == t.Id))
+            .ToListAsync(ct);
+
+        foreach (var trader in orphans)
+        {
+            await orderCancellationService.CancelAllOrderAsync(trader.Id);
+            dbContext.Traders.Remove(trader);
+        }
+
+        if (orphans.Count > 0)
+            await dbContext.SaveChangesAsync(ct);
+
+        return orphans.Count;
     }
 
     private async Task<(bool Added, bool Moved)> EnsureBotForRoleAsync(
@@ -421,13 +466,23 @@ return await PlaceCollectedAsync();
         if (dedicated)
             return (false, false);
 
-        var traderResult = await botRegistration.CreateDedicatedTraderAsync(symbol, role);
+        var movedOk = await MoveBotToDedicatedTraderAsync(bot.Id, traderUsage, botTraderIds, ct);
+        return (false, movedOk);
+    }
+
+    private async Task<bool> MoveBotToDedicatedTraderAsync(
+        long botId,
+        Dictionary<long, int> traderUsage,
+        List<long> botTraderIds,
+        CancellationToken ct)
+    {
+        var record = await dbContext.MarketMakerBots.FirstOrDefaultAsync(b => b.Id == botId, ct);
+        if (record is null)
+            return false;
+
+        var traderResult = await botRegistration.CreateDedicatedTraderAsync(record.Symbol, record.Role);
         if (!traderResult.IsSuccess || !traderResult.TryGetData(out var newTraderId))
             throw new InvalidOperationException(traderResult.Message);
-
-        var record = await dbContext.MarketMakerBots.FirstOrDefaultAsync(b => b.Id == bot.Id, ct);
-        if (record is null)
-            return (false, false);
 
         var domainBot = MarketMakerGridMapper.ToMarketMaker(record);
         var previousTraderId = domainBot.MoveToTrader(newTraderId);
@@ -436,12 +491,19 @@ return await PlaceCollectedAsync();
 
         await orderCancellationService.CancelAllOrderAsync(previousTraderId);
 
-        if (traderUsage.TryGetValue(bot.TraderId, out var usage) && usage > 1)
-            traderUsage[bot.TraderId] = usage - 1;
-        else
-            traderUsage.Remove(bot.TraderId);
+        if (traderUsage.TryGetValue(previousTraderId, out var usage))
+        {
+            if (usage > 1)
+                traderUsage[previousTraderId] = usage - 1;
+            else
+                traderUsage.Remove(previousTraderId);
+        }
+
         traderUsage[newTraderId] = 1;
-        return (false, true);
+        if (!botTraderIds.Contains(newTraderId))
+            botTraderIds.Add(newTraderId);
+
+        return true;
     }
 
     private async Task<int> NormalizeBotPowersAsync(CancellationToken ct)
