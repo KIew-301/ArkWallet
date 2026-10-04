@@ -25,6 +25,22 @@ public interface ITradeQueryService
     /// </para>
     /// </remarks>
     Task<Result<List<TradeInfo>>> GetTraderTradesAsync(long traderTelegramId, bool withTokenInfo = false);
+
+    /// <summary>
+    /// Возвращает список сделок трейдера с постраничной выборкой
+    /// </summary>
+    /// <param name="traderTelegramId">Telegram ID трейдера</param>
+    /// <param name="page">Номер страницы (начиная с 1)</param>
+    /// <param name="pageSize">Размер страницы</param>
+    /// <param name="withTokenInfo">Включать информацию о токене (иконка)</param>
+    /// <returns>Постраничный результат со сделками</returns>
+    /// <remarks>
+    /// <para>
+    /// Результаты отсортированы по дате исполнения (новые первыми), постранично.
+    /// TotalCount — общее количество сделок трейдера.
+    /// </para>
+    /// </remarks>
+    Task<Result<PagedResult<TradeInfo>>> GetTraderTradesPageAsync(long traderTelegramId, int page, int pageSize, bool withTokenInfo = false);
 }
 
 /// <summary>
