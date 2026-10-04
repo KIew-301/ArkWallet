@@ -13,6 +13,8 @@ using ArkWallet.Core.MiningContext.Domain.GlobalRule;
 using ArkWallet.Core.MiningContext.Domain.Engines;
 using ArkWallet.Infrastructure.Data;
 using ArkWallet.Tests.HelpTools;
+using System.Globalization;
+using System.Numerics;
 
 namespace ArkWallet.Tests.Core.GlobalGoalContext.Application.Services.GlobalGoalServices;
 
@@ -72,6 +74,62 @@ public class TotalBalanceGlobalGoalCalculationTest
 
         Assert.True(sum > 0);
     }
+
+    /// <summary>
+    /// Regression test for a production OverflowException. BalanceSnapshot.TotalBalance maps to
+    /// an unbounded PostgreSQL numeric, so real snapshots reach 29 significant digits while each
+    /// still fits System.Decimal on its own. Letting the database accumulate the sum did not:
+    /// production hit 31 digits and Npgsql threw while materialising it. Each value below mirrors
+    /// the highest-precision snapshot observed in production, and their unrounded total exceeds
+    /// the 96-bit decimal mantissa, so this fails without rounding.
+    /// </summary>
+    [Fact]
+    public async Task CalculateAsync_UnroundedSumWouldOverflow_StillReturnsRoundedTotal()
+    {
+        using var db = CreateDb();
+
+        var now = DateTime.UtcNow;
+        const decimal productionSnapshot = 110205602800.44968928076257331m;
+        const int traderCount = 100;
+
+        AssertExceedsDecimalMantissa(productionSnapshot, traderCount);
+        AssertFitsDecimalMantissa(Math.Round(productionSnapshot, 4), traderCount);
+
+        var expected = 0m;
+        for (var traderId = 8001; traderId < 8001 + traderCount; traderId++)
+        {
+            await HelpMethods.RegisterTrader(db, traderId);
+            AddSnapshot(db, traderId, productionSnapshot, now);
+            expected += Math.Round(productionSnapshot, 4);
+        }
+
+        await db.SaveChangesAsync();
+
+        var sum = await new TotalBalanceGlobalGoalCalculation().CalculateAsync(db);
+
+        Assert.Equal(expected, sum);
+    }
+
+    private static readonly BigInteger DecimalMaxMantissa = BigInteger.Parse("79228162514264337593543950335");
+
+    private static void AssertExceedsDecimalMantissa(decimal value, int multiplier)
+    {
+        var mantissa = DecimalMantissa(value) * multiplier;
+        Assert.True(
+            mantissa > DecimalMaxMantissa,
+            $"Expected {multiplier} unrounded values to exceed the decimal mantissa, got {mantissa}.");
+    }
+
+    private static void AssertFitsDecimalMantissa(decimal value, int multiplier)
+    {
+        var mantissa = DecimalMantissa(value) * multiplier;
+        Assert.True(
+            mantissa <= DecimalMaxMantissa,
+            $"Expected {multiplier} rounded values to stay within the decimal mantissa, got {mantissa}.");
+    }
+
+    private static BigInteger DecimalMantissa(decimal value)
+        => BigInteger.Parse(value.ToString(CultureInfo.InvariantCulture).Replace(".", string.Empty));
 
     private static void AddSnapshot(ArkWalletDbContext db, long traderId, decimal totalBalance, DateTime at)
         => db.BalanceSnapshots.Add(BalanceSnapshot.Create(traderId, totalBalance, 0, 0, 0, 0, at));
