@@ -74,8 +74,9 @@ namespace ArkWallet.Infrastructure.Wizard
         // ORCHESTRATORS
         private readonly ICandleOrchestrator _candleOrchestrator;
 
-        // MARKET MAKER
-        private readonly IMarketMakerBotQueryService _botQueryService;
+// MARKET MAKER
+    private readonly IMarketMakerBotQueryService _botQueryService;
+    private readonly IBotOrchestrator _botOrchestrator;
 
         // AUTH
         private readonly ITokenService _tokenService;
@@ -152,6 +153,7 @@ namespace ArkWallet.Infrastructure.Wizard
             IBalanceSnapshotService balanceSnapshotService,
             ICandleOrchestrator candleOrchestrator,
             IMarketMakerBotQueryService botQueryService,
+            IBotOrchestrator botOrchestrator,
             ITokenService tokenService,
             ITradingVolumeService tradingVolumeService,
             IMessageSender messageSender,
@@ -209,6 +211,7 @@ namespace ArkWallet.Infrastructure.Wizard
             _balanceSnapshotService = balanceSnapshotService;
             _candleOrchestrator = candleOrchestrator;
             _botQueryService = botQueryService;
+        _botOrchestrator = botOrchestrator;
             _tokenService = tokenService;
             _tradingVolumeService = tradingVolumeService;
             _messageSender = messageSender;
@@ -376,6 +379,19 @@ namespace ArkWallet.Infrastructure.Wizard
                         return await HandleQuickAdminBotsActivity(parts[1]);
                 }
 
+                if (inp.StartsWith("/admin_bots_powers"))
+                    return await HandleQuickAdminBotsPowers();
+
+                if (inp.StartsWith("/admin_rebalance_bots_power"))
+                    return await HandleQuickAdminRebalanceBotsPower();
+
+                if (inp.StartsWith("/admin_update_bots_grid "))
+                {
+                    var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                        return await HandleQuickAdminUpdateBotsGrid(parts[1]);
+                }
+
                 if (inp.StartsWith("/admin_stats "))
                 {
                     var parts = inp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -513,6 +529,9 @@ namespace ArkWallet.Infrastructure.Wizard
                 || input.StartsWith("/get_tops ")
                 || input.StartsWith("/top ")
                 || input.StartsWith("/admin_bots_activity ")
+                || input.StartsWith("/admin_bots_powers")
+                || input.StartsWith("/admin_rebalance_bots_power")
+                || input.StartsWith("/admin_update_bots_grid ")
                 || input.StartsWith("/admin_stats ")
                 || input.StartsWith("/mining_buy ")
                 || input.StartsWith("/mining_take ")

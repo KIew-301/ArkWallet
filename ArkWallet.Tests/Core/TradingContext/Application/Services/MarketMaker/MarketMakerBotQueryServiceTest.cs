@@ -19,6 +19,47 @@ namespace ArkWallet.Tests.Core.TradingContext.Application.Services.MarketMaker;
 
 public class MarketMakerBotQueryServiceTest
 {
+    private static readonly string[] ExpectedSymbols = ["ARK_001", "ARK_001", "ARK_002"];
+    private static readonly BotRole[] ExpectedRoles = [BotRole.Buyer, BotRole.Seller, BotRole.Buyer];
+
+    [Fact]
+    public async Task GetAllBotsAsync_ReturnsAllBots_SortedBySymbolThenRole()
+    {
+        using var db = DbTest.CreateDbContext();
+        await db.Database.EnsureCreatedAsync();
+
+        db.MarketMakerBots.AddRange(
+            MarketMakerBotRecord.Create(103, "ARK_002", BotRole.Buyer),
+            MarketMakerBotRecord.Create(102, "ARK_001", BotRole.Seller),
+            MarketMakerBotRecord.Create(101, "ARK_001", BotRole.Buyer));
+        await db.SaveChangesAsync();
+
+        var service = new MarketMakerBotQueryService(db, NullLogger<MarketMakerBotQueryService>.Instance);
+
+        var result = await service.GetAllBotsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var bots));
+        Assert.Equal(3, bots.Count);
+        Assert.Equal(ExpectedSymbols, bots.Select(b => b.Symbol).ToArray());
+        Assert.Equal(ExpectedRoles, bots.Select(b => b.Role).ToArray());
+    }
+
+    [Fact]
+    public async Task GetAllBotsAsync_NoBots_ReturnsEmptyList()
+    {
+        using var db = DbTest.CreateDbContext();
+        await db.Database.EnsureCreatedAsync();
+
+        var service = new MarketMakerBotQueryService(db, NullLogger<MarketMakerBotQueryService>.Instance);
+
+        var result = await service.GetAllBotsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.TryGetData(out var bots));
+        Assert.Empty(bots);
+    }
+
     [Fact]
     public async Task GetBotsBySymbolAsync_ReturnsMatchingBots()
     {

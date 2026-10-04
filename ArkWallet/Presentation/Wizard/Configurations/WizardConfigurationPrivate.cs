@@ -180,6 +180,25 @@ namespace ArkWallet.Entities.Configurations
                 }
             };
 
+            Commands["/admin_bots_powers"] = new List<WizardStep>
+            {
+                new() { Name = "request", OneStep = true }
+            };
+
+            Commands["/admin_rebalance_bots_power"] = new List<WizardStep>
+            {
+                new() { Name = "request", OneStep = true }
+            };
+
+            Commands["/admin_update_bots_grid"] = new List<WizardStep>
+            {
+                new()
+                {
+                    Name = "request",
+                    Question = "Укажите роль: Buyer, Seller или Waller."
+                }
+            };
+
             Commands["/admin_generate_auth_token"] = new List<WizardStep>
             {
                 new()

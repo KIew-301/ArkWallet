@@ -9,6 +9,11 @@ namespace ArkWallet.Core.TradingContext.Application.Contracts.MarketMaker;
 internal interface IMarketMakerBotQueryService
 {
     /// <summary>
+    /// Возвращает всех ботов, отсортированных по символу, роли и ID
+    /// </summary>
+    Task<Result<List<MarketMakerBotRecord>>> GetAllBotsAsync();
+
+    /// <summary>
     /// Получает всех ботов для указанного символа токена
     /// </summary>
     /// <param name="symbol">Символ токена</param>

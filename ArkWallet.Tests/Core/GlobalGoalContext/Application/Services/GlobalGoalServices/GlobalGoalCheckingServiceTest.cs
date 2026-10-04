@@ -110,6 +110,103 @@ public class GlobalGoalCheckingServiceTest
         Assert.Single(db.GlobalGoalHistories.ToList());
     }
 
+    /// <summary>
+    /// Regression test: huge actual / tiny target must not throw OverflowException.
+    /// Old code: 1e21 / 1e-8 = 1e29 &gt; decimal.MaxValue → exception.
+    /// </summary>
+    [Fact]
+    public async Task CheckGoalsAsync_HugeActualVsTinyTarget_NoOverflow()
+    {
+        using var db = CreateDb();
+        db.GlobalGoals.Add(GlobalGoal.Create(
+            id: 1, name: "HugeGoal", description: "d",
+            target: 0.00000001m, actual: 0m, progress: 0m, achievedCount: 0));
+        await db.SaveChangesAsync();
+
+        var service = BuildService(db, new FakeCalculation("HugeGoal", 1e21m));
+        var result = await service.CheckGoalsAsync();
+
+        Assert.True(result.IsSuccess);
+        var record = db.GlobalGoals.Single();
+        Assert.Equal(1e21m, record.Actual);
+        Assert.True(record.Progress > 0);
+    }
+
+    /// <summary>
+    /// Edge case: target = MaxValue/2, actual = MaxValue — division stays within bounds.
+    /// </summary>
+    [Fact]
+    public async Task CheckGoalsAsync_TargetHalfMaxValue_SafeDivision()
+    {
+        using var db = CreateDb();
+        db.GlobalGoals.Add(GlobalGoal.Create(
+            id: 1, name: "EdgeGoal", description: "d",
+            target: (decimal.MaxValue / 2m), actual: 0m, progress: 0m, achievedCount: 0));
+        await db.SaveChangesAsync();
+
+        var service = BuildService(db, new FakeCalculation("EdgeGoal", decimal.MaxValue));
+        var result = await service.CheckGoalsAsync();
+
+        Assert.True(result.IsSuccess);
+    }
+
+    /// <summary>
+    /// Actual far exceeds target but result is capped at safe max progress.
+    /// </summary>
+    [Fact]
+    public async Task CheckGoalsAsync_ActualExceedsThreshold_CappedProgress()
+    {
+        using var db = CreateDb();
+        db.GlobalGoals.Add(GlobalGoal.Create(
+            id: 1, name: "CapGoal", description: "d",
+            target: 1m, actual: 0m, progress: 0m, achievedCount: 0));
+        await db.SaveChangesAsync();
+
+        var service = BuildService(db, new FakeCalculation("CapGoal", decimal.MaxValue));
+        var result = await service.CheckGoalsAsync();
+
+        Assert.True(result.IsSuccess);
+        // With target=1m and safeMaxProgress=1m, threshold=1m, actual=MaxValue &gt; threshold → capped.
+    }
+
+    /// <summary>
+    /// Normal values without overflow: target > actual → Progress &lt; 1.
+    /// </summary>
+    [Fact]
+    public async Task CheckGoalsAsync_ActualLessThanTarget_ProgressBelowOne()
+    {
+        using var db = CreateDb();
+        db.GlobalGoals.Add(GlobalGoal.Create(
+            id: 1, name: "SubGoal", description: "d",
+            target: 1000m, actual: 500m, progress: 0.5m, achievedCount: 0));
+        await db.SaveChangesAsync();
+
+        var service = BuildService(db, new FakeCalculation("SubGoal", 500m));
+        var result = await service.CheckGoalsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(500m, db.GlobalGoals.Single().Actual);
+    }
+
+    /// <summary>
+    /// Regression for normal arithmetic: target * smallMultiplier where multiplier &lt; 1.
+    /// This creates a scenario where old code would overflow when dividing.
+    /// </summary>
+    [Fact]
+    public async Task CheckGoalsAsync_TinyTargetLargeActual_NoCrash()
+    {
+        using var db = CreateDb();
+        db.GlobalGoals.Add(GlobalGoal.Create(
+            id: 1, name: "TinyTarget", description: "d",
+            target: 0.000000001m, actual: 0m, progress: 0m, achievedCount: 0));
+        await db.SaveChangesAsync();
+
+        var service = BuildService(db, new FakeCalculation("TinyTarget", 1000000000000m));
+        var result = await service.CheckGoalsAsync();
+
+        Assert.True(result.IsSuccess);
+    }
+
     private sealed class FakeCalculation(string goalName, decimal value) : IDomainGlobalGoalCalculation
     {
         public string GoalName => goalName;

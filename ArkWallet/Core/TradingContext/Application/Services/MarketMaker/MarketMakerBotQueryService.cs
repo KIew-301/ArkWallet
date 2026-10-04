@@ -10,6 +10,20 @@ internal class MarketMakerBotQueryService(
     ArkWalletDbContext dbContext,
     ILogger<MarketMakerBotQueryService> logger) : IMarketMakerBotQueryService
 {
+    public async Task<Result<List<MarketMakerBotRecord>>> GetAllBotsAsync()
+    {
+        return await ServiceErrorHandler.ExecuteAsync(async () =>
+        {
+            var bots = await dbContext.MarketMakerBots
+                .OrderBy(b => b.Symbol)
+                .ThenBy(b => b.Role)
+                .ThenBy(b => b.Id)
+                .ToListAsync();
+
+            return Result<List<MarketMakerBotRecord>>.Ok(bots);
+        }, logger, nameof(MarketMakerBotQueryService));
+    }
+
     public async Task<Result<List<MarketMakerBotRecord>>> GetBotsBySymbolAsync(string symbol)
     {
         return await ServiceErrorHandler.ExecuteAsync(async () =>
@@ -50,7 +64,10 @@ internal class MarketMakerBotQueryService(
                 return Result.Fail($"Bot with ID {botId} not found");
 
             if (basePower.HasValue)
+            {
                 bot.BasePower = basePower.Value;
+                bot.ActivePower = basePower.Value;
+            }
 
             if (role != null)
             {
