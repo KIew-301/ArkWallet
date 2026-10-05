@@ -168,6 +168,84 @@ public sealed class BotOrchestratorWorkerTest : IDisposable
     }
 
     [Fact]
+    public async Task FailingJob_DoesNotBlockRestOfSchedule()
+    {
+        var db = DbTest.CreateDbContext();
+        _disposables.Add(db);
+        await db.Database.EnsureCreatedAsync();
+
+        var services = new ServiceCollection();
+        services.AddScoped<ArkWalletDbContext>(_ => db);
+
+        var orchMock = new Mock<IBotOrchestrator>();
+        // Grids fails the way it does in production: not enough balance on the bots.
+        orchMock.Setup(o => o.UpdateBotsGridsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Fail("Insufficient balance"));
+        orchMock.Setup(o => o.RebalanceAllBotsPowerAsync(It.IsAny<CancellationToken>())).ReturnsAsync(Result.Ok());
+        orchMock.Setup(o => o.ExecuteMarketOrdersAsync(It.IsAny<CancellationToken>())).ReturnsAsync(Result.Ok());
+        orchMock.Setup(o => o.UpdateAllBotsBalancesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(Result.Ok());
+        orchMock.Setup(o => o.UpdateWallBotGridsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(Result.Ok());
+
+        services.AddScoped<IBotOrchestrator>(_ => orchMock.Object);
+        var provider = services.BuildServiceProvider();
+
+        var worker = new BotOrchestratorWorker(provider, NullLogger<BotOrchestratorWorker>.Instance);
+
+        await worker.RunScheduledJobsAsync(CancellationToken.None);
+
+        // The balance job funds the bots, and the wall job cancels stale grid orders.
+        // Neither may be skipped just because an unrelated job failed.
+        orchMock.Verify(o => o.UpdateAllBotsBalancesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        orchMock.Verify(o => o.UpdateWallBotGridsAsync(It.IsAny<CancellationToken>()), Times.Once);
+        orchMock.Verify(o => o.ExecuteMarketOrdersAsync(It.IsAny<CancellationToken>()), Times.Once);
+        orchMock.Verify(o => o.RebalanceAllBotsPowerAsync(It.IsAny<CancellationToken>()), Times.Once);
+
+        foreach (var key in new[]
+        {
+            "BotBalancesNextExecution",
+            "BotGridsNextExecution",
+            "BotPowerNextExecution",
+            "BotMarketNextExecution",
+            "BotWallNextExecution"
+        })
+        {
+            var stateRecord = await db.AppStates.FindAsync([key], CancellationToken.None);
+            Assert.NotNull(stateRecord);
+            Assert.NotNull(JsonSerializer.Deserialize<DateTime?>(stateRecord.Value));
+        }
+    }
+
+    [Fact]
+    public async Task BalancesRunBeforeGrids()
+    {
+        var db = DbTest.CreateDbContext();
+        _disposables.Add(db);
+        await db.Database.EnsureCreatedAsync();
+
+        var services = new ServiceCollection();
+        services.AddScoped<ArkWalletDbContext>(_ => db);
+
+        var callOrder = new List<string>();
+        var orchMock = new Mock<IBotOrchestrator>();
+        orchMock.Setup(o => o.UpdateAllBotsBalancesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => { callOrder.Add("balances"); return Result.Ok(); });
+        orchMock.Setup(o => o.UpdateBotsGridsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => { callOrder.Add("grids"); return Result.Ok(); });
+        orchMock.Setup(o => o.RebalanceAllBotsPowerAsync(It.IsAny<CancellationToken>())).ReturnsAsync(Result.Ok());
+        orchMock.Setup(o => o.ExecuteMarketOrdersAsync(It.IsAny<CancellationToken>())).ReturnsAsync(Result.Ok());
+        orchMock.Setup(o => o.UpdateWallBotGridsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(Result.Ok());
+
+        services.AddScoped<IBotOrchestrator>(_ => orchMock.Object);
+        var provider = services.BuildServiceProvider();
+
+        var worker = new BotOrchestratorWorker(provider, NullLogger<BotOrchestratorWorker>.Instance);
+
+        await worker.RunScheduledJobsAsync(CancellationToken.None);
+
+        Assert.Equal(new[] { "balances", "grids" }, callOrder);
+    }
+
+    [Fact]
     public async Task MultiplePastDue_ExecutesAll()
     {
         // Arrange

@@ -23,6 +23,8 @@ public class BotOrchestratorWorker : BackgroundService
     private const string MarketKey = "BotMarketNextExecution";
     private const string WallKey = "BotWallNextExecution";
 
+    private const int RetryDelayInMinutes = 1;
+
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<BotOrchestratorWorker> _logger;
     private readonly TimeProvider _timeProvider;
@@ -116,6 +118,12 @@ public class BotOrchestratorWorker : BackgroundService
 
         var now = _timeProvider.GetUtcNow().UtcDateTime;
 
+        // Балансы идут первыми: этот джоб пополняет ботов, а всё остальное без этих денег не работает.
+        await RunJobAsync(dbContext, orchestrator, BalancesKey,
+            () => now.AddHours(2),
+            o => o.UpdateAllBotsBalancesAsync(ct),
+            now, ct);
+
         // Метод 5 (мощность) — отдельным джобом, редко (20–40 минут).
         await RunJobAsync(dbContext, orchestrator, PowerKey,
             () => now.AddMinutes(Random.Shared.Next(20, 41)),
@@ -132,11 +140,6 @@ public class BotOrchestratorWorker : BackgroundService
             o => o.ExecuteMarketOrdersAsync(ct),
             now, ct);
 
-        await RunJobAsync(dbContext, orchestrator, BalancesKey,
-            () => now.AddHours(2),
-            o => o.UpdateAllBotsBalancesAsync(ct),
-            now, ct);
-
         await RunJobAsync(dbContext, orchestrator, WallKey,
             () => now.AddMinutes(Random.Shared.Next(60, 181)),
             o => o.UpdateWallBotGridsAsync(ct),
@@ -145,7 +148,7 @@ public class BotOrchestratorWorker : BackgroundService
         await dbContext.SaveChangesAsync(ct);
     }
 
-    private static async Task RunJobAsync(
+    private async Task RunJobAsync(
         ArkWalletDbContext dbContext,
         IBotOrchestrator orchestrator,
         string key,
@@ -160,11 +163,25 @@ public class BotOrchestratorWorker : BackgroundService
         if (state is not null && next is not null && next.Value > now)
             return;
 
-        var result = await run(orchestrator);
-        if (!result.IsSuccess)
-            throw new InvalidOperationException($"{key}: {result.Message}");
+        string? failure = null;
+        try
+        {
+            var result = await run(orchestrator);
+            if (!result.IsSuccess)
+                failure = result.Message;
+        }
+        catch (Exception ex)
+        {
+            failure = ex.Message;
+            _logger.LogError(ex, "{Key} не отработал", key);
+        }
 
-        var nextRun = scheduleNext();
+        // Упавший джоб не должен срывать остальное расписание иначе: сетка без денег валит
+        // Balances, а Balances — это как раз те деньги, без которых сетка и падает.
+        if (failure is not null)
+            _logger.LogError("{Key} не отработал: {Failure}. Повтор через {Retry} мин", key, failure, RetryDelayInMinutes);
+
+        var nextRun = failure is null ? scheduleNext() : now.AddMinutes(RetryDelayInMinutes);
         if (state is null)
             dbContext.AppStates.Add(AppState.Create(key, nextRun));
         else
