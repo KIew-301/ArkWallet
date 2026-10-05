@@ -411,13 +411,16 @@ return await PlaceCollectedAsync();
                 moved++;
         }
 
+        var duplicatesRemoved = await RemoveDuplicateRoleRecordsAsync(symbols, ct);
+
         var orphansRemoved = await RemoveOrphanBotsAsync(ct);
 
         var normalized = await NormalizeBotPowersAsync(ct);
 
-        var changed = added > 0 || moved > 0 || normalized > 0 || orphansRemoved > 0;
+        var changed = added > 0 || moved > 0 || normalized > 0 || orphansRemoved > 0
+            || duplicatesRemoved > 0;
         return Result<BotEnsuringResult>.Ok(
-            new BotEnsuringResult(changed, added, moved, normalized, orphansRemoved));
+            new BotEnsuringResult(changed, added, moved, normalized, orphansRemoved, duplicatesRemoved));
     }
 
     /// <summary>
@@ -442,6 +445,42 @@ return await PlaceCollectedAsync();
             await dbContext.SaveChangesAsync(ct);
 
         return orphans.Count;
+    }
+
+    /// <summary>
+    /// Composition is one record per role per active token, so a second record for the same
+    /// (symbol, role) pair is surplus. The lookup above groups by that pair and keeps the first
+    /// row, which means duplicates were silently ignored instead of being reported, and the
+    /// surplus trader kept trading with nothing managing its orders. The oldest row survives;
+    /// every trader the removed records stood on is released by the orphan sweep that follows.
+    /// </summary>
+    private async Task<int> RemoveDuplicateRoleRecordsAsync(List<string> symbols, CancellationToken ct)
+    {
+        var records = await dbContext.MarketMakerBots
+            .Where(b => symbols.Contains(b.Symbol))
+            .Select(b => new { b.Id, b.Symbol, b.Role, b.TraderId })
+            .ToListAsync(ct);
+
+        var duplicateIds = records
+            .GroupBy(b => (b.Symbol, b.Role))
+            .Where(g => g.Count() > 1)
+            .SelectMany(g => g.OrderBy(b => b.Id).Skip(1).Select(b => b.Id))
+            .ToList();
+
+        if (duplicateIds.Count == 0)
+            return 0;
+
+        var toRemove = await dbContext.MarketMakerBots
+            .Where(b => duplicateIds.Contains(b.Id))
+            .ToListAsync(ct);
+
+        foreach (var record in toRemove)
+            await orderCancellationService.CancelAllOrderAsync(record.TraderId);
+
+        dbContext.MarketMakerBots.RemoveRange(toRemove);
+        await dbContext.SaveChangesAsync(ct);
+
+        return toRemove.Count;
     }
 
     private async Task<(bool Added, bool Moved)> EnsureBotForRoleAsync(

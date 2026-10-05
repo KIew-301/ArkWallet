@@ -9,4 +9,5 @@ public sealed record BotEnsuringResult(
     int BotsAdded,
     int BotsMoved,
     int BotsPowerNormalized = 0,
-    int BotsOrphanRemoved = 0);
+    int BotsOrphanRemoved = 0,
+    int DuplicatesRemoved = 0);
