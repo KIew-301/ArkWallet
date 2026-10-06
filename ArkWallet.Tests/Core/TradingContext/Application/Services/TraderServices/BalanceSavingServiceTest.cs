@@ -24,28 +24,27 @@ public class BalanceSavingServiceTest
 
         long botTelegramId = 16001L;
         await HelpMethods.RegisterTrader(db, botTelegramId, "BotTrader", isBot: true);
-        await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, botTelegramId, "ZZZ", 5);
 
-        await HelpMethods.PlaceOrder(db, botTelegramId, "купить", "ZZZ", 2, 50m);
+        var bot = await db.Traders.FirstAsync(t => t.TelegramId == botTelegramId);
 
         var service = new BalanceSavingService(db, NullLogger<BalanceSavingService>.Instance);
         var result = await service.SaveBalanceToDatabase(
-            botTelegramId,
+            bot.Id,
             2000m, 1000m, 100m, 100m, 500m,
             DateTime.UtcNow);
 
         Assert.False(result.IsSuccess);
 
         var snapshots = await db.BalanceSnapshots
-            .Where(s => s.Trader.TelegramId == botTelegramId)
+            .Where(s => s.TraderId == bot.Id)
             .ToListAsync();
         Assert.Empty(snapshots);
     }
 
     /// <summary>
     /// Обычные трейдеры должны сохранять снапшоты без ограничений — иначе отсутствует
-    /// история баланса для аудита и мониторинга.
+    /// история баланса для аудита и мониторинга. Сервис получает Traders.Id, поэтому
+    /// проверка бота обязана идти по Id: поиск по TelegramId отсекал бы живых людей.
     /// </summary>
     [Fact]
     public async Task SaveBalanceToDatabase_NormalTrader_ReturnsSuccessAndOneSnapshot()
@@ -55,21 +54,19 @@ public class BalanceSavingServiceTest
 
         long traderTelegramId = 16101L;
         await HelpMethods.RegisterTrader(db, traderTelegramId, "NormalTrader");
-        await HelpMethods.CreateToken(db, "ZZZ");
-        await HelpMethods.AddPortfolio(db, traderTelegramId, "ZZZ", 5);
 
-        await HelpMethods.PlaceOrder(db, traderTelegramId, "купить", "ZZZ", 2, 50m);
+        var trader = await db.Traders.FirstAsync(t => t.TelegramId == traderTelegramId);
 
         var service = new BalanceSavingService(db, NullLogger<BalanceSavingService>.Instance);
         var result = await service.SaveBalanceToDatabase(
-            traderTelegramId,
+            trader.Id,
             2500m, 1500m, 200m, 200m, 500m,
             DateTime.UtcNow);
 
         Assert.True(result.IsSuccess);
 
         var snapshots = await db.BalanceSnapshots
-            .Where(s => s.Trader.TelegramId == traderTelegramId)
+            .Where(s => s.TraderId == trader.Id)
             .CountAsync();
         Assert.Equal(1, snapshots);
     }

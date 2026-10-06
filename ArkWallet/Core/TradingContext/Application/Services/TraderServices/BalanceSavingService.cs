@@ -25,15 +25,15 @@ internal class BalanceSavingService(
                 return Fail($"Некорректная дата и время снимка (default)");
 
             var isBot = await db.Traders
-                .Where(t => t.TelegramId == traderTelegramId)
+                .Where(t => t.Id == traderTelegramId)
                 .Select(t => (bool?)t.IsBot)
                 .FirstOrDefaultAsync();
 
             if (isBot == null)
-                return Fail($"Трейдер с TelegramId {traderTelegramId} не найден");
+                return Fail($"Трейдер с Id {traderTelegramId} не найден");
 
             if (isBot.Value)
-                return Fail($"Снимки баланса для ботов не создаются (TelegramId {traderTelegramId})");
+                return Fail($"Снимки баланса для ботов не создаются (Id {traderTelegramId})");
 
             var balanceSnapshot = BalanceSnapshot.Create(
                 traderTelegramId,
