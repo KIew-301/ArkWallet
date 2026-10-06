@@ -91,7 +91,7 @@ public class TraderQueryServiceTest
         await HelpMethods.RegisterTrader(db, 50, "Alice");
         await HelpMethods.RegisterTrader(db, 1500, "Bob");
         await HelpMethods.RegisterTrader(db, 2000, "Charlie");
-        await HelpMethods.RegisterTrader(db, 101, "BotOne");
+        await HelpMethods.RegisterTrader(db, 101, "BotOne", isBot: true);
 
         var service = new TraderQueryService(db, NullLogger<TraderQueryService>.Instance);
 
@@ -108,8 +108,8 @@ public class TraderQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101, "BotOne");
-        await HelpMethods.RegisterTrader(db, 200, "BotTwo");
+        await HelpMethods.RegisterTrader(db, 101, "BotOne", isBot: true);
+        await HelpMethods.RegisterTrader(db, 200, "BotTwo", isBot: true);
 
         var service = new TraderQueryService(db, NullLogger<TraderQueryService>.Instance);
 
@@ -141,7 +141,7 @@ public class TraderQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101, "BotOne");
+        await HelpMethods.RegisterTrader(db, 101, "BotOne", isBot: true);
         await HelpMethods.RegisterTrader(db, 50, "Alice");
         await HelpMethods.RegisterTrader(db, 1500, "Bob");
         await HelpMethods.RegisterTrader(db, 2000, "Charlie");
@@ -165,8 +165,8 @@ public class TraderQueryServiceTest
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, 101, "BotOne");
-        await HelpMethods.RegisterTrader(db, 200, "BotTwo");
+        await HelpMethods.RegisterTrader(db, 101, "BotOne", isBot: true);
+        await HelpMethods.RegisterTrader(db, 200, "BotTwo", isBot: true);
 
         var service = new TraderQueryService(db, NullLogger<TraderQueryService>.Instance);
 

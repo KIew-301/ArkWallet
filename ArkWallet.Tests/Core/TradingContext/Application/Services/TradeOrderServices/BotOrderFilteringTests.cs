@@ -17,7 +17,7 @@ public class BotOrderFilteringTests
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, BotId, "Bot");
+        await HelpMethods.RegisterTrader(db, BotId, "Bot", isBot: true);
         await HelpMethods.RegisterTrader(db, UserId, "User");
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.AddPortfolio(db, UserId, "ZZZ", 10);
@@ -40,7 +40,7 @@ public class BotOrderFilteringTests
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, BotId, "Bot");
+        await HelpMethods.RegisterTrader(db, BotId, "Bot", isBot: true);
         await HelpMethods.RegisterTrader(db, UserId, "User");
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.AddPortfolio(db, BotId, "ZZZ", 10);
@@ -63,7 +63,7 @@ public class BotOrderFilteringTests
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, BotId, "Bot");
+        await HelpMethods.RegisterTrader(db, BotId, "Bot", isBot: true);
         await HelpMethods.CreateToken(db, "ZZZ");
 
         var placeResult = await HelpMethods.PlaceOrder(db, BotId, "купить", "ZZZ", 5, 100);
@@ -85,7 +85,7 @@ public class BotOrderFilteringTests
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, BotId, "Bot");
+        await HelpMethods.RegisterTrader(db, BotId, "Bot", isBot: true);
         await HelpMethods.CreateToken(db, "ZZZ");
 
         await HelpMethods.PlaceOrder(db, BotId, "купить", "ZZZ", 3, 100);
@@ -107,8 +107,8 @@ public class BotOrderFilteringTests
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, BotId, "Bot1");
-        await HelpMethods.RegisterTrader(db, AnotherBotId, "Bot2");
+        await HelpMethods.RegisterTrader(db, BotId, "Bot1", isBot: true);
+        await HelpMethods.RegisterTrader(db, AnotherBotId, "Bot2", isBot: true);
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.AddPortfolio(db, AnotherBotId, "ZZZ", 10);
 
@@ -129,7 +129,7 @@ public class BotOrderFilteringTests
         db.Database.EnsureCreated();
 
         await HelpMethods.RegisterTrader(db, UserId, "User");
-        await HelpMethods.RegisterTrader(db, BotId, "Bot");
+        await HelpMethods.RegisterTrader(db, BotId, "Bot", isBot: true);
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.AddPortfolio(db, BotId, "ZZZ", 10);
 
@@ -152,7 +152,7 @@ public class BotOrderFilteringTests
         db.Database.EnsureCreated();
 
         await HelpMethods.RegisterTrader(db, UserId, "User");
-        await HelpMethods.RegisterTrader(db, AnotherBotId, "Bot");
+        await HelpMethods.RegisterTrader(db, AnotherBotId, "Bot", isBot: true);
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.AddPortfolio(db, AnotherBotId, "ZZZ", 10);
 
@@ -174,7 +174,7 @@ public class BotOrderFilteringTests
         using var db = DbTest.CreateDbContext();
         db.Database.EnsureCreated();
 
-        await HelpMethods.RegisterTrader(db, BotId, "Bot");
+        await HelpMethods.RegisterTrader(db, BotId, "Bot", isBot: true);
         await HelpMethods.RegisterTrader(db, UserId, "User");
         await HelpMethods.CreateToken(db, "ZZZ");
         await HelpMethods.AddPortfolio(db, UserId, "ZZZ", 10);
@@ -194,24 +194,37 @@ public class BotOrderFilteringTests
     }
 
     [Fact]
-    public async Task BotFilter_IsBot_ReturnsCorrectly()
+    public async Task BotStatus_DrivenByIsBotColumn_NotByTraderIdRange()
     {
-        Assert.False(BotFilter.IsBot(50));
-        Assert.True(BotFilter.IsBot(100));
-        Assert.True(BotFilter.IsBot(101));
-        Assert.True(BotFilter.IsBot(500));
-        Assert.True(BotFilter.IsBot(1000));
-        Assert.False(BotFilter.IsBot(1001));
-        Assert.False(BotFilter.IsBot(5000));
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, BotId, "BotInLegacyRange", isBot: true);
+        await HelpMethods.RegisterTrader(db, 5000, "BotOutsideLegacyRange", isBot: true);
+        await HelpMethods.RegisterTrader(db, 500, "HumanInsideLegacyRange");
+
+        var bots = await db.Traders.Where(t => t.IsBot).Select(t => t.TelegramId).ToListAsync();
+
+        Assert.Contains(BotId, bots);
+        Assert.Contains(5000, bots);
+        Assert.DoesNotContain(500, bots);
     }
 
     [Fact]
-    public async Task BotFilter_IsBotBotTrade_ReturnsCorrectly()
+    public async Task BotBotTrade_DetectedByIsBotColumn_EvenOutsideLegacyIdRange()
     {
-        Assert.True(BotFilter.IsBotBotTrade(101, 102));
-        Assert.True(BotFilter.IsBotBotTrade(500, 1000));
-        Assert.False(BotFilter.IsBotBotTrade(101, 1001));
-        Assert.False(BotFilter.IsBotBotTrade(1001, 101));
-        Assert.False(BotFilter.IsBotBotTrade(1001, 1002));
+        using var db = DbTest.CreateDbContext();
+        db.Database.EnsureCreated();
+
+        await HelpMethods.RegisterTrader(db, 7001, "BotOutsideRange", isBot: true);
+        await HelpMethods.RegisterTrader(db, 7002, "SecondBotOutsideRange", isBot: true);
+
+        var botIds = await db.Traders
+            .Where(t => t.IsBot)
+            .Select(t => t.Id)
+            .ToListAsync();
+
+        Assert.Equal(2, botIds.Count);
+        Assert.All(botIds, id => Assert.True(id > 1000));
     }
 }

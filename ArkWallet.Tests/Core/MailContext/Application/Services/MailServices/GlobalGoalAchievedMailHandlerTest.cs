@@ -29,7 +29,7 @@ public class GlobalGoalAchievedMailHandlerTest
         using var db = await DbTest.CreateInitializedDbContextAsync();
         await HelpMethods.RegisterTrader(db, 2002);
         await HelpMethods.RegisterTrader(db, 3003);
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 101, "Bot", isBot: true);
 
         List<CreateCommand>? captured = null;
         var mailService = new Mock<IMessageService>();
@@ -61,7 +61,7 @@ public class GlobalGoalAchievedMailHandlerTest
     public async Task Handle_NoNonBotTraders_DoesNotCallCreate()
     {
         using var db = await DbTest.CreateInitializedDbContextAsync();
-        await HelpMethods.RegisterTrader(db, 101);
+        await HelpMethods.RegisterTrader(db, 101, "Bot", isBot: true);
 
         var mailService = new Mock<IMessageService>();
         mailService

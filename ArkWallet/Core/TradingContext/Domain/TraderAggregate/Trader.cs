@@ -103,7 +103,9 @@ internal class Trader : AggregateRoot
             throw new DomainException("Withdraw amount must be greater than 0");
 
         if (Balance < amount)
-            throw new DomainException("Insufficient balance");
+            throw new DomainException(
+                $"Insufficient balance: trader {Id} ({Username ?? "без имени"}) "
+                + $"имеет {Balance}, требуется {amount}, не хватает {amount - Balance}");
 
         Balance -= amount;
     }

@@ -19,6 +19,7 @@ internal class BalanceSnapshotOrchestrator(
         return await ServiceErrorHandler.ExecuteAsync(async () =>
         {
             var traderIds = await dbContext.Traders
+                .Where(t => !t.IsBot)
                 .Select(t => t.Id)
                 .ToArrayAsync();
 
