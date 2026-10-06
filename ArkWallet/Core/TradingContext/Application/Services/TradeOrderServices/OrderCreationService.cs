@@ -93,6 +93,19 @@ internal class OrderCreationService(
                 {
                     failedGroups++;
                     errors.Add(result.Message);
+
+                    // Without the symbol and the traders behind the collection a failure reads as a
+                    // bare reason, and there is no way to tell which bot stopped trading from the log.
+                    var symbol = collection.First().Symbol;
+                    var direction = collection.First().Direction;
+                    var traderIds = collection.Select(c => c.TraderId).Distinct().ToArray();
+                    logger.LogWarning(
+                        "Коллекция не размещена: {Direction} {Symbol}, ордеров {OrderCount}, "
+                        + "трейдеры {TraderIds}, сумма {Total}. Причина: {Reason}",
+                        direction, symbol, collection.Count,
+                        string.Join(",", traderIds),
+                        collection.Sum(c => (decimal)c.Price * c.Quantity),
+                        result.Message);
                 }
             }
 
