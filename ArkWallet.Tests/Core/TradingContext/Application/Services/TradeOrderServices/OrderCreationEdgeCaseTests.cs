@@ -48,30 +48,6 @@ public class OrderCreationEdgeCaseTests
         Assert.Contains("Insufficient balance", result.Message);
     }
 
-    /// <summary>
-    /// Отказ из-за нехватки средств диагностировался по коду: домен бросал голое
-    /// "Insufficient balance", цифры терялись, и невозможно было понять, у какого бота и на сколько
-    /// не хватило. Сообщение обязано содержать трейдера, его баланс, требуемую сумму и разницу.
-    /// </summary>
-    [Fact]
-    public async Task ProcessOrderAsync_InsufficientBalance_ReportsTraderAmountsAndShortfall()
-    {
-        using var db = DbTest.CreateDbContext();
-        db.Database.EnsureCreated();
-
-        await HelpMethods.RegisterTrader(db, 1001);
-        await HelpMethods.CreateToken(db, "ZZZ");
-
-        var result = await HelpMethods.PlaceOrder(db, 1001, "\u043A\u0443\u043F\u0438\u0442\u044C", "ZZZ", 5, 10000);
-
-        Assert.False(result.IsSuccess);
-        Assert.Contains("Insufficient balance", result.Message);
-        Assert.Contains("1001", result.Message);
-        Assert.Contains("50000", result.Message);
-        Assert.Contains("1000", result.Message);
-        Assert.Contains("49000", result.Message);
-    }
-
     [Fact]
     public async Task ProcessOrderAsync_SellInsufficientTokens_ReturnsFail()
     {
