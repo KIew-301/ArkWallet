@@ -18,8 +18,8 @@ public enum MarketMakerRole
 /// <summary>Represents a market maker bot with configurable power, role, and trading parameters.</summary>
 public sealed class MarketMakerBot
 {
-    /// <summary>Баланс трейдера по умолчанию для бота — 10 000 000.</summary>
-    public const decimal DefaultBalance = 10_000_000m;
+    /// <summary>Баланс трейдера по умолчанию для бота — 1 000 000 000.</summary>
+    public const decimal DefaultBalance = 1_000_000_000m;
 
     /// <summary>Портфель (токены символа) по умолчанию для бота — 1 000 000.</summary>
     public const int DefaultPortfolioTokens = 1_000_000;

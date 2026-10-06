@@ -1,6 +1,7 @@
 using ArkWallet.Core.General.Application.Common;
 using ArkWallet.Core.TradingContext.Application.Contracts.TraderServices;
 using ArkWallet.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace ArkWallet.Core.TradingContext.Application.Services.TraderServices;
@@ -22,6 +23,17 @@ internal class BalanceSavingService(
         {
             if (snapshotDateTime == default)
                 return Fail($"Некорректная дата и время снимка (default)");
+
+            var isBot = await db.Traders
+                .Where(t => t.TelegramId == traderTelegramId)
+                .Select(t => (bool?)t.IsBot)
+                .FirstOrDefaultAsync();
+
+            if (isBot == null)
+                return Fail($"Трейдер с TelegramId {traderTelegramId} не найден");
+
+            if (isBot.Value)
+                return Fail($"Снимки баланса для ботов не создаются (TelegramId {traderTelegramId})");
 
             var balanceSnapshot = BalanceSnapshot.Create(
                 traderTelegramId,

@@ -164,6 +164,8 @@ internal class BotOrchestrator(
 
             await TransactionHandler.ExecuteAsync(dbContext, async () =>
             {
+                await ReplenishBotBalancesAsync(bots, ct);
+
                 foreach (var bot in bots)
                 {
                     var (balance, portfolioTokens) = MarketMakerBot.GetDefaultResources();
@@ -192,7 +194,7 @@ internal class BotOrchestrator(
             return false;
         }
 
-        if (trader.Balance < requiredBalance)
+        if (trader.Balance != requiredBalance)
         {
             trader.Balance = requiredBalance;
             await dbContext.SaveChangesAsync(ct);
@@ -200,6 +202,38 @@ internal class BotOrchestrator(
         }
 
         return true;
+    }
+
+    private async Task ReplenishBotBalancesAsync(IReadOnlyCollection<MarketMakerBotRecord> bots, CancellationToken ct)
+    {
+        var traderIds = bots.Select(b => b.TraderId).ToArray();
+
+        if (traderIds.Length == 0)
+            return;
+
+        var traders = await dbContext.Traders
+            .Where(t => traderIds.Contains(t.Id))
+            .ToListAsync(ct);
+
+        var target = MarketMakerBot.DefaultBalance;
+        var changed = 0;
+
+        foreach (var trader in traders)
+        {
+            if (trader.Balance == target)
+                continue;
+
+            trader.Balance = target;
+            changed++;
+        }
+
+        if (changed == 0)
+            return;
+
+        await dbContext.SaveChangesAsync(ct);
+        logger.LogInformation(
+            "Bot balances replenished to {Target}: {Changed} of {Total} traders",
+            target, changed, traders.Count);
     }
 
     private async Task RefreshPortfolioBatchAsync(
@@ -241,6 +275,10 @@ public async Task<Result> UpdateBotsGridsForRoleAsync(MarketMakerRole role, bool
                     return Result.Ok();
 
                 var isWall = role == MarketMakerRole.Waller;
+                // Деньги обязаны быть на месте до расчёта сетки: ордера сразу резервируют баланс,
+                // а пополнение по отдельному расписанию отстаёт от сеток.
+                await ReplenishBotBalancesAsync(bots, ct);
+
                 var shouldCancelOrders = isWall || cancelExistingOrders;
                 var modifiers = isWall ? modifierCollection.WallGridModifiers : modifierCollection.GridModifiers;
 
@@ -293,6 +331,9 @@ return await PlaceCollectedAsync();
 
             if (bots.Count == 0)
                 return Result.Ok();
+
+            // Market-ордера резервируют баланс так же, как сетка, поэтому деньги пополняем здесь.
+            await ReplenishBotBalancesAsync(bots, ct);
 
             var marketMask = AggregateRequiredData(modifierCollection.MarketModifiers);
             var marketSnapshots = await LoadSnapshotsAsync(marketMask, bots, ct);

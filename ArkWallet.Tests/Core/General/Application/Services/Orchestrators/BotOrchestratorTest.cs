@@ -16,7 +16,7 @@ using static ArkWallet.Core.General.Application.Common.Result;
 
 namespace ArkWallet.Tests.Core.General.Application.Services.Orchestrators;
 
-public class BotOrchestratorTest : IDisposable
+public partial class BotOrchestratorTest : IDisposable
 {
     private readonly List<IAsyncDisposable> _disposables = new();
     private int _regCounter;
@@ -1122,8 +1122,13 @@ private Mock<IMarketMakerBotRegistrationService> CreateRealRegistrationHelper(Ar
         collMock.Verify(c => c.Add(It.IsAny<IReadOnlyCollection<CreateOrderCommand>>()), Times.Never);
     }
 
+    /// <summary>
+    /// Баланс бота не может быть причиной отказа от выставления: ордера резервируют средства,
+    /// поэтому перед размещением баланс обязан быть приведён к норме. Раньше бот с балансом 0
+    /// просто пропускался, и сетка молча не выставлялась до пополнения по отдельному расписанию.
+    /// </summary>
     [Fact]
-    public async Task ExecuteMarketOrdersAsync_BuyerZeroBalance_SkipsBot()
+    public async Task ExecuteMarketOrdersAsync_BuyerZeroBalance_ReplenishesBalanceAndProceeds()
     {
         var db = DbTest.CreateDbContext();
         _disposables.Add(db);
@@ -1134,6 +1139,7 @@ private Mock<IMarketMakerBotRegistrationService> CreateRealRegistrationHelper(Ar
 
         var buyerId = 14101L;
         await HelpMethods.RegisterTrader(db, buyerId);
+        await SeedPortfolioAsync(db, buyerId, "TKN_ZB");
         var buyerTrader = await db.Traders.FirstAsync(t => t.TelegramId == buyerId);
         buyerTrader.Balance = 0m;
         await db.SaveChangesAsync();
@@ -1149,7 +1155,8 @@ private Mock<IMarketMakerBotRegistrationService> CreateRealRegistrationHelper(Ar
         var result = await orch.ExecuteMarketOrdersAsync();
 
         Assert.True(result.IsSuccess);
-        collMock.Verify(c => c.Add(It.IsAny<IReadOnlyCollection<CreateOrderCommand>>()), Times.Never);
+        Assert.Equal(MarketMakerBot.DefaultBalance, buyerTrader.Balance);
+        collMock.Verify(c => c.Add(It.IsAny<IReadOnlyCollection<CreateOrderCommand>>()), Times.Once);
     }
 
     [Fact]
