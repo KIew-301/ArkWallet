@@ -119,16 +119,21 @@ internal class BotOrchestrator(
 
         // CharacterTokenId stores the token symbol (see UpdatingService.CreateOrUpdatePortfolioAsync),
         // so it is compared directly against the bot symbol — no CharacterToken navigation needed.
+        //
+        // Quantity is already the free balance: reserving a sell order moves tokens out of Quantity
+        // into ReserveQuantity, and selling moves them into SellingQuantity. Subtracting Reserve or
+        // Selling here would double-count them and drive the seller's free amount negative, so the
+        // seller bot never places an order and the price can only be pushed up by the buyer.
         return await dbContext.PortfolioItems
             .Where(pi => traderIds.Contains(pi.TraderId))
             .Where(pi => symbols.Contains(pi.CharacterTokenId))
-            .Where(pi => (pi.Quantity - pi.SellingQuantity - pi.ReserveQuantity) > 0)
+            .Where(pi => pi.Quantity > 0)
             .GroupBy(pi => new { pi.TraderId, pi.CharacterTokenId })
             .Select(g => new
             {
                 g.Key.TraderId,
                 Symbol = g.Key.CharacterTokenId,
-                FreeQty = g.Sum(pi => pi.Quantity - pi.SellingQuantity - pi.ReserveQuantity)
+                FreeQty = g.Sum(pi => pi.Quantity)
             })
             .ToDictionaryAsync(
                 x => (x.TraderId, x.Symbol),
