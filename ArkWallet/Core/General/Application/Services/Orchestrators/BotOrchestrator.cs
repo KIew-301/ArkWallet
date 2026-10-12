@@ -280,7 +280,7 @@ public async Task<Result> UpdateBotsGridsForRoleAsync(MarketMakerRole role, bool
                 await ReplenishBotBalancesAsync(bots, ct);
 
                 var shouldCancelOrders = isWall || cancelExistingOrders;
-                var modifiers = isWall ? modifierCollection.WallGridModifiers : modifierCollection.GridModifiers;
+                var modifiers = SelectGridModifiers(isWall);
 
                 var mask = AggregateRequiredData(modifiers);
                 var snapshots = await LoadSnapshotsAsync(mask, bots, ct);
@@ -310,6 +310,9 @@ public async Task<Result> UpdateBotsGridsForRoleAsync(MarketMakerRole role, bool
 return await PlaceCollectedAsync();
             }, logger, nameof(BotOrchestrator));
     }
+
+    private IReadOnlyCollection<IPlanModify> SelectGridModifiers(bool isWall)
+        => isWall ? modifierCollection.WallGridModifiers : modifierCollection.GridModifiers;
 
     private async Task CancelBotOrdersAsync(long traderId)
     {
@@ -421,18 +424,8 @@ return await PlaceCollectedAsync();
             .Select(t => t.Id)
             .ToListAsync(ct);
 
-        var added = 0;
-        var moved = 0;
-        foreach (var symbol in symbols)
-        {
-            foreach (var role in RequiredRoles())
-            {
-                var outcome = await EnsureBotForRoleAsync(
-                    symbol, role, botsBySymbolRole, traderUsage, botTraderIds, ct);
-                added += outcome.Added ? 1 : 0;
-                moved += outcome.Moved ? 1 : 0;
-            }
-        }
+        var (added, moved) = await EnsureBotsForActiveTokensAsync(
+            symbols, botsBySymbolRole, traderUsage, botTraderIds, ct);
 
         // The loop above only visits records on active tokens with a required role. A record whose
         // token was deactivated, or whose role is no longer required, would otherwise keep a shared
@@ -522,6 +515,29 @@ return await PlaceCollectedAsync();
         await dbContext.SaveChangesAsync(ct);
 
         return toRemove.Count;
+    }
+
+    private async Task<(int Added, int Moved)> EnsureBotsForActiveTokensAsync(
+        List<string> symbols,
+        Dictionary<(string Symbol, BotRole Role), (long Id, long TraderId)> botsBySymbolRole,
+        Dictionary<long, int> traderUsage,
+        List<long> botTraderIds,
+        CancellationToken ct)
+    {
+        var added = 0;
+        var moved = 0;
+        foreach (var symbol in symbols)
+        {
+            foreach (var role in RequiredRoles())
+            {
+                var outcome = await EnsureBotForRoleAsync(
+                    symbol, role, botsBySymbolRole, traderUsage, botTraderIds, ct);
+                added += outcome.Added ? 1 : 0;
+                moved += outcome.Moved ? 1 : 0;
+            }
+        }
+
+        return (added, moved);
     }
 
     private async Task<(bool Added, bool Moved)> EnsureBotForRoleAsync(
