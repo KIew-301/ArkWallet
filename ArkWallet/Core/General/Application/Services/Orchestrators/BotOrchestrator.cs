@@ -118,17 +118,17 @@ internal class BotOrchestrator(
         var symbols = bots.Select(b => b.Symbol).Distinct().ToList();
 
         // CharacterTokenId stores the token symbol (see UpdatingService.CreateOrUpdatePortfolioAsync),
-        // so it is compared directly against the bot symbol — no CharacterToken navigation needed.
+        // so it is compared against the bot symbol. Quantity is already free — never subtract Reserve/Selling.
         return await dbContext.PortfolioItems
             .Where(pi => traderIds.Contains(pi.TraderId))
             .Where(pi => symbols.Contains(pi.CharacterTokenId))
-            .Where(pi => (pi.Quantity - pi.SellingQuantity - pi.ReserveQuantity) > 0)
+            .Where(pi => pi.Quantity > 0)
             .GroupBy(pi => new { pi.TraderId, pi.CharacterTokenId })
             .Select(g => new
             {
                 g.Key.TraderId,
                 Symbol = g.Key.CharacterTokenId,
-                FreeQty = g.Sum(pi => pi.Quantity - pi.SellingQuantity - pi.ReserveQuantity)
+                FreeQty = g.Sum(pi => pi.Quantity)
             })
             .ToDictionaryAsync(
                 x => (x.TraderId, x.Symbol),
@@ -280,7 +280,7 @@ public async Task<Result> UpdateBotsGridsForRoleAsync(MarketMakerRole role, bool
                 await ReplenishBotBalancesAsync(bots, ct);
 
                 var shouldCancelOrders = isWall || cancelExistingOrders;
-                var modifiers = isWall ? modifierCollection.WallGridModifiers : modifierCollection.GridModifiers;
+                var modifiers = SelectGridModifiers(isWall);
 
                 var mask = AggregateRequiredData(modifiers);
                 var snapshots = await LoadSnapshotsAsync(mask, bots, ct);
@@ -310,6 +310,9 @@ public async Task<Result> UpdateBotsGridsForRoleAsync(MarketMakerRole role, bool
 return await PlaceCollectedAsync();
             }, logger, nameof(BotOrchestrator));
     }
+
+    private IReadOnlyCollection<IPlanModify> SelectGridModifiers(bool isWall)
+        => isWall ? modifierCollection.WallGridModifiers : modifierCollection.GridModifiers;
 
     private async Task CancelBotOrdersAsync(long traderId)
     {
@@ -421,18 +424,8 @@ return await PlaceCollectedAsync();
             .Select(t => t.Id)
             .ToListAsync(ct);
 
-        var added = 0;
-        var moved = 0;
-        foreach (var symbol in symbols)
-        {
-            foreach (var role in RequiredRoles())
-            {
-                var outcome = await EnsureBotForRoleAsync(
-                    symbol, role, botsBySymbolRole, traderUsage, botTraderIds, ct);
-                added += outcome.Added ? 1 : 0;
-                moved += outcome.Moved ? 1 : 0;
-            }
-        }
+        var (added, moved) = await EnsureBotsForActiveTokensAsync(
+            symbols, botsBySymbolRole, traderUsage, botTraderIds, ct);
 
         // The loop above only visits records on active tokens with a required role. A record whose
         // token was deactivated, or whose role is no longer required, would otherwise keep a shared
@@ -522,6 +515,29 @@ return await PlaceCollectedAsync();
         await dbContext.SaveChangesAsync(ct);
 
         return toRemove.Count;
+    }
+
+    private async Task<(int Added, int Moved)> EnsureBotsForActiveTokensAsync(
+        List<string> symbols,
+        Dictionary<(string Symbol, BotRole Role), (long Id, long TraderId)> botsBySymbolRole,
+        Dictionary<long, int> traderUsage,
+        List<long> botTraderIds,
+        CancellationToken ct)
+    {
+        var added = 0;
+        var moved = 0;
+        foreach (var symbol in symbols)
+        {
+            foreach (var role in RequiredRoles())
+            {
+                var outcome = await EnsureBotForRoleAsync(
+                    symbol, role, botsBySymbolRole, traderUsage, botTraderIds, ct);
+                added += outcome.Added ? 1 : 0;
+                moved += outcome.Moved ? 1 : 0;
+            }
+        }
+
+        return (added, moved);
     }
 
     private async Task<(bool Added, bool Moved)> EnsureBotForRoleAsync(

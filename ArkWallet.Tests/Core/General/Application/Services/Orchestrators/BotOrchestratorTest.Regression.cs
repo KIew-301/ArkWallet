@@ -131,4 +131,45 @@ public partial class BotOrchestratorTest
         Assert.Equal(MarketMakerBot.DefaultBalance, freshBelow.Balance);
         Assert.Equal(MarketMakerBot.DefaultBalance, freshAbove.Balance);
     }
+
+    /// <summary>
+    /// Продавец обязан выставлять ордера, даже если его накопленный <c>SellingQuantity</c>
+    /// («продано») в разы превышает <c>Quantity</c>. Раньше свободный остаток считался как
+    /// <c>Quantity - SellingQuantity - ReserveQuantity</c>, что вычитало уже ушедшие из позиции
+    /// токены повторно и делало остаток отрицательным: продавец молча пропускался, из стакана
+    /// исчезала ask-сторона, и цена росла только от агрессивных покупок бота-покупателя.
+    /// </summary>
+    [Fact]
+    public async Task UpdateBotsGridsForRoleAsync_SellerWithHugeSellingQuantity_StillPlacesOrders()
+    {
+        var db = DbTest.CreateDbContext();
+        _disposables.Add(db);
+        await db.Database.EnsureCreatedAsync();
+        await HelpMethods.CreateToken(db, "TKN_SS", isActive: true);
+        await HelpMethods.CreatePriceCandle(db, "TKN_SS", 100m, DateTime.UtcNow.AddDays(-2));
+        await HelpMethods.CreatePriceCandle(db, "TKN_SS", 100m, DateTime.UtcNow);
+
+        var sellerId = 15401L;
+        await HelpMethods.RegisterTrader(db, sellerId);
+        await SeedPortfolioAsync(db, sellerId, "TKN_SS");
+
+        var item = await db.PortfolioItems.FirstAsync(p => p.TraderId == sellerId && p.CharacterTokenId == "TKN_SS");
+        item.Quantity = 1_000_000;
+        item.SellingQuantity = 101_204_926;
+        item.ReserveQuantity = 40_340;
+        await db.SaveChangesAsync();
+
+        var bot = MarketMakerBotRecord.Create(sellerId, "TKN_SS", BotRole.Seller, 50m);
+        await db.MarketMakerBots.AddAsync(bot);
+        await db.SaveChangesAsync();
+
+        var collMock = new Mock<IOrderCollector>();
+        collMock.Setup(c => c.TakeAll()).Returns(() => Array.Empty<IReadOnlyCollection<CreateOrderCommand>>());
+
+        var orch = CreateOrchestrator(db, orderCollector: collMock);
+        var result = await orch.UpdateBotsGridsForRoleAsync(MarketMakerRole.Seller);
+
+        Assert.True(result.IsSuccess);
+        collMock.Verify(c => c.Add(It.IsAny<IReadOnlyCollection<CreateOrderCommand>>()), Times.Once);
+    }
 }
