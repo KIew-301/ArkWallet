@@ -23,6 +23,7 @@
 
 - [🧠 Overview](#-overview)
 - [🚀 Core Capabilities](#-core-capabilities)
+- [🎬 Demo](#-demo)
 - [🧱 Architecture](#-architecture)
 - [⚙️ Trading Engine](#️-trading-engine)
 - [🏗️ Domain Model](#️-domain-model)
@@ -61,6 +62,25 @@
 | **🔐 Concurrency Control** | Pessimistic row locking (`SELECT ... FOR UPDATE`) and transaction wrapper to serialize trades and price updates |
 | **📈 Observability** | Health checks, OpenTelemetry metrics, Prometheus scraping, Grafana dashboards, `/admin_metrics` bot command |
 | **⚡ Performance Gates** | Dedicated perf-testing project with EF query counters, budget gates, and HTML reports |
+
+---
+
+## 🎬 Demo
+
+Short screen recordings from the live Telegram interface (silent).
+
+<div align="center">
+
+| | |
+|:---:|:---:|
+| ![Token selection and sparkline](media/token-sparkline.gif) | ![Candlestick chart](media/candle-chart.gif) |
+| **Token list & sparkline** — pick a token to preview its price dynamics | **Candlestick chart** — detailed price history of the selected token |
+| ![Order book & cancellation](media/order-book.gif) | ![Trading → Mining](media/trading-to-mining.gif) |
+| **Order book** — cancel a key order and receive a notification | **Trading → Mining** — context switch and token overview |
+| ![Mining machine catalog](media/mining-machines.gif) | ![Owned mining machines](media/owned-mining-machines.gif) |
+| **Machine catalog** — rig models and mining characteristics | **Owned machines** — purchased rigs and their live output |
+
+</div>
 
 ---
 
